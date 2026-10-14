@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -40,9 +41,9 @@ const MODULE_OPTIONS = [
 ];
 
 const isSensitive = (l) => l.sensitive || SENSITIVE_ACTIONS.includes(l.action);
-const fmtTime = (t) => (t ? new Date(t).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '—');
+const fmtTime = (t) => (t ? new Date(t).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '-');
 const stringify = (v) => {
-  if (v == null) return '—';
+  if (v == null) return '-';
   if (typeof v === 'object') return JSON.stringify(v, null, 2);
   return String(v);
 };
@@ -98,7 +99,7 @@ export default function AdminAuditLog() {
     }
   }, [action, moduleFilter, from, to]);
 
-  useEffect(() => { load(); }, [load]);
+  useLiveEffect(() => { load(); }, [load]);
 
   const visible = useMemo(() => {
     // Sensitive-only narrows the set first, then the free-text search runs on top.
@@ -239,12 +240,12 @@ export default function AdminAuditLog() {
                     </span>
                     <span className="aud-action">
                       {l.action}
-                      {sensitive && <span className="aud-tag" title="Sensitive — founder notified via email digest"><Mail size={10} /></span>}
+                      {sensitive && <span className="aud-tag" title="Sensitive - founder notified via email digest"><Mail size={10} /></span>}
                     </span>
-                    <span className="aud-module">{l.module || '—'}</span>
-                    <span className="aud-target">{l.target_type ? `${l.target_type}:${String(l.target_id || '').slice(0, 8)}` : '—'}</span>
-                    <span className="aud-reason" title={l.reason}>{l.reason || '—'}</span>
-                    <span className="aud-ip">{l.ip || '—'}</span>
+                    <span className="aud-module">{l.module || '-'}</span>
+                    <span className="aud-target">{l.target_type ? `${l.target_type}:${String(l.target_id || '').slice(0, 8)}` : '-'}</span>
+                    <span className="aud-reason" title={l.reason}>{l.reason || '-'}</span>
+                    <span className="aud-ip">{l.ip || '-'}</span>
                   </button>
                   {open && (
                     <div className="aud-detail">
@@ -287,7 +288,7 @@ export default function AdminAuditLog() {
         .aud-srch svg { color:#9a9ab0; }
         .aud-srch input { border:none; outline:none; background:transparent; padding:9px 0; flex:1; font-size:13px; }
         .aud-toolbar select, .aud-toolbar input[type="date"] { padding:8px 10px; border:1px solid #e2e4f0; border-radius:9px; font-size:13px; color:#4b4b66; background:#fff; }
-        /* Focus ring on the search WRAPPER only — not the inner input as well,
+        /* Focus ring on the search WRAPPER only - not the inner input as well,
            otherwise both glow and you get a double outline. */
         .aud-toolbar select:focus, .aud-toolbar input[type="date"]:focus, .aud-srch:focus-within { outline:none; border-color:#5b6bff; box-shadow:0 0 0 3px rgba(91,107,255,0.16); }
         .aud-srch input:focus { outline:none; box-shadow:none; border:none; }

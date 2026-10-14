@@ -23,7 +23,7 @@ const GROUPS = [
   {
     title: 'Platform activity',
     icon: BarChart3,
-    hint: 'Headline numbers — signups, applications, campaigns, deals and escrow held.',
+    hint: 'Headline numbers - signups, applications, campaigns, deals and escrow held.',
     items: [
       { kind: 'digest', label: 'Platform digest', url: '/admin/reports/digest', cap: 'generate_reports', usesPeriod: true },
     ],
@@ -31,7 +31,7 @@ const GROUPS = [
   {
     title: 'Financial',
     icon: IndianRupee,
-    hint: 'Money movement — payouts, profit & loss, and the wallet/escrow reconciliation.',
+    hint: 'Money movement - payouts, profit & loss, and the wallet/escrow reconciliation.',
     items: [
       { kind: 'withdrawals', label: 'Withdrawals', url: '/admin/withdrawals/export', cap: 'view_financials' },
       { kind: 'pnl', label: 'Profit & loss', url: '/admin/financials/pnl/export', cap: 'view_financials', usesPeriod: true },

@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -24,12 +25,12 @@ const TYPE_FILTERS = ['', 'general', 'damaged_product', 'not_received', 'quality
 const PEER_REVIEW_THRESHOLD = 50000;
 
 const money = (v) => `₹${Number(v || 0).toLocaleString('en-IN')}`;
-const shortId = (v) => (v ? String(v).slice(0, 8) : '—');
+const shortId = (v) => (v ? String(v).slice(0, 8) : '-');
 
 function ageLabel(createdAt) {
-  if (!createdAt) return '—';
+  if (!createdAt) return '-';
   const ms = Date.now() - new Date(createdAt).getTime();
-  if (Number.isNaN(ms)) return '—';
+  if (Number.isNaN(ms)) return '-';
   const h = Math.floor(ms / 3_600_000);
   if (h < 24) return `${h}h`;
   return `${Math.floor(h / 24)}d ${h % 24}h`;
@@ -94,7 +95,7 @@ export default function AdminDisputes() {
     }
   }, [statusFilter]);
 
-  useEffect(() => {
+  useLiveEffect(() => {
     fetchDisputes();
   }, [fetchDisputes]);
 
@@ -184,7 +185,7 @@ export default function AdminDisputes() {
         note_to_creator: noteToCreator, note_to_brand: noteToBrand,
         penalty_amount: Number(penaltyAmount || 0), penalty_party: penaltyParty,
       });
-      toast.success('Draft saved — you can resume later');
+      toast.success('Draft saved - you can resume later');
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Failed to save draft'));
     } finally {
@@ -229,7 +230,7 @@ export default function AdminDisputes() {
     }
   }, []);
 
-  useEffect(() => { if (view === 'appeals') fetchAppeals(); }, [view, fetchAppeals]);
+  useLiveEffect(() => { if (view === 'appeals') fetchAppeals(); }, [view, fetchAppeals]);
 
   // spec 11.8 — default sort oldest-open-first, plus the severity/type/assigned filters
   const visibleDisputes = useMemo(() => {
@@ -314,11 +315,11 @@ export default function AdminDisputes() {
               <button type="button" key={dis.id} className="disp-row" onClick={() => openDispute(dis.id)} data-testid={`dispute-${dis.id}`}>
                 <span className="disp-id">#{shortId(dis.id)}</span>
                 <span>{shortId(dis.business_id)} ↔ {shortId(dis.creator_id)}</span>
-                <span>{(dis.dispute_type || '—').replace(/_/g, ' ')}</span>
+                <span>{(dis.dispute_type || '-').replace(/_/g, ' ')}</span>
                 <span className={`disp-sev sev-${dis.severity || 'normal'}`}>{dis.severity || 'normal'}</span>
                 <span>{ageLabel(dis.created_at)}</span>
                 <span className={`disp-sla ${slaClass(dis)}`}>
-                  {['resolved', 'closed'].includes(dis.status) ? '—' : dis.sla_breached ? 'BREACHED' : typeof dis.sla_hours_remaining === 'number' ? `${dis.sla_hours_remaining}h` : '—'}
+                  {['resolved', 'closed'].includes(dis.status) ? '-' : dis.sla_breached ? 'BREACHED' : typeof dis.sla_hours_remaining === 'number' ? `${dis.sla_hours_remaining}h` : '-'}
                 </span>
                 <span className="disp-assigned">
                   {dis.assigned_to_name || dis.assigned_to
@@ -334,7 +335,7 @@ export default function AdminDisputes() {
         {view === 'appeals' && (
           <div className="disp-appeals">
             <div className="disp-appeals-note">
-              <ShieldCheck size={15} /> Appeals require senior-admin or founder review. The second ruling is final — no further appeals on-platform.
+              <ShieldCheck size={15} /> Appeals require senior-admin or founder review. The second ruling is final - no further appeals on-platform.
             </div>
             {appeals.length === 0 ? (
               <div className="disp-empty"><Gavel size={40} /><p>No appeals in the queue.</p></div>
@@ -347,11 +348,11 @@ export default function AdminDisputes() {
                   <button type="button" key={dis.id} className="disp-row" onClick={() => openDispute(dis.id)} data-testid={`appeal-${dis.id}`}>
                     <span className="disp-id">#{shortId(dis.id)}</span>
                     <span>{shortId(dis.business_id)} ↔ {shortId(dis.creator_id)}</span>
-                    <span>{(dis.dispute_type || '—').replace(/_/g, ' ')}</span>
+                    <span>{(dis.dispute_type || '-').replace(/_/g, ' ')}</span>
                     <span className={`disp-sev sev-${dis.severity || 'normal'}`}>{dis.severity || 'normal'}</span>
                     <span>{ageLabel(dis.created_at)}</span>
                     <span className={`disp-sla ${slaClass(dis)}`}>
-                      {['resolved', 'closed'].includes(dis.status) ? '—' : dis.sla_breached ? 'BREACHED' : typeof dis.sla_hours_remaining === 'number' ? `${dis.sla_hours_remaining}h` : '—'}
+                      {['resolved', 'closed'].includes(dis.status) ? '-' : dis.sla_breached ? 'BREACHED' : typeof dis.sla_hours_remaining === 'number' ? `${dis.sla_hours_remaining}h` : '-'}
                     </span>
                     <span className="disp-assigned">{dis.assigned_to_name || dis.assigned_to || 'Unassigned'}</span>
                     <span className={`disp-status st-${dis.status}`}>{(dis.status || 'appealed').replace('_', ' ')}</span>
@@ -373,8 +374,8 @@ export default function AdminDisputes() {
 
             {selected && (
               <div className="disp-parties">
-                <span className="disp-party disp-party--brand"><em>Brand</em> {selected.brand_name || '—'}</span>
-                <span className="disp-party disp-party--creator"><em>Creator</em> {selected.creator_name || '—'}</span>
+                <span className="disp-party disp-party--brand"><em>Brand</em> {selected.brand_name || '-'}</span>
+                <span className="disp-party disp-party--creator"><em>Creator</em> {selected.creator_name || '-'}</span>
               </div>
             )}
 
@@ -394,7 +395,7 @@ export default function AdminDisputes() {
                   <div className="disp-evidence-body">
                     {evidenceTab === 'brief' && (
                       <div>
-                        <p className="disp-claim"><strong>Reason:</strong> {d.reason || d.description || d.dispute_type || '—'}</p>
+                        <p className="disp-claim"><strong>Reason:</strong> {d.reason || d.description || d.dispute_type || '-'}</p>
                         <h4>{selected.brief?.title || 'Campaign'}</h4>
                         <p className="disp-brief-text">{selected.brief?.brief_text || 'No brief text.'}</p>
                         <p className="disp-meta">Held in escrow: <strong>{money(selected.brief?.per_video_budget || selected.brief?.budget_max)}</strong></p>
@@ -403,7 +404,7 @@ export default function AdminDisputes() {
                     {evidenceTab === 'timeline' && (
                       <ul className="disp-timeline">
                         {(selected.timeline || []).map((t, i) => (
-                          <li key={i}><span>{(t.timestamp || '').slice(0, 16).replace('T', ' ')}</span> <b>{t.actor_name || t.actor_type}</b> — {t.message || t.event_type}</li>
+                          <li key={i}><span>{(t.timestamp || '').slice(0, 16).replace('T', ' ')}</span> <b>{t.actor_name || t.actor_type}</b> - {t.message || t.event_type}</li>
                         ))}
                         {(!selected.timeline || !selected.timeline.length) && <li>No timeline events.</li>}
                       </ul>
@@ -434,10 +435,10 @@ export default function AdminDisputes() {
                       <div className="disp-ship">
                         {selected.shipment ? (
                           <>
-                            <p>Tracking: <strong>{selected.shipment.tracking_number || '—'}</strong></p>
-                            <p>Courier: <strong>{selected.shipment.courier_name || '—'}</strong></p>
-                            <p>Status: <strong>{selected.shipment.courier_status || selected.shipment.status || '—'}</strong></p>
-                            <p>Received: <strong>{(selected.shipment.received_at || '—').toString().slice(0, 10)}</strong></p>
+                            <p>Tracking: <strong>{selected.shipment.tracking_number || '-'}</strong></p>
+                            <p>Courier: <strong>{selected.shipment.courier_name || '-'}</strong></p>
+                            <p>Status: <strong>{selected.shipment.courier_status || selected.shipment.status || '-'}</strong></p>
+                            <p>Received: <strong>{(selected.shipment.received_at || '-').toString().slice(0, 10)}</strong></p>
                           </>
                         ) : <p>No shipment on this deal.</p>}
                       </div>
@@ -536,9 +537,9 @@ export default function AdminDisputes() {
                         <div className={`disp-peer ${peerReviewState === 'approved' ? 'ok' : 'warn'}`}>
                           <ShieldCheck size={15} />
                           {peerReviewState === 'approved'
-                            ? 'Peer review approved — you may finalise this ruling.'
+                            ? 'Peer review approved - you may finalise this ruling.'
                             : peerReviewState === 'requested'
-                              ? `Settlement over ${money(PEER_REVIEW_THRESHOLD)} — awaiting a second admin's review.`
+                              ? `Settlement over ${money(PEER_REVIEW_THRESHOLD)} - awaiting a second admin's review.`
                               : `Settlement over ${money(PEER_REVIEW_THRESHOLD)} requires peer review before it can be finalised.`}
                         </div>
                       )}
@@ -554,7 +555,7 @@ export default function AdminDisputes() {
                         )}
                       </div>
                       <button type="button" className="disp-rule-btn" disabled={busy || peerReviewBlocked || overRoleCap} onClick={submitRuling} title={overRoleCap ? `Above your ${ROLE_LABELS[myRole]} limit of ${money(myDisputeCap)}` : peerReviewBlocked ? 'Peer review required for settlements over ₹50K' : undefined}>
-                        {busy ? 'Settling…' : overRoleCap ? `Over your ${money(myDisputeCap)} limit — escalate` : peerReviewBlocked ? 'Peer review required to settle' : 'Record Ruling & Settle Funds'}
+                        {busy ? 'Settling…' : overRoleCap ? `Over your ${money(myDisputeCap)} limit - escalate` : peerReviewBlocked ? 'Peer review required to settle' : 'Record Ruling & Settle Funds'}
                       </button>
 
                       <div className="disp-divider" />

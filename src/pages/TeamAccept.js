@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -22,7 +23,7 @@ export default function TeamAccept() {
   const [password2, setPassword2] = useState('');
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
+  useLiveEffect(() => {
     if (!token) { setState('invalid'); return; }
     axios.get(`${API}/team/invite/${token}`)
       .then((r) => { setInvite(r.data); setState('ok'); })

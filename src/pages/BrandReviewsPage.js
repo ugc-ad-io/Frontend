@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
@@ -50,7 +51,7 @@ export default function BrandReviewsPage() {
   const [loading, setLoading] = useState(true);
   const [showAll, setShowAll] = useState(false);
 
-  useEffect(() => {
+  useLiveEffect(() => {
     if (user?.approval_status !== 'approved') { setLoading(false); return; }
     fetchData();
     const interval = setInterval(fetchData, 15000);
@@ -156,7 +157,7 @@ export default function BrandReviewsPage() {
         <div className="cmk-stat">
           <div className="cmk-stat-head"><div className="cmk-ic cmk-ic-orange"><Star size={20} /></div><div className="cmk-stat-lbl">Average Rating</div></div>
           <div className="cmk-stat-row">
-            <div className="cmk-stat-val">{avg ? avg.toFixed(1) : '—'}<span style={{ fontSize: 15, color: '#9296ba' }}> / 5</span></div>
+            <div className="cmk-stat-val">{avg ? avg.toFixed(1) : '-'}<span style={{ fontSize: 15, color: '#9296ba' }}> / 5</span></div>
             <div className="cmk-stat-meta"><Stars rating={Math.round(avg)} /></div>
           </div>
         </div>

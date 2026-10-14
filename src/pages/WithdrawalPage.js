@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
@@ -137,7 +138,7 @@ export default function WithdrawalPage() {
   const [showDateDrop, setShowDateDrop] = useState(false);
   const [savingBank, setSavingBank] = useState(false);
 
-  useEffect(() => {
+  useLiveEffect(() => {
     fetchData();
   }, []);
 
@@ -285,7 +286,7 @@ export default function WithdrawalPage() {
     pending: {
       cls: 'bg-[#FFF8ED] border-[#FCD9A4] text-[#93370D]',
       title: 'KYC under review',
-      body: 'We’re checking your documents — usually within 24–48 hours. Withdrawals unlock as soon as it’s verified.',
+      body: 'We’re checking your documents - usually within 24–48 hours. Withdrawals unlock as soon as it’s verified.',
       cta: 'View status',
     },
     rejected: {
@@ -511,7 +512,7 @@ export default function WithdrawalPage() {
                           </span>
                         </td>
                         <td className="px-5 py-4 pr-7 text-right">
-                          <span className="text-[12px] text-[#9F9FD1]">{row.requested_at ? new Date(row.requested_at).toLocaleDateString('en-IN') : '—'}</span>
+                          <span className="text-[12px] text-[#9F9FD1]">{row.requested_at ? new Date(row.requested_at).toLocaleDateString('en-IN') : '-'}</span>
                         </td>
                       </tr>
                     ))}

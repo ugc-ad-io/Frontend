@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -23,7 +24,7 @@ export default function SavedCreators() {
   const [videoCard, setVideoCard] = useState(null);   // expanded reel modal
   const [isPhone, setIsPhone] = useState(false);
 
-  useEffect(() => {
+  useLiveEffect(() => {
     const sync = () => setSaved(getSavedCreators());
     window.addEventListener('ugc-saved-creators-changed', sync);
     return () => window.removeEventListener('ugc-saved-creators-changed', sync);
@@ -40,7 +41,7 @@ export default function SavedCreators() {
 
   // Pull the same directory Browse Creators uses, so a saved creator renders with
   // their real reel and identical card. One call, cached in a { id: creator } map.
-  useEffect(() => {
+  useLiveEffect(() => {
     let alive = true;
     (async () => {
       try {
@@ -177,7 +178,7 @@ export default function SavedCreators() {
                 className="scr-unsave"
                 onClick={(e) => unsave(e, c)}
                 aria-label="Remove from saved"
-                title="Saved — click to remove"
+                title="Saved - click to remove"
               >
                 <Bookmark size={15} fill="currentColor" />
               </button>
@@ -228,7 +229,7 @@ export default function SavedCreators() {
         @media (max-width: 620px) {
           /* Count-driven rows. The base .bc-grid phone rule lays out a two-row
              sideways track (grid-auto-flow:column, 2 rows). With ≤2 saved creators
-             that stacked them into one column — collapse to a SINGLE row instead so
+             that stacked them into one column - collapse to a SINGLE row instead so
              they sit side by side. 3+ keep the two-row track; >4 overflows it and the
              auto-scroll drift + cloned tail take over. */
           .bc-grid.scr-onerow { grid-template-rows: auto; }

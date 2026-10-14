@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -167,7 +168,7 @@ function ProfileCard({ profile, onApprove, onReject }) {
   const displayName = String(
     profile.full_name || profile.profile?.fullName || profile.profile?.full_name ||
     profile.business_name || profile.profile?.business_name ||
-    profile.name || profile.nickname || profile.username || '—'
+    profile.name || profile.nickname || profile.username || '-'
   ).replace(/^@+/, '');
   const avatarUrl = getAvatarUrl(details) || getAvatarUrl(profile);
 
@@ -186,8 +187,8 @@ function ProfileCard({ profile, onApprove, onReject }) {
       </div>
 
       <div className="ap-card-body">
-        <p><strong>Email:</strong> {profile.email || '—'}</p>
-        <p><strong>Phone:</strong> {phoneOf(profile) || '—'}</p>
+        <p><strong>Email:</strong> {profile.email || '-'}</p>
+        <p><strong>Phone:</strong> {phoneOf(profile) || '-'}</p>
 
         <button
           type="button"
@@ -234,7 +235,7 @@ export default function AdminProfiles() {
   const [pendingProfiles, setPendingProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  useLiveEffect(() => {
     fetchPendingProfiles();
   }, []);
 
@@ -307,7 +308,7 @@ export default function AdminProfiles() {
           <div className="ap-empty">
             <CheckCircle size={64} color="#22c55e" />
             <p>No pending profile approvals</p>
-            <span>All caught up — newly submitted profiles will appear here.</span>
+            <span>All caught up - newly submitted profiles will appear here.</span>
           </div>
         ) : (
           <div className="ap-grid">
@@ -593,7 +594,7 @@ export default function AdminProfiles() {
           color: #6d7bff;
         }
 
-        /* Stacked: small caption label on top, value below — no more squished columns. */
+        /* Stacked: small caption label on top, value below - no more squished columns. */
         .ap-row {
           display: flex;
           flex-direction: column;

@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { uploadMedia } from '../utils/upload';
@@ -50,7 +51,7 @@ export default function AdminHomeShowcase() {
     } finally { setUploadingIdx(null); }
   };
 
-  useEffect(() => {
+  useLiveEffect(() => {
     Promise.all([
       axios.get(`${API}/admin/top-earners`),
       axios.get(`${API}/admin/top-earners/creators`).catch(() => ({ data: { items: [] } })),
@@ -91,7 +92,7 @@ export default function AdminHomeShowcase() {
         level: prettyLevel(i.level),
         videos: Array.isArray(i.videos) ? i.videos : (i.video_url ? [i.video_url] : []),
       })));
-      toast.success(`Pulled ${suggested.length} top earner${suggested.length === 1 ? '' : 's'} — review and Save.`);
+      toast.success(`Pulled ${suggested.length} top earner${suggested.length === 1 ? '' : 's'} - review and Save.`);
     } catch (e) {
       toast.error(apiErrorMessage(e, 'Could not pull from data'));
     } finally { setPulling(false); }
@@ -143,7 +144,7 @@ export default function AdminHomeShowcase() {
         })),
       });
       setItems((r.data?.items || []).map((i) => ({ ...BLANK, ...i })));
-      toast.success('Home showcase saved — it updates on the creator home.');
+      toast.success('Home showcase saved - it updates on the creator home.');
     } catch (e) {
       toast.error(apiErrorMessage(e, 'Could not save'));
     } finally { setSaving(false); }
@@ -154,7 +155,7 @@ export default function AdminHomeShowcase() {
       <div className="ahs">
         <div className="ahs-head">
           <div>
-            <h2><Star size={18} /> Home Showcase — Top Earners</h2>
+            <h2><Star size={18} /> Home Showcase - Top Earners</h2>
             <p>These cards rotate in the creator home hero. Leave the list empty to fall back to the built-in defaults.</p>
           </div>
           <div className="ahs-head-actions">
@@ -167,7 +168,7 @@ export default function AdminHomeShowcase() {
         {loading ? (
           <div className="ahs-empty">Loading…</div>
         ) : !items.length ? (
-          <div className="ahs-empty">No showcase cards yet — the hero shows the defaults. Click <strong>Add card</strong> to curate your own.</div>
+          <div className="ahs-empty">No showcase cards yet - the hero shows the defaults. Click <strong>Add card</strong> to curate your own.</div>
         ) : (
           <div className="ahs-list">
             {items.map((it, idx) => {

@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../App';
@@ -109,7 +110,7 @@ export default function MyDealsHubPage() {
     setSearchParams(next, { replace: true });
   };
 
-  useEffect(() => {
+  useLiveEffect(() => {
     if (user?.approval_status && user.approval_status !== 'approved') { setLoading(false); return undefined; }
     fetchDeals();
     const interval = setInterval(fetchDeals, 10000);
@@ -136,7 +137,7 @@ export default function MyDealsHubPage() {
     <CreatorTopNavLayout notifications={0}>
       <div className="cmk-page-head my-deals-head">
         <h1>My Deals</h1>
-        <p>All your deals and invites in one place — active work, booking requests, and the campaigns you've bid on.</p>
+        <p>All your deals and invites in one place - active work, booking requests, and the campaigns you've bid on.</p>
       </div>
 
       <div className="cmk-tabs-row">
@@ -205,8 +206,8 @@ export default function MyDealsHubPage() {
                   </span>
                   <div className="mdh-lead">
                     <div className="mdh-top">
-                      <span className={`mdh-badge ${price ? 'warn' : 'info'}`} title={price ? 'You proposed a custom price — waiting for the brand' : 'A brand booked you directly — accept, decline, or counter'}>
-                        <Clock size={12} /> {price ? 'Counter sent — awaiting brand' : 'Awaiting your response'}
+                      <span className={`mdh-badge ${price ? 'warn' : 'info'}`} title={price ? 'You proposed a custom price - waiting for the brand' : 'A brand booked you directly - accept, decline, or counter'}>
+                        <Clock size={12} /> {price ? 'Counter sent - awaiting brand' : 'Awaiting your response'}
                       </span>
                       <span className="mdh-priv"><Lock size={11} /> {price ? 'Custom price' : 'Private invite'}</span>
                     </div>

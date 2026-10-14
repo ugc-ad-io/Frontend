@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -86,7 +87,7 @@ function DocUpload({ label, hint, value, onChange }) {
     <div className="kyc-doc">
       <label className="kyc-label">{label}</label>
       <button type="button" className={`kyc-drop ${value ? 'has' : ''}`} onClick={() => ref.current?.click()} disabled={busy}>
-        {value ? <><FileCheck2 size={18} /> Uploaded — click to replace</> : <><Upload size={18} /> {busy ? 'Uploading…' : 'Upload image or PDF'}</>}
+        {value ? <><FileCheck2 size={18} /> Uploaded - click to replace</> : <><Upload size={18} /> {busy ? 'Uploading…' : 'Upload image or PDF'}</>}
       </button>
       <input ref={ref} type="file" accept="image/*,application/pdf" hidden onChange={pick} />
       <small className="kyc-hint">{hint}</small>
@@ -109,7 +110,7 @@ export default function CreatorKYC() {
     pan_doc_url: '', aadhaar_front_url: '', aadhaar_back_url: '',
   });
 
-  useEffect(() => {
+  useLiveEffect(() => {
     axios.get(`${API}/kyc/me`)
       .then((r) => setKyc(r.data))
       .catch(() => setKyc({ status: 'not_submitted' }))
@@ -156,7 +157,7 @@ export default function CreatorKYC() {
     if (!form.date_of_birth) return toast.error('Enter your date of birth.');
     if (ageFrom(form.date_of_birth) < 18) return toast.error('You must be at least 18 to receive payouts.');
     if (!form.gender) return toast.error('Select your gender.');
-    if (!PAN_RE.test(pan)) return toast.error('That PAN does not look right — 10 characters, like ABCDE1234F.');
+    if (!PAN_RE.test(pan)) return toast.error('That PAN does not look right - 10 characters, like ABCDE1234F.');
     // Aadhaar is optional; validate only if entered.
     if (aadhaar && !aadhaarValid(aadhaar)) return toast.error('That Aadhaar number is not valid. Check the 12 digits.');
 
@@ -195,7 +196,7 @@ export default function CreatorKYC() {
     try {
       const r = await axios.post(`${API}/kyc/submit`, payload);
       setKyc(r.data);
-      toast.success('KYC submitted — our team will verify it shortly.');
+      toast.success('KYC submitted - our team will verify it shortly.');
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Could not submit your KYC'));
     } finally { setSaving(false); }
@@ -213,7 +214,7 @@ export default function CreatorKYC() {
           <span className="kyc-head-ic"><ShieldCheck size={22} /></span>
           <div>
             <h1>Identity verification (KYC)</h1>
-            <p>We pay real money to a real person, so we verify who that is. Your Aadhaar and PAN are visible only to you and our review team — never to brands.</p>
+            <p>We pay real money to a real person, so we verify who that is. Your Aadhaar and PAN are visible only to you and our review team - never to brands.</p>
           </div>
         </header>
 
@@ -344,13 +345,13 @@ export default function CreatorKYC() {
                 </div>
                 <div className="kyc-grid">
                   <DocUpload
-                    label="Aadhaar — front"
+                    label="Aadhaar - front"
                     hint="The side with your photo."
                     value={form.aadhaar_front_url}
                     onChange={set('aadhaar_front_url')}
                   />
                   <DocUpload
-                    label="Aadhaar — back"
+                    label="Aadhaar - back"
                     hint="The side with your address."
                     value={form.aadhaar_back_url}
                     onChange={set('aadhaar_back_url')}
@@ -432,16 +433,16 @@ export default function CreatorKYC() {
                 <button type="submit" className="kyc-submit" disabled={saving}>
                   {saving ? 'Submitting…' : 'Submit for verification'}
                 </button>
-                <p className="kyc-foot">By submitting you confirm these documents are yours. A PAN can only be linked to one account. Your ID and payout details are visible only to you and our review team — never to brands.</p>
+                <p className="kyc-foot">By submitting you confirm these documents are yours. A PAN can only be linked to one account. Your ID and payout details are visible only to you and our review team - never to brands.</p>
               </form>
             ) : (
               <div className="kyc-card kyc-onfile">
                 <h2>On file</h2>
-                <div className="kyc-kv"><span>Legal name</span><strong>{kyc.full_legal_name || kyc.name_on_pan || '—'}</strong></div>
-                <div className="kyc-kv"><span>PAN</span><strong className="mono">{kyc.pan_number || '—'}</strong></div>
+                <div className="kyc-kv"><span>Legal name</span><strong>{kyc.full_legal_name || kyc.name_on_pan || '-'}</strong></div>
+                <div className="kyc-kv"><span>PAN</span><strong className="mono">{kyc.pan_number || '-'}</strong></div>
                 {kyc.aadhaar_number ? <div className="kyc-kv"><span>Aadhaar</span><strong className="mono">{kyc.aadhaar_number}</strong></div> : null}
-                <div className="kyc-kv"><span>Payout</span><strong>{kyc.payout_method === 'bank' ? 'Bank account' : kyc.payout_method === 'upi' ? 'UPI' : '—'}</strong></div>
-                <div className="kyc-kv"><span>Submitted</span><strong>{kyc.submitted_at ? new Date(kyc.submitted_at).toLocaleDateString() : '—'}</strong></div>
+                <div className="kyc-kv"><span>Payout</span><strong>{kyc.payout_method === 'bank' ? 'Bank account' : kyc.payout_method === 'upi' ? 'UPI' : '-'}</strong></div>
+                <div className="kyc-kv"><span>Submitted</span><strong>{kyc.submitted_at ? new Date(kyc.submitted_at).toLocaleDateString() : '-'}</strong></div>
               </div>
             )}
           </>

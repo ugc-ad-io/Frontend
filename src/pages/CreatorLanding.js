@@ -561,7 +561,7 @@ export default function CreatorLanding() {
           <button
             type="button"
             className="cl-brand"
-            aria-label="UGCad.io — go to home page"
+            aria-label="UGCad.io - go to home page"
             onClick={() => navigate('/')}
           >
             <img src="/ugcad-logo.png" alt="UGCad.io" className="cl-brand__logo" />
@@ -630,7 +630,7 @@ export default function CreatorLanding() {
             variants={fadeUp} initial="hidden" animate="visible" custom={2}
           >
             <button className="cl-btn-primary cl-btn-primary--lg" onClick={handleJoin}>
-              Get started &mdash; <em>it&apos;s free</em>
+              Get started - <em>it&apos;s free</em>
             </button>
           </motion.div>
         </div>
@@ -804,7 +804,7 @@ export default function CreatorLanding() {
                 <em className="cl-hiw__hi cl-hiw__hi--alt2">scale your growth</em> as a creator.
               </p>
               <button className="cl-btn-primary cl-hiw__cta" onClick={handleJoin}>
-                Get started &mdash; it&apos;s free
+                Get started - it&apos;s free
               </button>
             </div>
             <div className="cl-hiw__visual cl-hiw__visual--paid">
@@ -905,7 +905,7 @@ export default function CreatorLanding() {
 
         <div className="cl-faq__cta">
           <button className="cl-btn-primary" onClick={handleJoin}>
-            Get started &mdash; it&apos;s free <ArrowRight size={16} />
+            Get started - it&apos;s free <ArrowRight size={16} />
           </button>
         </div>
       </section>
@@ -918,7 +918,7 @@ export default function CreatorLanding() {
         <div className="lp-footer__inner">
           {/* Brand statement at top */}
           <div className="lp-footer__statement">
-            <p className="lp-footer__statement-eyebrow">— Manifesto</p>
+            <p className="lp-footer__statement-eyebrow">- Manifesto</p>
             <h3 className="lp-footer__statement-line">
               We don't help brands chase attention.{' '}
               <span className="lp-footer__statement-accent">We help them earn familiarity.</span>
@@ -1269,7 +1269,7 @@ export default function CreatorLanding() {
         /* Brand mark */
         .cl-brand { display: inline-flex; align-items: center; gap: 9px; background: none;
           border: none; cursor: pointer; padding: 0; }
-        /* CONTAINED in the bar — 46px inside the 56px row, matching what Landing settled on.
+        /* CONTAINED in the bar - 46px inside the 56px row, matching what Landing settled on.
            This used to be 184px with a -34px pull, which is exactly why the whole top bar got
            deleted: the lockup hung far below the 56px bar and painted over the hero. */
         .cl-brand__logo { height: 46px; width: auto; flex: none; display: block;
@@ -1285,7 +1285,7 @@ export default function CreatorLanding() {
         .cl-brand__name { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.01em; }
         .cl-brand__name-2 { font-weight: 500; color: rgba(var(--cl-fg),0.7) !important; }
 
-        /* ── Navbar — ported from the home landing (.lp-navbar) ───────────────────
+        /* ── Navbar - ported from the home landing (.lp-navbar) ───────────────────
            This page's bar used to be a plain full-width row: links sitting inline next to
            the logo, and a solid background + bottom border once scrolled. Landing's is a
            different shape entirely, and the two pages sit one click apart, so the switch
@@ -1294,7 +1294,7 @@ export default function CreatorLanding() {
              - .cl-nav__inner is a 1fr auto 1fr GRID, not a flex row, so the centre column
                always claims its own width and the links can never push or overlap the
                logo/actions at awkward widths;
-             - only the LINKS group is painted — a floating white glass pill — while the
+             - only the LINKS group is painted - a floating white glass pill - while the
                logo and Log in / Join sit unboxed at the true edges of the bar;
              - it floats 20px off the top rather than being flush.
            The links and both CTAs are unchanged: they still point at this page's sections
@@ -1306,12 +1306,12 @@ export default function CreatorLanding() {
           padding-inline: max(4%, calc((100% - 1320px) / 2));
           transition: top 0.3s ease;
         }
-        /* The BAR stays unpainted — an edge-to-edge cream band slicing across the content
+        /* The BAR stays unpainted - an edge-to-edge cream band slicing across the content
            is the thing that was removed here, and it is not coming back. What DID break:
            with nothing painted at all, the logo and the Log in / Join as Creator buttons
            sat unboxed directly over whatever scrolled beneath them, so page text read
            straight through them (the FAQ cards showed through the bar). So once scrolled,
-           the floating INNER row becomes the painted island instead — same glass treatment
+           the floating INNER row becomes the painted island instead - same glass treatment
            the links pill already had, now covering the whole row. The links pill drops its
            own background at the same time so there is no pill-inside-a-pill. */
         .cl-nav--scrolled { background: transparent; border-bottom: none; backdrop-filter: none; }
@@ -1361,7 +1361,7 @@ export default function CreatorLanding() {
           color: rgba(var(--cl-fg),0.82) !important; text-decoration: none; background: none; border: none;
           cursor: pointer; transition: color 0.2s; }
         .cl-navlink:hover { color: var(--cl-purple) !important; }
-        /* justify-self:end replaces the old margin-left:auto — that trick only works in a
+        /* justify-self:end replaces the old margin-left:auto - that trick only works in a
            flex row; in the grid it would leave the actions floating in the middle of a 1fr
            track instead of pinned to the bar's right edge. */
         .cl-nav__actions { justify-self: end; display: flex; gap: 14px; align-items: center; }
@@ -1391,7 +1391,7 @@ export default function CreatorLanding() {
           align-items: center; justify-content: center; color: rgba(var(--cl-fg),0.5); z-index: 1; }
         .cl-theme__icon--sun { left: 8px; }
         .cl-theme__icon--moon { right: 8px; }
-        /* justify-self/grid-column, not margin-left:auto — that pins an item right in a FLEX
+        /* justify-self/grid-column, not margin-left:auto - that pins an item right in a FLEX
            row, but .cl-nav__inner is now a 3-column grid, where it would leave the burger
            adrift in the middle of its track. Explicit column 3 keeps it on the bar's right
            edge once the links and actions are hidden. */
@@ -1425,10 +1425,10 @@ export default function CreatorLanding() {
         /* Hero */
         .cl-hero { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto;
           /* min-height (not a hard height) so on shorter web screens the hero grows to fit the
-             tall video gallery instead of overflowing — which kept the below-fold category pills
+             tall video gallery instead of overflowing - which kept the below-fold category pills
              from overlapping the videos. Phones (≤480px) override this to height:auto below. */
           min-height: 100vh; display: flex; flex-direction: column; justify-content: flex-start;
-          /* The fixed top bar is back, so the hero needs clearance again — but only for the
+          /* The fixed top bar is back, so the hero needs clearance again - but only for the
              bar itself (56px row + 2x18px padding = 92px), NOT the old clamp(120px, 16vh,
              180px) that was also making room for a 184px overhanging logo. The logo is
              contained now, so anything past ~92px + a small gap is just a blank band. */
@@ -1472,7 +1472,7 @@ export default function CreatorLanding() {
           max-width: 1500px; margin: 0 auto; padding: 72px 3% 40px; }
         .cl-brands__line { display: flex; flex-wrap: nowrap; align-items: center; justify-content: space-evenly; gap: 20px; width: 100%; }
         .cl-brands__line--bottom { justify-content: center; gap: 36px; }
-        /* Background-removed (transparent) client logos sit directly on the cream page — no
+        /* Background-removed (transparent) client logos sit directly on the cream page - no
            tile, no filters. Every logo keeps its own brand colours, all the time. */
         .cl-brands__logo { display: inline-flex; align-items: center; justify-content: center;
           flex-shrink: 0; height: 78px; padding: 0 12px; opacity: 1;
@@ -1482,7 +1482,7 @@ export default function CreatorLanding() {
         .cl-brands__logo--small .cl-brands__icon { height: 34px; }
         /* Undersized wordmarks (UBALANCE, Cristello, EULER) scaled up to match the rest. */
         .cl-brands__logo--large .cl-brands__icon { height: 82px; max-width: 260px; }
-        /* Hover is the lift only. No colour/grey change either way — the strip looks the
+        /* Hover is the lift only. No colour/grey change either way - the strip looks the
            same with or without a pointer, so mobile (no :hover) matches desktop exactly. */
         .cl-brands__logo:hover { transform: translateY(-3px); }
         /* Duplicate logos exist only to feed the mobile marquee loop -- hidden on desktop. */
@@ -1548,7 +1548,7 @@ export default function CreatorLanding() {
         .cl-testimarq:hover .cl-testimarq__track { animation-play-state: paused; }
         /* Off-screen = stopped. The track is an infinite transform animation over a layer
            holding twelve video cards, and it kept running while the section was nowhere near
-           the viewport — the compositor does that work on every frame of the whole page, so
+           the viewport - the compositor does that work on every frame of the whole page, so
            it showed up as scroll jank in sections that have nothing to do with this one.
            The class is toggled by an IntersectionObserver in PageMarqueeGate below. */
         .cl-testimarq--offscreen .cl-testimarq__track { animation-play-state: paused; }
@@ -1578,14 +1578,14 @@ export default function CreatorLanding() {
         .cl-tcard__tab--active::after { content: ''; position: absolute; left: 50%; bottom: -6px; transform: translateX(-50%);
           width: 18px; height: 2px; border-radius: 2px; background: #fff; }
 
-        /* Sound toggle — small glass chip under the status bar, out of the frame's way. */
+        /* Sound toggle - small glass chip under the status bar, out of the frame's way. */
         .cl-tcard__sound { position: absolute; top: 56px; right: 10px; z-index: 3;
           width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center;
           justify-content: center; color: #fff !important; background: rgba(0,0,0,0.45);
           border: 1px solid rgba(255,255,255,0.28);
           /* No backdrop-filter here on purpose. This chip is rendered once per card and the
              marquee duplicates every card, so it was TWELVE backdrop blurs living inside a
-             track under a permanent 80s transform animation — each one re-sampling what is
+             track under a permanent 80s transform animation - each one re-sampling what is
              behind it every frame, on top of the video decode already happening. The flat
              0.45 black below reads the same over footage at 30px. */
           transition: background 0.2s, transform 0.2s; }
@@ -1597,8 +1597,8 @@ export default function CreatorLanding() {
           flex-direction: column; align-items: center; gap: 16px; }
         .cl-tcard__avatar { position: relative; width: 34px; height: 34px; border-radius: 50%;
           border: 1.5px solid #fff; margin-bottom: 4px; }
-        /* Fills the circle. overflow stays VISIBLE on the parent — the follow "+" badge is
-           positioned bottom:-7px and has to hang outside — so the picture is clipped by its
+        /* Fills the circle. overflow stays VISIBLE on the parent - the follow "+" badge is
+           positioned bottom:-7px and has to hang outside - so the picture is clipped by its
            own border-radius instead of by the parent. */
         .cl-tcard__avatar-media { position: absolute; inset: 0; width: 100%; height: 100%;
           object-fit: cover; border-radius: 50%; display: block; }
@@ -1617,7 +1617,7 @@ export default function CreatorLanding() {
         .cl-hiw__card { position: relative; overflow: hidden; border-radius: 24px; padding: 32px 32px 0;
           min-height: 500px; display: flex; flex-direction: column;
           border: 1px solid rgba(var(--cl-fg),0.1); background: rgba(var(--cl-fg),0.03); }
-        /* Card 1 — solid brand-purple fill with white text. */
+        /* Card 1 - solid brand-purple fill with white text. */
         .cl-hiw__card--filled { background: #9b83f6; border-color: transparent; }
         .cl-hiw__card--filled .cl-hiw__title { color: #fff !important; }
         .cl-hiw__card--filled .cl-hiw__num { color: #fff !important; opacity: 0.85; }
@@ -1637,7 +1637,7 @@ export default function CreatorLanding() {
           background: rgba(28,27,75,0.05); border-color: #ffffff; }
         .cl-hiw__card--filled .cl-hiw__brandcard--on { color: rgba(28,27,75,0.95) !important;
           background: rgba(133,104,243,0.14); border-color: #ffffff; }
-        /* Cards 2 & 3 — clean white with dark text. */
+        /* Cards 2 & 3 - clean white with dark text. */
         .cl-hiw__card--light { background: #ffffff; border-color: rgba(0,0,0,0.06); }
         .cl-hiw__card--light .cl-hiw__title { color: #15151c !important; }
         .cl-hiw__card--light .cl-hiw__text { color: #6a6a75 !important; }
@@ -1710,7 +1710,7 @@ export default function CreatorLanding() {
           letter-spacing: 0.16em; text-transform: lowercase; }
         .cl-bc--ptron { font-family: 'Montserrat','Poppins',sans-serif; font-weight: 800;
           letter-spacing: -0.01em; }
-        /* Inner panel — lavender card holding the "Choose brand" content, from below the time bar to the bottom. */
+        /* Inner panel - lavender card holding the "Choose brand" content, from below the time bar to the bottom. */
         .cl-hiw__phonepanel { flex: 1; border-radius: 14px; padding: 13px; margin-top: 2px;
           display: flex; flex-direction: column; gap: 13px;
           background: rgba(149,131,246,0.16); border: 1px solid rgba(109,74,240,0.12); }
@@ -1837,7 +1837,7 @@ export default function CreatorLanding() {
           transition: background 0.2s ease, border-color 0.2s ease; }
         .cl-faq__item:hover { background: rgba(var(--cl-fg),0.06); }
         /* Open state changes the BORDER only. The old rule also washed the card in
-           rgba(115,135,255,0.06), which home doesn't do — that purple fill was the loudest
+           rgba(115,135,255,0.06), which home doesn't do - that purple fill was the loudest
            difference between the two pages' accordions. */
         .cl-faq__item--open { border-color: rgba(115,135,255,0.30); }
         .cl-faq__q { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 18px;
@@ -1895,10 +1895,10 @@ export default function CreatorLanding() {
           .cl-nav { padding-inline: 5%; }
           .cl-nav__inner { height: 48px; padding: 0; gap: 16px; }
           .cl-brand__logo { height: 34px; }
-          /* Hide the "Get started — it's free" CTA inside the Get-paid step on mobile only. */
+          /* Hide the "Get started - it's free" CTA inside the Get-paid step on mobile only. */
           .cl-hiw__cta { display: none; }
           /* "Pick a job" mock: the tilted boAt card is layered OVER the phone, and at phone
-             width it covered the left half of the brand grid — the one thing this step is
+             width it covered the left half of the brand grid - the one thing this step is
              actually showing (the grid's labels were squeezed so hard they wrapped one
              letter per line). It is dropped rather than shrunk: there is no room for two
              layered cards at this size. With it gone the phone no longer has to be shoved
@@ -1906,18 +1906,18 @@ export default function CreatorLanding() {
           .cl-hiw__prodfront { display: none; }
           .cl-hiw__visual--phone { transform: none; }
           .cl-hiw__phone { width: 100%; max-width: 360px; margin: 0 auto; transform: none; }
-          /* PERF: a blurred blob that animates re-rasterizes the whole blur every frame — the
+          /* PERF: a blurred blob that animates re-rasterizes the whole blur every frame - the
              single biggest jank source on phones. Freeze them (static, no animation) and shrink
              the blur radius so the one-time raster is cheap. Visual is unchanged at rest. */
           .cl-blob { width: 300px !important; height: 300px !important; filter: blur(60px);
             animation: none !important; will-change: auto; }
-          /* The bar stays TRANSPARENT on scroll, exactly as Landing's does — only the logo and
+          /* The bar stays TRANSPARENT on scroll, exactly as Landing's does - only the logo and
              the burger float over the page. The two rules that used to paint it near-opaque
              here (cream in light, near-black in dark) are gone: they were written for the old
              solid full-width bar, and the desktop port to Landing's floating treatment left
              them behind. The result was an edge-to-edge cream band slicing across the content
              the moment you scrolled, which is not what the home page does.
-             backdrop-filter still goes, for the reason it always did — a FIXED bar with a blur
+             backdrop-filter still goes, for the reason it always did - a FIXED bar with a blur
              re-samples everything behind it on every scroll frame, the biggest scroll cost on
              a phone. With no background left there is nothing for it to sample anyway. */
           .cl-nav--scrolled {
@@ -1925,8 +1925,8 @@ export default function CreatorLanding() {
             backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
           }
           /* Same painted island as desktop, but OPAQUE instead of blurred. The perf
-             argument above still holds — a fixed element with a live blur re-samples
-             everything behind it on every scroll frame — and an opaque panel costs
+             argument above still holds - a fixed element with a live blur re-samples
+             everything behind it on every scroll frame - and an opaque panel costs
              nothing while still stopping section headings from reading through the
              logo and the burger. */
           .cl-nav--scrolled .cl-nav__inner {
@@ -1978,19 +1978,19 @@ export default function CreatorLanding() {
           .cl-faq { grid-template-columns: 1fr; }
           .cl-faq__col { display: contents; }
           .cl-footer__cols { grid-template-columns: repeat(2, 1fr); }
-          /* PERF: drop the small decorative backdrop-blurs — cheap to lose, costly on mobile GPUs. */
+          /* PERF: drop the small decorative backdrop-blurs - cheap to lose, costly on mobile GPUs. */
           .cl-hiw__play, .cl-hiw__chip { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
           /* PERF: skip rendering+layout for the static below-fold sections until they scroll near
              the viewport, so the long page scrolls smoothly. contain-intrinsic-size reserves space
              so the scrollbar doesn't jump. */
           .cl-faq, .cl-footer { content-visibility: auto; contain-intrinsic-size: auto 600px; }
         }
-        /* Small phones — tighter padding, smaller type, single-column stacks. */
+        /* Small phones - tighter padding, smaller type, single-column stacks. */
         @media (max-width: 480px) {
           /* padding-INLINE only. The shorthand that used to be here reset the vertical
              padding too, which fought the floating top:20px bar this now is. */
           .cl-nav { padding-inline: 5%; }
-          /* Let the hero shrink to its content instead of a full 100vh — otherwise
+          /* Let the hero shrink to its content instead of a full 100vh - otherwise
              the leftover viewport space below the video cards pushes the category
              pills far down the screen. Collapsing it brings the pills up under the cards. */
           /* The fixed nav is back at this width too, so the hero clears it again. The bar now
@@ -2004,7 +2004,7 @@ export default function CreatorLanding() {
              was 74px of dead space: the logo row carries 40px of padding-bottom from its base
              rule, then .cl-brands adds 4px, then this section's own 46px of padding-top lands
              on top. Trimmed at both ends rather than one, so neither the logos nor the pill
-             ends up sitting hard against the join. Only the TOP of #how is touched — the
+             ends up sitting hard against the join. Only the TOP of #how is touched - the
              blanket .cl-section rule above still gives every other section its full 46px. */
           .cl-brands__row { padding-bottom: 14px; }
           #how.cl-section { padding-top: 26px; }
@@ -2025,7 +2025,7 @@ export default function CreatorLanding() {
           .cl-hiw__check { width: 38px; height: 38px; font-size: 1rem; }
           /* "Pick a job" phone mockup. The width/shift juggling that used to live here
              (60% wide, translateX(26%), and a matching nudge on the product card) was all
-             in service of fitting the layered boAt card beside the phone — that card is
+             in service of fitting the layered boAt card beside the phone - that card is
              display:none from 768px down now, so the phone just takes the full width from
              the 768px block and there is nothing left to offset. Only the height floor is
              kept, so a short mock still fills the step's visual area. */

@@ -89,7 +89,7 @@ export default function HoverSideRail({ brandMark = 'U', onLogoClick, primary = 
           background:#fff;color:#15163a;padding:14px;border-right:1px solid #eef0f6;
           overflow:hidden;transition:width .22s cubic-bezier(.2,.7,.2,1);box-shadow:6px 0 34px -18px rgba(15,22,58,.3)}
         .hsr.is-open{width:240px}
-        /* collapsed rail is one big click target — hint it's clickable to open */
+        /* collapsed rail is one big click target - hint it's clickable to open */
         .hsr:not(.is-open){cursor:pointer}
         /* height set so the divider below lines up with the top nav's bottom
            border (rail padding-top 14 + this 58 = 72 = the header height) */
@@ -154,13 +154,13 @@ export default function HoverSideRail({ brandMark = 'U', onLogoClick, primary = 
         /* Collapsed rail = 76px offset, so content sits right next to the rail
            (no big empty gap). When toggled OPEN the left padding animates to
            240px: the content smoothly shifts right AND its width adjusts to the
-           remaining space — so it never runs off-screen, and the transition
+           remaining space - so it never runs off-screen, and the transition
            makes the resize look seamless. */
-        .cmk-app.has-rail{padding-left:24px;transition:padding-left .22s cubic-bezier(.2,.7,.2,1)}
+        .cmk-app.has-rail{padding-left:76px;transition:padding-left .22s cubic-bezier(.2,.7,.2,1)}
         .cmk-app.has-rail:has(.hsr.is-open){padding-left:240px}
         .cmk-app.has-rail .cmk-links{display:none}
         .cmk-app.has-rail .cmk-brand{display:none}
-        /* the rail is the nav on desktop/tablet — drop the click hamburger */
+        /* the rail is the nav on desktop/tablet - drop the click hamburger */
         .cmk-app.has-rail .cmk-hamburger,
         .cmk-app.has-rail .cmk-mobile-menu{display:none}
         /* left-align content beside the rail (fills the space, keeps big layout) */
@@ -169,9 +169,9 @@ export default function HoverSideRail({ brandMark = 'U', onLogoClick, primary = 
            bell, avatar) sit flush against the right edge, not the wrap's cap */
         .cmk-app.has-rail .cmk-nav-inner{max-width:none;padding-left:76px}
         /* shift ONLY the main body content right for breathing room from the
-           rail — the header keeps its own (smaller) offset and is unaffected */
+           rail - the header keeps its own (smaller) offset and is unaffected */
         .cmk-app.has-rail .cmk-page{padding-left:12px;transition:padding-left .22s cubic-bezier(.2,.7,.2,1)}
-        /* when the rail is open it already takes the space — drop the extra body
+        /* when the rail is open it already takes the space - drop the extra body
            padding so the content shifts back left and hugs the open rail */
         .cmk-app.has-rail:has(.hsr.is-open) .cmk-page{padding-left:12px}
 
@@ -185,7 +185,7 @@ export default function HoverSideRail({ brandMark = 'U', onLogoClick, primary = 
              must work again (both were hidden while the rail was the nav). */
           .cmk-app.has-rail .cmk-mobile-menu{display:flex}
           /* No desktop rail offset on mobile, but give the PAGE CONTENT a small side
-             inset so headings/chips don't hug the edge — the top nav is unaffected
+             inset so headings/chips don't hug the edge - the top nav is unaffected
              (it only uses .cmk-wrap, not .cmk-page). */
           .cmk-app.has-rail .cmk-page{padding-left:12px;padding-right:12px}
           .cmk-app.has-rail .cmk-wrap{margin:0 auto}

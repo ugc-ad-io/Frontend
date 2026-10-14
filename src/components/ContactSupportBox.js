@@ -19,7 +19,7 @@ export const SUPPORT_PHONE_DISPLAY = '+91 90000 00000';
 export function buildSupportLinks(user) {
   const account = user?.email || user?.username || '';
   const accountId = user?.id || user?._id || '';
-  const subject = `Application review appeal${account ? ` — ${account}` : ''}`;
+  const subject = `Application review appeal${account ? ` - ${account}` : ''}`;
   const body = [
     'Hi UGCad team,',
     '',
@@ -47,7 +47,7 @@ export default function ContactSupportBox({ user, title = 'Think this is a mista
   return (
     <div className="csb">
       <p className="csb-title">{title}</p>
-      <p className="csb-sub">Our team can re-check your application — reach out any way you like.</p>
+      <p className="csb-sub">Our team can re-check your application - reach out any way you like.</p>
 
       <div className="csb-rows">
         <a className="csb-row csb-row--primary" href={mailto}>

@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -10,7 +11,7 @@ const API = `${BACKEND_URL}/api`;
 
 // Show the business's real company name — never their @username handle
 // (business_nickname / brand_handle are the handle sources, so they're excluded).
-const brandName = (c) => String(c?.brand_name || c?.business_name || c?.company_name || '').replace(/^@+/, '').trim() || '—';
+const brandName = (c) => String(c?.brand_name || c?.business_name || c?.company_name || '').replace(/^@+/, '').trim() || '-';
 
 export default function AdminCampaigns() {
   const [pendingCampaigns, setPendingCampaigns] = useState([]);
@@ -21,7 +22,7 @@ export default function AdminCampaigns() {
   const [scriptDraft, setScriptDraft] = useState('');
   const openModal = (campaign) => { setSelected(campaign); setScriptDraft(campaign.script_text || ''); };
 
-  useEffect(() => {
+  useLiveEffect(() => {
     fetchPendingCampaigns();
   }, []);
 
@@ -81,7 +82,7 @@ export default function AdminCampaigns() {
           <div className="ac-empty">
             <CheckCircle size={64} color="#22c55e" />
             <p>No pending campaign approvals</p>
-            <span>All caught up — new submissions will appear here.</span>
+            <span>All caught up - new submissions will appear here.</span>
           </div>
         ) : (
           <div className="ac-table-wrap">
@@ -110,12 +111,12 @@ export default function AdminCampaigns() {
                       <strong>{campaign.title}</strong>
                       <small>{brandName(campaign)}</small>
                       {campaign.script_provider === 'ugc' && !campaign.script_text && (
-                        <em className="ac-needs-script">Needs script — open to add</em>
+                        <em className="ac-needs-script">Needs script - open to add</em>
                       )}
                     </td>
                     <td data-label="Budget">₹{campaign.budget_min} - ₹{campaign.budget_max}</td>
-                    <td data-label="Category">{campaign.product_category || campaign.category || '—'}</td>
-                    <td data-label="Objective">{campaign.objectives?.join(', ') || '—'}</td>
+                    <td data-label="Category">{campaign.product_category || campaign.category || '-'}</td>
+                    <td data-label="Objective">{campaign.objectives?.join(', ') || '-'}</td>
                     <td data-label="Shipment">{campaign.requires_shipment ? 'Required' : 'Not required'}</td>
                     <td data-label="Status"><span className="ac-badge">{String(campaign.status || '').replace('_', ' ')}</span></td>
                     <td className="ac-td-actions">
@@ -163,7 +164,7 @@ export default function AdminCampaigns() {
               {selected.key_message && <div className="ac-row"><label>Key message</label><span>{selected.key_message}</span></div>}
               {selected.objectives?.length > 0 && <div className="ac-row"><label>Objectives</label><span>{selected.objectives.join(', ')}</span></div>}
               {Array.isArray(selected.deliverable_items) && selected.deliverable_items.length > 0 && (
-                <div className="ac-row"><label>Deliverables</label><span>{selected.deliverable_items.map((d) => `${d.quantity || 1} × ${d.type || '—'}${d.edited_required ? ` (edited by ${d.edited_by === 'ugc' ? 'UGC.ad' : 'creator'})` : ''}`).join(', ')}</span></div>
+                <div className="ac-row"><label>Deliverables</label><span>{selected.deliverable_items.map((d) => `${d.quantity || 1} × ${d.type || '-'}${d.edited_required ? ` (edited by ${d.edited_by === 'ugc' ? 'UGC.ad' : 'creator'})` : ''}`).join(', ')}</span></div>
               )}
               {selected.script_provider === 'ugc' ? (
                 <div className="ac-row">
@@ -176,7 +177,7 @@ export default function AdminCampaigns() {
                       onChange={(e) => setScriptDraft(e.target.value)}
                       placeholder="Write the script for the creator..."
                     />
-                    <small className="ac-script-hint">Required — this brief can't be approved until a script is added.</small>
+                    <small className="ac-script-hint">Required - this brief can't be approved until a script is added.</small>
                   </div>
                 </div>
               ) : (

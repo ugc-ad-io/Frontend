@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -15,7 +16,7 @@ const TABS = [
   { key: 'all', label: 'All', Icon: ReceiptText },
 ];
 
-const fmtDate = (d) => (d ? new Date(d).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—');
+const fmtDate = (d) => (d ? new Date(d).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '-');
 
 // The GST portal has no public verification API we can call, so an admin confirms the
 // GSTIN belongs to this brand. The number itself is already checksum-validated by the
@@ -39,7 +40,7 @@ export default function AdminGST() {
     } finally { setLoading(false); }
   };
 
-  useEffect(() => { load(tab); /* eslint-disable-next-line */ }, [tab]);
+  useLiveEffect(() => { load(tab); /* eslint-disable-next-line */ }, [tab]);
 
   const review = async (row, action) => {
     let reason = '';
@@ -52,7 +53,7 @@ export default function AdminGST() {
     try {
       await axios.post(`${API}/admin/gst/${row.user_id}`, { action, reason });
       toast.success(action === 'approve'
-        ? `${row.brand_name} verified — they can now add funds.`
+        ? `${row.brand_name} verified - they can now add funds.`
         : `${row.brand_name} rejected.`);
       load(tab);
     } catch (e) {
@@ -84,7 +85,7 @@ export default function AdminGST() {
         </div>
         <p className="agst-desc">
           A brand cannot add money to its wallet until its GSTIN is verified. Numbers here have already
-          passed format and check-digit validation — confirm the GSTIN belongs to this brand on the{' '}
+          passed format and check-digit validation - confirm the GSTIN belongs to this brand on the{' '}
           <a href={GST_PORTAL} target="_blank" rel="noreferrer">GST portal</a>, then approve.
         </p>
 
@@ -112,7 +113,7 @@ export default function AdminGST() {
                     </div>
                     <div>
                       <label>Legal name</label>
-                      <p>{row.legal_name || '—'}</p>
+                      <p>{row.legal_name || '-'}</p>
                     </div>
                     <div>
                       <label>Submitted</label>

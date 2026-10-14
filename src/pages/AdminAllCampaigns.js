@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -12,7 +13,7 @@ const API = `${BACKEND_URL}/api`;
 
 // Show the business's real company name — never their @username handle
 // (business_nickname / brand_handle are the handle sources, so they're excluded).
-const brandName = (c) => String(c?.brand_name || c?.business_name || c?.company_name || '').replace(/^@+/, '').trim() || '—';
+const brandName = (c) => String(c?.brand_name || c?.business_name || c?.company_name || '').replace(/^@+/, '').trim() || '-';
 
 // Mirrors MODERATABLE_CAMPAIGN_STATUSES in the backend (server.py). Only a live brief
 // can be held or banned; anything already finished is rejected there with a 400, so
@@ -83,7 +84,7 @@ export default function AdminAllCampaigns() {
       // Ban leaves held escrow alone on purpose, and says so in the response. Surface
       // that rather than letting an admin assume the money settled itself.
       if (res.data?.escrow_needs_manual_release) {
-        toast.warning('Campaign banned — escrow still held', {
+        toast.warning('Campaign banned - escrow still held', {
           description: `The ${res.data.escrow_status || 'held'} escrow was NOT refunded. Release or refund it from Financials.`,
           duration: 10000,
         });
@@ -109,7 +110,7 @@ export default function AdminAllCampaigns() {
     }
   };
 
-  useEffect(() => {
+  useLiveEffect(() => {
     fetchAllCampaigns();
   }, []);
 
@@ -145,7 +146,7 @@ export default function AdminAllCampaigns() {
         <div className="aac-header">
           <div>
             <h1><Briefcase size={26} /> All Campaigns</h1>
-            <p>View every campaign on the platform — across all statuses</p>
+            <p>View every campaign on the platform - across all statuses</p>
           </div>
           <div className="aac-stats">
             <div className="aac-stat"><span>Total</span><strong>{allCampaigns.length}</strong></div>

@@ -13,10 +13,10 @@ const API = `${BACKEND_URL}/api`;
 const NUMERIC_FIELDS = [
   ['commission_rate', 'Commission rate (%)'],
   // Listing fee is tiered by brief size (see campaign_listing_fee() in the backend).
-  ['listing_fee', 'Listing fee — 1 creator, 1 deliverable (₹)'],
-  ['listing_fee_multi_deliverable', 'Listing fee — 1 creator, 2+ deliverables (₹)'],
-  ['listing_fee_multi_creator', 'Listing fee — 2–10 creators (₹)'],
-  ['listing_fee_large_campaign', 'Listing fee — 11+ creators (₹)'],
+  ['listing_fee', 'Listing fee - 1 creator, 1 deliverable (₹)'],
+  ['listing_fee_multi_deliverable', 'Listing fee - 1 creator, 2+ deliverables (₹)'],
+  ['listing_fee_multi_creator', 'Listing fee - 2–10 creators (₹)'],
+  ['listing_fee_large_campaign', 'Listing fee - 11+ creators (₹)'],
   ['revision_price', 'Revision price (₹)'],
   ['auto_approval_days', 'Auto-approval timer (days)'],
   ['late_ship_fee_per_day', 'Late-ship fee / day (₹)'],
@@ -76,7 +76,7 @@ export default function AdminSettings() {
     setTesting(true);
     try {
       const { data } = await axios.post(`${API}/admin/email/test`, { to: testTo.trim() });
-      toast.success(`Sent to ${data.to} — check the inbox (and spam).`);
+      toast.success(`Sent to ${data.to} - check the inbox (and spam).`);
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Test email failed'));
     } finally {
@@ -172,7 +172,7 @@ export default function AdminSettings() {
         ) : emailHealth.configured ? (
           <>
             <p className="as-email-note ok">
-              <Check size={14} /> Configured — sending as <b>{emailHealth.from}</b>
+              <Check size={14} /> Configured - sending as <b>{emailHealth.from}</b>
             </p>
             {emailHealth.in_quiet_hours && (
               <p className="as-email-note warn">
@@ -212,7 +212,7 @@ export default function AdminSettings() {
           <p className="as-email-note">Loading…</p>
         ) : gateways.length === 0 && editingGateway !== 'new' ? (
           <p className="as-email-note bad">
-            <ShieldAlert size={14} /> No payment gateway configured — checkout can't take real payments. Add one below.
+            <ShieldAlert size={14} /> No payment gateway configured - checkout can't take real payments. Add one below.
           </p>
         ) : (
           <div className="as-gw-list">
@@ -220,7 +220,7 @@ export default function AdminSettings() {
               <div className="as-gw-row" key={g.gateway_name}>
                 <div className="as-gw-info">
                   <strong>{g.gateway_name}</strong>
-                  <span className="as-gw-keyid">{g.key_id || '—'}</span>
+                  <span className="as-gw-keyid">{g.key_id || '-'}</span>
                   {g.is_default && <span className="as-gw-tag default">Default</span>}
                   <span className={`as-gw-tag ${g.enabled !== false ? 'on' : 'off'}`}>{g.enabled !== false ? 'Enabled' : 'Disabled'}</span>
                 </div>
@@ -258,7 +258,7 @@ export default function AdminSettings() {
             </div>
             <div className="as-field">
               <label>Key Secret / Client Secret</label>
-              <input type="password" value={gatewayDraft.key_secret} onChange={(e) => setGatewayDraft((d) => ({ ...d, key_secret: e.target.value }))} placeholder="Paste the secret — it's never shown back" />
+              <input type="password" value={gatewayDraft.key_secret} onChange={(e) => setGatewayDraft((d) => ({ ...d, key_secret: e.target.value }))} placeholder="Paste the secret - it's never shown back" />
             </div>
             <label className="as-flag">
               <input type="checkbox" checked={gatewayDraft.enabled} onChange={(e) => setGatewayDraft((d) => ({ ...d, enabled: e.target.checked }))} />
@@ -355,7 +355,7 @@ export default function AdminSettings() {
         .as-email-test button:disabled { opacity:.5; cursor:not-allowed; }
         .as-field { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
         .as-field label { font-size:13px; color:#4b4b66; }
-        /* Level keys come from the API lowercase (new / verified / l1 / l2 / elite) —
+        /* Level keys come from the API lowercase (new / verified / l1 / l2 / elite) -
            capitalise them for display (JS already does; this guarantees it). */
         .as-field label.as-lvl { text-transform:capitalize; }
         .as-field input { width:120px; padding:7px 10px; border:1px solid #e2e4f0; border-radius:8px; }

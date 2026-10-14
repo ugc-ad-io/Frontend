@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -46,7 +47,7 @@ export default function BrandProfileCard({ id, fallbackName, onClose, onMessage,
     .then((r) => Array.isArray(r.data) ? r.data : [])
     .catch(() => []);
 
-  useEffect(() => {
+  useLiveEffect(() => {
     let alive = true;
     setLoading(true);
     axios.get(`${API}/profile/${id}`)
@@ -70,7 +71,7 @@ export default function BrandProfileCard({ id, fallbackName, onClose, onMessage,
     try {
       await axios.post(`${API}/reviews`, { campaign_id: reviewCampaignId, business_id: id, rating, review });
       setReviewOpen(false);
-      toast.success('Review submitted — thanks for the feedback!');
+      toast.success('Review submitted - thanks for the feedback!');
       setReviews(await loadReviews());
       setTab('reviews');
     } catch (e) {
@@ -151,7 +152,7 @@ export default function BrandProfileCard({ id, fallbackName, onClose, onMessage,
               <label>Website</label>
               {websiteHref
                 ? <a className="bpc-hl-link" href={websiteHref} target="_blank" rel="noreferrer"><Globe size={13} /> Visit</a>
-                : <strong>—</strong>}
+                : <strong>-</strong>}
             </div>
           </div>
         </div>
@@ -254,7 +255,7 @@ export default function BrandProfileCard({ id, fallbackName, onClose, onMessage,
         .bpc-stats strong{color:#15163a;font-size:17px;font-weight:800}
         .bpc-stat-rating strong{margin:0 2px}
         /* "New" (no rating yet) shouldn't tower over the "rating" label like a big
-           number does — render it at the label size so the pill reads evenly. */
+           number does - render it at the label size so the pill reads evenly. */
         .bpc-stat-rating strong.is-unrated{font-size:12.5px;font-weight:700}
         .bpc-badge{padding:3px 12px;border-radius:20px;background:#eef0ff;color:#5b6bff;font-size:12px!important;font-weight:700!important}
         .bpc-highlights{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:18px;padding:16px;border:1px solid #ebedfb;border-radius:16px;background:linear-gradient(140deg,#fbfbff,#f4f5ff)}

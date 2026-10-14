@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -58,7 +59,7 @@ export default function ChatPopup({ user, onClose, dealId = null, title = '' }) 
   // The opener sometimes passes a bare { id } (e.g. from a deal/conversation row)
   // with no name/photo — fetch the peer's profile to fill both in.
   const [peer, setPeer] = useState(null);
-  useEffect(() => {
+  useLiveEffect(() => {
     const needName = !user.name || user.name === 'Creator';
     const needPhoto = !user.photo;
     if (!user.id || !(needName || needPhoto)) return undefined;
@@ -102,7 +103,7 @@ export default function ChatPopup({ user, onClose, dealId = null, title = '' }) 
     return () => window.removeEventListener('ugcad:brief-opened', close);
   }, [onClose]);
 
-  useEffect(() => {
+  useLiveEffect(() => {
     let active = true;
     const load = async () => {
       try {
@@ -127,8 +128,8 @@ export default function ChatPopup({ user, onClose, dealId = null, title = '' }) 
     const contact = findContactInfo(text);
     if (contact) {
       toast.error(contact === 'email'
-        ? 'Email addresses aren’t allowed — keep all communication on-platform.'
-        : 'Phone numbers aren’t allowed — keep all communication on-platform.');
+        ? 'Email addresses aren’t allowed - keep all communication on-platform.'
+        : 'Phone numbers aren’t allowed - keep all communication on-platform.');
       return;
     }
     setSending(true);
@@ -142,7 +143,7 @@ export default function ChatPopup({ user, onClose, dealId = null, title = '' }) 
         const res = await axios.post(`${API}/chat/send`, { recipient_id: user.id, message: text.trim() });
         // Backend may still flag/redact; surface it instead of silently "sending".
         if (res.data?.filtered) {
-          toast.warning(`Message filtered for sharing contact details${res.data.warning_count ? ` — warning ${res.data.warning_count}/3` : ''}.`);
+          toast.warning(`Message filtered for sharing contact details${res.data.warning_count ? ` - warning ${res.data.warning_count}/3` : ''}.`);
         }
         setText('');
         const r = await axios.get(`${API}/chat/${user.id}`);

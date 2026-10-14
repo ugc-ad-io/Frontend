@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 ﻿import { useState, useEffect, useLayoutEffect, useRef, lazy, Suspense, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, useTheme } from '../App';
@@ -1064,7 +1065,7 @@ const howItWorksSteps = [
     num: '01',
     Icon: Users,
     title: 'Match With Belief, Not Reach',
-    desc: "We don't optimize for followers. We optimize for overlap — tone, values, visual instinct.",
+    desc: "We don't optimize for followers. We optimize for overlap - tone, values, visual instinct.",
     tag: 'Matching',
   },
   {
@@ -1078,7 +1079,7 @@ const howItWorksSteps = [
     num: '03',
     Icon: Activity,
     title: 'Scale What Earned Attention',
-    desc: "When something works, we don't replace it. We multiply it — carefully.",
+    desc: "When something works, we don't replace it. We multiply it - carefully.",
     tag: 'Growth',
   },
 ];
@@ -1118,7 +1119,7 @@ const testimonials = [
     metricLabel: 'Hook-rate lift',
   },
   {
-    quote: 'We went from 12 mediocre creatives a month to 3 great ones, and sales doubled. Less noise, more trust — that trade turned out to be the best decision we made all year. Escrow meant we never once worried about the money.',
+    quote: 'We went from 12 mediocre creatives a month to 3 great ones, and sales doubled. Less noise, more trust - that trade turned out to be the best decision we made all year. Escrow meant we never once worried about the money.',
     accent: 'sales doubled',
     name: 'Marcus Lee',
     role: 'Founder, Gener8',
@@ -1129,7 +1130,7 @@ const testimonials = [
     metricLabel: 'Revenue growth',
   },
   {
-    quote: 'Creators vetted, money in escrow, one clean dashboard — we finally trust the numbers. That trust changed how aggressively we\'re willing to scale, because every rupee is now tied to a result we can actually see and approve.',
+    quote: 'Creators vetted, money in escrow, one clean dashboard - we finally trust the numbers. That trust changed how aggressively we\'re willing to scale, because every rupee is now tied to a result we can actually see and approve.',
     accent: 'trust the numbers',
     name: 'Sara Malhotra',
     role: 'Marketing Lead, NestHome',
@@ -1203,7 +1204,7 @@ const vsRows = [
     icon: UserCheck, themIcon: Users,
     us:        { title: 'Manually reviewed', desc: 'Every creator is vetted before they touch a brief' },
     agencies:  { title: 'Curated in-house', desc: 'Limited to the agency’s own small roster' },
-    platforms: { title: 'Open sign-up', desc: 'Anyone can list themselves — no real vetting' },
+    platforms: { title: 'Open sign-up', desc: 'Anyone can list themselves - no real vetting' },
   },
   {
     label: 'Payment Safety',
@@ -1523,15 +1524,15 @@ function AchieveStack({ items }) {
 const FAQ_ITEMS = [
   {
     q: 'Who owns the content created through ugcad.io?',
-    a: 'You do. Full usage rights transfer to your brand automatically once you approve and the deal completes — handled on-platform, no separate paperwork, no chasing creators for permissions.',
+    a: 'You do. Full usage rights transfer to your brand automatically once you approve and the deal completes - handled on-platform, no separate paperwork, no chasing creators for permissions.',
   },
   {
     q: 'How quickly will I receive my content?',
-    a: 'Most campaigns go from brief to final delivery in under 14 days. You’ll see the exact due date in your deal room, and the creator is held to it — late delivery triggers automatic penalties.',
+    a: 'Most campaigns go from brief to final delivery in under 14 days. You’ll see the exact due date in your deal room, and the creator is held to it - late delivery triggers automatic penalties.',
   },
   {
     q: 'Can I communicate with creators?',
-    a: 'Yes — directly, inside the platform. Brief, chat, share feedback, and approve in one thread. Everything stays on-platform so payments, shipping, and revisions are all protected. Going off-platform means losing escrow and support.',
+    a: 'Yes - directly, inside the platform. Brief, chat, share feedback, and approve in one thread. Everything stays on-platform so payments, shipping, and revisions are all protected. Going off-platform means losing escrow and support.',
   },
   {
     q: 'How do payments work?',
@@ -1539,11 +1540,11 @@ const FAQ_ITEMS = [
   },
   {
     q: 'Is my shipping address shared with creators?',
-    a: 'Never. Products ship through masked Delhivery delivery — your warehouse address, phone, and name stay private on every order.',
+    a: 'Never. Products ship through masked Delhivery delivery - your warehouse address, phone, and name stay private on every order.',
   },
   {
     q: 'What if I’m not happy with the content?',
-    a: 'Every deal includes two free revisions. If something goes wrong, our built-in dispute resolution steps in — you’re never stuck with content you can’t use.',
+    a: 'Every deal includes two free revisions. If something goes wrong, our built-in dispute resolution steps in - you’re never stuck with content you can’t use.',
   },
 ];
 
@@ -2134,7 +2135,7 @@ export default function Landing() {
     window.addEventListener('resize', align);
     return () => window.removeEventListener('resize', align);
   }, []);
-  useEffect(() => {
+  useLiveEffect(() => {
     const track = nlpGalleryRef.current;
     const vp = track?.parentElement;
     if (!track || !vp) return undefined;
@@ -2578,7 +2579,7 @@ export default function Landing() {
           <button
             type="button"
             className="lp-navbar__brand"
-            aria-label="UGCad.io — back to top"
+            aria-label="UGCad.io - back to top"
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           >
             <img src="/ugcad-logo.png" alt="UGCad.io" className="lp-navbar__logo" />
@@ -2996,7 +2997,7 @@ export default function Landing() {
           </div>
 
           {visibleShowcase.length === 0 && (
-            <p className="lp-showcase__empty">No examples in this industry yet — try another.</p>
+            <p className="lp-showcase__empty">No examples in this industry yet - try another.</p>
           )}
 
           {/* Load more → sign up (full library unlocks after signup). */}
@@ -3044,7 +3045,7 @@ export default function Landing() {
             <div className="lp-hook__quote-card">
               <span className="lp-hook__quote-mark">"</span>
               <p className="lp-hook__quote-text">
-                The brain decides in the first few seconds —{' '}
+                The brain decides in the first few seconds -{' '}
                 <em>is this real, or is this trying to sell me something?</em>
               </p>
             </div>
@@ -3402,7 +3403,7 @@ export default function Landing() {
           animate={proofInView ? 'visible' : 'hidden'}
         >
           <div className="lpz-col lpz-col--text">
-            <span className="lpz-eyebrow">— proof, not promises</span>
+            <span className="lpz-eyebrow">- proof, not promises</span>
             <h2 className="lpz-heading">Trust Changes<br />the Math.</h2>
           </div>
 
@@ -3448,7 +3449,7 @@ export default function Landing() {
 
         {/* Closing micro-line the proof section has always signed off with. Outside the
             panel, so it reads as the section's sign-off rather than panel copy. */}
-        <p className="lp-proof__micro">— Not louder ads. Better ones. —</p>
+        <p className="lp-proof__micro">- Not louder ads. Better ones. -</p>
       </section>
       </div>
 
@@ -3728,7 +3729,7 @@ export default function Landing() {
         <div className="lp-footer__inner">
           {/* Brand statement at top */}
           <div className="lp-footer__statement">
-            <p className="lp-footer__statement-eyebrow">— Manifesto</p>
+            <p className="lp-footer__statement-eyebrow">- Manifesto</p>
             <h3 className="lp-footer__statement-line">
               We don't help brands chase attention.{' '}
               <span className="lp-footer__statement-accent">We help them earn familiarity.</span>
@@ -3806,13 +3807,13 @@ export default function Landing() {
           --lp-purple-300: #8888A0;
           --lp-purple-500: #3A3A66;
           --lp-purple-600: #1F1F4E;
-          --lp-purple-700: #7387FF;   /* "Periwinkle Pulse" — primary */
+          --lp-purple-700: #7387FF;   /* "Periwinkle Pulse" - primary */
           --lp-purple-900: #050538;
           /* Brand palette: Periwinkle Pulse (--lp-purple-700 above) is primary; Midnight
              Indigo is the existing #07074E navy used throughout (audit/testimonial glows,
              card text); these two round it out for surfaces/accents. */
-          --lp-lilac: #F3F3FF;        /* "Frosted Lilac" — neutral/background */
-          --lp-mist:  #9F9FD1;        /* "Velvet Mist" — accent */
+          --lp-lilac: #F3F3FF;        /* "Frosted Lilac" - neutral/background */
+          --lp-mist:  #9F9FD1;        /* "Velvet Mist" - accent */
           --lp-ink:        #0A0A0A;
           --lp-text:       #ffffff;
           --lp-text-muted: rgba(var(--lp-fg), 0.7);
@@ -3822,7 +3823,7 @@ export default function Landing() {
           --lp-border:     #E5E7EB;
         }
 
-        /* Hides the native page scrollbar while this page is mounted — this <style> tag
+        /* Hides the native page scrollbar while this page is mounted - this <style> tag
            isn't styled-jsx-scoped (no "jsx" attribute), so html/body rules here reach
            outside .lp-root and apply for real, but only for as long as Landing stays
            mounted (unmounting removes the tag, restoring the scrollbar elsewhere). Scroll
@@ -3838,7 +3839,7 @@ export default function Landing() {
           --lp-page-bg: #0a0a0a;
           --lp-text: #ffffff;
           /* ══════════════════════════════════════════════════════════════════════
-             ONE RESPONSIVE SYSTEM. Reference viewport 1536px — every token below
+             ONE RESPONSIVE SYSTEM. Reference viewport 1536px - every token below
              resolves to the page's reference value at exactly 1536 and scales in a
              single controlled band around it:  ~-9% at 1024, ~+18% at 2560.
 
@@ -3849,14 +3850,14 @@ export default function Landing() {
              regresses.
 
              Scaling is bounded on purpose. A 2560 monitor gets ~18% larger type and
-             spacing than 1536 — noticeably more generous, but not the 66% that a
+             spacing than 1536 - noticeably more generous, but not the 66% that a
              naive vw-proportional scale would give.
              ══════════════════════════════════════════════════════════════════════ */
 
           /* Type scale. Values at 1536: 64 / 54 / 40 / 31 / 16 / 14. */
           /* Steeper slope than the other tokens, and deliberately so. The original fit
              (46.7px + 1.125vw) was derived from the desktop band only, so its 34px floor
-             never actually engaged — the linear term stayed above it at every width, and a
+             never actually engaged - the linear term stayed above it at every width, and a
              360px phone got a 51px hero headline. That is what forced "Performance" onto a
              line of its own. This fit passes through the SAME 64px at the 1536 reference but
              reaches ~34px on a phone, so the headline wraps into sensible phrases.
@@ -3886,7 +3887,7 @@ export default function Landing() {
              reference, ~123px at 2560, floors at 64px on small screens. */
           --lp-logo-h: clamp(64px, 75.9px + 1.829vw, 123px);
 
-          /* ONE container width for the whole page — navbar, hero, sections, footer.
+          /* ONE container width for the whole page - navbar, hero, sections, footer.
              At 1536 this resolves to 1320px (the tuned reference). It stays 1320 up to
              ~1535, grows with the screen past that, and stops at 1560 so line lengths
              stay readable on a 2560 display. Sections consume it via .lp-container
@@ -3910,7 +3911,7 @@ export default function Landing() {
           --lp-bg-soft: #fefcf9;
           --lp-text-muted: rgba(28,27,75,0.66);
           --lp-text-soft: #5b5a7e;
-          --lp-section: #ffffff;       /* white card surface — stays white so cards
+          --lp-section: #ffffff;       /* white card surface - stays white so cards
                                            still pop off the lilac page background */
         }
         /* Dark base also exposes a section-surface token so both themes share it. */
@@ -3931,7 +3932,7 @@ export default function Landing() {
         .lp-bg-blob {
           position: absolute;
           border-radius: 50%;
-          /* Subtle ambient haze — soft centre + early fade so it reads like the old
+          /* Subtle ambient haze - soft centre + early fade so it reads like the old
              blurred blob, not a hard, bright blue disc behind the content. */
           background: radial-gradient(circle, rgba(7, 7, 78, 0.32) 0%, rgba(7, 7, 78, 0) 58%);
           opacity: 0.5;
@@ -3964,18 +3965,18 @@ export default function Landing() {
           right: 0;
           z-index: 1000;
           /* THE fix for "lines up on my laptop, drifts everywhere else".
-             Every content section resolves its edge to max(4%, (100% - 1320px)/2) — a 4%
+             Every content section resolves its edge to max(4%, (100% - 1320px)/2) - a 4%
              gutter until the 1320px cap takes over. This bar used a bare 4%, so the two only
              produced the same edge where 0.08W = W - 1320, i.e. W = 1435px. At 1440 they
              matched (2px apart) and looked deliberate; at 1920 the logo sat 223px outside the
-             content column, at 2560 it was 517px out — the bar visibly detached from the page.
+             content column, at 2560 it was 517px out - the bar visibly detached from the page.
              Expressed as the same relationship, they now track each other at every width. */
           padding-inline: max(4%, calc((100% - var(--lp-maxw)) / 2));
           transition: top 0.3s ease;
         }
         /* Slides fully off the top when scrolling down; returns on scroll-up. */
         .lp-navbar--hidden { top: -110px; }
-        /* Fade mask removed — it was washing out the hero heading with a soft gradient
+        /* Fade mask removed - it was washing out the hero heading with a soft gradient
            ("shadow") as it scrolled up behind the nav. */
         .lp-navbar::before { display: none; }
 
@@ -4007,7 +4008,7 @@ export default function Landing() {
         .lp-navbar__inner {
           position: relative;
           /* GRID, not flex+absolute. The links pill used to be position:absolute/left:50%,
-             which takes it out of flow — so this bar reserved ZERO width for it and the
+             which takes it out of flow - so this bar reserved ZERO width for it and the
              logo/actions happily expanded underneath. Its ~500px of content then overlapped
              "Log in" below ~1045px (at 1024 they overlapped by 9px), and no breakpoint
              covered 769–1045px. Three real columns make the overlap structurally impossible:
@@ -4016,7 +4017,7 @@ export default function Landing() {
           grid-template-columns: 1fr auto 1fr;
           align-items: center;
           gap: 12px;
-          /* Plain/transparent, full width — logo and actions sit unboxed at the true
+          /* Plain/transparent, full width - logo and actions sit unboxed at the true
              edges of the bar. Only the centered nav-links group (below) gets its own
              pill background now, not the whole bar. */
           width: 100%;
@@ -4027,7 +4028,7 @@ export default function Landing() {
         }
 
         .lp-navbar__logo {
-          /* Contained within the bar. Vertically centered by the flex row — no
+          /* Contained within the bar. Vertically centered by the flex row - no
              overflow, no negative margin. */
           height: 46px;
           width: auto;
@@ -4042,14 +4043,14 @@ export default function Landing() {
           transition: opacity 0.2s ease;
         }
         .lp-navbar__brand:hover { opacity: 0.8; }
-        .lp-navbar__brand-a { color: #7387FF; }   /* "UGC" — periwinkle */
-        .lp-navbar__brand-b { color: #07074e; }   /* "ad.io" — navy */
+        .lp-navbar__brand-a { color: #7387FF; }   /* "UGC" - periwinkle */
+        .lp-navbar__brand-b { color: #07074e; }   /* "ad.io" - navy */
         .lp-root[data-theme="dark"] .lp-navbar__brand-b { color: #EDE7DA; }
 
-        /* Nav links — centred in the bar (logo stays left, actions stay right via
+        /* Nav links - centred in the bar (logo stays left, actions stay right via
            .lp-navbar__inner's justify-content:space-between). Taken out of flex flow
            and centred absolutely so its own width never pushes the logo or actions.
-           This is the ONLY part of the bar with a background — a floating glass pill,
+           This is the ONLY part of the bar with a background - a floating glass pill,
            while the logo and Log in/Sign up sit unboxed at the true edges. */
         .lp-navbar__links {
           /* In-flow centre column of .lp-navbar__inner's grid (was absolute + left:50%). */
@@ -4087,13 +4088,13 @@ export default function Landing() {
         }
         .lp-root .lp-navlink:hover { color: #ffffff; }
         .lp-navlink svg { color: rgba(var(--lp-fg), 0.6); }
-        /* Was opacity:0.55 on hover — faded/lightened the whole link against the frosted
+        /* Was opacity:0.55 on hover - faded/lightened the whole link against the frosted
            glass bar, which read as the link "going light". Solid brand colour instead, so
            hover stays fully opaque. */
         .lp-root .lp-navbar__links .lp-navlink:hover { color: #7387FF; }
         /* Text swap on hover, per character: each letter is its own clipped two-row slot
            (original on top, a duplicate directly below at top:100%). Hovering slides every
-           letter's rows up by one line so the duplicate enters from the bottom — but each
+           letter's rows up by one line so the duplicate enters from the bottom - but each
            character's transition-delay (set inline, staggered by index in NavHoverText)
            makes them fire left-to-right in sequence instead of all moving at once. */
         .lp-navlink__text { position: relative; display: inline-flex; overflow: hidden; height: 1.3em; line-height: 1.3em; }
@@ -4108,7 +4109,7 @@ export default function Landing() {
           left: 0;
         }
         .lp-navlink:hover .lp-navlink__char-row { transform: translateY(-100%); }
-        /* Hover underline — grows in left-to-right beneath the centred nav links. */
+        /* Hover underline - grows in left-to-right beneath the centred nav links. */
         .lp-navbar__links .lp-navlink::after {
           content: '';
           position: absolute;
@@ -4122,7 +4123,7 @@ export default function Landing() {
         .lp-navbar__links .lp-navlink:hover::after { width: 100%; }
 
         .lp-navbar__actions {
-          /* Right grid column — pinned to its end so the centre pill stays truly centred. */
+          /* Right grid column - pinned to its end so the centre pill stays truly centred. */
           justify-self: end;
           display: flex;
           gap: 30px;
@@ -4132,13 +4133,13 @@ export default function Landing() {
            centre regardless of how wide the logo or the buttons happen to be. */
         .lp-navbar__brand { justify-self: start; }
         /* Tighten the pill just before it would crowd the buttons, instead of letting it
-           collide — covers the old 769–1045px dead zone. */
+           collide - covers the old 769–1045px dead zone. */
         @media (max-width: 1024px) {
           .lp-navbar__links { gap: 18px; padding: 12px 20px; font-size: 0.88rem; }
           .lp-navbar__actions { gap: 14px; }
         }
 
-        /* Log in — outlined (secondary) pill, Sign Up below carries the solid emphasis. */
+        /* Log in - outlined (secondary) pill, Sign Up below carries the solid emphasis. */
         .lp-root .lp-btn-login {
           display: inline-flex;
           align-items: center;
@@ -4171,7 +4172,7 @@ export default function Landing() {
         .lp-theme__ic--sun { left: 8px; }
         .lp-theme__ic--moon { right: 8px; }
 
-        /* Sign Up — the single solid pill CTA in the bar (was a plain text link). */
+        /* Sign Up - the single solid pill CTA in the bar (was a plain text link). */
         .lp-root .lp-btn-signup {
           padding: 10px 24px;
           border: 1px solid #7387FF;
@@ -4252,15 +4253,15 @@ export default function Landing() {
         .nlp-hero {
           position: relative; z-index: 3; isolation: isolate;
           /* Follows the theme variable (was hardcoded #fefcf9 cream) so it matches
-             whichever theme is active instead of always being light — it was hardcoded
+             whichever theme is active instead of always being light - it was hardcoded
              back when the whole page was always cream; now the rest of the page follows
              data-theme, so this has to as well or it's the one visibly mismatched section
              (and its dark-theme text color reads as near-invisible against a light bg). */
           background: var(--lp-page-bg);
-          /* Compacted (was 132px/96px) so the whole hero — heading, subtitle, card row,
-             and CTA — fits in a single view without scrolling on a typical desktop
+          /* Compacted (was 132px/96px) so the whole hero - heading, subtitle, card row,
+             and CTA - fits in a single view without scrolling on a typical desktop
              viewport, instead of running well past the fold. Top padding must stay
-             ABOVE the fixed .lp-navbar's own footprint (top:20px + 64px tall = 84px) —
+             ABOVE the fixed .lp-navbar's own footprint (top:20px + 64px tall = 84px) -
              going lower hides the badge/heading behind it, since the navbar is
              position:fixed and doesn't push page content down on its own. */
           padding: var(--lp-space-hero-top) 24px 32px;
@@ -4268,12 +4269,12 @@ export default function Landing() {
         }
         /* Shiny pill: glossy gradient fill + a specular sweep that glints across every few
            seconds + a four-point sparkle at each end.
-           Palette is the site accent (Periwinkle Pulse, --lp-purple-700) — the amber this
+           Palette is the site accent (Periwinkle Pulse, --lp-purple-700) - the amber this
            used to be belonged to no palette on the page, the same one-off the .nlp-cta
            comment below describes shedding. Run DARK: a deep periwinkle→indigo fill with a
            white label, which makes the sparkles and gloss read far harder than they did on
            a light tint.
-           Every stop is chosen to clear WCAG AA against white at this 13.5px size — the
+           Every stop is chosen to clear WCAG AA against white at this 13.5px size - the
            lightest, #5566e8, is 4.7:1. Do NOT lighten them toward the plain #7387FF accent:
            that is only 3.2:1 and the label stops being compliant. */
         .nlp-badge {
@@ -4298,7 +4299,7 @@ export default function Landing() {
            0,1,0 loses to it and the label rendered in navy --lp-text on the dark fill. */
         .lp-root .nlp-badge { color: #ffffff; }
         /* Specular sweep. On ::before with border-radius: inherit so the pill's own shape
-           clips it — overflow:hidden would have worked too, but it would equally have cut
+           clips it - overflow:hidden would have worked too, but it would equally have cut
            off the sparkles on ::after, which are meant to overhang the edge. */
         .nlp-badge::before {
           content: '';
@@ -4306,8 +4307,8 @@ export default function Landing() {
           /* Sized BELOW 100% on purpose: for a background smaller than its box, percentage
              positioning is the intuitive kind (0% = flush left, 100% = flush right), so the
              sweep travels predictably. At >100% the percentages resolve against negative
-             free space and the band barely moves — which is what a 220% size did here. */
-          /* Held well below opaque. The label is white now, and the sweep passes UNDER it —
+             free space and the band barely moves - which is what a 220% size did here. */
+          /* Held well below opaque. The label is white now, and the sweep passes UNDER it -
              a near-white band would erase the text where the two cross. 0.38 still reads as
              a bright gloss against the dark fill while the label stays legible throughout. */
           background: linear-gradient(100deg,
@@ -4325,7 +4326,7 @@ export default function Landing() {
         /* The two four-point sparkles. Drawn as an inline SVG star rather than crossed
            gradients: multi-layer gradients position by each layer's top-left corner, so the
            horizontal and vertical arms cannot be centred on each other without hand-computed
-           per-layer offsets — they rendered as an offset bar instead of a star. One square,
+           per-layer offsets - they rendered as an offset bar instead of a star. One square,
            symmetric SVG sidesteps that entirely. Insets are negative so the stars can sit
            over the pill's edge like the reference. */
         .nlp-badge::after {
@@ -4350,7 +4351,7 @@ export default function Landing() {
         .nlp-title {
           margin: 0 auto; max-width: 980px;
           font-family: var(--font-head);
-          /* Was hardcoded #171717 (near-black) — fine against the old always-cream hero,
+          /* Was hardcoded #171717 (near-black) - fine against the old always-cream hero,
              illegible now that the hero follows the dark theme by default. */
           /* 700 -> 600. Readex Pro is loaded at 200-700 (see the @import in App.css), so 600 is
              a real cut rather than a browser-synthesized in-between. */
@@ -4365,10 +4366,10 @@ export default function Landing() {
            (".lp-root h1, .lp-root span, …  { color: var(--lp-text) }") is specificity 0,1,1;
            a bare .nlp-title-accent is 0,1,0 and LOSES, so the accent phrases were being
            repainted in the body colour and the whole headline rendered flat navy.
-           Matching that rule's specificity — and coming later in the sheet — restores them
+           Matching that rule's specificity - and coming later in the sheet - restores them
            without needing !important. */
         .lp-root .nlp-title-accent { color: var(--lp-purple-700); }
-        /* Keeps "The Performance" on one line — see the h1. inline-block so the nowrap
+        /* Keeps "The Performance" on one line - see the h1. inline-block so the nowrap
            applies to the pair as a unit while the surrounding text still wraps normally. */
         .nlp-title-nb { white-space: nowrap; display: inline-block; }
         .nlp-sub {
@@ -4377,11 +4378,11 @@ export default function Landing() {
           font-family: var(--font-body);
         }
         /* Accent phrase inside the subline. nowrap so "high-performing UGC ads" can't be
-           split across two lines — it's read as one term. */
+           split across two lines - it's read as one term. */
         .lp-root .nlp-sub-accent { color: var(--lp-purple-700); font-weight: 600; white-space: nowrap; }
         /* Off by default (desktop reflows naturally). On mobile the sentence was wrapping
-           to 3 lines, so a forced break right at the sentence boundary — "clicks." / "Unlock
-           serious growth with high-performing UGC ads." — turns it into a clean 2. The
+           to 3 lines, so a forced break right at the sentence boundary - "clicks." / "Unlock
+           serious growth with high-performing UGC ads." - turns it into a clean 2. The
            smaller font-size is what keeps that second line from wrapping a 3rd time itself. */
         .nlp-sub-break { display: none; }
         @media (max-width: 640px) {
@@ -4395,11 +4396,11 @@ export default function Landing() {
           /* Full-bleed by cancelling the PARENT's own known padding (.nlp-hero: 24px each
              side) instead of a width:100vw + calc(50% - 50vw) breakout. The vw-based
              version undershot by a few px because html{scrollbar-gutter:stable} reserves
-             gutter space that vw/% don't agree on — this version needs no measurement or
+             gutter space that vw/% don't agree on - this version needs no measurement or
              JS correction at all: it's an exact, purely-CSS relationship to the direct
              parent, so it's correct at every breakpoint automatically. Must stay in sync
              with .nlp-hero's own horizontal padding (24px here, 16px in the ≤900px rule
-             below — each has a matching override there). */
+             below - each has a matching override there). */
           width: calc(100% + 48px);
           margin: 20px -24px 0;
           overflow-x: clip;
@@ -4411,32 +4412,32 @@ export default function Landing() {
           perspective: 1100px;
           /* SYMMETRIC vertical room. Cards now grow about the row's horizontal centreline
              (see align-items/transform-origin below), so they need equal headroom above
-             and below — the old lopsided 24/50 was for a bottom-baselined arc that no
+             and below - the old lopsided 24/50 was for a bottom-baselined arc that no
              longer exists. Horizontal padding stays 0 so cards run clean off both screen
              edges instead of stopping short of them. */
           padding: 40px 0 40px;
           /* No edge mask (was a 7% fade-to-transparent at both ends). Against the cream
              page background, video content fading to transparent reads as a discolored/
-             shadowed smear right at the left and right edges instead of a clean dissolve —
+             shadowed smear right at the left and right edges instead of a clean dissolve -
              that's what was actually being seen there, not a shadow effect worth keeping. */
         }
         .nlp-gallery {
           /* Centre-aligned: every card grows/shrinks about ONE shared horizontal axis, so
              the row stays dead straight as the cylinder scales them. (Was flex-end, which
              pinned bottoms to a baseline and made the bigger edge cards visibly climb
-             upward — the "cards moving up from right and left" problem.) */
+             upward - the "cards moving up from right and left" problem.) */
           display: flex; align-items: center;
           gap: 44px; width: max-content; will-change: transform;
           transform-style: preserve-3d;
           transition: opacity 0.3s ease;
         }
-        /* Hidden until JS has posed the cylinder — see the .is-posing note in the JSX and
+        /* Hidden until JS has posed the cylinder - see the .is-posing note in the JSX and
            reveal() in the gallery effect. The class is only ever REMOVED, so if the effect
            never runs the safety-net timeout still shows the row. */
         .nlp-gallery.is-posing { opacity: 0; }
         .nlp-card {
           /* Sized from viewport HEIGHT, not width. The card is 9/16 portrait, so its height is
-             what decides whether the hero fits the screen — and the old width-based formula
+             what decides whether the hero fits the screen - and the old width-based formula
              capped at 180px, meaning a 900px-tall laptop and a 1440px-tall monitor both got a
              320px-tall card with the extra height left as dead space below it. (The formula
              was also off by 120px on its own terms: 7 cards + 6x44px gaps is 100vw + 120, not
@@ -4445,7 +4446,7 @@ export default function Landing() {
           flex: 0 0 clamp(150px, 11.5vw, 230px);
           margin: 0; border-radius: 26px; overflow: hidden;
           aspect-ratio: 9 / 16; background: #e7e0d2;
-          /* "center center" — the cylinder scales cards about the row's shared centreline
+          /* "center center" - the cylinder scales cards about the row's shared centreline
              (see .nlp-gallery align-items above), so they expand evenly up AND down and
              the row reads as one straight horizontal band. */
           transform-origin: center center; will-change: transform;
@@ -4457,11 +4458,11 @@ export default function Landing() {
            overhang, so this adds separation rather than fighting it. */
         /* align-self: center is what actually centres these. On mobile .nlp-hero becomes a
            column flex container, and its default align-items:stretch widened this wrap to the
-           full column — so the buttons sat at its flex-start (left) edge and the hero's
+           full column - so the buttons sat at its flex-start (left) edge and the hero's
            text-align:center had no effect, because that centres inline content, not flex items.
            align-self only overrides it for THIS item: adding align-items:center to the hero
            instead would also shrink the full-bleed card marquee beside it.
-           Staying inline-flex (hugging its buttons) matters too — the "It's free" note is
+           Staying inline-flex (hugging its buttons) matters too - the "It's free" note is
            absolutely positioned at right: calc(100% + 6px) of this box, so a full-width wrap
            would fling it off to the far left. */
         .nlp-cta-wrap {
@@ -4476,7 +4477,7 @@ export default function Landing() {
           margin-top: 26px;
         }
         /* Primary hero CTA. Was a one-off orange (#ef6a4c) that belonged to no palette on this
-           page — now the site accent, the same periwinkle every other primary fill uses (nav
+           page - now the site accent, the same periwinkle every other primary fill uses (nav
            join pill, audit deck, proof cards). Flat: the coloured glow this used to cast has
            been removed, so the lift + darkening carry the hover on their own. */
         .lp-root .nlp-cta {
@@ -4486,13 +4487,13 @@ export default function Landing() {
           box-shadow: none;
           transition: transform .18s ease, background .18s ease;
         }
-        /* Deepens to the darker end of the same ramp on hover (#4452f0 — the tone already used
+        /* Deepens to the darker end of the same ramp on hover (#4452f0 - the tone already used
            for the PRO tier chip and the proof-card accents). */
         .nlp-cta:hover {
           background: #4452f0;
           transform: translateY(-2px);
         }
-        /* Secondary hero CTA ("Sign up as Brand"). Outline, not a second filled pill —
+        /* Secondary hero CTA ("Sign up as Brand"). Outline, not a second filled pill -
            two solid buttons side by side would give the brand path equal visual weight
            to the primary creator one. */
         .lp-root .nlp-cta--ghost {
@@ -4509,7 +4510,7 @@ export default function Landing() {
           color: #3a3a3a; font-size: 21px; line-height: 1.15; font-weight: 600; pointer-events: none;
           /* The "It's free" arrow's tip deliberately reaches into the CTA button's box to
              point at it. Without this, the button (later in the DOM, so painted on top by
-             default) covers the arrow tip on :hover when its box-shadow grows/darkens —
+             default) covers the arrow tip on :hover when its box-shadow grows/darkens -
              the arrow visibly vanishing right when you hover it. Keeping notes above the
              button always, in both states, fixes that. */
           z-index: 2;
@@ -4517,7 +4518,7 @@ export default function Landing() {
         /* top trimmed (was 210px) to track the heading, which now sits higher/smaller
            after the hero compacting pass above. */
         /* Tracks the HEADLINE'S TEXT edge, not the viewport edge and not the title's max-width
-           box. Two earlier attempts both failed for the same underlying reason — they used a
+           box. Two earlier attempts both failed for the same underlying reason - they used a
            constant where a relationship was needed:
              - right: max(160px, calc(50vw - 680px)) measured from the screen edge, so as the
                window narrowed the note walked into "with Stunning Videos";
@@ -4525,14 +4526,14 @@ export default function Landing() {
                fills that box on very large screens, so on a ~1600px window the note sat far to
                the right of the visible headline (and was hidden outright below 1380px).
            The text's right edge is ~50% + 4.95·font, and font is var(--lp-fs-display)
-           — so it expands as roughly 0.58W + 109. Matching that expression holds a constant
+           - so it expands as roughly 0.58W + 109. Matching that expression holds a constant
            ~20px gap from the words at EVERY width from 960 to 2560, which is why the hide-below
            rule is gone: there is no longer a width where it collides. */
         .nlp-note--free { position: absolute; right: calc(100% + 6px); bottom: 2px; white-space: nowrap; transform: rotate(-8deg); }
         .nlp-note--free .nlp-note-arrow2 { position: absolute; right: -58px; top: 6px; width: 56px; height: 34px; }
         @media (max-width: 900px) {
           /* Fill the full mobile viewport height so the next section ("Our Services")
-             never peeks in until you actually scroll — it was falling short of the
+             never peeks in until you actually scroll - it was falling short of the
              screen, leaving a dead empty band before the next section's heading bled
              into view. min-height (not height) so genuinely long content still pushes
              the section taller rather than clipping. 100dvh (not vh) accounts for
@@ -4542,7 +4543,7 @@ export default function Landing() {
              existing content instead of dumping it all as one gap below the CTAs. */
           .nlp-hero {
             /* 60px -> 84px. The navbar is position:fixed at top:20px and its inner row is
-               48px tall on phones, so it occupies y=20..68 — a 60px top padding put the
+               48px tall on phones, so it occupies y=20..68 - a 60px top padding put the
                "Trusted by 800+ D2C brands" badge at y=60, underneath it, and the two
                collided over the logo. 84px clears the bar with 16px to spare (the same
                figure the desktop rule uses, recomputed for the 48px mobile navbar).
@@ -4563,36 +4564,36 @@ export default function Landing() {
             flex-direction: column;
             justify-content: center;
           }
-          /* Nudges just the badge up relative to the heading below it — a negative
+          /* Nudges just the badge up relative to the heading below it - a negative
              margin on a flex item shifts it independent of its siblings, unlike
              changing the container's padding (which moves the whole centered group). */
           .nlp-badge { margin-top: -14px; }
-          /* .nlp-hero's horizontal padding drops to 16px here — match it so the
+          /* .nlp-hero's horizontal padding drops to 16px here - match it so the
              full-bleed cancellation stays exact (was hardcoded to the desktop 24px). */
-          /* Horizontal padding 0 (was 4px) — cards run edge-to-edge here too.
+          /* Horizontal padding 0 (was 4px) - cards run edge-to-edge here too.
              overflow-x is CLIP, not auto: the row is driven by the same rAF cylinder loop
-             as desktop now, so it must not also be a native swipe-scroller — a scrollable
+             as desktop now, so it must not also be a native swipe-scroller - a scrollable
              box would fight the JS translateX and let the user drag the row out of the
              geometry it's being positioned against. (The -webkit-overflow-scrolling /
              scrollbar-hiding rules that went with auto are gone for the same reason.)
              Vertical padding is bigger than the old 6/10: the near cards at the row's
              edges project up to ~1.2x, and they grow about the centreline in BOTH
              directions, so they need real headroom or they'd be sliced off. */
-          /* NO perspective override here — it inherits the desktop 1100px on purpose.
+          /* NO perspective override here - it inherits the desktop 1100px on purpose.
              A shorter mobile lens was tried (520px) and is wrong now that the depths are
              derived from the focal length: it leaves the near/far SIZE ratio untouched
              (that's the point of the ratio) while still shortening the lens for the
              rotateY foreshortening, so the edge cards splayed harder than desktop's. The
-             curve itself is already viewport-relative — geomAt divides dx by halfViewport
-             — so one focal length genuinely serves every screen width. */
+             curve itself is already viewport-relative - geomAt divides dx by halfViewport
+             - so one focal length genuinely serves every screen width. */
           .nlp-gallery-vp { width: calc(100% + 32px); margin-left: -16px; margin-right: -16px; overflow-x: clip; overflow-y: visible; padding: 22px 0 22px; }
-          /* transform:none !important is GONE — that pair of rules is what pinned the row
+          /* transform:none !important is GONE - that pair of rules is what pinned the row
              flat on phones; the JS writes per-card transforms and !important beat them. */
           .nlp-gallery { gap: 14px; }
           /* Divisor 3 -> 2.5: the whole row was reading small on a phone once the corner
              cards stopped ballooning, so every card grows ~20% (at 390px: 111px -> 134px
              wide, and 9/16 makes that 198px -> 238px tall). Fewer cards fit across as a
-             result — nearer three than the original "exactly three plus two curving out",
+             result - nearer three than the original "exactly three plus two curving out",
              which is the trade for legible cards on a 390px screen.
              The subtracted 56px is still two 14px gaps plus a 14px bleed either side, so
              the outer pair stays visibly cut by the edge rather than sitting flush inside.
@@ -4605,7 +4606,7 @@ export default function Landing() {
           .nlp-note { display: none; }
           /* Hero CTAs on a phone. The desktop 15px/42px padding left the pair wider than the
              screen, so each label broke onto two lines and the pills grew to ~double height.
-             nowrap forces one line; the trimmed padding + font are what make one line FIT —
+             nowrap forces one line; the trimmed padding + font are what make one line FIT -
              nowrap on its own would just have turned the wrap into horizontal overflow.
              "Sign up as Brand" is the long label and sets the floor: at 14px it needs roughly
              120px of text + 36px padding, so the pair plus the gap sits ~330px, inside a 360px
@@ -4613,7 +4614,7 @@ export default function Landing() {
           /* margin-top 26px -> 4px, phone only. The 26px base was tuned against the DESKTOP
              arch, where the cards are ~370px tall and overhang the gallery's padding a long
              way; at this breakpoint they are ~239px and clear it easily. Measured at 390x860
-             the lowest card sat at 614px with the buttons at 661px — 47px of gap, more than
+             the lowest card sat at 614px with the buttons at 661px - 47px of gap, more than
              the row above it needed. 4px brings that to ~25px, still clear of the overhang. */
           .nlp-cta-wrap { gap: 10px; margin-top: 4px; }
           .lp-root .nlp-cta {
@@ -4624,7 +4625,7 @@ export default function Landing() {
         }
         /* SHORT phones (iPhone SE class), gated on HEIGHT not width. The +20% card growth
            above is sized off viewport WIDTH, so a 390x667 screen got the same 239px-tall
-           cards as a 390x860 one — measured, that put the CTA pair's bottom edge at 681px in
+           cards as a 390x860 one - measured, that put the CTA pair's bottom edge at 681px in
            a 667px viewport, i.e. just off the bottom of the screen. Falling back to the old
            /3 divisor and trimming the gallery's vertical padding pulls it back above the
            fold; tall phones are unaffected and keep the bigger cards. */
@@ -4638,9 +4639,9 @@ export default function Landing() {
           .lp-root .nlp-cta { padding: 11px 13px; font-size: 13px; }
         }
 
-        /* No animated blobs / 3D logo mark in this build (unrelated to page color — kept
+        /* No animated blobs / 3D logo mark in this build (unrelated to page color - kept
            as-is). The background itself now follows data-theme (set dynamically from the
-           site theme context) via .lp-root's own "background: var(--lp-page-bg)" — this
+           site theme context) via .lp-root's own "background: var(--lp-page-bg)" - this
            used to force cream here regardless of theme, which is exactly what blocked the
            page from ever going dark. */
         .lp-bg-animations { display: none !important; }
@@ -4679,7 +4680,7 @@ export default function Landing() {
           will-change: transform, opacity;
         }
 
-        /* Pinned stage — stays dark throughout. The copy is vertically centred now that
+        /* Pinned stage - stays dark throughout. The copy is vertically centred now that
            the brand strip no longer reserves the bottom; the 3D mark balances it right. */
         .lp-hero__sticky {
           position: sticky;
@@ -4716,7 +4717,7 @@ export default function Landing() {
           transition: opacity 0.45s ease;
         }
 
-        /* Right: the UGC logo mark — anchored to the right; grows in place on the
+        /* Right: the UGC logo mark - anchored to the right; grows in place on the
            2nd scroll (transform-origin right so it never clips off the right edge) */
         .lp-hero__logo {
           position: absolute;
@@ -4731,7 +4732,7 @@ export default function Landing() {
           pointer-events: none;
         }
 
-        /* 2nd scroll onward — brand strip hides; the copy (text) stays visible */
+        /* 2nd scroll onward - brand strip hides; the copy (text) stays visible */
         .lp-hero__strip { transition: opacity 0.45s ease; }
         .lp-hero--collapsed .lp-hero__strip {
           opacity: 0;
@@ -4745,18 +4746,18 @@ export default function Landing() {
           object-fit: contain;
           transition: opacity 0.5s ease;
         }
-        /* Start state — clean white mark with a soft glow (visible by default) */
+        /* Start state - clean white mark with a soft glow (visible by default) */
         .lp-hero__logo-img--white {
           opacity: 1;
           filter: drop-shadow(0 0 40px rgba(var(--lp-fg), 0.28));
         }
-        /* 3rd-scroll state — navy-blue mark; brightened + blue glow so it reads clearly
+        /* 3rd-scroll state - navy-blue mark; brightened + blue glow so it reads clearly
            on the dark stage. Hidden until the .lp-hero--navy class is applied. */
         .lp-hero__logo-img--navy {
           opacity: 0;
           filter: brightness(3.2) saturate(1.6) drop-shadow(0 0 34px rgba(80, 100, 255, 0.85));
         }
-        /* 3rd scroll — crossfade white → navy blue */
+        /* 3rd scroll - crossfade white → navy blue */
         .lp-hero--navy .lp-hero__logo-img--white { opacity: 0; }
         .lp-hero--navy .lp-hero__logo-img--navy { opacity: 1; }
 
@@ -4772,7 +4773,7 @@ export default function Landing() {
           font-family: var(--font-body);
           font-size: 0.9rem;
           font-weight: 600;
-          /* Guaranteed clearance below the fixed navbar — applies in every layout
+          /* Guaranteed clearance below the fixed navbar - applies in every layout
              (works regardless of the section padding overrides per breakpoint). */
           margin: clamp(40px, 9vh, 96px) 0 0;
           backdrop-filter: blur(8px);
@@ -4788,13 +4789,13 @@ export default function Landing() {
           letter-spacing: -0.03em;
           max-width: 18ch;
         }
-        /* Mobile hero title — custom line-by-line arrangement, centred + larger. Higher
+        /* Mobile hero title - custom line-by-line arrangement, centred + larger. Higher
            specificity (0,2,0) so it beats the various single-class .lp-hero__title mobile
            overrides regardless of source order. */
         .lp-hero--static .lp-hero__title--mobile {
           /* Each logical line ("The Performance System", "Behind The Top", "1% D2C Brands") stays
              on ONE line via nowrap + the <br>s. 7vw is the largest the longest line can be while
-             still fitting the narrowest phones — above that it overflows/clips off the right edge. */
+             still fitting the narrowest phones - above that it overflows/clips off the right edge. */
           font-size: clamp(1.5rem, 7vw, 3rem);
           font-weight: 600;
           line-height: 1.3;
@@ -4839,7 +4840,7 @@ export default function Landing() {
           text-align: left;
         }
         /* Mobile-only line break before "high-performing UGC ads" (own line). */
-        /* Mid-sentence break — kept OFF everywhere now: on mobile each sentence stays on one
+        /* Mid-sentence break - kept OFF everywhere now: on mobile each sentence stays on one
            line (shrunk + nowrap below) instead of wrapping into two. */
         .lp-hero__sub-mbr { display: none; }
         /* Hero subtitle second line ("Unlock serious growth…") shown on desktop, hidden on mobile. */
@@ -4902,7 +4903,7 @@ export default function Landing() {
           gap: 6px;
           padding: 15px 28px;
           border-radius: 100px;
-          background: rgba(var(--lp-fg), 0.09);   /* lifted off pure black — less flat */
+          background: rgba(var(--lp-fg), 0.09);   /* lifted off pure black - less flat */
           color: var(--lp-text);
           font-family: var(--font-body);
           font-weight: 500;
@@ -4972,7 +4973,7 @@ export default function Landing() {
           display: block;
         }
 
-        /* Brand strip — its OWN persistent section, appearing AFTER the leaderboard has
+        /* Brand strip - its OWN persistent section, appearing AFTER the leaderboard has
            fully faded (margin-top:0 → it enters as the leaderboard sticky releases, so
            no overlap with the still-visible rows). No black block: a soft navy radial
            glow keeps it on-theme while the rest stays transparent. */
@@ -4987,13 +4988,13 @@ export default function Landing() {
              own generous top padding, so two full-size pads stacked back-to-back left a large
              dead band between the logo row and "We create the best UGC…". */
           padding: 60px 0 16px;
-          /* Opaque page-colour, not transparent — this is the surface the logos' baked-in
+          /* Opaque page-colour, not transparent - this is the surface the logos' baked-in
              white backgrounds multiply away against.
              It has to live HERE, on the whole strip, rather than on each logo: putting it on
              the individual .lp-brand-item__icon boxes made every logo sit on its own cream
              tile, and those tiles read as visible rectangles wherever the surrounding page
              wasn't the exact same colour. One continuous surface has no edges to show.
-             It cannot simply be left transparent and blended against the page either — this
+             It cannot simply be left transparent and blended against the page either - this
              section sits inside a position:relative/z-index:3 wrapper (see the JSX), and a
              stacking context confines mix-blend-mode to itself, so the images would be
              multiplying against nothing.
@@ -5010,7 +5011,7 @@ export default function Landing() {
           position: relative;
           left: auto;
           bottom: auto;
-          /* Same relational gutter as .lp-navbar / the content sections — see the note there.
+          /* Same relational gutter as .lp-navbar / the content sections - see the note there.
              This row was the most visible victim: at 2560 its "TRUSTED BY LEADING brands"
              label started 517px left of the showcase heading directly beneath it. */
           padding-inline: max(4%, calc((100% - var(--lp-maxw)) / 2));
@@ -5033,7 +5034,7 @@ export default function Landing() {
            in the ≤1024px block below. */
         .lp-brandstrip__label--mob { display: none; }
         /* Two classes (not one) to out-specificity the global ".lp-root span { color:
-           var(--lp-text) }" base-text-color rule — a single-class selector here loses
+           var(--lp-text) }" base-text-color rule - a single-class selector here loses
            to that class+element-type selector regardless of source order. */
         .lp-brandstrip .lp-brandstrip__label--accent {
           color: var(--lp-purple-700);
@@ -5064,7 +5065,7 @@ export default function Landing() {
           0%   { transform: translateX(0); }
           100% { transform: translateX(-50%); }   /* set is duplicated once → seamless */
         }
-        /* Bottom strip — scrolling brand logos */
+        /* Bottom strip - scrolling brand logos */
         .lp-hero__strip {
           position: absolute;
           left: 0;
@@ -5155,7 +5156,7 @@ export default function Landing() {
           max-width: 210px;
           overflow: hidden;
           /* Transparent on purpose. The opaque surface the logos multiply against lives on
-             .lp-brandstrip instead — painting it per-logo here gave each mark its own cream
+             .lp-brandstrip instead - painting it per-logo here gave each mark its own cream
              tile, and those tiles showed as rectangles against any slightly different
              backdrop. The strip provides one continuous surface with no edges. */
           background: transparent;
@@ -5172,14 +5173,14 @@ export default function Landing() {
           height: calc(100% * var(--logo-s, 1));
           width: auto;
           max-width: 210px;
-          /* contain, NOT cover. cover cropped a wide mark to a square centre slice — with
+          /* contain, NOT cover. cover cropped a wide mark to a square centre slice - with
              these padded exports that meant showing mostly empty transparent canvas. */
           object-fit: contain;
           /* Baked-in white backgrounds blend into the cream page bg so logos float. */
           mix-blend-mode: multiply;
           /* Grayscale-by-default was removed. It flattened the pale marks (Seltyca, Sephora)
              into near-invisible grey on the cream strip, and it only ever applied on
-             hover-capable devices — the (hover: none) rule below already showed phones full
+             hover-capable devices - the (hover: none) rule below already showed phones full
              colour, so desktop and mobile disagreed. Now both show colour. */
           transition: filter 0.25s ease;
         }
@@ -5191,12 +5192,12 @@ export default function Landing() {
         /* The (hover: none) override that used to sit here is gone with the grayscale it was
            compensating for. Removing it matters: it set "filter" on the same
            ".lp-brand-item__icon img" selector at EQUAL specificity but LATER in the sheet, so
-           it would have overridden the --faint darkening above — blanking the pale logos on
+           it would have overridden the --faint darkening above - blanking the pale logos on
            exactly the touch devices where the problem was reported.
            (Backticks are deliberately avoided in these comments: this whole stylesheet is a
            JS template literal, so a backtick here terminates the string.) */
 
-        /* Center main logo — highlighted with glow */
+        /* Center main logo - highlighted with glow */
         .lp-hero__brand-center {
           flex-shrink: 0;
           width: 140px;
@@ -5217,7 +5218,7 @@ export default function Landing() {
           width: 108px;
           height: 108px;
           object-fit: contain;
-          /* The PNG's mark sits a touch high within its transparent box — nudge it down to optically centre */
+          /* The PNG's mark sits a touch high within its transparent box - nudge it down to optically centre */
           transform: translateY(6px);
         }
 
@@ -5246,8 +5247,8 @@ export default function Landing() {
            section below shows the lavender page bg, so the curve must match it. */
         .lp-root[data-theme="light"] .lp-hero__divider path { fill: var(--lp-page-bg); }
 
-        /* ── 3D glass logo — scroll-driven scene (measured.site-style) ───────── */
-        /* The rotating leaderboard became 4 static cards — collapse the tall pinned
+        /* ── 3D glass logo - scroll-driven scene (measured.site-style) ───────── */
+        /* The rotating leaderboard became 4 static cards - collapse the tall pinned
            scroll and un-stick the inner wrapper so the cards sit in normal flow. */
         /* Tall scroll TRACK: gives the pinned deck room to run. As you scroll through these
            extra viewports, the sticky child below stays pinned and the cards exit one by one. */
@@ -5273,7 +5274,7 @@ export default function Landing() {
         }
         /* Deck stage: fixed-size box; every card is absolutely stacked to fill it, so they all
            start on top of each other. Each card's scroll-driven translateY (PromiseCard) then
-           slides the front one up and away, revealing the next — one by one. */
+           slides the front one up and away, revealing the next - one by one. */
         /* "Our Services" heading sits above the deck, inside the pinned viewport so it stays
            put while the cards animate. */
         .lp-promise-wrap {
@@ -5283,10 +5284,10 @@ export default function Landing() {
              own column by exactly that much to reach the card). */
           position: relative;
           /* Matches every other section's gutter exactly: they use max-width:1320px with 4%
-             horizontal padding, which resolves to min(1320px, 92vw) — so this mirrors that
+             horizontal padding, which resolves to min(1320px, 92vw) - so this mirrors that
              rather than carrying its own one-off width. */
           width: min(1320px, 92%); margin: 0 auto;
-          /* Sized from viewport HEIGHT — one of the few places that is legitimate, because
+          /* Sized from viewport HEIGHT - one of the few places that is legitimate, because
              this deck lives inside a 100vh sticky pin (the scroll-driven card stack). A fixed
              460px left ~200px of dead space above AND below it on a tall monitor while the
              pin itself still filled the screen. 54vh resolves to ~467px at the 864px-tall
@@ -5302,7 +5303,7 @@ export default function Landing() {
           font-size: var(--lp-fs-h2); color: #171334; letter-spacing: -0.5px;
           text-align: center;
         }
-        /* Short rule under the heading — one of only two purely decorative marks in
+        /* Short rule under the heading - one of only two purely decorative marks in
            the section. Colour follows the active card. */
         .lp-promise-rule {
           display: block; width: 44px; height: 3px; border-radius: 999px;
@@ -5315,7 +5316,7 @@ export default function Landing() {
 
         /* ── The stage ───────────────────────────────────────────────────────────
            Below 1340px this is just the deck, full width and centred exactly as it
-           was. From 1340px up it becomes a grid — aside | deck | rail — so the deck
+           was. From 1340px up it becomes a grid - aside | deck | rail - so the deck
            is centred BETWEEN its two neighbours rather than having them overlap it.
            The deck track is minmax(0, 1fr): it absorbs all the remaining width, which
            keeps it ~980-1160px across the desktop range instead of a fixed 1120px.
@@ -5324,7 +5325,7 @@ export default function Landing() {
         .lp-promise-stage { display: block; }
         .lp-svc-aside, .lp-svc-rail { display: none; }
         @media (min-width: 1280px) {
-          /* No width override here any more — the wrap used to widen to min(1560px, 95%)
+          /* No width override here any more - the wrap used to widen to min(1560px, 95%)
              to make room for the two side columns, which is exactly what made this section
              run wider than every other one on the page. It now keeps the shared
              min(1320px, 92%) from the base rule and the side columns take their share of
@@ -5335,7 +5336,7 @@ export default function Landing() {
             column-gap: var(--svc-gap);
             align-items: stretch;
           }
-          /* Left column — the statement, then the curve down to the card. */
+          /* Left column - the statement, then the curve down to the card. */
           .lp-svc-aside {
             display: flex; flex-direction: column;
             position: relative; padding-top: 18px;
@@ -5346,7 +5347,7 @@ export default function Landing() {
             letter-spacing: -0.6px; color: #171334;
           }
           /* Serif italic is a deliberate one-off display treatment for this phrase
-             (it is not part of the brand stack) — swap for var(--font-head) if that
+             (it is not part of the brand stack) - swap for var(--font-head) if that
              flourish isn't wanted. Colour follows the active card. */
           .lp-svc-aside__title em {
             font-family: Georgia, 'Times New Roman', serif;
@@ -5365,13 +5366,13 @@ export default function Landing() {
             position: absolute; z-index: 0; pointer-events: none;
             left: 0; right: calc(-1 * var(--svc-gap) + 14px);
             /* Percentages resolve against the aside's height, which the grid stretches
-               to the deck's — so the arrow lands ~80% down the card, level with the
+               to the deck's - so the arrow lands ~80% down the card, level with the
                stacked cards peeking out below the front one. */
             top: 48%; bottom: 12%;
           }
           .lp-svc-path svg { width: 100%; height: 100%; display: block; overflow: visible; }
           .lp-svc-path__dot { transition: fill .5s cubic-bezier(.22, 1, .36, 1); }
-          /* Right rail — deliberately thin: a 1px track, a 7px dot and a 12px number.
+          /* Right rail - deliberately thin: a 1px track, a 7px dot and a 12px number.
              Its own grid track, aligned exactly to the deck's top and bottom edges. */
           .lp-svc-rail {
             position: relative; align-self: end;
@@ -5408,7 +5409,7 @@ export default function Landing() {
           .lp-svc-rail__item.is-active .lp-svc-rail__dot { transform: scale(1.15); }
           .lp-svc-rail__item.is-active .lp-svc-rail__num { transform: scale(1.18); }
         }
-        /* The rail only earns its column once there's width to spare — under 1400px the
+        /* The rail only earns its column once there's width to spare - under 1400px the
            aside plus the deck already use it all, and squeezing the deck further to fit
            a 38px rail would cost more than the rail is worth. */
         @media (min-width: 1280px) {
@@ -5421,7 +5422,7 @@ export default function Landing() {
           .lp-promise-rule, .lp-svc-aside__title em, .lp-svc-path__dot,
           .lp-svc-rail__fill, .lp-svc-rail__dot, .lp-svc-rail__num { transition: none; }
         }
-        /* Three-column split: number, then content, then a rounded video panel — all
+        /* Three-column split: number, then content, then a rounded video panel - all
            sit inside the card as flex siblings (not absolutely positioned), so the
            content's natural height drives vertical centering instead of fixed offsets. */
         .lp-promise__card {
@@ -5461,7 +5462,7 @@ export default function Landing() {
         }
         .lp-promise__btn:hover { transform: translateY(-2px); }
         .lp-promise__btn svg { color: currentColor; }
-        /* Video — rounded panel, third column, fills the card's full height */
+        /* Video - rounded panel, third column, fills the card's full height */
         .lp-promise__video {
           flex: 0 0 32%; align-self: stretch;
           display: flex; align-items: center; justify-content: center;
@@ -5469,16 +5470,16 @@ export default function Landing() {
           box-sizing: border-box; overflow: hidden;
           background: rgba(0,0,0,.12); box-shadow: 0 18px 36px -18px rgba(0,0,0,.45);
         }
-        /* contain (not cover) — shows the whole video frame within the card instead of
+        /* contain (not cover) - shows the whole video frame within the card instead of
            cropping it to fill the panel. */
         .lp-promise__video video { width: 100%; height: 100%; object-fit: contain; display: block; }
 
         /* ── Services, MOBILE accordion (see PromiseMobile) ───────────────────────────
-           Content-driven height throughout — no vh, no pinning. That is the whole point:
+           Content-driven height throughout - no vh, no pinning. That is the whole point:
            the desktop deck needs a 100vh runway and clipped its open card on a phone. */
         .lp-svcm { display: block; text-align: center; }
         /* Trimmed (10px/27px/1.18/12px margin -> 4px/21px/1.12/6px) so more of the card below
-           is visible without scrolling on a short phone — this section isn't pinned (see the
+           is visible without scrolling on a short phone - this section isn't pinned (see the
            header comment above), so nothing here is ever unreachable, but a shorter heading
            still means less scrolling to actually reach the video. */
         .lp-svcm__eyebrow {
@@ -5502,7 +5503,7 @@ export default function Landing() {
         /* Deck: the front card sits in normal flow and therefore SETS the height; the strips
            for upcoming cards are absolutely positioned to that same box and nudged down, so
            only their lower edge shows. Keeping the front card in flow is what makes the deck
-           content-driven — an all-absolute stack would need a hardcoded height, which is what
+           content-driven - an all-absolute stack would need a hardcoded height, which is what
            clipped the card's lower half before. */
         .lp-svcm__deck { position: relative; margin-top: 10px; }
         .lp-svcm__ghost {
@@ -5526,7 +5527,7 @@ export default function Landing() {
              z-index (and position) they would paint over it. */
           position: relative;
           z-index: 5;
-          /* margin-top moved to .lp-svcm__deck — leaving it here would offset the card from
+          /* margin-top moved to .lp-svcm__deck - leaving it here would offset the card from
              the strips, which are positioned against the deck box, and break their alignment. */
           border-radius: 22px; padding: 20px 18px 22px;
           text-align: left; transition: background .35s ease;
@@ -5552,7 +5553,7 @@ export default function Landing() {
           font-size: 13.5px; line-height: 1.5; color: rgba(23, 19, 52, .72);
         }
         /* TRUE RATIO. Every clip in this deck is 288x512 (9:16), so the previous
-           full-bleed 4/3 window threw away ~65% of each frame — cropped to a letterbox
+           full-bleed 4/3 window threw away ~65% of each frame - cropped to a letterbox
            strip of the creator's face with the product out of shot, which is what read as
            "wrong ratio". The window is portrait now, so nothing is cropped at all; the
            width is capped instead (rather than going full-bleed at 9/16, which would make
@@ -5583,16 +5584,16 @@ export default function Landing() {
           /* RUNWAY + PIN restored. PromiseMobile's deck is scroll-driven, so it needs scroll
              distance to spend: 240vh gives each of the 4 cards ~60vh of travel, which is
              roughly a comfortable flick per card. Without it the deck only had its own height
-             to work with — a single swipe blew through all four and left the reader at the last
+             to work with - a single swipe blew through all four and left the reader at the last
              one with the section already gone, which is exactly the reported symptom.
              The pin is what makes those 240vh feel like one screen: the deck sticks at the top
              of the viewport and stays put while the runway scrolls behind it, so all four cards
              play out IN PLACE and only then does the page continue to the next section.
-             height:auto on the sticky (not 100vh) so a tall card is never cut off — the element
+             height:auto on the sticky (not 100vh) so a tall card is never cut off - the element
              pins by its top edge and does not need a fixed height to do so. */
           /* Negative margin pulls the whole services section up over the hero's dead tail.
              Measured at 390x860: the hero is min-height:100vh but its content ends at 708px,
-             so it carries 152px of slack, and the sticky then added 72px of its own padding —
+             so it carries 152px of slack, and the sticky then added 72px of its own padding -
              224px of blank between the hero CTA and "Our Services".
              Trimming the hero itself is the wrong lever: the slack is min-height slack, not
              padding, so shortening its padding would not move the section up at all (and a
@@ -5604,7 +5605,7 @@ export default function Landing() {
              and since it paints after the hero it would intercept their taps. Invariant to
              preserve if retuned: the sticky's TOP must stay at or below the CTA's bottom. */
           /* 240vh -> 320vh: 80vh of runway per card instead of 60. The swing is a fraction of
-             each card's slice, so lengthening the runway slows every card proportionally —
+             each card's slice, so lengthening the runway slows every card proportionally -
              this is the real "make it slower" dial; easing only changes how the same distance
              is distributed. */
           .lp-logo3d { height: 320vh !important; margin-top: -70px; }
@@ -5614,7 +5615,7 @@ export default function Landing() {
             height: auto !important;
             min-height: 0 !important;
             display: block !important;
-            /* DO NOT trim this to close the gap above the section — it is clearance, not
+            /* DO NOT trim this to close the gap above the section - it is clearance, not
                padding. The navbar is position:fixed at top:20px and 48px tall, so it covers
                0-68px of the viewport; with the sticky pinned at top:0 anything under ~72px
                renders BEHIND it. Dropping this to 28px put "Our Services" level with the logo
@@ -5635,7 +5636,7 @@ export default function Landing() {
              on a 812px phone it held the deck to 600px while the card's own content (video +
              title + sub + description + button) needed more. */
           .lp-promise { width: 100%; height: 78vh; max-height: none; }
-          /* Stays position:absolute;inset:0 (from the base rule) — the deck's scroll-driven
+          /* Stays position:absolute;inset:0 (from the base rule) - the deck's scroll-driven
              y/scale/rotate transform depends on every card being absolutely stacked inside a
              fixed-height container. Only the internal arrangement changes here: video on top,
              number + content below, instead of the desktop three-column split. */
@@ -5656,7 +5657,7 @@ export default function Landing() {
         }
         /* Light mode: both the hero above and this section already sit on the same
            flat Frosted Lilac page background, so no "melt into" gradient (or the
-           glow blob below) is needed to hide a seam — removed both. */
+           glow blob below) is needed to hide a seam - removed both. */
         .lp-root[data-theme="light"] .lp-logo3d::before { display: none; }
         .lp-logo3d::after { display: none; }
         .lp-logo3d__sticky {
@@ -5671,7 +5672,7 @@ export default function Landing() {
              enough left (~-36vw) that the centred rows clear it. */
           justify-content: center;
           padding-right: 0;
-          /* transparent — shows the shared animated page background (.lp-bg-animations) */
+          /* transparent - shows the shared animated page background (.lp-bg-animations) */
           background: transparent;
         }
         /* small 3D logo pinned to the upper-left */
@@ -5694,7 +5695,7 @@ export default function Landing() {
           will-change: transform;
           transform: translateZ(0);
         }
-        /* leaderboard viewport — fixed 100vh window, fades at top + bottom edges */
+        /* leaderboard viewport - fixed 100vh window, fades at top + bottom edges */
         .lp-logo3d__board {
           position: relative;
           width: 64%;
@@ -5719,7 +5720,7 @@ export default function Landing() {
           align-items: center;
           justify-content: center;
           text-align: center;
-          /* Statements stay on ONE line — the font scales with viewport width (clamp/vw) so the
+          /* Statements stay on ONE line - the font scales with viewport width (clamp/vw) so the
              longest line always fits the board (≈64vw, max 760px) without wrapping or clipping. */
           white-space: nowrap;
           width: max-content;
@@ -5754,7 +5755,7 @@ export default function Landing() {
              brand strip now rises in right behind the last rows. */
           .lp-logo3d { height: 320vh; }
           .lp-logo3d__stage {
-            top: 80%;          /* sit lower — down in the empty space below the leaderboard text */
+            top: 80%;          /* sit lower - down in the empty space below the leaderboard text */
             width: clamp(170px, 46vw, 280px);
             height: clamp(170px, 30vh, 300px);
             margin-top: calc(clamp(170px, 30vh, 300px) * -0.5);
@@ -5763,7 +5764,7 @@ export default function Landing() {
           }
           /* MOBILE perf: this board is transformed every scroll frame (the lockstep rise +
              rows). A mask-image forces the GPU to RE-RASTERISE a masked element each frame it
-             moves instead of just translating a cached layer — that was the heavy leaderboard
+             moves instead of just translating a cached layer - that was the heavy leaderboard
              lag. Drop it on mobile: the per-row opacity already fades rows to ~0 away from the
              centre, so the edge fade is preserved visually. perspective is unused here too (the
              phone rows use a 2D rotate, not rotateX/Y), so drop it to skip the 3D render context. */
@@ -5875,14 +5876,14 @@ export default function Landing() {
           line-height: 1.25;
         }
 
-        /* Common pmedia container — content is absolutely positioned */
+        /* Common pmedia container - content is absolutely positioned */
         .lp-pmedia {
           position: relative;
           width: 100%;
           height: 100%;
         }
 
-        /* Card 1 — visual stamps */
+        /* Card 1 - visual stamps */
         .lp-pmedia--c1 .lp-stamp {
           position: absolute;
           width: 50px;
@@ -6035,7 +6036,7 @@ export default function Landing() {
           margin-bottom: 6px;
         }
 
-        /* Card 2 — limited access */
+        /* Card 2 - limited access */
         .lp-pmedia--c2 { display: flex; align-items: center; justify-content: center; }
         .lp-ring {
           position: absolute;
@@ -6085,7 +6086,7 @@ export default function Landing() {
           transform: translateX(-50%);
         }
 
-        /* Card 3 — inconsistent quality */
+        /* Card 3 - inconsistent quality */
         .lp-pmedia--c3 {
           display: flex;
           flex-direction: column;
@@ -6167,7 +6168,7 @@ export default function Landing() {
         }
 
         /* ── Showcase / Best UGC ──────────────────────────────────────────── */
-        /* Gutter lives on the SECTION and the cap on the inner — the same split every other
+        /* Gutter lives on the SECTION and the cap on the inner - the same split every other
            section uses (cf. .lp-audit + .lp-audit__inner). It used to put the 4% on the inner
            INSTEAD, which silently ate the padding out of the 1320px cap: content came out
            1320 - 8% = 1214px, i.e. ~53px narrower per side than the sections above and below
@@ -6232,7 +6233,7 @@ export default function Landing() {
         }
         /* Full-width flex item: forces a line break so row 1 = 5 pills, row 2 = the rest. */
         /* Forces a wrap after the 5th pill so the bar reads 5 / 4+Reset. That only works while
-           5 pills actually FIT on one line — they need ~958px, and the container gives
+           5 pills actually FIT on one line - they need ~958px, and the container gives
            min(1320, 92vw), i.e. ~942px at 1024. Between ~720px and ~1040px the 5th pill
            wrapped on its own and this spacer then forced ANOTHER break, producing a ragged
            4 / 1 / 5 three-row bar. Disabled wherever the row can't hold five, so the pills
@@ -6244,7 +6245,7 @@ export default function Landing() {
         @media (max-width: 1024px) {
           .lp-showcase__filters-break { display: none; }
         }
-        /* (The old duplicate of this at 720px is gone — the 1080px rule above already covers
+        /* (The old duplicate of this at 720px is gone - the 1080px rule above already covers
            every width where the forced break was a problem.) */
 
         .lp-filter {
@@ -6292,7 +6293,7 @@ export default function Landing() {
         /* ── Filterable example grid (replaces the old auto-scroll marquee) ── */
         .lp-showcase__grid {
           display: grid;
-          /* FIVE columns on desktop — an explicit count, not auto-fill. auto-fill derives the
+          /* FIVE columns on desktop - an explicit count, not auto-fill. auto-fill derives the
              count from available width, which on a wide screen produced SEVEN columns and left
              the 10 cards as a ragged 7 + 3. A fixed count keeps them as two clean rows of five
              at every desktop width, and the cards simply get wider on a bigger screen (which is
@@ -6322,7 +6323,7 @@ export default function Landing() {
           font-size: 1rem;
         }
 
-        /* Load more — routes to sign-up rather than paginating */
+        /* Load more - routes to sign-up rather than paginating */
         .lp-showcase__more {
           display: flex;
           justify-content: center;
@@ -6366,7 +6367,7 @@ export default function Landing() {
           box-shadow: 0 18px 40px rgba(7, 7, 78, 0.10);
         }
         /* Fallback for browsers without aspect-ratio support (some older Chrome/Firefox/Safari
-           builds, still out there on older laptops) — without this, .lp-vcard__media collapses
+           builds, still out there on older laptops) - without this, .lp-vcard__media collapses
            to 0 height and each card falls back to its video/image's own intrinsic size, which
            is why cards in the same row ended up visibly different heights on some machines. */
         @supports not (aspect-ratio: 1 / 1) {
@@ -6382,7 +6383,7 @@ export default function Landing() {
           background: #111;
         }
         /* Hover-to-play clip wrapper. The control bar (play/pause, mute, "more" dot, scrub)
-           and the dark gradient that kept its icons legible are both gone — the card is now
+           and the dark gradient that kept its icons legible are both gone - the card is now
            just the footage, with the poster still showing until the pointer arrives. */
         .lp-vcard__videowrap { position: absolute; inset: 0; }
         /* Mute / unmute toggle, bottom-right of the clip. Always visible rather than
@@ -6409,17 +6410,17 @@ export default function Landing() {
           transition: background 0.18s ease, transform 0.18s ease;
         }
         .lp-root .lp-vcard__mute:hover { background: rgba(15, 15, 25, 0.82); transform: scale(1.06); }
-        /* Keyboard focus has to stay visible — the button sits on video, so the default
+        /* Keyboard focus has to stay visible - the button sits on video, so the default
            outline can vanish against a light frame. */
         .lp-root .lp-vcard__mute:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
         /* Bigger tap target on touch, where 32px is below a comfortable minimum. */
         @media (hover: none) {
           .lp-root .lp-vcard__mute { width: 40px; height: 40px; }
         }
-        /* Category tag — sits ON the clip now (top-right), not in the meta row below.
+        /* Category tag - sits ON the clip now (top-right), not in the meta row below.
            .lp-vcard__media (its actual parent, see JSX) is position:relative, so absolute
            resolves against the clip itself. It USED to render inside .lp-vcard__meta
-           instead — static, same as .lp-vcard/the grid/the section — so with no positioned
+           instead - static, same as .lp-vcard/the grid/the section - so with no positioned
            ancestor anywhere it resolved against .lp-root and every chip on the page piled
            up in the top-right corner behind the navbar. Fixed by moving it to the clip,
            the one place an absolute chip actually makes sense here. */
@@ -6484,7 +6485,7 @@ export default function Landing() {
         /* Creator level chip next to the rating. */
         .lp-vcard__tier {
           /* Overlay badge on the clip. It had no position at all, so it sat in normal flow as
-             the first child of .lp-vcard__media — a fixed 9/15 aspect-ratio box — where the
+             the first child of .lp-vcard__media - a fixed 9/15 aspect-ratio box - where the
              absolutely-positioned video (inset:0) painted straight over it. Invisible, and its
              line box still consumed height inside a fixed-ratio container. */
           position: absolute;
@@ -6500,7 +6501,7 @@ export default function Landing() {
           border-radius: 100px;
           white-space: nowrap;
           /* White on a SOLID tier colour. These sit on top of arbitrary video frames, so the
-             old treatment — a dark tint of the tier colour at 14–16% opacity — was effectively
+             old treatment - a dark tint of the tier colour at 14–16% opacity - was effectively
              transparent: dark green/blue/purple text over whatever the clip happened to show,
              which on a dark or busy frame was unreadable. The fill now carries the colour
              coding and the text is always white; the drop shadow keeps the pill's edge visible
@@ -6513,12 +6514,12 @@ export default function Landing() {
         .lp-vcard__tier--elite  { background: #7c3aed; }
         /* The .lp-vcard__logo / .lp-vcard__logo-img rules that were here are removed along with
            the creator profile-photo chip. */
-        /* The 1280 / 1024 / 760 column-count overrides are gone — auto-fill above derives the
+        /* The 1280 / 1024 / 760 column-count overrides are gone - auto-fill above derives the
            count from the available width continuously, so there is nothing left to step. Only
            the phone rule below survives, and solely to force TWO columns where auto-fill's
            210px minimum would otherwise drop to one. */
         /* Phones keep TWO cards per row. The old rule dropped to a single 320px-wide column,
-           which made one clip fill almost the whole screen — you could only ever see one
+           which made one clip fill almost the whole screen - you could only ever see one
            example at a time and had to scroll a long way to compare any two. At 360px wide
            with the section's 6% gutter, 2 columns + a 10px gap gives ~150px cards: small,
            but a 9:16 clip is still perfectly readable at that size. */
@@ -6579,7 +6580,7 @@ export default function Landing() {
           .lp-showcase__track { animation: none; }
         }
         /* Mobile: showcase row 1 is rendered at the TOP of the hero (.lp-hero__videorow) to fill
-           the space above the title, so hide the showcase section's own first row here — only the
+           the space above the title, so hide the showcase section's own first row here - only the
            hero's copy and row 2 show, no duplication. Scoped to .lp-showcase so it never hides the
            hero's row (which lives under .lp-hero). */
         @media (max-width: 768px) {
@@ -6619,7 +6620,7 @@ export default function Landing() {
              track, which is its own GPU layer (will-change: transform on .lp-showcase__track),
              so paused/poster-only cards just ride along inside that one cached layer. Forcing
              every one of the ~64 cards onto its own layer instead bloated GPU memory and the
-             compositor's layer count — a stutter source of its own. Playing clips auto-promote
+             compositor's layer count - a stutter source of its own. Playing clips auto-promote
              while they decode and de-promote when paused, so only the few on screen cost a layer. */
         }
 
@@ -6637,7 +6638,7 @@ export default function Landing() {
           border: 1px solid rgba(255, 255, 255, 0.16);
           /* Hardcoded white, NOT var(--lp-text): this pill's own background is near-black, so it
              needs light text regardless of the page theme. On the light theme --lp-text resolves
-             to #1c1b4b — navy on near-black, i.e. invisible. */
+             to #1c1b4b - navy on near-black, i.e. invisible. */
           color: #ffffff;
           font-family: var(--font-body);
           font-size: 0.78rem;
@@ -6657,7 +6658,7 @@ export default function Landing() {
           font-size: 0.66rem;
           font-weight: 800;
           letter-spacing: 0.06em;
-          /* Same reason as .lp-showcase-card__rating above — all three tier fills below are
+          /* Same reason as .lp-showcase-card__rating above - all three tier fills below are
              saturated darks, so the label is always white rather than theme-dependent. */
           color: #ffffff;
           text-transform: uppercase;
@@ -6689,16 +6690,16 @@ export default function Landing() {
         @media (max-width: 640px) {
           .lp-showcase { padding: 60px 5%; }
           /* 8px -> 12px vertical: these pills are the primary control of the showcase, and at
-             8px they came out ~34px tall — under a comfortable tap target. */
+             8px they came out ~34px tall - under a comfortable tap target. */
           .lp-filter { padding: 12px 14px; font-size: 0.82rem; }
         }
 
-        /* ── Find & Hire Creators — fanned, side-by-side cards ── */
+        /* ── Find & Hire Creators - fanned, side-by-side cards ── */
         /* Overlap onto the audit section's emptied card box, so Find & Hire is already on screen
            when the last question card peels off instead of arriving after a blank screen. The
            amount MUST track viewport height: the pinned audit block is a fixed ~730px tall, so
            the dead space it leaves is (viewport height - 730) and grows on tall monitors. Hence
-           the vh term — a fixed px overlap that looks right at 800px tall leaves a 600px hole at
+           the vh term - a fixed px overlap that looks right at 800px tall leaves a 600px hole at
            1080. Clamped at both ends so a very short or very tall window can't run away.
            Overridden to 0 on tablet (no peel there) and to a phone-specific value on mobile. */
         .lp-achieve-rise {
@@ -6709,7 +6710,7 @@ export default function Landing() {
           /* Bottom trimmed 90px -> 40px -> 0: that 90px was tuned for the old, shorter
              4-icon-card grid. Stacked with the connector spacer + .lpv's own top padding
              right after it, it left a large dead gap once this section's own content
-             (taller video cards + sidebar) already carries its own visual weight. Now 0 —
+             (taller video cards + sidebar) already carries its own visual weight. Now 0 -
              the removal of the "View examples" CTA took the last thing that needed clearance
              below the sidebar, so the connector + next section supply all the gap needed. */
           padding: calc(var(--lp-space-section) * 0.625) 4% 0;
@@ -6806,7 +6807,7 @@ export default function Landing() {
           flex-direction: column;
           /* Height comes from the features alone. As a grid item this defaults to
              align-self:stretch, so it was being pulled down to the height of the (much
-             taller) video cards beside it — the removed "View examples" button used to
+             taller) video cards beside it - the removed "View examples" button used to
              occupy that slack, and without it the card ran on with dead space below the
              last feature. start lets it end where its content ends. */
           align-self: start;
@@ -6841,7 +6842,7 @@ export default function Landing() {
           font-size: 1.05rem;
           line-height: 1.5;
           color: var(--lp-text);
-          /* .lp-achieve (the section ancestor) sets text-align:center for its own heading —
+          /* .lp-achieve (the section ancestor) sets text-align:center for its own heading -
              that inherits straight down through nothing-else-overriding-it and left this
              centered next to a left-aligned icon, an odd mismatch. Left-align it back. */
           text-align: left;
@@ -6852,12 +6853,12 @@ export default function Landing() {
           .lp-fh__feature { flex: 1 1 240px; border-bottom: none; padding: 0; }
         }
         @media (max-width: 720px) {
-          /* Phone layout is NOT a narrowed grid — it's two stacked blocks: one auto-
+          /* Phone layout is NOT a narrowed grid - it's two stacked blocks: one auto-
              scrolling row of videos, then the full-width features card underneath.
              (It was a 2x2 grid: [video 1 | video 2] / [video 3 | features]. That put the
              copy in a ~170px column where every point wrapped to 3-4 lines, and the videos
              were too small to read.)
-             .lp-fh becomes the marquee's clipping viewport — the track inside is
+             .lp-fh becomes the marquee's clipping viewport - the track inside is
              width:max-content and simply overflows it. */
           .lp-fh {
             display: flex;
@@ -6868,7 +6869,7 @@ export default function Landing() {
             overflow: visible;
           }
           /* SWIPEABLE, not auto-scrolling. This row used to run on a 30s infinite marquee,
-             which meant the only way to see a given clip was to wait for it to come round —
+             which meant the only way to see a given clip was to wait for it to come round -
              and the animation kept the compositor working on a row of videos the whole time.
              It is now a native horizontal scroller with snap points, so it is dragged by hand.
              (The prefers-reduced-motion block further down already switched to exactly this;
@@ -6907,7 +6908,7 @@ export default function Landing() {
             border-radius: 14px;
             /* MUST override the base align-self:start. There it meant "don't stretch to
                the height of the video row" because the parent was a grid (block axis).
-               Here the parent is a flex COLUMN, so align-self is the horizontal axis —
+               Here the parent is a flex COLUMN, so align-self is the horizontal axis -
                start collapsed this card to the width of its icons and squeezed the copy
                out entirely. stretch is what makes it a full-width block under the row. */
             align-self: stretch;
@@ -6915,13 +6916,13 @@ export default function Landing() {
           .lp-fh__feature { flex: 0 1 auto; padding: 12px 0; gap: 9px; border-bottom: 1px solid rgba(var(--lp-fg), 0.1); }
           .lp-fh__feature:first-child { padding-top: 0; }
           .lp-fh__feature:last-of-type { border-bottom: none; }
-          /* Sized back up from the 32px/0.82rem the old half-width cell needed — the card
+          /* Sized back up from the 32px/0.82rem the old half-width cell needed - the card
              is full-width now, so the copy has a proper measure to run on. */
           .lp-fh__feature-icon { width: 36px; height: 36px; border-radius: 10px; }
           .lp-fh__feature p { font-size: 0.9rem; line-height: 1.5; }
-          /* Card overlays. The badge and meta line are still tuned smaller than desktop —
+          /* Card overlays. The badge and meta line are still tuned smaller than desktop -
              a 66vw card is wider than the old grid cell but "Fitness/Supplements" at the
-             desktop 0.76rem still crowds it — and flex-wrap lets the meta break instead of
+             desktop 0.76rem still crowds it - and flex-wrap lets the meta break instead of
              overflowing. */
           .lp-fh__video-wrap { border-radius: 14px; }
           .lp-fh__badge { top: 8px; left: 8px; padding: 4px 9px; font-size: 0.64rem; }
@@ -6940,7 +6941,7 @@ export default function Landing() {
           --stk-step: 22px;   /* extra offset per card → the visible "peek" of each */
           max-width: 380px;
           margin: 40px auto 0;
-          /* Minimal tail — no exit runway needed (the heading-lift now rides the 'end start'
+          /* Minimal tail - no exit runway needed (the heading-lift now rides the 'end start'
              scroll range, so it doesn't depend on padding). Avoids a dead empty band below the
              stacked deck. */
           padding: 0 0 28px;
@@ -6976,7 +6977,7 @@ export default function Landing() {
           /* The lift here is a STATIC margin, NOT a transform: a transform would break the sticky
              heading + sticky card stack inside (they'd detach and overlap), so transform:none
              guarantees none survives. Its own value (not the desktop clamp) because the phone
-             deck reserves a taller box — clamp(360px, 54vh, 460px) — and .lp-achieve carries a
+             deck reserves a taller box - clamp(360px, 54vh, 460px) - and .lp-achieve carries a
              132px top pad here. */
           .lp-achieve-rise { transform: none; margin-top: clamp(-560px, -56vh, -380px); }
           /* Heading is STATIC so it rises WITH the section as one unit (a sticky child would break
@@ -7009,7 +7010,7 @@ export default function Landing() {
 
         /* ── Editorial list (replaces the fanned cards) ─────────────────────── */
         /* Billo-style layout: plain columns (no card box), separated by a thin vertical
-           divider — icon, then title, then description, stacked. */
+           divider - icon, then title, then description, stacked. */
         .lp-achieve__cards {
           display: grid;
           grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -7056,7 +7057,7 @@ export default function Landing() {
           gap: 18px;
           flex: 1;
         }
-        /* No divider line under the title here (unlike the fan/stack card design) — the
+        /* No divider line under the title here (unlike the fan/stack card design) - the
            body's own 18px gap gives title-to-desc spacing on its own. */
         .lp-achieve__cards .lp-achieve-card .lp-achieve-card__title {
           font-size: clamp(1.2rem, 1.5vw, 1.45rem);
@@ -7082,7 +7083,7 @@ export default function Landing() {
           .lp-achieve__cards { grid-template-columns: 1fr; }
         }
 
-        /* Fan container — cards are absolutely placed and fanned via inline transform. */
+        /* Fan container - cards are absolutely placed and fanned via inline transform. */
         .lp-achieve__fan {
           position: relative;
           height: 430px;
@@ -7163,7 +7164,7 @@ export default function Landing() {
           color: rgba(var(--lp-fg), 0.62);
           margin: 0;
         }
-        /* Active card — purple icon + title (no band, no zoom), stronger shadow. */
+        /* Active card - purple icon + title (no band, no zoom), stronger shadow. */
         .lp-achieve-card.is-active {
           box-shadow: 0 32px 70px rgba(0, 0, 0, 0.6);
         }
@@ -7182,7 +7183,7 @@ export default function Landing() {
           box-shadow: none;
         }
         /* The editorial grid variant has no card surface at all (see .lp-achieve__cards
-           .lp-achieve-card above) — override the light-theme card background back off for
+           .lp-achieve-card above) - override the light-theme card background back off for
            it specifically, without touching the fan/stack card, which still wants the
            cream surface. Deliberately does NOT touch border-color: that would also wipe
            out the border-right column divider set above. */
@@ -7194,7 +7195,7 @@ export default function Landing() {
            Scoped to .lp-achieve__fan so it never touches the mobile sticky deck, which
            reuses .lp-achieve-card but needs position:sticky. */
         @media (max-width: 900px) {
-          /* Match the audit heading ("Answer This Honestly.") exactly — same --fs-h1 token. */
+          /* Match the audit heading ("Answer This Honestly.") exactly - same --fs-h1 token. */
           .lp-achieve__title { font-size: var(--lp-fs-h2); white-space: normal; }
           .lp-achieve__fan {
             height: auto;
@@ -7218,8 +7219,8 @@ export default function Landing() {
           .lp-achieve__fan .lp-achieve-card__top { height: 120px; }
         }
 
-        /* ── US vs Others — two-column comparison ─────────────────────────── */
-        /* ── UGCad.io vs Traditional — editorial comparison table ── */
+        /* ── US vs Others - two-column comparison ─────────────────────────── */
+        /* ── UGCad.io vs Traditional - editorial comparison table ── */
         .lpv { padding: calc(var(--lp-space-section) * 0.833) 4% calc(var(--lp-space-section) * 0.917); background: #fefcf9; color: #1c1b4b; }
         .lpv-inner { max-width: var(--lp-maxw); margin: 0 auto; }
         /* Kicker + heading sit ABOVE the header's upward mask (z 6 > header z 5) so the mask
@@ -7227,25 +7228,25 @@ export default function Landing() {
         .lpv-kicker { margin: 0; text-align: center; color: rgba(28,27,75,0.55); font-weight: 600; font-size: 14px; position: relative; z-index: 6; }
         /* --lp-fs-h2, matching every other section heading on the page (Our Services, We
            create the best UGC, Answer This Honestly, the proof and testimonial headings all
-           use it). This was the only one still on --lp-fs-h1, which is a full step larger —
-           54px vs 40px at the 1536 reference — so it read as outsized next to its neighbours.
+           use it). This was the only one still on --lp-fs-h1, which is a full step larger -
+           54px vs 40px at the 1536 reference - so it read as outsized next to its neighbours.
            Sharing the token also means it now scales with them instead of on its own curve. */
         .lpv-heading { margin: 14px 0 56px; text-align: center; font-family: var(--font-head);
           font-weight: 500; font-size: var(--lp-fs-h2); line-height: 1.08; color: #1c1b4b; letter-spacing: -0.5px;
           position: relative; z-index: 6; }
-        /* "US" carries the accent — the whole point of the line is the contrast with the
+        /* "US" carries the accent - the whole point of the line is the contrast with the
            two "Others" columns underneath it. */
         .lpv-heading em { font-style: normal; color: var(--lp-purple-700); }
         .lpv-grid {
           display: flex;
           flex-direction: column;
           /* Frame + dividers in Velvet Mist (the palette's accent) instead of a flat
-             navy tint — ties the table's structure into the brand palette. */
+             navy tint - ties the table's structure into the brand palette. */
           border: 1px solid rgba(159, 159, 209, 0.4);
           border-radius: 24px;
           box-shadow: 0 4px 28px rgba(159, 159, 209, 0.18);
           /* Was 0 28px. The gutter moved onto the first and last CELLS instead, because the
-             row stripes below have to reach the card's edges — with padding on the grid the
+             row stripes below have to reach the card's edges - with padding on the grid the
              stripes stopped 28px short and read as floating bands rather than table rows. */
           padding: 0;
         }
@@ -7255,7 +7256,7 @@ export default function Landing() {
            columns visually without drawing a line for it. */
         .lpv-header, .lpv-rowgroup { display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr; align-items: center; }
         /* Mobile-only pieces of the table (row icons, the label repeated inside the "us"
-           cell, the VS badge, the 2-column header) — see the ≤1024px block for what they
+           cell, the VS badge, the 2-column header) - see the ≤1024px block for what they
            become. display:none (not visibility) matters for .lpv-vs and .lpv-mhead: they
            are children of a grid, and only display:none stops them claiming a cell in the
            desktop 4-column track. */
@@ -7264,24 +7265,24 @@ export default function Landing() {
            the floating navbar while the comparison rows scroll underneath. The opaque
            section background keeps rows from showing through the transparent columns.
            min-height keeps the header's real box taller than the tallest two-line row
-           (~120px) — otherwise, as a row scrolled past, its title poked out above/below
+           (~120px) - otherwise, as a row scrolled past, its title poked out above/below
            the header's own shorter box for a few px each frame (a torn "ghost text"
            glitch). This has to be a real layout height (not a box-shadow paint trick):
            a shadow spread stays fixed to the header's box at ALL times, including while
-           it's still in normal flow (not yet stuck) — which bled into row 1's title even
+           it's still in normal flow (not yet stuck) - which bled into row 1's title even
            before any scrolling happened. Growing the box itself only ever pushes content
            below it, so it's correct both stuck and unstuck. */
         /* A solid-color header can never fully hide every row: rows vary in height (one vs.
            two-line descriptions), so at some scroll position a row's title WILL straddle the
-           header's bottom edge no matter how tall the header is — that's inherent to sticky
+           header's bottom edge no matter how tall the header is - that's inherent to sticky
            positioning over continuously-scrolling variable-height content, not fixable by
            sizing alone. A hard edge there reads as torn/corrupted text. Fading the header's
-           own bottom into transparent turns that same crossing into a soft dissolve instead —
+           own bottom into transparent turns that same crossing into a soft dissolve instead -
            content emerges from behind the bar rather than getting sliced by it. */
         /* The pinned offset FOLLOWS THE NAVBAR, because the two compete for the same strip
            of screen and neither can win at a fixed value:
              • a constant 88px (clearing the navbar) leaves 88px of bare table interior above
-               the titles whenever the navbar is hidden — the empty band;
+               the titles whenever the navbar is hidden - the empty band;
              • a constant 0 removes that band, but the navbar then lands right on top of the
                titles the moment you scroll back up.
            .lp-nav-hidden is set on .lp-root from the same navHidden state that hides the
@@ -7291,24 +7292,24 @@ export default function Landing() {
         .lpv-header {
           align-items: stretch;
           position: sticky;
-          top: 88px;                /* navbar on screen — sit below it */
+          top: 88px;                /* navbar on screen - sit below it */
           transition: top 0.3s ease;
           z-index: 5;
           background: #fefcf9;
           min-height: 90px;
         }
-        /* Navbar gone (scroll-down — the direction this table is actually read in): pin
+        /* Navbar gone (scroll-down - the direction this table is actually read in): pin
            flush to the viewport edge so there is no dead band above the titles. */
         .lp-nav-hidden .lpv-header { top: 0; }
         /* Opaque mask ABOVE the pinned header. The navbar hides on scroll-down, leaving an
-           ~88px band above the header (top:88px) uncovered — rows scrolling up used to poke
+           ~88px band above the header (top:88px) uncovered - rows scrolling up used to poke
            out INTO that band above the UGCad.io/Traditional titles. This band paints the same
            white as the section, so it seamlessly hides any row text the moment it rises above
            the header; the text simply disappears off the top edge while still masked.
            HEIGHT MUST BE >= the header's own top offset (88px) above. The mask hangs off the
            header's top edge (bottom:100%), so when the header is pinned at y=88 a mask of
            height H only covers y=(88-H)..88. At the previous 44px that left y=0..44 wide
-           open, and rows scrolling up were visible in it — the stray text appearing above
+           open, and rows scrolling up were visible in it - the stray text appearing above
            the UGCad.io / Traditional Agencies titles. 96px covers the full band with a
            little slack (the excess simply sits above the viewport, costing nothing).
            Safe to over-size: .lpv-heading carries z-index 6 vs this stacking context's 5,
@@ -7319,7 +7320,7 @@ export default function Landing() {
           /* Overhangs the header sideways by the grid's own padding (28px) + its 1px frame
              border, so it also swallows the two short vertical segments of .lpv-grid's
              rounded frame that used to poke up past the pinned header into the navbar strip
-             — the stray lines at the top corners. Cream-on-cream everywhere else, so the
+             - the stray lines at the top corners. Cream-on-cream everywhere else, so the
              overhang costs nothing visually. */
           left: -30px; right: -30px; bottom: 100%;
           height: 96px;
@@ -7330,7 +7331,7 @@ export default function Landing() {
            header, the mask leaves plain cream above it and the table reads as open at the top;
            this draws the same divider the rows use, sitting exactly on the header's top edge.
            Its own element rather than a border on the mask, because the mask now overhangs
-           sideways to eat the frame — a border there would run 60px wider than the table.
+           sideways to eat the frame - a border there would run 60px wider than the table.
            Painted at bottom:100% (not border-top on .lpv-header) so it can't add to the
            header's own box height, which min-height above depends on staying exact. */
         .lpv-header::after {
@@ -7350,7 +7351,7 @@ export default function Landing() {
         /* The UGCad.io column reads as a single card standing proud of the table: a tint
            plus a continuous 1px side border running from the header down to the last row,
            closed off with a rounded top on the header cell and a rounded bottom on the last
-           row's cell. Periwinkle Pulse (rgb(115,135,255) — exactly --lp-purple-700, not an
+           row's cell. Periwinkle Pulse (rgb(115,135,255) - exactly --lp-purple-700, not an
            approximation) is our stand-in for the reference's green. */
         .lpv-h--us, .lpv-cell--us {
           background: rgba(115, 135, 255, 0.10);
@@ -7376,16 +7377,16 @@ export default function Landing() {
         /* Sized by HEIGHT with width:auto, exactly like .lp-navbar__logo, so the mark keeps
            its own proportions instead of being stretched to the column. 40px rather than the
            navbar's 46px: this cell's padding is 30px top and bottom, and the sticky header's
-           min-height is what the rows dissolve against — a taller mark would grow that box
+           min-height is what the rows dissolve against - a taller mark would grow that box
            and change how much of a passing row it swallows. */
         .lpv-brand-logo { height: 40px; width: auto; flex: none; object-fit: contain; display: block; }
-        /* .lpv-brand (the old text lockup) is gone; .lpv-brand-ad stays — the MOBILE header
+        /* .lpv-brand (the old text lockup) is gone; .lpv-brand-ad stays - the MOBILE header
            at .lpv-mhead__us still uses it, and it sits on a filled dark chip there, so it
            keeps the text treatment rather than this dark-ink image. */
         .lpv-brand-ad { color: #7387FF; }
         .lpv-h--them { display: flex; align-items: center; justify-content: center; text-align: center; color: rgba(28,27,75,0.55); font-weight: 600; font-size: 15px; }
         /* Zebra striping replaces the per-row top border. ".lpv-grid"'s children are
-           [header, row, row, …], so the rows are children 2,3,4… — :nth-child(odd) picks
+           [header, row, row, …], so the rows are children 2,3,4… - :nth-child(odd) picks
            3,5,7, i.e. the 2nd, 4th, 6th ROW, which is the alternation the reference uses
            (first row unshaded). The tint is our navy at very low alpha rather than a neutral
            grey, so it sits in the same family as the rest of the section. */
@@ -7400,12 +7401,12 @@ export default function Landing() {
         /* Row labels: body font at a calm reading size, not a heading. They were --lp-fs-h3
            in the head font, which made every label compete with the section's own title and
            left the actual comparison values looking like footnotes. The 30px left padding is
-           the table's gutter — it lives here now that .lpv-grid has none. */
+           the table's gutter - it lives here now that .lpv-grid has none. */
         .lpv-label { font-family: var(--font-body); font-weight: 500; font-size: 1.02rem; line-height: 1.4; color: #1c1b4b; padding: 30px 24px 30px 30px; display: flex; align-items: flex-start; }
         /* justify-content: flex-start (not center) is load-bearing: when the "us" and "them"
            descriptions wrap to a different number of lines, centering makes their titles land
            at different heights within the row. Since the row scrolls behind the sticky header
-           above, whichever title sits lower clears the header a beat after the other — a torn
+           above, whichever title sits lower clears the header a beat after the other - a torn
            "ghost text" leak in just that column. Top-aligning keeps titles at the same Y in
            every row, so both columns clear the header at the same moment. */
         .lpv-cell { padding: 30px 24px; text-align: center; display: flex; flex-direction: column; justify-content: flex-start; gap: 6px; }
@@ -7424,13 +7425,13 @@ export default function Landing() {
         /* Stacking point raised 760px -> 1080px. Four columns share (min(1320, 92vw) - 56px),
            and each cell has 20px of side padding, so usable text width per comparison cell was
            only 166px at 1024 and 139px at 900. The descriptions wrapped to 4-6 lines and even
-           the "Traditional Agencies" header wrapped — rows roughly doubled in height and the
+           the "Traditional Agencies" header wrapped - rows roughly doubled in height and the
            thing stopped reading as a comparison. It never clipped, so no breakpoint was ever
            added; it was just quietly unusable across that whole band. */
         /* ── Mobile / tablet: side-by-side "us VS them" rows ──────────────────
            The rows used to STACK (label, then a full-width us card, then a full-width
            agencies card). That reads as two separate claims you have to hold in your head,
-           not a comparison — the whole point of the section. Below 1024 each row is now a
+           not a comparison - the whole point of the section. Below 1024 each row is now a
            single card split into two columns with a VS badge between them, so the contrast
            is left-to-right exactly like the desktop table.
            Both the Marketplaces column and the standalone label column are dropped; the
@@ -7451,7 +7452,7 @@ export default function Landing() {
             display: grid;
             /* minmax(0, 1fr), NOT 1fr: a bare 1fr track has an automatic minimum of the
                content's min-content width, so the longest unbreakable line in a cell pushes
-               the track — and with it the whole section — wider than the phone. */
+               the track - and with it the whole section - wider than the phone. */
             grid-template-columns: minmax(0, 1fr) 34px minmax(0, 1fr);
             align-items: stretch;
             border-radius: 14px 14px 0 0;
@@ -7478,7 +7479,7 @@ export default function Landing() {
             border-radius: 14px;
             overflow: hidden;
           }
-          /* Striping is a DESKTOP device — it separates side-by-side columns across one
+          /* Striping is a DESKTOP device - it separates side-by-side columns across one
              wide row. Here every row is its own card, so the alternating tint would just
              look like half the cards were broken. */
           .lpv-rowgroup:nth-child(odd) { background: #fff; }
@@ -7499,13 +7500,13 @@ export default function Landing() {
              is what makes "ours vs theirs" readable at a glance without a divider line. */
           .lpv-cell--us { background: #fff; border: none; border-radius: 0; }
           /* .lpv-rowgroup:last-child .lpv-cell--us out-specifies the rule above, so without
-             this the final row keeps the desktop column's rounded, bordered bottom — which
+             this the final row keeps the desktop column's rounded, bordered bottom - which
              shows up as a stray white notch inside the last card. */
           .lpv-rowgroup:last-child .lpv-cell--us { border: none; border-radius: 0; }
           .lpv-cell--them { background: rgba(28, 27, 75, 0.035); }
 
           /* Row icon: a soft lilac tile on our side, flat grey on theirs. On the right it
-             sits at the END of the cell, mirroring the left — the reference pushes the two
+             sits at the END of the cell, mirroring the left - the reference pushes the two
              icons out to the card's outer edges. */
           .lpv-ico {
             display: flex; align-items: center; justify-content: center;
@@ -7550,7 +7551,7 @@ export default function Landing() {
           max-width: var(--lp-maxw);
           margin: 0 auto;
         }
-        /* Borderless table — the only framed element is the highlighted UGCad.io panel. */
+        /* Borderless table - the only framed element is the highlighted UGCad.io panel. */
         .lp-vs__table {
           position: relative;
           background: transparent;
@@ -7589,12 +7590,12 @@ export default function Landing() {
         .lp-vs__row--head .lp-vs__cell--them {
           border-bottom: 1px solid rgba(var(--lp-fg), 0.12);
         }
-        /* the line continues across the panel — a brighter purple so it reads on it */
+        /* the line continues across the panel - a brighter purple so it reads on it */
         .lp-vs__row--head .lp-vs__cell--us {
           border-bottom: 1px solid rgba(115, 135, 255, 0.28);
         }
 
-        /* ── Featured UGCad.io column — brand purple panel down the right side ──
+        /* ── Featured UGCad.io column - brand purple panel down the right side ──
            Flat, uniform fill so consecutive cells blend into ONE seamless panel;
            a per-cell gradient created a visible seam (line) at every row boundary. */
         .lp-vs__cell--us {
@@ -7676,7 +7677,7 @@ export default function Landing() {
            fixed two-column table. Desktop table is untouched. */
         .lp-vs__mobile { display: none; }
 
-        /* ── Mobile — fixed two-column compare table (fits screen, no scroll) ─
+        /* ── Mobile - fixed two-column compare table (fits screen, no scroll) ─
            table-layout:fixed + percentage cols + wrapping cells means all three
            columns sit inside the viewport; long values wrap to 2+ lines instead
            of overflowing into a horizontal scroll. */
@@ -8338,17 +8339,17 @@ export default function Landing() {
         @media (max-width: 1024px) {
           /* Keep a clear gap between the fixed navbar (logo) and the first hero
              element. Kept below the 300px desktop value since these viewports are
-             shorter — enough to breathe without pushing the trust pills off-screen. */
+             shorter - enough to breathe without pushing the trust pills off-screen. */
           .lp-hero__sticky { padding: 210px 5% 72px; }
         }
 
-        /* Static fallback — small screens & reduced-motion: no pinning, stacked layout.
+        /* Static fallback - small screens & reduced-motion: no pinning, stacked layout.
            Driven by the .lp-hero--static class (set from a matchMedia check in JS). */
         .lp-hero--static { height: auto; }
         .lp-hero--static .lp-hero__sticky {
           position: relative;
           height: auto;
-          /* Hug the content (was min-height:100vh) so there's no empty gap below the hero —
+          /* Hug the content (was min-height:100vh) so there's no empty gap below the hero -
              the leaderboard section sits right beneath the title and rises with it on scroll. */
           min-height: 0;
           display: flex;
@@ -8395,13 +8396,13 @@ export default function Landing() {
           .lp-hero__subtitle { font-size: clamp(0.72rem, 3.3vw, 0.95rem); line-height: 1.5; white-space: nowrap; }
           .lp-brand-item__icon { height: 65px; min-width: 46px; }
           /* height comes from the base rule (100% * --logo-s, the per-logo optical
-             scale). Re-declaring height:100% here silently cancelled that scale —
-             equal specificity, later in the sheet — so every mark rendered at the
+             scale). Re-declaring height:100% here silently cancelled that scale -
+             equal specificity, later in the sheet - so every mark rendered at the
              full box height again and the strip looked unsized at these widths. */
           .lp-brand-item__icon img { width: auto; }
           .lp-hero__brand-center { width: 104px; height: 104px; }
           .lp-hero__brand-center img { width: 78px; height: 78px; }
-          /* Brand strip, mobile treatment — a different layout from desktop, not a
+          /* Brand strip, mobile treatment - a different layout from desktop, not a
              squeezed version of it. Desktop is label-left / logos-right; at this width
              that leaves the track a sliver, so the label becomes a centred caption with
              the logo row full-bleed underneath. Desktop rules above are untouched. */
@@ -8410,7 +8411,7 @@ export default function Landing() {
             flex-direction: column;
             align-items: center;
             gap: 26px;
-            /* No side padding here — the logo row runs edge to edge. The label carries
+            /* No side padding here - the logo row runs edge to edge. The label carries
                its own gutter instead (below). */
             padding: 0;
           }
@@ -8418,7 +8419,7 @@ export default function Landing() {
              LEADING / brands" off, the one-line sentence on. */
           .lp-brandstrip__label--web { display: none; }
           .lp-brandstrip__label--mob { display: block; }
-          /* Sentence case rather than the desktop uppercase/letterspaced treatment — it
+          /* Sentence case rather than the desktop uppercase/letterspaced treatment - it
              reads as a spoken caption over the row, with the accent phrase carrying the
              emphasis. */
           .lp-brandstrip .lp-brandstrip__label--mob {
@@ -8431,7 +8432,7 @@ export default function Landing() {
             padding: 0 6%;
           }
           .lp-brandstrip .lp-brandstrip__label--mob .lp-brandstrip__label--accent { font-weight: 800; }
-          /* Full-bleed logo row. flex:none because the parent stacks vertically here — a
+          /* Full-bleed logo row. flex:none because the parent stacks vertically here - a
              flex-grow of 1 would stretch this in HEIGHT; align-self:stretch + width:100%
              beat the base rule's shrink-to-fit width:auto under align-items:center. */
           .lp-brandstrip .lp-brands__viewport {
@@ -8444,7 +8445,7 @@ export default function Landing() {
           /* Opaque, not blurred: a fixed element with a live blur re-samples the page on
              every scroll frame, the single biggest scroll cost on a phone. The 5% padding
              above is left alone so the logo and burger do not move when the paint appears
-             — it just reads as breathing room inside the pill. */
+             - it just reads as breathing room inside the pill. */
           .lp-navbar--scrolled .lp-navbar__inner {
             background: #ffffff;
             border: 1px solid rgba(28, 27, 75, 0.08);
@@ -8459,7 +8460,7 @@ export default function Landing() {
           /* grid-column:3 is what actually pins it to the right corner, and it is not
              optional. .lp-navbar__inner is grid-template-columns: 1fr auto 1fr, and the
              two rules directly above set .lp-navbar__links and .lp-navbar__actions to
-             display:none — which removes them as grid ITEMS, not just visually. That left
+             display:none - which removes them as grid ITEMS, not just visually. That left
              only the brand and the burger to auto-place, so the burger landed in track 2,
              the centre auto track: the hamburger floating in the middle of the bar.
              Its base margin-left:auto couldn't help, because that track is only as wide
@@ -8473,8 +8474,8 @@ export default function Landing() {
           .lp-navbar__mobile--open { display: flex; }
           .lp-navbar__logo { height: 34px; margin-left: 0; }
           /* Needs .lp-root to win: the base rules are .lp-root .lp-btn-login / .lp-btn-signup
-             (specificity 0,2,0). A bare .lp-btn-login here is 0,1,0 and LOSES — media queries
-             add no specificity — so this rule silently did nothing at all before. */
+             (specificity 0,2,0). A bare .lp-btn-login here is 0,1,0 and LOSES - media queries
+             add no specificity - so this rule silently did nothing at all before. */
           .lp-root .lp-btn-login, .lp-root .lp-btn-signup { padding: 12px 14px; font-size: 0.9rem; }
           .lp-hero__ctas { flex-direction: column; align-items: stretch; width: 100%; }
           .lp-hero .lp-btn-primary, .lp-hero .lp-btn-ghost { justify-content: center; }
@@ -8501,8 +8502,8 @@ export default function Landing() {
           .lp-hero__subtitle { font-size: clamp(0.66rem, 3.4vw, 0.85rem); line-height: 1.5; white-space: nowrap; }
           .lp-brand-item__icon { height: 52px; min-width: 36px; }
           /* height comes from the base rule (100% * --logo-s, the per-logo optical
-             scale). Re-declaring height:100% here silently cancelled that scale —
-             equal specificity, later in the sheet — so every mark rendered at the
+             scale). Re-declaring height:100% here silently cancelled that scale -
+             equal specificity, later in the sheet - so every mark rendered at the
              full box height again and the strip looked unsized at these widths. */
           .lp-brand-item__icon img { width: auto; }
           .lp-hero__brand-center { width: 82px; height: 82px; border-radius: 20px; }
@@ -8543,7 +8544,7 @@ export default function Landing() {
           50%      { opacity: 1;    transform: translateY(3px); }
         }
 
-        /* ── Hero mobile polish — spacing, type & tap targets ──────────────── */
+        /* ── Hero mobile polish - spacing, type & tap targets ──────────────── */
         @media (max-width: 768px) {
           .lp-hero__scrollcue { display: flex; }
           /* 22px side padding (thumb-reach zone) */
@@ -8576,7 +8577,7 @@ export default function Landing() {
           .lp-proof-badge { font-size: 0.72rem; padding: 7px 12px; }
         }
 
-        /* very small phones — keep the 38px headline from overflowing */
+        /* very small phones - keep the 38px headline from overflowing */
         @media (max-width: 360px) {
           .lp-hero__title { font-size: 32px; }
         }
@@ -8587,7 +8588,7 @@ export default function Landing() {
           .lp-hook { padding: 72px 6% 60px; }
           .lp-steps { padding: 56px 6%; }
           /* 140px -> 60px, and 4% -> 6%. The 140px was clearance for the brand strip being
-             pulled up over this section via brandRise — that pull-up was removed (see the JSX
+             pulled up over this section via brandRise - that pull-up was removed (see the JSX
              comment on .lp-brandstrip), so it had become ~84px of dead space above
              "We create the best UGC…" on every phone. The 4% was also the odd one out: every
              neighbouring section uses 6% here, so content edges visibly jogged in and out by
@@ -8611,7 +8612,7 @@ export default function Landing() {
         }
 
         /* Showcase heading on phones: wrap (not the desktop nowrap, which clipped off the edge),
-           centred + balanced. Sized to land on exactly TWO lines — the previous larger size spilled
+           centred + balanced. Sized to land on exactly TWO lines - the previous larger size spilled
            the long sentence onto three. clamp keeps two lines across phone widths (the min is low
            enough that even ~320px phones don't push to a third line). */
         @media (max-width: 768px) {
@@ -8629,7 +8630,7 @@ export default function Landing() {
           }
         }
 
-        /* Comparison table — keep the 5 columns legible on small phones */
+        /* Comparison table - keep the 5 columns legible on small phones */
         @media (max-width: 480px) {
           .lp-compare__cell { font-size: 0.62rem; padding: 9px 4px; }
           .lp-compare__cell--label { padding-left: 8px; }
@@ -8638,7 +8639,7 @@ export default function Landing() {
           .lp-compare__row--head .lp-compare__cell { font-size: 0.64rem; }
         }
 
-        /* Short viewports (e.g. laptops ~700px tall) — scale the pinned hero down so
+        /* Short viewports (e.g. laptops ~700px tall) - scale the pinned hero down so
            copy, logo and the brand strip all fit without overlapping. */
         @media (min-width: 769px) and (max-height: 800px) {
           .lp-hero__sticky { padding: 100px 6% 170px; }
@@ -8652,8 +8653,8 @@ export default function Landing() {
           .lp-hero__strip { padding: 16px 0 28px; }
           .lp-brand-item__icon { height: 65px; min-width: 46px; }
           /* height comes from the base rule (100% * --logo-s, the per-logo optical
-             scale). Re-declaring height:100% here silently cancelled that scale —
-             equal specificity, later in the sheet — so every mark rendered at the
+             scale). Re-declaring height:100% here silently cancelled that scale -
+             equal specificity, later in the sheet - so every mark rendered at the
              full box height again and the strip looked unsized at these widths. */
           .lp-brand-item__icon img { width: auto; }
           .lp-hero__brand-center { width: 108px; height: 108px; }
@@ -8723,7 +8724,7 @@ export default function Landing() {
           background: rgba(var(--lp-fg), 0.08);
           border-color: rgba(var(--lp-fg), 0.50);
         }
-        /* Two-column card grid — each card expands independently. The grid only lays
+        /* Two-column card grid - each card expands independently. The grid only lays
            out the two COLUMNS; the cards themselves stack inside a column, so an open
            card pushes the ones below it in its own column and never stretches a shared
            row (which is what left a gap under the collapsed card opposite it). */
@@ -8739,7 +8740,7 @@ export default function Landing() {
           gap: 16px;
         }
         .lp-faq__item {
-          /* No align-self:start here — as a flex child that would shrink the card to
+          /* No align-self:start here - as a flex child that would shrink the card to
              its text width instead of filling the column. Height is content-driven
              anyway, which is the whole point. */
           background: rgba(var(--lp-fg), 0.04);
@@ -8803,11 +8804,11 @@ export default function Landing() {
           .lp-faq__grid { grid-template-columns: 1fr; }
           /* One column on mobile: dissolve the two column wrappers so all six cards
              become direct grid children again, and let each card's order (its real
-             index) put them back in 0,1,2… reading order — DOM order here is
+             index) put them back in 0,1,2… reading order - DOM order here is
              0,2,4,1,3,5 because of the even/odd split above. */
           .lp-faq__col { display: contents; }
           /* Desktop's 20px/22px padding was sized for a 2-column grid with real
-             horizontal room to spare — stacked full-width on a phone it just reads as
+             horizontal room to spare - stacked full-width on a phone it just reads as
              oversized empty space around short question text. Trimmed to match. */
           .lp-faq__q { padding: 10px 16px; gap: 12px; font-size: 0.88rem; }
           .lp-faq__answer { padding: 0 16px 15px; font-size: 0.86rem; }
@@ -8927,7 +8928,7 @@ export default function Landing() {
           gap: 8px;
         }
         .lp-root .lp-footer__social-btn {
-          /* 44px, not 36px — these sit in a row with an 8px gap at the very bottom of a phone
+          /* 44px, not 36px - these sit in a row with an 8px gap at the very bottom of a phone
              screen, where mis-taps are most likely. */
           width: 44px;
           height: 44px;
@@ -9203,14 +9204,14 @@ export default function Landing() {
           overflow: visible;
           background: transparent;
         }
-        /* Dashed connector lines removed site-wide — keep the wrapper divs so the section
+        /* Dashed connector lines removed site-wide - keep the wrapper divs so the section
            spacing (their height + negative margins) is preserved, just hide the SVG. */
         .lp-connector svg { display: none; }
         .lp-connector svg path {
           animation: connectorFlow 1.2s linear infinite;
         }
         /* Light mode: the dashed connector lines (stroke set inline to a light grey) are
-           too faint on the lavender bg — CSS overrides the inline stroke with a dark navy. */
+           too faint on the lavender bg - CSS overrides the inline stroke with a dark navy. */
         .lp-root[data-theme="light"] .lp-connector svg path {
           stroke: #1c1b4b;
           stroke-opacity: 0.6;
@@ -9585,11 +9586,11 @@ export default function Landing() {
         /* ── Psychological Audit ─────────────────────────────────────────── */
         /* Tall pinned runway: the inner block sticks while the three question cards peel
            UP off the top one by one (card1Y/card2Y/card3Y in the JSX). The runway height IS
-           the peel duration — shorten it and the cards fly off faster. */
+           the peel duration - shorten it and the cards fly off faster. */
         .lp-audit {
           position: relative;
           /* No BOTTOM padding: once the last card has peeled, everything below the subtitle is
-             the deck's own (now empty) reserved box — adding a full section pad under that
+             the deck's own (now empty) reserved box - adding a full section pad under that
              stacked into a screen and a half of dead space before Find & Hire arrived. */
           padding: var(--lp-space-section) 4% 0;
           background: transparent;
@@ -9597,7 +9598,7 @@ export default function Landing() {
           overflow: visible;
           min-height: 220vh;
         }
-        /* Soft glow via radial-gradient instead of filter: blur(90px) — a blur filter
+        /* Soft glow via radial-gradient instead of filter: blur(90px) - a blur filter
            forces the browser to re-rasterize a large layer as this (scroll-heavy)
            section moves; a gradient just paints, so scrolling stays smooth. */
         .lp-audit__bg-orb {
@@ -9688,8 +9689,8 @@ export default function Landing() {
           align-items: center;
           /* Shorter than the viewport so the inner pins cleanly to the section end (no
              early-release blank) and there's no empty space below the centered card.
-             Sized (with the trimmed margins above) so the whole fan — including the corners
-             of the -20deg/+12deg rotated back cards — clears a ~800px-tall laptop viewport
+             Sized (with the trimmed margins above) so the whole fan - including the corners
+             of the -20deg/+12deg rotated back cards - clears a ~800px-tall laptop viewport
              once the block pins at top:90. Any taller and the bottom card gets clipped. */
           min-height: 380px;
           margin: 24px auto 0;
@@ -9701,7 +9702,7 @@ export default function Landing() {
           position: absolute;
           width: 100%;
           max-width: 290px;
-          /* The card keeps its periwinkle fill — it's the one saturated block in this section
+          /* The card keeps its periwinkle fill - it's the one saturated block in this section
              and what makes the deck read as a deck. Only the frame/shadow/edge treatment is
              re-tuned for the light page (dark-navy hairline shadow instead of a heavy one
              tuned to sit on navy). */
@@ -9752,14 +9753,14 @@ export default function Landing() {
         .lp-audit-card__body {
           position: relative;
           z-index: 1;
-          /* Don't grow to fill the card — sit tight under the heading so the divider +
+          /* Don't grow to fill the card - sit tight under the heading so the divider +
              hint follow immediately (no dead space in the middle). */
           flex: 0 0 auto;
           margin-bottom: 30px;
         }
         .lp-root .lp-audit-card__title {
           font-family: var(--font-head);
-          /* Sized so even the longest title (Q2 — "If Your Brand Went Silent for a Week,")
+          /* Sized so even the longest title (Q2 - "If Your Brand Went Silent for a Week,")
              fits on a SINGLE line within the card, matching Q3. Reads as an eyebrow lead-in
              above the larger punch line (.lp-audit-card__sub). */
           font-size: clamp(0.72rem, 1.4vw, 0.8rem);
@@ -9799,7 +9800,7 @@ export default function Landing() {
           letter-spacing: 0.02em;
         }
 
-        /* ── Value Proof — "We are zero"-style layout ─────────────────────── */
+        /* ── Value Proof - "We are zero"-style layout ─────────────────────── */
         /* Follows the site's light/dark toggle, like every other section (transparent
            lets .lp-root's own background show through). */
         .lp-proof {
@@ -9814,10 +9815,10 @@ export default function Landing() {
 
         /* The panel itself. Painted in the site palette (periwinkle #7387FF wash, navy
            #1c1b4b ink) rather than the mint of the reference shot, and pinned to those
-           literals in both themes — same call already made for the dark stat chips and the
+           literals in both themes - same call already made for the dark stat chips and the
            dark pill buttons that sit on light cards elsewhere on this page: it's a fixed
            piece of art, not themed chrome. That is also why each rule carries the .lp-proof
-           prefix — the global reset (".lp-root h2, p, span, ... { color: var(--lp-text) }")
+           prefix - the global reset (".lp-root h2, p, span, ... { color: var(--lp-text) }")
            outranks a single class and would repaint this whole panel white if the root ever
            went back to data-theme="dark". */
         .lpz {
@@ -9841,8 +9842,8 @@ export default function Landing() {
           box-shadow: 0 30px 70px -34px rgba(28, 27, 75, 0.45);
           overflow: hidden;
         }
-        /* Section eyebrow above the heading — the em-dash lead-in the old proof section
-           used ("— proof, not promises"), kept verbatim. */
+        /* Section eyebrow above the heading - the em-dash lead-in the old proof section
+           used ("- proof, not promises"), kept verbatim. */
         .lp-proof .lpz-eyebrow {
           display: block; margin: 0 0 14px;
           font-family: var(--font-body); font-size: 13px; font-weight: 600;
@@ -9853,7 +9854,7 @@ export default function Landing() {
           margin: 0;
           font-family: var(--font-head); font-weight: 500;
           /* Three hand-broken lines carry this layout, so the type has to stay big without
-             ever wrapping a fourth time — hence its own clamp rather than --lp-fs-display. */
+             ever wrapping a fourth time - hence its own clamp rather than --lp-fs-display. */
           font-size: clamp(30px, 3.5vw, 62px);
           line-height: 1.06; letter-spacing: -1.2px;
           color: #1c1b4b;
@@ -9868,7 +9869,7 @@ export default function Landing() {
           max-width: 46ch;
         }
         .lpz-actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-        /* Both pills are two classes deep for the same specificity reason as above — the
+        /* Both pills are two classes deep for the same specificity reason as above - the
            sitewide ".lp-root button { color: var(--lp-text) }" base rule beats one class. */
         .lp-proof .lpz-cta {
           display: inline-flex; align-items: center; justify-content: center; gap: 10px;
@@ -9895,7 +9896,7 @@ export default function Landing() {
         }
         .lp-proof .lpz-cta--light:hover { transform: translateY(-2px); background: #f4f5ff; }
 
-        /* Award shields — one per stat, stacked down the right edge.
+        /* Award shields - one per stat, stacked down the right edge.
            Shape: the box is rounded normally and clip-path only removes the two bottom
            corners, leaving a downward point. The drop shadow is a filter, not box-shadow,
            because clip-path would cut a box-shadow off at the same outline; a filter is
@@ -9903,12 +9904,12 @@ export default function Landing() {
         /* Full-width row BELOW the copy, not a third column beside it. grid-column 1/-1
            makes it span every track, so the three shields sit centred under the heading,
            description and CTAs rather than competing with them for horizontal space. */
-        /* Scoped under .lp-proof to match every other rule in this section — a bare
+        /* Scoped under .lp-proof to match every other rule in this section - a bare
            .lpz-col--badges is only 0,1,0 and loses to anything more specific that also
            touches layout on these columns. */
         .lp-proof .lpz-col--badges {
           /* Column 2, not the full panel. Column 1 holds the "Trust Changes the Math."
-             heading and column 2 holds the description + CTAs — so spanning 1/-1 centred the
+             heading and column 2 holds the description + CTAs - so spanning 1/-1 centred the
              shields on the WHOLE panel, which reads as left-of-centre against the copy
              stacked above them. Sitting in the same track as that copy lines them up with it.
              Reset to a full span at <=1180px, where .lpz collapses to a single column and a
@@ -9952,7 +9953,7 @@ export default function Landing() {
         .lp-proof .lpz-badge__value {
           font-family: var(--font-head); font-weight: 700;
           /* The stat strings vary a lot in length ("100cr+" vs "10,000+"), so this is sized
-             for the longest one — the shield width is fixed and a wrap would break it. */
+             for the longest one - the shield width is fixed and a wrap would break it. */
           font-size: clamp(15px, 1.35vw, 20px); line-height: 1; color: #07074e;
         }
         .lp-proof .lpz-badge__label {
@@ -9978,7 +9979,7 @@ export default function Landing() {
              "minmax(0,1fr) auto" existed to keep the badges as a side column, which they
              no longer are. */
           /* minmax(0, 1fr), NOT 1fr. A bare 1fr means minmax(AUTO, 1fr), and an auto minimum
-             refuses to go below the track's min-content width — so the shield row (3 fixed
+             refuses to go below the track's min-content width - so the shield row (3 fixed
              shields + gaps) widened the track past the panel, and .lpz's overflow:hidden
              then sliced whatever hung off the RIGHT while the left padding stayed put. That
              also dragged the paragraph out with it, since it shares the same over-wide
@@ -9988,23 +9989,23 @@ export default function Landing() {
           .lpz-col--text { grid-column: 1 / -1; }
           /* There is no track 2 in a single-column grid, so the base rule's grid-column: 2/-1
              would push the shields into an implicit column and out of the panel. The negative
-             margin goes with it — with nothing to offset from it would just pull them off the
+             margin goes with it - with nothing to offset from it would just pull them off the
              left edge. */
           .lp-proof .lpz-col--badges { grid-column: 1 / -1; margin-left: 0; }
         }
         @media (max-width: 760px) {
           /* 90px of section padding on top of the comparison section's own 70px bottom
-             padding left ~160px of blank page between the last "vs" card and this panel —
+             padding left ~160px of blank page between the last "vs" card and this panel -
              on a phone that reads as the page having ended. Trimmed to 36px here and 30px
              there (66px total), which still separates the two sections without the void.
              .lpv is set here, next to its other half, so the pair can't drift apart. */
           .lpv { padding-bottom: 30px; }
           .lp-proof { padding: 36px 5% 100px; }
           /* Taller, roomier card (was 34px 24px 30px / gap 24px). On a phone this panel is
-             the whole section — one tall rounded block holding heading, copy, both CTAs and
-             the shields — so it needs real internal margin or the content reads as crammed
+             the whole section - one tall rounded block holding heading, copy, both CTAs and
+             the shields - so it needs real internal margin or the content reads as crammed
              against the gradient's edges. */
-          /* minmax(0, 1fr) for the same reason as the 1180px rule above — see the note there.
+          /* minmax(0, 1fr) for the same reason as the 1180px rule above - see the note there.
              This is the breakpoint where it actually bit, because the panel is narrowest and
              the shield row is closest to outgrowing it. */
           .lpz { grid-template-columns: minmax(0, 1fr); padding: 40px 26px 34px; gap: 22px; }
@@ -10014,13 +10015,13 @@ export default function Landing() {
              whose contents can't shrink will still push past a correctly-sized track. */
           .lpz-col { min-width: 0; }
           /* The heading's three hard-broken lines are what set the panel's minimum width,
-             so its own floor drops below the desktop clamp's 30px — at 320px the line
+             so its own floor drops below the desktop clamp's 30px - at 320px the line
              "to get great UGC" would otherwise be wider than the panel's content box. */
           .lp-proof .lpz-heading { font-size: clamp(25px, 7.2vw, 40px); letter-spacing: -0.6px; }
           .lp-proof .lpz-desc { max-width: none; margin-bottom: 22px; }
           /* Buttons STACK and hug their own labels, matching the reference card: one under
              the other, both starting on the panel's left edge rather than sharing a row.
-             This also retires the squashing problem the old rule was working around — with
+             This also retires the squashing problem the old rule was working around - with
              flex: 1 1 140px both pills sat on one row, leaving each ~151px on a 360px screen
              against the ~185px "Sign up as Brand" plus its arrow needs, so the label broke in
              two. Given a row of its own each, nothing has to shrink at all. nowrap is kept as
@@ -10037,7 +10038,7 @@ export default function Landing() {
              size from the left instead.
              The width is stated as "a third of the row, minus the two 10px gaps, capped at
              112px" rather than a vw clamp. A vw value doesn't know about the panel's 26px
-             padding, so the old clamp(86px, 27vw, 112px) resolved to 97px at 360px — 3 of
+             padding, so the old clamp(86px, 27vw, 112px) resolved to 97px at 360px - 3 of
              those plus gaps is 312px against 308px of usable width, i.e. it overflowed again
              on exactly the screens this was meant to fix. This form can't: it is derived
              from the row's own width. */
@@ -10084,7 +10085,7 @@ export default function Landing() {
           max-width: 600px;
         }
 
-        /* WEB: editorial stacked rows — big number on the LEFT, index + label on the
+        /* WEB: editorial stacked rows - big number on the LEFT, index + label on the
            RIGHT (each stat is a full-width row, divided by a horizontal rule). */
         /* Left big-number card + right 3 metric cards (reference-style). Full height:
            the split fills the viewport, left card + right cards stretch to match. */
@@ -10129,7 +10130,7 @@ export default function Landing() {
           position: absolute; top: 20px; right: 24px; font-size: 12px; font-weight: 700;
           letter-spacing: 2px; color: var(--lp-text-muted); z-index: 2;
         }
-        /* Big readable value, label underneath — no overlap. */
+        /* Big readable value, label underneath - no overlap. */
         .lp-proof__card-value {
           font-family: var(--font-head); font-weight: 700;
           letter-spacing: -1.5px; font-size: clamp(42px, 5.2vw, 68px); line-height: 1; color: var(--lp-text);
@@ -10198,7 +10199,7 @@ export default function Landing() {
           line-height: 1.3;
         }
 
-        /* MOBILE carousel — hidden on web (the grid above is shown instead). Revealed in the
+        /* MOBILE carousel - hidden on web (the grid above is shown instead). Revealed in the
            ≤900px media query. */
         .lp-proof__marquee {
           display: none;
@@ -10268,7 +10269,7 @@ export default function Landing() {
           white-space: nowrap;
         }
 
-        /* Scrubber indicator — MOBILE ONLY (the carousel only scrolls on small screens; on
+        /* Scrubber indicator - MOBILE ONLY (the carousel only scrolls on small screens; on
            web all stats show at once, so no indicator). Shown via the mobile media query. */
         .lp-proof__dots {
           display: none;
@@ -10294,7 +10295,7 @@ export default function Landing() {
           background: #7387FF;
         }
 
-        /* Vertical divider to the right of each stat — mobile only (revealed in the ≤900px block). */
+        /* Vertical divider to the right of each stat - mobile only (revealed in the ≤900px block). */
         .lp-proof-item__sep { display: none; }
 
         .lp-proof__micro {
@@ -10317,7 +10318,7 @@ export default function Landing() {
           color: var(--lp-text);
           overflow: hidden;
         }
-        /* radial-gradient glow instead of filter: blur(110px) — cheaper to composite. */
+        /* radial-gradient glow instead of filter: blur(110px) - cheaper to composite. */
         .lp-testimonial__bg-orb {
           position: absolute;
           border-radius: 50%;
@@ -10394,7 +10395,7 @@ export default function Landing() {
           max-width: 600px;
         }
 
-        /* Avatar picker — "Trusted by:" + a row of faces. Clicking one jumps the
+        /* Avatar picker - "Trusted by:" + a row of faces. Clicking one jumps the
            spotlight carousel below straight to that person; the active face gets a
            accent ring and a small name tag underneath. */
         .lp-testimonial__trustbar {
@@ -10484,7 +10485,7 @@ export default function Landing() {
           --tcard-w: clamp(300px, 299px + 10.4vw, 543px);
           --tcard-gap: 24px;
         }
-        /* Manual prev/next — same setTIndex the auto-advance timer already uses, so a
+        /* Manual prev/next - same setTIndex the auto-advance timer already uses, so a
            click just steps the carousel like a normal tick; the existing wrap-around
            effect (keyed off tIndex) handles looping either direction for free. */
         .lp-testimonial__arrow {
@@ -10518,7 +10519,7 @@ export default function Landing() {
           transform: translate(var(--tarrow-shift), 18px) scale(1.06);
         }
         /* -100% is the button's OWN width, so the pair stays symmetric about the centre
-           line at any button size — the 900px breakpoint below only has to change width
+           line at any button size - the 900px breakpoint below only has to change width
            and height, not re-derive these offsets. 10px each side = 20px between them. */
         .lp-testimonial__arrow--prev { --tarrow-shift: calc(-100% - 10px); }
         .lp-testimonial__arrow--next { --tarrow-shift: 10px; }
@@ -10581,10 +10582,10 @@ export default function Landing() {
           0%   { transform: translateX(0); }
           100% { transform: translateX(-50%); }   /* set duplicated once → seamless loop */
         }
-        /* Centre spotlight frame — fixed corner brackets over the middle card.
+        /* Centre spotlight frame - fixed corner brackets over the middle card.
            Anchored to the viewport and inset by its exact padding values (10px
            top / 4px sides / 34px bottom, minus a 3px outset), so the frame's box
-           always matches the active card's real box regardless of viewport size —
+           always matches the active card's real box regardless of viewport size -
            no guessing off the carousel's auto height. */
         .lp-testimonial__carousel { position: relative; }
         .lp-testimonial__frame {
@@ -10655,7 +10656,7 @@ export default function Landing() {
         }
         .lp-tcard--featured::before { opacity: 1; }
 
-        /* Spotlight carousel — every card keeps the exact same plain panel (no border
+        /* Spotlight carousel - every card keeps the exact same plain panel (no border
            or accent), whether active or not; the active one is just told apart by its
            content being full-strength while its neighbours are muted. */
         .lp-tcard--spot {
@@ -10941,17 +10942,17 @@ export default function Landing() {
             position: static !important; transform: none !important;
             width: 100%; max-width: 420px; min-height: auto;
           }
-          /* No peel at this width, so there is no emptied card box to reclaim — the desktop
+          /* No peel at this width, so there is no emptied card box to reclaim - the desktop
              overlap would just drag Find & Hire up over three cards that are still there. */
           .lp-achieve-rise { margin-top: 0; }
         }
         /* Audit cards on MOBILE (≤768px): keep the absolute FAN (centred via flex
            static-position), sized for a phone, and give the section a TALL sticky runway so the
-           cards peel by SCROLL (Q1 first, then Q2, then Q3 — heroStatic branch in the JSX).
+           cards peel by SCROLL (Q1 first, then Q2, then Q3 - heroStatic branch in the JSX).
            No position:static / transform:none here (that kills the fan). */
         @media (max-width: 768px) {
           /* Shorter runway than desktop: enough pinned scroll for a smooth peel, but trimmed so
-             the section unpins right as the last card leaves — no tall empty pinned tail. */
+             the section unpins right as the last card leaves - no tall empty pinned tail. */
           .lp-audit { min-height: 185vh; padding: 0 6%; }
           /* Promote the sticky inner to its own GPU layer so the cards rising over it
              composite independently instead of repainting this whole pinned area each
@@ -10959,7 +10960,7 @@ export default function Landing() {
           .lp-audit__inner {
             /* top 60px -> 84px, same clearance as the hero. The navbar is fixed at top:20px
                and 48px tall on phones (y=20..68), so pinning at 60px parked this heading
-               inside that band — and since it carries z-index:2 against the navbar's 1000, it
+               inside that band - and since it carries z-index:2 against the navbar's 1000, it
                slid BEHIND the bar rather than over it. */
             position: sticky; top: 84px; padding-top: 22px;
             transform: translateZ(0);
@@ -10972,7 +10973,7 @@ export default function Landing() {
             min-height: clamp(360px, 54vh, 460px); margin: 14px auto 0; max-width: 100%;
             /* No perspective on mobile: the cards only do a flat 2D translate + rotate, so
                perspective adds nothing visually but stops the rising cards from compositing
-               cleanly on phone GPUs — which is what made Q2 lag. */
+               cleanly on phone GPUs - which is what made Q2 lag. */
             perspective: none;
           }
           .lp-audit-card {
@@ -11003,7 +11004,7 @@ export default function Landing() {
           .lp-step-card { min-height: auto; }
           /* Audit section mobile/tablet handling is in dedicated blocks just above. */
           /* .lp-proof / .lp-proof__inner rules that used to live here (a scroll-pinned
-             carousel: tall runway + sticky inner, JS-driven track/dots) were removed —
+             carousel: tall runway + sticky inner, JS-driven track/dots) were removed -
              they targeted a carousel structure that no longer exists in the JSX and
              collided with the current "We are zero"-style .lpz layout (forcing
              display:flex/sticky over its display:grid). The .lp-proof__top /
@@ -11024,7 +11025,7 @@ export default function Landing() {
           }
           /* Swap the web grid out for the carousel on mobile. */
           .lp-proof__row, .lp-proof__split { display: none; }
-          /* Viewport window — one stat wide; the track slides inside it. */
+          /* Viewport window - one stat wide; the track slides inside it. */
           .lp-proof__marquee {
             display: block;
             overflow: hidden;
@@ -11036,7 +11037,7 @@ export default function Landing() {
             justify-content: flex-start;
             gap: 0;
             padding: 16px 0;
-            /* x is driven by framer (proofTrackX) — don't fight it with a CSS transform. */
+            /* x is driven by framer (proofTrackX) - don't fight it with a CSS transform. */
           }
           /* Each stat fills the window, so a 100%-step translate shows exactly one at a time. */
           .lp-proof-item {
@@ -11051,12 +11052,12 @@ export default function Landing() {
           .lp-proof-item__value { font-size: 1.9rem; }
           .lp-proof-item__label { font-size: 0.82rem; }
           /* The -190px pull-up here is GONE. It existed to close a big empty gap left by the
-             tall .lp-connector above this section — but that connector is now display:none at
+             tall .lp-connector above this section - but that connector is now display:none at
              <=1024px, so there is no gap left to close and the negative margin dragged the
              testimonial 90px INTO .lp-proof (whose mobile bottom padding is only 100px).
              That was a real content collision, not just crowding: .lp-proof is wrapped in a
              z-index:3 div while this section is z-index:auto, so the proof's solid fan card
-             painted OVER the "Founder stories" pill and heading — hiding them outright. */
+             painted OVER the "Founder stories" pill and heading - hiding them outright. */
           .lp-testimonial { margin-top: 0; padding-top: 24px; }
           /* Vertical divider to the RIGHT of the stat content (mobile only). */
           .lp-proof-item__sep {
@@ -11086,14 +11087,14 @@ export default function Landing() {
              .lp-brand-item__icon is deliberately NOT in this list: it is not a card, it is a
              transparent box holding a cut-out logo, and its base rule sets box-shadow:none on
              purpose (see the comment there). Shadowing it drew an edge around every mark, so
-             each logo read as sitting on its own white tile — on mobile only, which is why the
+             each logo read as sitting on its own white tile - on mobile only, which is why the
              desktop strip looked right. There is nothing to optimise here either: the rule was
              REPLACING a shadow this element never had. */
           .lp-showcase-card, .lp-audit-card, .lp-achieve-card, .lp-tcard {
             box-shadow: 0 4px 12px rgba(28, 27, 75, 0.20) !important;
           }
           /* content-visibility:auto = the browser skips rendering off-screen sections entirely (the
-             single biggest fast-scroll win). ONLY static sections here — the scroll-PINNED ones
+             single biggest fast-scroll win). ONLY static sections here - the scroll-PINNED ones
              (hero, logo3d/leaderboard, audit, achieve, proof) need real measured heights for their
              sticky + useScroll math, so a content-visibility placeholder would break them. */
           .lp-testimonial, .lp-faq, .lp-cta, .lp-vs, .lp-community, .lp-steps, .lp-problem, .lp-footer {
@@ -11106,7 +11107,7 @@ export default function Landing() {
            Budget phones + "reduce motion" / Save-Data users. The WebGL logo and live
            video decode are already skipped in JS for these devices; here we also stop
            every LOOPING css animation (brand & showcase marquees, hook pulse, scroll
-           cue, connector flow, arrow slide) and drop the expensive blur repaints — at
+           cue, connector flow, arrow slide) and drop the expensive blur repaints - at
            ANY width, so a weak small laptop is covered too. framer-motion's scroll
            transforms are JS-driven (not css animations) and keep working untouched. */
         .lp-perf-lite *,
@@ -11116,7 +11117,7 @@ export default function Landing() {
           -webkit-backdrop-filter: none !important;
           backdrop-filter: none !important;
         }
-        /* .lp-brand-item__icon dropped here for the same reason as the mobile block above —
+        /* .lp-brand-item__icon dropped here for the same reason as the mobile block above -
            it has no shadow to make cheaper, and adding one tiles every logo. */
         .lp-perf-lite .lp-showcase-card,
         .lp-perf-lite .lp-audit-card,
@@ -11125,7 +11126,7 @@ export default function Landing() {
           box-shadow: 0 4px 12px rgba(28, 27, 75, 0.20) !important;
         }
 
-        /* Respect the OS "reduce motion" preference for everyone — also halts the
+        /* Respect the OS "reduce motion" preference for everyone - also halts the
            looping marquees on any device we didn't otherwise flag as low-end. */
         @media (prefers-reduced-motion: reduce) {
           .lp-root *,

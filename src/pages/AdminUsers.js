@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -34,7 +35,7 @@ const userState = (u) => (u.banned ? 'banned' : (u.active === false ? 'suspended
 const isInactive = (u) => u.banned === true || u.active === false;
 const strikes = (u) => (u.chat?.strikes || []);
 const isFlagged = (u) => strikes(u).length > 0;
-const category = (u) => p(u, 'category', 'industry', 'niche', 'primary_category') || '—';
+const category = (u) => p(u, 'category', 'industry', 'niche', 'primary_category') || '-';
 // Real human name. Prefers what the person/KYC actually provided over the
 // auto-generated @handle. Also reads the verified KYC legal name (creators who
 // never set a display name still have their legal name on file — e.g. "Arushi Khare").
@@ -43,18 +44,18 @@ const realName = (u) =>
   p(u, 'full_name', 'legal_name', 'real_name') ||
   (u.kyc && u.kyc.full_legal_name) ||
   '';
-const businessName = (u) => p(u, 'business_name', 'company_name', 'brand_name') || u.nickname || '—';
-const legalName = (u) => p(u, 'legal_name', 'registered_name') || '—';
-const gstin = (u) => p(u, 'gstin', 'gst', 'gst_number') || '—';
+const businessName = (u) => p(u, 'business_name', 'company_name', 'brand_name') || u.nickname || '-';
+const legalName = (u) => p(u, 'legal_name', 'registered_name') || '-';
+const gstin = (u) => p(u, 'gstin', 'gst', 'gst_number') || '-';
 // Phone signup stores the number on the user itself, not under profile.
-const phone = (u) => p(u, 'phone', 'phone_number', 'mobile', 'contact_number') || u.phone || u.phone_number || '—';
-const handleOf = (u) => (u.username ? `@${u.username}` : (u.public_creator_id ? `#${u.public_creator_id}` : (u.nickname || '—')));
+const phone = (u) => p(u, 'phone', 'phone_number', 'mobile', 'contact_number') || u.phone || u.phone_number || '-';
+const handleOf = (u) => (u.username ? `@${u.username}` : (u.public_creator_id ? `#${u.public_creator_id}` : (u.nickname || '-')));
 // Primary NAME to show anywhere in admin. Show the real/legal name if we have one;
 // only fall back to the handle when there's genuinely no real name — never surface a
 // bare auto-generated @nickname as though it were the person's name.
 const displayName = (u) => String(realName(u) || '').replace(/^@+/, '').trim() || handleOf(u);
 const money = (v) => `₹${Number(v || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-const dateShort = (v) => (v ? String(v).slice(0, 10) : '—');
+const dateShort = (v) => (v ? String(v).slice(0, 10) : '-');
 
 const STATE_LABELS = { active: 'Active', suspended: 'Suspended', banned: 'Banned' };
 const PAYOUT_SCHEDULES = ['weekly', 'biweekly', 'monthly', 'on_request'];
@@ -64,7 +65,7 @@ const PAYOUT_SCHEDULES = ['weekly', 'biweekly', 'monthly', 'on_request'];
 export default function AdminUsers({
   endpoint = '/admin/users',
   heading = 'Users',
-  subheading = 'Creator & brand directories — search, filter, inspect profiles, and moderate',
+  subheading = 'Creator & brand directories - search, filter, inspect profiles, and moderate',
 } = {}) {
   const { user: me } = useAuth();
   const navigate = useNavigate();
@@ -117,7 +118,7 @@ export default function AdminUsers({
   // ban / unban confirmation modal
   const [banTarget, setBanTarget] = useState(null); // { user, banned }
 
-  useEffect(() => { fetchAllUsers(); }, []);
+  useLiveEffect(() => { fetchAllUsers(); }, []);
 
   // /admin/users returns a plain array; /admin/my-assigned returns
   // { scoped, assigned_categories, users }. Accept both.
@@ -235,7 +236,7 @@ export default function AdminUsers({
 
   const categories = useMemo(() => {
     const set = new Set();
-    allUsers.forEach((u) => { const c = category(u); if (c && c !== '—') set.add(c); });
+    allUsers.forEach((u) => { const c = category(u); if (c && c !== '-') set.add(c); });
     return Array.from(set).sort();
   }, [allUsers]);
 
@@ -325,7 +326,7 @@ export default function AdminUsers({
               <p className="au-assigned">
                 {assignedCats.length
                   ? <>Your categories: {assignedCats.map((c) => <span key={c} className="au-badge">{c}</span>)}</>
-                  : 'No categories assigned to you yet — ask the founder to assign some on the Team & Roles page.'}
+                  : 'No categories assigned to you yet - ask the founder to assign some on the Team & Roles page.'}
               </p>
             )}
           </div>
@@ -764,7 +765,7 @@ function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, dea
   const campaigns = brandCampaigns || [];
   const campaignsLoading = brand && brandCampaigns === null;
 
-  const mask4 = (v) => (v ? `•••• ${String(v).slice(-4)}` : '—');
+  const mask4 = (v) => (v ? `•••• ${String(v).slice(-4)}` : '-');
   // A stored photo can be a dead /uploads path or a localhost URL that 404s in prod —
   // fall back to the initial instead of showing a broken-image icon.
   const [avatarBroken, setAvatarBroken] = useState(false);
@@ -820,7 +821,7 @@ function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, dea
                 ) : brand ? (
                   <>
                     <Row label="Business name" value={businessName(u)} />
-                    <Row label="Website" value={p(u, 'website') || '—'} />
+                    <Row label="Website" value={p(u, 'website') || '-'} />
                   </>
                 ) : (
                   <Row label="Handle" value={handleOf(u)} />
@@ -849,22 +850,22 @@ function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, dea
                     <p className="aud-empty">No KYC submitted yet.</p>
                   ) : (
                     <>
-                      <Row label="Legal name" value={kyc.full_legal_name || realName(u) || '—'} />
-                      <Row label="Date of birth" value={kyc.date_of_birth || '—'} />
-                      <Row label="Gender" value={kyc.gender || '—'} />
-                      <Row label="PAN" value={pan ? (revealBank ? pan : mask4(pan)) : '—'} reveal={pan ? () => setRevealBank((v) => !v) : undefined} revealed={revealBank} />
-                      <Row label="Aadhaar" value={aadhaar ? (revealBank ? aadhaar : mask4(aadhaar)) : '—'} />
-                      <Row label="Address" value={[kycAddr.line, kycAddr.city, kycAddr.state, kycAddr.pincode].filter(Boolean).join(', ') || '—'} />
-                      <Row label="Payout method" value={kyc.payout_method === 'upi' ? 'UPI' : (acct ? 'Bank account' : '—')} />
+                      <Row label="Legal name" value={kyc.full_legal_name || realName(u) || '-'} />
+                      <Row label="Date of birth" value={kyc.date_of_birth || '-'} />
+                      <Row label="Gender" value={kyc.gender || '-'} />
+                      <Row label="PAN" value={pan ? (revealBank ? pan : mask4(pan)) : '-'} reveal={pan ? () => setRevealBank((v) => !v) : undefined} revealed={revealBank} />
+                      <Row label="Aadhaar" value={aadhaar ? (revealBank ? aadhaar : mask4(aadhaar)) : '-'} />
+                      <Row label="Address" value={[kycAddr.line, kycAddr.city, kycAddr.state, kycAddr.pincode].filter(Boolean).join(', ') || '-'} />
+                      <Row label="Payout method" value={kyc.payout_method === 'upi' ? 'UPI' : (acct ? 'Bank account' : '-')} />
                       {upiId && <Row label="UPI ID" value={upiId} />}
                       {acct && <>
-                        <Row label="Account holder" value={bankHolder || '—'} />
-                        <Row label="Bank" value={bankName || '—'} />
+                        <Row label="Account holder" value={bankHolder || '-'} />
+                        <Row label="Bank" value={bankName || '-'} />
                         <Row label="Account no." value={revealBank ? acct : mask4(acct)} />
-                        <Row label="IFSC" value={ifsc || '—'} />
+                        <Row label="IFSC" value={ifsc || '-'} />
                       </>}
                       {kyc.rejection_reason && <Row label="Rejection reason" value={kyc.rejection_reason} />}
-                      <Row label="Submitted" value={dateShort(kyc.submitted_at) || '—'} />
+                      <Row label="Submitted" value={dateShort(kyc.submitted_at) || '-'} />
                       {docs.length > 0 && (
                         <div className="aud-docs">
                           {docs.map(([label, url]) => (
@@ -1008,7 +1009,7 @@ function Row({ label, value, reveal, revealed }) {
     ? (Object.entries(value)
         .filter(([, v]) => v !== null && v !== undefined && v !== '')
         .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`)
-        .join(' · ') || '—')
+        .join(' · ') || '-')
     : (Array.isArray(value) ? value.join(', ') : value);
   return (
     <div className="aud-row">
@@ -1076,7 +1077,7 @@ function BanModal({ target, onClose, onConfirm }) {
           <div className="au-ban-user">
             <div className="au-ban-av">{(name || u.email || '?').trim().charAt(0).toUpperCase()}</div>
             <div>
-              <b>{name && name !== '—' ? name : u.email}</b>
+              <b>{name && name !== '-' ? name : u.email}</b>
               <span>{u.email} · {isBrand(u) ? 'Brand' : (isCreator(u) ? 'Creator' : 'Admin')}</span>
             </div>
           </div>
@@ -1176,7 +1177,7 @@ function ActionModal({ action, onClose, onDone, adminPost }) {
         if (done) toast.success(`${done} user${done > 1 ? 's' : ''} deleted`);
         if (failed) {
           const why = apiErrorMessage(rejected[0].reason, 'Failed to delete');
-          toast.error(`${failed} user${failed > 1 ? 's' : ''} could not be deleted — ${why}`);
+          toast.error(`${failed} user${failed > 1 ? 's' : ''} could not be deleted - ${why}`);
         }
         ok = done > 0;
         break;

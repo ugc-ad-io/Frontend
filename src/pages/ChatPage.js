@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
@@ -34,7 +35,7 @@ export default function ChatPage() {
     isUserScrolledUp.current = !isAtBottom;
   };
 
-  useEffect(() => {
+  useLiveEffect(() => {
     if (userId) {
       fetchChatHistory();
       fetchOtherUser();

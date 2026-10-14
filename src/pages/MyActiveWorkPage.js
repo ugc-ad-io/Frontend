@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
@@ -63,7 +64,7 @@ function statusMeta(c) {
   // Booking requests come first — a pending one needs the creator to respond, and a
   // price proposal is parked waiting on the brand. Neither is active work yet.
   if (c.booking_status === 'pending_creator') return { label: 'Booking Request', color: '#4452f0', Icon: Inbox };
-  if (c.booking_status === 'price_revision') return { label: 'Price Sent — Awaiting Brand', color: '#f59e0b', Icon: Hourglass };
+  if (c.booking_status === 'price_revision') return { label: 'Price Sent - Awaiting Brand', color: '#f59e0b', Icon: Hourglass };
   // A revision request drops the campaign back to in_progress, which used to read
   // as a plain "Active" — the creator had no signal the brand wanted changes.
   if (needsRevision(c)) return { label: 'Revision Requested', color: '#f97316', Icon: RefreshCw };
@@ -99,7 +100,7 @@ export default function MyActiveWorkPage() {
   // fires on the first load that has requests; manual tab switches stick after that.
   const autoTabbed = useRef(false);
 
-  useEffect(() => {
+  useLiveEffect(() => {
     if (user?.approval_status && user.approval_status !== 'approved') return undefined;
     fetchData();
     const interval = setInterval(fetchData, 10000);

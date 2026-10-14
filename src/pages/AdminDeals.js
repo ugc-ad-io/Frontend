@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
@@ -41,7 +42,7 @@ const ACTIVE_PARTY = {
   'content submitted - awaiting review': 'Brand',
   'revision requested': 'Creator',
   'approved - payment processing': 'Platform',
-  'paid - complete': '—'
+  'paid - complete': '-'
 };
 
 // Reason codes required alongside free-text justification for any forced transition.
@@ -67,12 +68,12 @@ const strOrProp = (v, ...props) => {
 const escrowAmount = (d) => (typeof d?.escrow === 'number' ? d.escrow : Number(d?.escrow?.amount));
 const getState = (d) => normalizeDash(d?.current_state || d?.state || d?.campaign_status || d?.campaign?.status || 'Status unavailable');
 const getTitle = (d) => d?.campaign_title || strOrProp(d?.campaign, 'title') || d?.title || 'Untitled campaign';
-const getBrand = (d) => strOrProp(d?.brand, 'handle', 'nickname') || d?.brand_handle || d?.campaign?.business_nickname || '—';
-const getCreator = (d) => strOrProp(d?.creator, 'handle', 'nickname') || d?.creator_nickname || '—';
+const getBrand = (d) => strOrProp(d?.brand, 'handle', 'nickname') || d?.brand_handle || d?.campaign?.business_nickname || '-';
+const getCreator = (d) => strOrProp(d?.creator, 'handle', 'nickname') || d?.creator_nickname || '-';
 const getBrandId = (d) => d?.business_id || d?.brand_id || d?.brand?.id || d?.business?.id;
 const getCreatorId = (d) => d?.creator_id || d?.creator?.id || d?.creator?.user_id;
 const getValue = (d) => Number(d?.amount ?? d?.deal_value ?? escrowAmount(d) ?? d?.campaign?.budget ?? 0) || 0;
-const getActiveParty = (d) => d?.active_party || ACTIVE_PARTY[stateKey(getState(d))] || '—';
+const getActiveParty = (d) => d?.active_party || ACTIVE_PARTY[stateKey(getState(d))] || '-';
 const getEscrow = (d) => Number(d?.escrow_amount ?? escrowAmount(d) ?? getValue(d)) || 0;
 const getCommissionRate = (d) => Number(d?.commission_rate ?? 0.2);
 const getCommission = (d) => Number(d?.commission_amount ?? getEscrow(d) * getCommissionRate(d));
@@ -80,7 +81,7 @@ const getCreatorPayout = (d) => Number(d?.creator_payout ?? (getEscrow(d) - getC
 const dealDate = (d) => String(d?.created_at || d?.accepted_at || d?.updated_at || '').slice(0, 10);
 
 const money = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
-const fmtDate = (v) => (v ? new Date(v).toLocaleDateString() : '—');
+const fmtDate = (v) => (v ? new Date(v).toLocaleDateString() : '-');
 const fmtDateTime = (v) => (v ? new Date(v).toLocaleString() : '');
 
 // Deal-room messages have appeared under different response envelopes. Normalize
@@ -192,7 +193,7 @@ export default function AdminDeals() {
   const [searchParams, setSearchParams] = useSearchParams();
   const deepLinkedRef = useRef(false);
 
-  useEffect(() => { fetchDeals(); }, []);
+  useLiveEffect(() => { fetchDeals(); }, []);
 
   const fetchDeals = async () => {
     setLoading(true);
@@ -252,7 +253,7 @@ export default function AdminDeals() {
   // a refresh / back-nav doesn't re-open it. Works for any campaign id — the
   // /admin/deals/:id detail endpoint resolves campaigns without a selected
   // creator too, so unmatched campaigns still open.
-  useEffect(() => {
+  useLiveEffect(() => {
     const dealId = searchParams.get('deal');
     if (!dealId || loading || deepLinkedRef.current) return;
     deepLinkedRef.current = true;
@@ -479,11 +480,11 @@ export default function AdminDeals() {
   };
 
   const brandOptions = useMemo(
-    () => Array.from(new Set(deals.map(getBrand).filter((b) => b && b !== '—'))).sort(),
+    () => Array.from(new Set(deals.map(getBrand).filter((b) => b && b !== '-'))).sort(),
     [deals]
   );
   const creatorOptions = useMemo(
-    () => Array.from(new Set(deals.map(getCreator).filter((c) => c && c !== '—'))).sort(),
+    () => Array.from(new Set(deals.map(getCreator).filter((c) => c && c !== '-'))).sort(),
     [deals]
   );
 
@@ -623,10 +624,10 @@ export default function AdminDeals() {
                       <td className="adl-strong">{getTitle(d)}</td>
                       <td><span className={`adl-badge ${stateTone(getState(d))}`}>{getState(d)}</span></td>
                       <td className="adl-party-cell">{getActiveParty(d)}</td>
-                      <td><span className={`adl-sla ${slaTone}`}>{typeof hrs === 'number' ? `${Math.max(0, Math.round(hrs))}h` : '—'}</span></td>
+                      <td><span className={`adl-sla ${slaTone}`}>{typeof hrs === 'number' ? `${Math.max(0, Math.round(hrs))}h` : '-'}</span></td>
                       <td className="adl-strong">{money(getEscrow(d))}</td>
                       <td>
-                        {flags.length === 0 ? <span className="adl-muted-inline">—</span> : (
+                        {flags.length === 0 ? <span className="adl-muted-inline">-</span> : (
                           <span className="adl-flags">{flags.map((f, i) => <span key={i} className={`adl-flag ${f.tone}`}>{f.label}</span>)}</span>
                         )}
                       </td>
@@ -773,7 +774,7 @@ export default function AdminDeals() {
                     {timeline.map((t, i) => (
                       <li key={i}>
                         <span className="adl-tl-time">{fmtDateTime(t.timestamp || t.created_at || t.at)}</span>
-                        <b>{normalizeDash(t.to_state || t.state || t.event || t.event_type || '—')}</b>
+                        <b>{normalizeDash(t.to_state || t.state || t.event || t.event_type || '-')}</b>
                         {(t.reason || t.note) && <em> {t.reason || t.note}</em>}
                         <small>by {t.actor_name || t.actor || t.actor_type || 'system'}</small>
                       </li>
@@ -809,9 +810,9 @@ export default function AdminDeals() {
                 <h3><Truck size={15} /> Shipping &amp; tracking</h3>
                 {shipment ? (
                   <div className="adl-ship">
-                    <div><span>Tracking #</span><strong>{shipment.tracking_number || '—'}</strong></div>
-                    <div><span>Courier</span><strong>{shipment.courier_name || shipment.courier || '—'}</strong></div>
-                    <div><span>Status</span><strong>{shipment.courier_status || shipment.status || '—'}</strong></div>
+                    <div><span>Tracking #</span><strong>{shipment.tracking_number || '-'}</strong></div>
+                    <div><span>Courier</span><strong>{shipment.courier_name || shipment.courier || '-'}</strong></div>
+                    <div><span>Status</span><strong>{shipment.courier_status || shipment.status || '-'}</strong></div>
                     <div><span>Shipped</span><strong>{fmtDate(shipment.shipped_at)}</strong></div>
                     <div><span>Delivered</span><strong>{fmtDate(shipment.delivered_at)}</strong></div>
                     <div><span>Received</span><strong>{fmtDate(shipment.received_at)}</strong></div>
@@ -1045,7 +1046,7 @@ export default function AdminDeals() {
            class for both this and the dialogs put a z-index-100 layer over the drawer,
            blacking the whole screen out on any click.) */
         .adl-drawer-scrim { position: fixed; inset: 0; background: rgba(16,24,40,0.4); z-index: 45; }
-        /* Above the drawer — these dialogs are opened FROM the drawer
+        /* Above the drawer - these dialogs are opened FROM the drawer
            (Release payment / Refund / Raise dispute), so they must sit on top of it. */
         .adl-scrim { position: fixed; inset: 0; background: rgba(16,24,40,0.4); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; }
         .adl-chat-dock-wrap { position: fixed; right: 24px; bottom: 0; z-index: 120; width: 420px; max-width: calc(100vw - 32px); }

@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -68,7 +69,7 @@ export default function AdminRoles() {
     return next;
   });
 
-  useEffect(() => { fetchStaff(); fetchCategories(); }, []);
+  useLiveEffect(() => { fetchStaff(); fetchCategories(); }, []);
 
   const fetchCategories = async () => {
     try {
@@ -220,7 +221,7 @@ export default function AdminRoles() {
     setPwdBusy(true);
     try {
       await axios.post(`${API}/auth/forgot-password`, { email: member.email });
-      toast.success(`Reset code emailed to ${member.email} — the email links them straight to set a new password.`);
+      toast.success(`Reset code emailed to ${member.email} - the email links them straight to set a new password.`);
       setPwdMember(null);
       setCurPwd('');
       setNextPwd('');
@@ -350,7 +351,7 @@ export default function AdminRoles() {
                   <tr key={r.role}>
                     <td><span className={`arl-badge ${ROLE_TONE[r.role]}`}>{ROLE_LABELS[r.role]}</span></td>
                     <td className="arl-can"><Check size={13} /> {r.canDo}</td>
-                    <td className="arl-cant">{r.cannotDo === '—' ? <span className="arl-none">No restrictions</span> : <><X size={13} /> {r.cannotDo}</>}</td>
+                    <td className="arl-cant">{r.cannotDo === '-' ? <span className="arl-none">No restrictions</span> : <><X size={13} /> {r.cannotDo}</>}</td>
                   </tr>
                 ))}
               </tbody>
@@ -544,7 +545,7 @@ export default function AdminRoles() {
                 This permanently removes their account and all of their data. <b>It cannot be undone.</b>
               </p>
               <div className="arl-del-hint">
-                Only want to take away their admin powers? Close this and use <b>Revoke</b> — that
+                Only want to take away their admin powers? Close this and use <b>Revoke</b> - that
                 demotes them to a normal user and keeps the account.
               </div>
 
@@ -580,7 +581,7 @@ export default function AdminRoles() {
           <div className="arl-modal-overlay" onClick={() => setEditingMember(null)}>
             <div className="arl-modal" onClick={(e) => e.stopPropagation()}>
               <div className="arl-modal-head">
-                <h3>Categories — {editingMember.nickname || editingMember.email.split('@')[0]}</h3>
+                <h3>Categories - {editingMember.nickname || editingMember.email.split('@')[0]}</h3>
                 <button onClick={() => setEditingMember(null)} aria-label="Close"><X size={18} /></button>
               </div>
               <p className="arl-modal-sub">This admin will only see applications whose category matches one of these. Founder &amp; Ops (Senior) always see everything.</p>
@@ -627,7 +628,7 @@ export default function AdminRoles() {
           <div className="arl-modal-overlay" onClick={() => setAccessMember(null)}>
             <div className="arl-modal" onClick={(e) => e.stopPropagation()}>
               <div className="arl-modal-head">
-                <h3>Custom access — {accessMember.nickname || accessMember.email.split('@')[0]}</h3>
+                <h3>Custom access - {accessMember.nickname || accessMember.email.split('@')[0]}</h3>
                 <button onClick={() => setAccessMember(null)} aria-label="Close"><X size={18} /></button>
               </div>
               <p className="arl-modal-sub">Pick which side of the marketplace this admin manages and exactly which features they can use.</p>
@@ -723,7 +724,7 @@ export default function AdminRoles() {
                     <Mail size={15} /> Email them a reset code instead
                   </button>
                   <p className="arl-pwd-note" style={{ margin: '8px 0 0' }}>
-                    Sends a 6-digit reset code to {pwdMember.email} so they set their own password — no password needed from you.
+                    Sends a 6-digit reset code to {pwdMember.email} so they set their own password - no password needed from you.
                   </p>
                 </form>
               ) : (

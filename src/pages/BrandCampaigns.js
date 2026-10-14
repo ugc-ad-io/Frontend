@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
@@ -49,7 +50,7 @@ function subLine(c) {
   if (c.status === 'completed') return `${creators} creators · Completed`;
   if (c.status === 'work_submitted') return `${creators} creators · Submitted`;
   if (c.status === 'pending_approval') return 'Awaiting approval';
-  if (c.status === 'paused') return 'On hold by UGC.ad — contact support for details';
+  if (c.status === 'paused') return 'On hold by UGC.ad - contact support for details';
   return `${creators} ${creators === 1 ? 'creator' : 'creators'} · ${creators ? `${creators} bids` : 'No bids yet'}`;
 }
 
@@ -140,7 +141,7 @@ export default function BrandCampaigns() {
     finally { setLoading(false); }
   }, [user?.id, user?.team_of]);
 
-  useEffect(() => { loadCampaigns(); }, [loadCampaigns]);
+  useLiveEffect(() => { loadCampaigns(); }, [loadCampaigns]);
 
   // Close the mobile filter menu on any outside click.
   useEffect(() => {

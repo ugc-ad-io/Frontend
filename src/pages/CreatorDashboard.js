@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
@@ -151,7 +152,7 @@ export default function CreatorDashboard() {
     try { return sessionStorage.getItem('profileNudgeLater') === '1'; } catch { return false; }
   });
 
-  useEffect(() => {
+  useLiveEffect(() => {
     // Only skip if approval_status is explicitly set and not 'approved'
     if (user && user.approval_status && user.approval_status !== 'approved') {
       return;
@@ -164,7 +165,7 @@ export default function CreatorDashboard() {
     }
   }, [user?.approval_status, user?.id]);
 
-  useEffect(() => {
+  useLiveEffect(() => {
     const refreshUserData = async () => {
       try {
         const response = await axios.get(`${API}/auth/me`);
@@ -353,7 +354,7 @@ export default function CreatorDashboard() {
               {items.map((it, i) => <li key={i}><strong style={{ color: '#6d7bff' }}>Note:</strong> {typeof it === 'string' ? it : (it.label || it.name || it.field || '')}</li>)}
             </ul>
           )}
-          <button type="button" onClick={() => navigate('/profile-setup/creator')}>Update my profile</button>
+          <button type="button" onClick={() => navigate('/settings?tab=profile')}>Update my profile</button>
         </section>
       </div>
     );

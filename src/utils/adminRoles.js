@@ -104,7 +104,7 @@ export const ROLE_MATRIX = [
   {
     role: 'founder',
     canDo: 'All operations with no restrictions, audit trail override, platform settings',
-    cannotDo: '—',
+    cannotDo: '-',
   },
   {
     role: 'finance',

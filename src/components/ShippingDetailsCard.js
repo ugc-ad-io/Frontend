@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect, useCallback, useRef, forwardRef, useImperativeHandle } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -70,7 +71,7 @@ const ShippingDetailsCard = forwardRef(function ShippingDetailsCard({ campaignId
     }
   }, [campaignId]);
 
-  useEffect(() => { load(); }, [load]);
+  useLiveEffect(() => { load(); }, [load]);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -80,12 +81,12 @@ const ShippingDetailsCard = forwardRef(function ShippingDetailsCard({ campaignId
   const otherLabel = isCreator ? 'Brand' : 'Creator';
 
   const save = async (addr = form) => {
-    if (!isValid(addr)) { toast.error('Fill all fields — 10-digit phone and 6-digit pincode.'); return; }
+    if (!isValid(addr)) { toast.error('Fill all fields - 10-digit phone and 6-digit pincode.'); return; }
     setSaving(true);
     try {
       const { data } = await axios.post(`${API}/shipping/address`, { ...EMPTY, ...addr, campaign_id: campaignId });
       toast.success(data.both_ready
-        ? 'Both addresses confirmed — the team will dispatch shortly.'
+        ? 'Both addresses confirmed - the team will dispatch shortly.'
         : `Saved. Waiting for the ${otherLabel.toLowerCase()} to confirm.`);
       setEditing(false);
       await load();
@@ -153,7 +154,7 @@ const ShippingDetailsCard = forwardRef(function ShippingDetailsCard({ campaignId
       <div className="sdc-body">
         {showChoices && (
           <div className="sdc-choices">
-            <p className="sdc-lead"><UserRound size={14} /> We already have an address for you — pick one, or enter a new one.</p>
+            <p className="sdc-lead"><UserRound size={14} /> We already have an address for you - pick one, or enter a new one.</p>
             {options.map((o) => (
               <div key={o.key} className="sdc-choice">
                 <div className="sdc-addr">
@@ -188,7 +189,7 @@ const ShippingDetailsCard = forwardRef(function ShippingDetailsCard({ campaignId
               <button type="button" className="sdc-edit" onClick={() => { setForm({ ...EMPTY, ...saved }); setEditing(true); }}>Edit address</button>
             )}
             {status.both_ready && (
-              <p className="sdc-note"><ShieldCheck size={13} /> Both addresses are in. Our team will generate the label and ship — you'll get tracking here.</p>
+              <p className="sdc-note"><ShieldCheck size={13} /> Both addresses are in. Our team will generate the label and ship - you'll get tracking here.</p>
             )}
             {!theirs && (
               <p className="sdc-note"><Clock size={13} /> Waiting on the {otherLabel.toLowerCase()} to confirm their address.</p>
@@ -203,7 +204,7 @@ const ShippingDetailsCard = forwardRef(function ShippingDetailsCard({ campaignId
         {showForm && (
           <div className="sdc-form">
             {prefilledFromAccount && (
-              <p className="sdc-lead sdc-full"><UserRound size={14} /> Pre-filled from your account — just add what's missing.</p>
+              <p className="sdc-lead sdc-full"><UserRound size={14} /> Pre-filled from your account - just add what's missing.</p>
             )}
             {account && !prefilledFromAccount && !sameAddress(form, account) && (
               <button type="button" className="sdc-ghost sdc-full" onClick={() => setForm({ ...EMPTY, ...account })}>

@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -39,7 +40,7 @@ export default function PayoutWithLayout() {
   const [upiId, setUpiId] = useState('');
   const [bank, setBank] = useState({ account_holder_name: '', account_number: '', ifsc_code: '' });
 
-  useEffect(() => { fetchData(); }, []);
+  useLiveEffect(() => { fetchData(); }, []);
 
   const fetchData = async () => {
     try {
@@ -82,7 +83,7 @@ export default function PayoutWithLayout() {
     setSubmitting(true);
     try {
       await axios.post(`${API}/withdrawal/request`, { amount: amt, payment_method: method, account_details });
-      toast.success('Withdrawal requested — processing in ~7 business days');
+      toast.success('Withdrawal requested - processing in ~7 business days');
       setShowRequest(false);
       setAmount(''); setUpiId('');
       setBank({ account_holder_name: '', account_number: '', ifsc_code: '' });
@@ -208,12 +209,12 @@ export default function PayoutWithLayout() {
                   return (
                     <tr key={row.id}>
                       <td className="cmk-td-strong">{row.brand_name || 'Brand'}</td>
-                      <td className="cmk-td-muted">{row.campaign_title || '—'}</td>
+                      <td className="cmk-td-muted">{row.campaign_title || '-'}</td>
                       <td>{inr(row.gross_amount)}</td>
-                      <td className="cmk-td-muted">{fees ? `− ${inr(fees)}` : '—'}</td>
+                      <td className="cmk-td-muted">{fees ? `− ${inr(fees)}` : '-'}</td>
                       <td className="cmk-td-strong">{inr(row.net_amount)}</td>
                       <td className="cmk-td-muted">
-                        {row.created_at ? new Date(row.created_at).toLocaleDateString('en-IN') : '—'}
+                        {row.created_at ? new Date(row.created_at).toLocaleDateString('en-IN') : '-'}
                       </td>
                     </tr>
                   );
@@ -242,9 +243,9 @@ export default function PayoutWithLayout() {
                     {open && (
                       <div className="pwl-earning-details">
                         <p><span>Deal amount</span><strong>{inr(row.gross_amount)}</strong></p>
-                        <p><span>Platform fee</span><strong>{fees ? `− ${inr(fees)}` : '—'}</strong></p>
+                        <p><span>Platform fee</span><strong>{fees ? `− ${inr(fees)}` : '-'}</strong></p>
                         <p><span>You received</span><strong>{inr(row.net_amount)}</strong></p>
-                        <p><span>Date</span><strong>{row.created_at ? new Date(row.created_at).toLocaleDateString('en-IN') : '—'}</strong></p>
+                        <p><span>Date</span><strong>{row.created_at ? new Date(row.created_at).toLocaleDateString('en-IN') : '-'}</strong></p>
                       </div>
                     )}
                   </article>
@@ -270,7 +271,7 @@ export default function PayoutWithLayout() {
                     <td><span className="cmk-pill info">TXN-{String(row.id || '').slice(-4).toUpperCase()}</span></td>
                     <td className="cmk-td-strong">{inr(row.amount)}</td>
                     <td><span className={`cmk-pill ${STATUS_TONE[status] || 'warn'}`}>{status}</span></td>
-                    <td className="cmk-td-muted">{row.requested_at ? new Date(row.requested_at).toLocaleDateString('en-IN') : '—'}</td>
+                    <td className="cmk-td-muted">{row.requested_at ? new Date(row.requested_at).toLocaleDateString('en-IN') : '-'}</td>
                     <td>{row.payment_method === 'upi' ? 'UPI' : 'Bank Transfer'}</td>
                   </tr>
                 );

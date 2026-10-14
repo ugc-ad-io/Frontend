@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -27,7 +28,7 @@ const STATUS_LABELS = {
   closed: 'Closed',
   appealed: 'Appealed',
 };
-const fmtDate = (v) => (v ? new Date(v).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—');
+const fmtDate = (v) => (v ? new Date(v).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '-');
 const assetUrl = (u) => (!u ? '' : (/^https?:\/\//i.test(u) ? u : `${BACKEND_URL}${String(u).startsWith('/') ? '' : '/'}${u}`));
 
 // Hours left until the 72h response window closes (negative once overdue).
@@ -65,7 +66,7 @@ export default function DisputeDetailPage() {
     }
   }, [id]);
 
-  useEffect(() => { load(); }, [load]);
+  useLiveEffect(() => { load(); }, [load]);
 
   const onPickFiles = async (e) => {
     const files = Array.from(e.target.files || []);
@@ -91,7 +92,7 @@ export default function DisputeDetailPage() {
     setSubmitting(true);
     try {
       await axios.post(`${API}/disputes/${id}/respond`, { message: message.trim(), evidence_urls: evidence });
-      toast.success('Response submitted — the platform team will review it.');
+      toast.success('Response submitted - the platform team will review it.');
       setMessage('');
       setEvidence([]);
       await load();
@@ -119,7 +120,7 @@ export default function DisputeDetailPage() {
             <div className="dd-head">
               <div>
                 <h1>Dispute</h1>
-                <p>{DTYPE_LABELS[dispute.dispute_type] || 'Dispute'} · Deal {dispute.deal_id || '—'}{dispute.campaign_title ? ` · ${dispute.campaign_title}` : ''}</p>
+                <p>{DTYPE_LABELS[dispute.dispute_type] || 'Dispute'} · Deal {dispute.deal_id || '-'}{dispute.campaign_title ? ` · ${dispute.campaign_title}` : ''}</p>
               </div>
               <span className={`dd-status dd-status--${dispute.status}`}>{STATUS_LABELS[dispute.status] || dispute.status}</span>
             </div>
@@ -134,7 +135,7 @@ export default function DisputeDetailPage() {
                     {dispute.info_request_due_at && (
                       <p className={`dd-due ${hrs != null && hrs < 0 ? 'over' : ''}`}>
                         <Clock size={13} /> {hrs != null && hrs < 0
-                          ? `Response window closed ${Math.abs(hrs)}h ago — please still reply`
+                          ? `Response window closed ${Math.abs(hrs)}h ago - please still reply`
                           : `Please respond within 72 hours (about ${hrs}h left)`}
                       </p>
                     )}
@@ -200,7 +201,7 @@ export default function DisputeDetailPage() {
             <section className="dd-card">
               <h3>What this dispute is about</h3>
               {dispute.description && <p className="dd-desc">{dispute.description}</p>}
-              <div className="dd-kv"><span>Type</span><strong>{DTYPE_LABELS[dispute.dispute_type] || dispute.dispute_type || '—'}</strong></div>
+              <div className="dd-kv"><span>Type</span><strong>{DTYPE_LABELS[dispute.dispute_type] || dispute.dispute_type || '-'}</strong></div>
               {dispute.desired_outcome && <div className="dd-kv"><span>Requested outcome</span><strong>{String(dispute.desired_outcome).replace(/_/g, ' ')}</strong></div>}
               <div className="dd-kv"><span>Raised</span><strong>{fmtDate(dispute.created_at)}</strong></div>
               {Array.isArray(dispute.evidence_urls) && dispute.evidence_urls.length > 0 && (

@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -50,7 +51,7 @@ export default function CreatorHero({
   // what made the dummy reel flash for ~1s before the admin data loaded. Fill it
   // once the fetch resolves: admin's cards if any, else the defaults.
   const [reels, setReels] = useState([]);
-  useEffect(() => {
+  useLiveEffect(() => {
     let alive = true;
     axios.get(`${API}/home/top-earners`)
       .then((r) => {
@@ -167,12 +168,12 @@ export default function CreatorHero({
         </div>
 
         <p className="chero-sub">
-          Your AI-matched brand deals and payouts, all in one place — keep creating to earn <b>up to 50× faster.</b>
+          Your AI-matched brand deals and payouts, all in one place - keep creating to earn <b>up to 50× faster.</b>
         </p>
 
         <div className="chero-cta">
           <button type="button" className="chero-btn-dark" onClick={() => navigate('/browse-briefs')}>
-            Browse Campaigns — It’s Free
+            Browse Campaigns - It’s Free
           </button>
           <button type="button" className="chero-link" onClick={() => navigate('/my-active-work')}>
             My Deals <ArrowUpRight size={16} />
@@ -370,7 +371,7 @@ export default function CreatorHero({
         @keyframes cheroFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
 
         @media (max-width:980px){
-          /* Reset the desktop offset transform — it pushed the card off-screen and
+          /* Reset the desktop offset transform - it pushed the card off-screen and
              caused horizontal scroll on phones. */
           .chero{grid-template-columns:1fr;gap:14px;padding:28px 22px;transform:none}
           .chero-title{font-size:34px}

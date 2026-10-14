@@ -77,7 +77,7 @@ const money = (value) => `₹${Number(value || 0).toLocaleString('en-IN')}`;
 // prompt that used to ask only for an email).
 const TEAM_ROLES = [
   { key: 'admin', label: 'Admin', Icon: Shield, desc: 'Full access, and can invite or remove other team members.' },
-  { key: 'member', label: 'Member', Icon: Pencil, desc: 'Can create and manage campaigns, deals and work — but not the team.' },
+  { key: 'member', label: 'Member', Icon: Pencil, desc: 'Can create and manage campaigns, deals and work - but not the team.' },
   { key: 'viewer', label: 'Viewer', Icon: Eye, desc: 'Read-only. Can see everything but cannot make changes.' },
 ];
 
@@ -344,7 +344,7 @@ export default function ProfileSettings() {
   // Mobile settings drill-down: show the tab list first, open a panel on tap.
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches);
   const [brandDetailOpen, setBrandDetailOpen] = useState(false);
-  const [creatorDetailOpen, setCreatorDetailOpen] = useState(false);
+  const [creatorDetailOpen, setCreatorDetailOpen] = useState(() => new URLSearchParams(window.location.search).get('tab') === 'profile');
   const [loading, setLoading] = useState(false);
   const [brandLoading, setBrandLoading] = useState(false);
   const [brandProfile, setBrandProfile] = useState(defaultBrandProfile);
@@ -424,7 +424,7 @@ export default function ProfileSettings() {
       logout();
       navigate('/');
     } catch {
-      toast.error('Could not deactivate right now — please email support@ugcad.io');
+      toast.error('Could not deactivate right now - please email support@ugcad.io');
     }
   };
 
@@ -435,7 +435,7 @@ export default function ProfileSettings() {
       logout();
       navigate('/');
     } catch {
-      toast.error('Could not delete right now — please email support@ugcad.io');
+      toast.error('Could not delete right now - please email support@ugcad.io');
     }
   };
 
@@ -542,14 +542,14 @@ export default function ProfileSettings() {
     const status = banned
       ? 'Account suspended'
       : cardsOnly
-        ? 'Restricted — action cards only'
+        ? 'Restricted - action cards only'
         : strikes === 0
           ? 'Good standing'
           : `${strikes} active ${strikes === 1 ? 'strike' : 'strikes'}`;
     const consequence = banned
       ? 'Your account has been suspended for repeated policy violations. Contact support@ugcad.io to appeal.'
       : cardsOnly
-        ? 'Free-text chat is temporarily disabled — you can only send structured offer/action cards until the restriction lifts.'
+        ? 'Free-text chat is temporarily disabled - you can only send structured offer/action cards until the restriction lifts.'
         : strikes === 0
           ? 'No policy strikes on your account. Keep chats on-platform and free of contact info to stay clear.'
           : strikes === 1
@@ -1123,7 +1123,7 @@ export default function ProfileSettings() {
             <span><Users size={20} /></span>
             <div>
               <h2>Team Members</h2>
-              <p>Invite coworkers to your brand workspace. They log in with their own password and share your campaigns, deals and wallet — their access depends on the role you give them.</p>
+              <p>Invite coworkers to your brand workspace. They log in with their own password and share your campaigns, deals and wallet - their access depends on the role you give them.</p>
             </div>
             {canManage && (
               <button type="button" className="bs-primary small" onClick={() => setInviteOpen(true)}>

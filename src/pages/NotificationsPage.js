@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -26,7 +27,7 @@ export default function NotificationsPage() {
     } catch { /* ignore */ } finally { setLoading(false); }
   };
 
-  useEffect(() => { load(); }, []);
+  useLiveEffect(() => { load(); }, []);
 
   const markRead = async (id) => {
     try { await axios.patch(`${API}/notifications/${id}/read`); load(); } catch { /* ignore */ }

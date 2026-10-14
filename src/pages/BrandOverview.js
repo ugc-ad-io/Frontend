@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
@@ -99,7 +100,7 @@ export default function BrandOverview() {
   const [loading, setLoading] = useState(true);
   const [chatWith, setChatWith] = useState(null);
 
-  useEffect(() => {
+  useLiveEffect(() => {
     let active = true;
     (async () => {
       try {

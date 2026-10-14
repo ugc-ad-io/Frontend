@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { CheckCircle, Search, Users, Briefcase, FileText, Clock, Eye, PlayCircle, X, ShieldCheck, Globe, AlertTriangle, MessageSquarePlus, XCircle, Link2, Phone } from 'lucide-react';
 
@@ -156,9 +157,9 @@ function DetailObject({ title, obj }) {
 }
 
 const formatDateSafe = (value) => {
-  if (!value) return '—';
+  if (!value) return '-';
   const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleDateString();
+  return Number.isNaN(d.getTime()) ? '-' : d.toLocaleDateString();
 };
 
 // SLA — target turnaround for review (48h). Oldest applications go urgent/overdue.
@@ -167,9 +168,9 @@ const slaInfo = (submitted, nowMs, status) => {
   // Once a decision is made the SLA clock is done — an approved/rejected application
   // must never read "Overdue" (the review already happened).
   if (['approved', 'rejected'].includes(status)) return { label: 'Reviewed', urgent: false };
-  if (!submitted) return { label: '—', urgent: false };
+  if (!submitted) return { label: '-', urgent: false };
   const t = new Date(submitted).getTime();
-  if (Number.isNaN(t)) return { label: '—', urgent: false };
+  if (Number.isNaN(t)) return { label: '-', urgent: false };
   const remainingH = SLA_TARGET_HOURS - (nowMs - t) / 3600000;
   if (remainingH <= 0) return { label: 'Overdue', urgent: true };
   if (remainingH < 24) return { label: `${Math.round(remainingH)}h left`, urgent: remainingH < 6 };
@@ -231,10 +232,10 @@ function ApplicationRow({ profile, nowMs, onOpen, onApprove, onReject }) {
   // Show the applicant's REAL name for review (not their @username/id) — the
   // reviewer verifies a real person/business; the public id comes after approval.
   const realName = brand ? (p.business_name || p.businessName) : (p.fullName || p.full_name);
-  const displayName = (realName && String(realName).trim()) || String(profile.nickname || profile.username || '—').replace(/^@+/, '');
-  const email = profile.email || p.business_email || '—';
-  const phone = phoneOf(profile) || '—';
-  const category = profile.category || p.category || p.niche || p.industry || p.industry_category || p.business_type || '—';
+  const displayName = (realName && String(realName).trim()) || String(profile.nickname || profile.username || '-').replace(/^@+/, '');
+  const email = profile.email || p.business_email || '-';
+  const phone = phoneOf(profile) || '-';
+  const category = profile.category || p.category || p.niche || p.industry || p.industry_category || p.business_type || '-';
   const submitted = profile.submitted_at || profile.created_at || profile.createdAt || p.created_at;
   const sla = slaInfo(submitted, nowMs, profile.approval_status);
   const state = STATE_META[profile.approval_status] || STATE_META.pending;
@@ -256,7 +257,7 @@ function ApplicationRow({ profile, nowMs, onOpen, onApprove, onReject }) {
     : [
         ['Phone', phone],
         ['Category', category],
-        ['Location', p.location || p.country || p.city || '—'],
+        ['Location', p.location || p.country || p.city || '-'],
         ['Submitted', formatDateSafe(submitted)],
       ];
 
@@ -267,7 +268,7 @@ function ApplicationRow({ profile, nowMs, onOpen, onApprove, onReject }) {
           {displayName.replace(/^@/, '').slice(0, 2).toUpperCase()}
         </div>
         <div className="apps-name-block">
-          <h4 title={flagName ? 'Handle looks like a real name — verify' : undefined}>
+          <h4 title={flagName ? 'Handle looks like a real name - verify' : undefined}>
             {displayName}
             {flagName && <AlertTriangle size={13} className="apps-name-flag" />}
           </h4>
@@ -323,7 +324,7 @@ function ProfileDetail({ profile, onBack, onDecide }) {
   // empty player. Keyed on the resolved url.
   const [badMedia, setBadMedia] = useState(() => new Set());
 
-  useEffect(() => {
+  useLiveEffect(() => {
     let alive = true;
     setLoadingFull(true);
     setFull(profile);
@@ -398,7 +399,7 @@ function ProfileDetail({ profile, onBack, onDecide }) {
   const uname = full.username || profile.username;
   // Real name is the review identity; the @username/id is secondary (shown after approval).
   const realName = brand ? (p.business_name || p.businessName || full.business_name) : (p.fullName || p.full_name || full.full_name);
-  const displayName = (realName && String(realName).trim()) || String(full.nickname || profile.nickname || uname || '—').replace(/^@+/, '');
+  const displayName = (realName && String(realName).trim()) || String(full.nickname || profile.nickname || uname || '-').replace(/^@+/, '');
   const headerEmail = full.email || p.business_email || profile.email;
   const headerPhone = phoneOf(full) || phoneOf(profile);
   const flagName = !brand && looksLikeRealName(uname || '');
@@ -471,7 +472,7 @@ function ProfileDetail({ profile, onBack, onDecide }) {
         <div className="apps-modal-body">
           {review && (review.reason_code || review.more_info_message) && (
             <div className="apps-review-note">
-              {review.reason_code && <p><strong>Rejection:</strong> {review.reason_code}{review.reason_details ? ` — ${review.reason_details}` : ''}</p>}
+              {review.reason_code && <p><strong>Rejection:</strong> {review.reason_code}{review.reason_details ? ` - ${review.reason_details}` : ''}</p>}
               {review.more_info_message && <p><strong>Info requested:</strong> {review.more_info_message}</p>}
             </div>
           )}
@@ -586,7 +587,7 @@ function ProfileDetail({ profile, onBack, onDecide }) {
           )}
           {mode === 'reject' && (
             <section ref={scrollToBuilder} className="detail-section full-width apps-builder">
-              <h3><XCircle size={16} className="apps-h3-ic" />Reject — reason</h3>
+              <h3><XCircle size={16} className="apps-h3-ic" />Reject - reason</h3>
               <select className="apps-select" value={reasonCode} onChange={(e) => setReasonCode(e.target.value)}>
                 <option value="">Select a reason code…</option>
                 {REJECT_REASONS[roleKey].map((r) => <option key={r} value={r}>{r}</option>)}
@@ -600,7 +601,7 @@ function ProfileDetail({ profile, onBack, onDecide }) {
           {mode === null && (
             decided ? (
               <span className="apps-decided-note" style={{ color: '#585c7e', fontSize: 13.5, fontWeight: 600, padding: '4px 2px' }}>
-                This profile is already {(STATE_META[full.approval_status] || {}).label || full.approval_status} — no further action needed.
+                This profile is already {(STATE_META[full.approval_status] || {}).label || full.approval_status} - no further action needed.
               </span>
             ) : (
               <>
@@ -662,7 +663,7 @@ function ApplicationsPage() {
   const [sortOrder, setSortOrder] = useState('oldest');        // oldest first by default
   const nowMs = useMemo(() => Date.now(), [applications]);
 
-  useEffect(() => { fetchApplications(); }, []);
+  useLiveEffect(() => { fetchApplications(); }, []);
 
   const fetchApplications = async () => {
     setLoading(true);

@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../App';
@@ -399,10 +400,10 @@ function buildDeliverables(deal) {
     const row = (name, meta, v) => ({ name, meta, status: v ? versionStatusMeta(v.status) : { label: 'Pending', tone: 'warn' }, done: v?.status === 'approved' });
     const due = (d) => (d ? ` · due ${formatDateTime(d)}` : '');
     return [
-      row('Raw video', `Step 1 — brand approves this first${due(deal.edit_flow.raw_due)}`, last('raw')),
+      row('Raw video', `Step 1 - brand approves this first${due(deal.edit_flow.raw_due)}`, last('raw')),
       mode === 'ugc'
-        ? row('Edited video', 'Step 2 — edited by UGC.ad after your raw is approved', last('edited'))
-        : row('Edited video', `Step 2 — after the raw is approved${due(deal.edit_flow.edited_due)}`, last('edited')),
+        ? row('Edited video', 'Step 2 - edited by UGC.ad after your raw is approved', last('edited'))
+        : row('Edited video', `Step 2 - after the raw is approved${due(deal.edit_flow.edited_due)}`, last('edited')),
     ];
   }
   // Raw-only brief: the single file IS the raw video — no "Final Video" + "Raw Footage" pair.
@@ -482,7 +483,7 @@ export default function MyDealsPage() {
     });
   };
 
-  useEffect(() => {
+  useLiveEffect(() => {
     if (!user?.id) return undefined;
     fetchDeals();
     // Poll so brand-side updates (e.g. courier marked "shipped") reflect here
@@ -505,7 +506,7 @@ export default function MyDealsPage() {
   // already review a brand from its profile card in Messages, but were never prompted,
   // so completed deals went un-reviewed. Asks ONCE per deal: promptedRef stops the
   // 10s poll from re-opening it, and the /reviews check stops it returning on revisit.
-  useEffect(() => {
+  useLiveEffect(() => {
     const campaignId = selectedDeal?.campaign?.id;
     const businessId = selectedDeal?.campaign?.business_id;
     if (!isState(selectedDeal, 'Paid - Complete') || !campaignId || !businessId || !user?.id) return;
@@ -530,7 +531,7 @@ export default function MyDealsPage() {
       await axios.post(`${API}/reviews`, {
         campaign_id: brandReviewFor.campaignId, business_id: brandReviewFor.businessId, rating, review,
       });
-      toast.success('Review submitted — thanks for the feedback!');
+      toast.success('Review submitted - thanks for the feedback!');
       setBrandReviewFor(null);
     } catch (e) {
       toast.error(apiErrorMessage(e, 'Could not submit your review'));
@@ -614,7 +615,7 @@ export default function MyDealsPage() {
 
   const handleSubmitContent = async () => {
     if (!selectedDeal?.deal_id) return;
-    if (uploadingFile) { toast.error('Please wait — a file is still uploading.'); return; }
+    if (uploadingFile) { toast.error('Please wait - a file is still uploading.'); return; }
     const required = getRequiredAssets(selectedDeal);
     const missing = [];
     const stage = uploadStage(selectedDeal);
@@ -1423,7 +1424,7 @@ function ShippingBlock({ deal, unboxingVideoUrl, onUpload, onSubmitReceipt, uplo
         </div>
       ) : received ? (
         <div className="deal-receipt-confirmed">
-          <p className="deal-receipt-done"><CheckCircle size={18} /> Product received on {formatDate(receipt.received_at)} — receipt confirmed.</p>
+          <p className="deal-receipt-done"><CheckCircle size={18} /> Product received on {formatDate(receipt.received_at)} - receipt confirmed.</p>
           {submittedVideoUrl && (
             <a className="deal-receipt-video-link" href={submittedVideoUrl} target="_blank" rel="noreferrer">View submitted unboxing video</a>
           )}
@@ -1441,7 +1442,7 @@ function ShippingBlock({ deal, unboxingVideoUrl, onUpload, onSubmitReceipt, uplo
                     ? 'Upload your unboxing video to enable “Mark Received”.'
                     : !deal?.can_mark_received
                       ? 'Waiting for the brand to confirm delivery. This updates automatically once the package is marked delivered.'
-                      : 'Ready — tap “Mark Received” to confirm.'}
+                      : 'Ready - tap “Mark Received” to confirm.'}
             </p>
           )}
           <label>Upload Unboxing Video</label>
@@ -1488,15 +1489,15 @@ function ContentSubmission({
   const latestVersion = versions.length ? versions[versions.length - 1] : null;
   let lockReason;
   if (isCancelledDeal(deal)) {
-    lockReason = 'This deal was cancelled by the brand — no content can be submitted.';
+    lockReason = 'This deal was cancelled by the brand - no content can be submitted.';
   } else if (isState(deal, 'Raw Approved - UGC.ad Editing')) {
-    lockReason = 'Your raw video was approved — UGC.ad’s team is editing it. Nothing more to upload.';
+    lockReason = 'Your raw video was approved - UGC.ad’s team is editing it. Nothing more to upload.';
   } else if (awaitingReceipt) {
     lockReason = 'Confirm you’ve received the product (in Shipping / Receipt above) before uploading your content.';
   } else if (currentState.includes('Awaiting Review') || latestVersion?.status === 'submitted') {
-    lockReason = `You’ve submitted${latestVersion ? ` v${latestVersion.version}` : ''} — waiting for the brand to review your content.`;
+    lockReason = `You’ve submitted${latestVersion ? ` v${latestVersion.version}` : ''} - waiting for the brand to review your content.`;
   } else if (currentState.includes('Paid') || currentState.includes('Complete') || latestVersion?.status === 'approved') {
-    lockReason = 'This deal is complete — your content was approved.';
+    lockReason = 'This deal is complete - your content was approved.';
   } else if (deal?.primary_next_action) {
     lockReason = `Next: ${deal.primary_next_action}.`;
   } else {
@@ -1515,13 +1516,13 @@ function ContentSubmission({
         <div className="deal-locked-note">
           {stage === 'raw'
             ? `Step 1 of 2: upload the RAW video${stageDue ? ` by ${formatDateTime(stageDue)}` : ''}. ${deal?.edit_flow?.mode === 'ugc' ? 'Once the brand approves it you’re paid and UGC.ad edits it.' : 'Once the brand approves it you’ll upload the edited video.'}`
-            : `Step 2 of 2: the brand approved your raw video — upload the EDITED video${stageDue ? ` by ${formatDateTime(stageDue)}` : ''}.`}
+            : `Step 2 of 2: the brand approved your raw video - upload the EDITED video${stageDue ? ` by ${formatDateTime(stageDue)}` : ''}.`}
         </div>
       )}
       <UploadZone icon={Play} label={stage === 'raw' || rawOnly ? 'Raw Video Upload' : stage === 'edited' ? 'Edited Video Upload' : 'Final Video Upload'} accept={`MP4/MOV - Max ${MAX_UPLOAD_MB}MB`} uploaded={Boolean(finalVideoUrl)} previewUrl={finalVideoUrl} previewType="video" watermark={content.watermark_required_until_approval} onClick={() => document.getElementById('video-file-real').click()} disabled={!contentUnlocked || uploadingFile === 'video'} progress={uploadingFile === 'video' ? uploadPercent : null} />
       <input type="file" id="video-file-real" accept="video/*" onChange={(event) => onUpload(event.target.files?.[0], setFinalVideoUrl, 'video')} hidden />
       {rawOnly && contentUnlocked && (
-        <div className="deal-locked-note">The brand asked for the raw video only — upload it once and submit. Nothing else is needed.</div>
+        <div className="deal-locked-note">The brand asked for the raw video only - upload it once and submit. Nothing else is needed.</div>
       )}
       <div className="deal-asset-grid">
         {needsCaption && (
@@ -1642,9 +1643,9 @@ function DamageReportCard({ deal, onActionCard }) {
 }
 
 const REVISION_RESPONSE_LABEL = {
-  accepted: 'You accepted this revision — submit your revised content below.',
-  scope_creep: 'You told the brand these changes go beyond the brief. Work it out together in chat — if you can’t agree, use “Escalate to admin” below.',
-  partial_dispute: 'You accepted some changes and pushed back on the rest. Sort the rest out with the brand in chat — if you can’t agree, use “Escalate to admin” below.',
+  accepted: 'You accepted this revision - submit your revised content below.',
+  scope_creep: 'You told the brand these changes go beyond the brief. Work it out together in chat - if you can’t agree, use “Escalate to admin” below.',
+  partial_dispute: 'You accepted some changes and pushed back on the rest. Sort the rest out with the brand in chat - if you can’t agree, use “Escalate to admin” below.',
 };
 
 // Turn the brand's requested changes into a clean, de-duplicated checklist. The

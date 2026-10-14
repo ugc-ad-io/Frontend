@@ -58,15 +58,15 @@ export default function RevisionRequestModal({ onClose, onSubmit, submitting = f
           <span className="rrm-ic"><RefreshCw size={18} /></span>
           <div>
             <h3>Request a Revision</h3>
-            <p>Be specific — add 1–5 changes you'd like the creator to make.</p>
+            <p>Be specific - add 1–5 changes you'd like the creator to make.</p>
           </div>
         </div>
 
         {typeof nextFee === 'number' && nextFee > 0 && (
-          <div className="rrm-fee">This is a paid revision — ₹{nextFee} will be charged from your wallet (₹300 of it goes to the creator). Include every change you need in this one.</div>
+          <div className="rrm-fee">This is a paid revision - ₹{nextFee} will be charged from your wallet (₹300 of it goes to the creator). Include every change you need in this one.</div>
         )}
         {freeRemaining === 1 && (
-          <div className="rrm-fee">This is your SECOND revision — the last free one. Put every change you need in this request: from the third revision onward ₹{paidFee} is deducted from your wallet for each revision (₹300 of it goes to the creator).</div>
+          <div className="rrm-fee">This is your SECOND revision - the last free one. Put every change you need in this request: from the third revision onward ₹{paidFee} is deducted from your wallet for each revision (₹300 of it goes to the creator).</div>
         )}
         {typeof freeRemaining === 'number' && freeRemaining > 1 && (
           <div className="rrm-free">{freeRemaining} free revisions remaining.</div>
@@ -74,7 +74,7 @@ export default function RevisionRequestModal({ onClose, onSubmit, submitting = f
         {contactHit && (
           <div className="rrm-warn">
             <AlertTriangle size={15} />
-            <span>Please remove phone numbers and email addresses. Keep all communication on-platform — sharing contact details isn't allowed.</span>
+            <span>Please remove phone numbers and email addresses. Keep all communication on-platform - sharing contact details isn't allowed.</span>
           </div>
         )}
 
@@ -88,7 +88,7 @@ export default function RevisionRequestModal({ onClose, onSubmit, submitting = f
               </div>
               <textarea
                 rows={2}
-                placeholder="What should change? (e.g. 'Re-shoot the intro — lighting is too dark')"
+                placeholder="What should change? (e.g. 'Re-shoot the intro - lighting is too dark')"
                 value={it.description}
                 onChange={(e) => setItem(i, { description: e.target.value })}
               />

@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { X, Search } from 'lucide-react';
@@ -67,7 +68,7 @@ export default function MessagesPopup({ onClose }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  useEffect(() => {
+  useLiveEffect(() => {
     let alive = true;
     const load = async () => {
       try {

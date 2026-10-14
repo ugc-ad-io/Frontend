@@ -18,7 +18,12 @@ export const maxCampaignBid = (brief) => {
     campaign.budget?.max,
     brief?.budgetMax,
   ].map(moneyNumber).find((value) => value > 0);
-  if (explicit) return explicit;
+  if (explicit) {
+    const rows = campaign.deliverable_items || [];
+    const quantity = rows.reduce((sum, item) => sum + Math.max(1, Number(item.quantity) || 1), 0) || 1;
+    const edited = rows.reduce((sum, item) => sum + (item.edited_required && (item.edited_by || 'creator') === 'creator' ? Math.max(1, Number(item.quantity) || 1) : 0), 0);
+    return explicit + Math.max(0, Number(campaign.editing_fee_per_video) || 0) * edited / quantity;
+  }
 
   const raw = campaign.budget_range ?? campaign.budget ?? brief?.budget ?? '';
   const amounts = String(raw)

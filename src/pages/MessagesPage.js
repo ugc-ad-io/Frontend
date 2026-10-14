@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
@@ -243,7 +244,7 @@ export default function MessagesPage() {
     ];
 
   // Refresh user data on mount
-  useEffect(() => {
+  useLiveEffect(() => {
     const refreshUserData = async () => {
       try {
         const response = await axios.get(`${API}/auth/me`);
@@ -256,7 +257,7 @@ export default function MessagesPage() {
   }, [setUser]);
 
   // Fetch conversations on mount and every 5s
-  useEffect(() => {
+  useLiveEffect(() => {
     if (user?.id) {
       fetchConversations();
       fetchWarnings();
@@ -272,7 +273,7 @@ export default function MessagesPage() {
   }, [searchParams]);
 
   // Fetch messages when conversation selected
-  useEffect(() => {
+  useLiveEffect(() => {
     if (!selectedId) return;
     // Opening a (different) conversation: the next messages render should land at
     // the bottom, and any "user scrolled up" state from the previous chat resets.
@@ -416,10 +417,10 @@ export default function MessagesPage() {
     try {
       await axios.post(`${API}/chat/send`, {
         recipient_id: selectedId,
-        message: "I've accepted the invitation — please share the full brief so I can get started.",
+        message: "I've accepted the invitation - please share the full brief so I can get started.",
         attachment_urls: [],
       });
-      toast.success('Brief requested — the brand has been notified.');
+      toast.success('Brief requested - the brand has been notified.');
       await fetchMessages(selectedId);
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Could not send the request'));
@@ -443,8 +444,8 @@ export default function MessagesPage() {
     const contact = findContactInfo(newMessage);
     if (contact) {
       toast.error(contact === 'email'
-        ? 'Email addresses aren’t allowed — keep all communication on-platform.'
-        : 'Phone numbers aren’t allowed — keep all communication on-platform.');
+        ? 'Email addresses aren’t allowed - keep all communication on-platform.'
+        : 'Phone numbers aren’t allowed - keep all communication on-platform.');
       return;
     }
 
@@ -675,7 +676,7 @@ export default function MessagesPage() {
         ) : null}
         {!isOwn && item.type === 'private_invitation' && item.status === 'accepted' ? (
           <>
-            <p className="msg-action-card-note">Accepted — waiting for the brand to post the brief.</p>
+            <p className="msg-action-card-note">Accepted - waiting for the brand to post the brief.</p>
             <div className="msg-action-card-actions">
               <button type="button" onClick={requestBrief} disabled={requestingBrief}>
                 {requestingBrief ? 'Sending…' : 'Need brief'}

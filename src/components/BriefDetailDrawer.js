@@ -99,7 +99,7 @@ export default function BriefDetailDrawer({ brief, onClose, onBid }) {
       `${d.quantity || 1} x ${d.type || ''}${d.duration ? `; ${d.duration}` : ''}${d.aspect_ratios?.length ? `; ${d.aspect_ratios.join(', ')}` : ''}; deliver ${d.edited_required ? `raw footage + an edited cut (edited by ${d.edited_by === 'ugc' ? 'UGC.ad' : 'you'})` : 'raw footage only'}`,
     ]) },
     { h: 'Script', rows: [
-      ['Script', c.script_text || (c.script_provider === 'ugc' ? 'UGC.ad is preparing the script — check back before you start.' : '')],
+      ['Script', c.script_text || (c.script_provider === 'ugc' ? 'UGC.ad is preparing the script - check back before you start.' : '')],
     ] },
     { h: 'Must include', rows: [
       ['Product visible', c.product_visible ? `${c.product_visible_seconds || ''}s minimum` : ''],

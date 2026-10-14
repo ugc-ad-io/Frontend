@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect, useMemo, Fragment } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -41,7 +42,7 @@ export default function AdminShipping() {
   const [working, setWorking] = useState(false);
   const [expandedIds, setExpandedIds] = useState(() => new Set()); // campaign ids showing their per-creator rows
 
-  useEffect(() => { fetchRequests(); }, []);
+  useLiveEffect(() => { fetchRequests(); }, []);
 
   const toggleExpanded = (cid) => setExpandedIds((prev) => {
     const next = new Set(prev);

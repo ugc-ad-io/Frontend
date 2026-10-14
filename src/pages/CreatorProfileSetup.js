@@ -72,7 +72,7 @@ function MultiSelect({ options, selected, onToggle, placeholder, hasError }) {
 
 export default function CreatorProfileSetup() {
   const navigate = useNavigate();
-  const { user, setUser } = useAuth();
+  const { user, setUser, logout } = useAuth();
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
@@ -87,6 +87,7 @@ export default function CreatorProfileSetup() {
   const linkRefs = useRef({});
   const [extraLinks, setExtraLinks] = useState([]); // user-added custom links: { id, url }
 
+  const [addingMore, setAddingMore] = useState(false);
   const [data, setData] = useState({
     photoPreview: '', profilePicture: '',
     bannerPreview: '', banner: '',
@@ -218,16 +219,16 @@ export default function CreatorProfileSetup() {
     uploadVideoFile(e.dataTransfer.files?.[0]);
   };
 
-  const draftReady = data.videoUrl && data.pfPrice.trim() && data.pfDelivery.trim() && data.pfCategory;
-  const addPortfolioItem = () => {
-    if (!draftReady) { toast.error('Add a video, price, delivery time, and category first'); return; }
-    const id = pfIdRef.current++;
-    setData((d) => ({
-      ...d,
-      portfolio: [...d.portfolio, { id, category: d.pfCategory, price: d.pfPrice, delivery: d.pfDelivery, videoUrl: d.videoUrl }],
-      videoName: '', videoPreview: '', videoUrl: '', pfCategory: '', pfPrice: '', pfDelivery: '',
-    }));
-  };
+  const draftReady = data.videoUrl && Number(data.pfPrice) > 0 && Number(data.pfDelivery) > 0 && data.pfCategory;
+  useEffect(() => {
+    if (!draftReady || videoUploading) return;
+    const timer = setTimeout(() => {
+      const id = pfIdRef.current++;
+      setData(d => ({ ...d, portfolio: [...d.portfolio, { id, category: d.pfCategory, price: d.pfPrice, delivery: d.pfDelivery, videoUrl: d.videoUrl }], videoName: '', videoPreview: '', videoUrl: '', pfCategory: '', pfPrice: '', pfDelivery: '' }));
+      setAddingMore(false);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [draftReady, data.videoUrl, data.pfPrice, data.pfDelivery, data.pfCategory, videoUploading]);
   const removePortfolioItem = (id) => setData((d) => ({ ...d, portfolio: d.portfolio.filter((it) => it.id !== id) }));
 
   const linksFilled = Object.values(data.links).some((v) => v.trim());
@@ -237,7 +238,7 @@ export default function CreatorProfileSetup() {
     name: data.name.trim() !== '',
     contentStyles: data.contentStyles.length > 0,
     contentCategories: data.contentCategories.length > 0,
-    portfolio: data.portfolio.length > 0,
+    portfolio: data.portfolio.length > 0 || Boolean(draftReady),
     rawPayout: Number(data.rawPayout) > 0,
     links: linksFilled && linksValid,
   };
@@ -257,6 +258,7 @@ export default function CreatorProfileSetup() {
     const styleValue = (v) => (v === 'custom' ? (data.customStyle.trim() || 'Custom') : v);
     const styles = data.contentStyles.map(styleValue);
     const niches = data.contentCategories;
+    const portfolio = draftReady ? [...data.portfolio, { category: data.pfCategory, price: data.pfPrice, delivery: data.pfDelivery, videoUrl: data.videoUrl }] : data.portfolio;
     try {
       await axios.put(`${API}/profile/creator`, {
         profile_picture: data.profilePicture,
@@ -270,8 +272,8 @@ export default function CreatorProfileSetup() {
         niche: niches[0] || '',
         category: niches[0] || styles[0] || '',
         primary_category: niches[0] || styles[0] || '',
-        intro_video: data.portfolio[0]?.videoUrl || '',
-        portfolio_items: data.portfolio.map((it) => ({
+        intro_video: portfolio[0]?.videoUrl || '',
+        portfolio_items: portfolio.map((it) => ({
           title: 'Portfolio Sample',
           category: it.category, price: it.price, delivery: it.delivery,
           videoUrl: it.videoUrl, url: it.videoUrl,
@@ -319,8 +321,8 @@ export default function CreatorProfileSetup() {
               you within <strong>24-48 hours</strong>. You can start browsing briefs right away.
             </p>
             <div className="ps-thanks__actions">
-              <button className="ps-btn-primary ps-thanks__home" onClick={() => navigate('/dashboard/creator')}>
-                Go to Dashboard <ArrowRight size={18} />
+              <button className="ps-btn-primary ps-thanks__home" onClick={() => { logout(); navigate('/auth', { replace: true }); }}>
+                Back to sign in <ArrowRight size={18} />
               </button>
             </div>
           </motion.div>
@@ -448,7 +450,7 @@ export default function CreatorProfileSetup() {
               <div className="ps-field">
                 <label className="ps-label">Upload your best video</label>
                 <p className="ps-fieldsub">UGC, brand ads, reels, or speaking samples work best.</p>
-                <div className={`ps-pf${err('videoUrl') ? ' ps-pf--error' : ''}`}>
+                {(data.portfolio.length === 0 || addingMore) && <div className={`ps-pf${err('videoUrl') ? ' ps-pf--error' : ''}`}>
                   {data.videoPreview ? (
                     <div className="ps-pf-preview">
                       <video src={data.videoPreview} className="ps-pf-vid" muted controls />
@@ -480,11 +482,10 @@ export default function CreatorProfileSetup() {
                       <option value="" disabled>Category</option>
                       {NICHE_CATEGORIES.map((c) => <option key={c.value} value={c.label}>{c.label}</option>)}
                     </select>
-                    <button type="button" className="ps-btn-primary ps-pf-add" disabled={videoUploading || !draftReady} onClick={addPortfolioItem}>
-                      Add to Profile
-                    </button>
+<p className="ps-fieldsub">Your video is added automatically once price, delivery time and category are filled.</p>
                   </div>
-                </div>
+                </div>}
+                {data.portfolio.length > 0 && !addingMore && <button type="button" className="ps-btn-primary ps-pf-add" onClick={() => setAddingMore(true)}>+ Add More Videos</button>}
                 {err('portfolio') && <span className="ps-error">Add at least one video to your profile</span>}
 
                 {data.portfolio.length > 0 && (
@@ -592,7 +593,7 @@ export default function CreatorProfileSetup() {
         .ps-input:focus { border-color: #6d7bff; background: rgba(255,255,255,0.06);
           box-shadow: 0 0 0 4px rgba(109,123,255,0.18); }
         .ps-input--error { border-color: #ef4444 !important; box-shadow: 0 0 0 3px rgba(239,68,68,0.16) !important; }
-        /* Native <select> popup ignores the dark theme by default — the browser
+        /* Native <select> popup ignores the dark theme by default - the browser
            renders its own white dropdown, and our white input text on that white
            background is invisible. Force dark rows so the options are readable. */
         select.ps-input { cursor: pointer; }

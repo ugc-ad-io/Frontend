@@ -60,7 +60,7 @@ export default function BookingCard({ deal, role, onDone }) {
   const respond = (action, body = {}) => call(async () => {
     const res = await axios.post(`${API}/bookings/${id}/respond`, { action, ...body });
     const msg = {
-      accept: 'Booking accepted — the brand will send the brief next.',
+      accept: 'Booking accepted - the brand will send the brief next.',
       decline: 'Booking declined. The brand has been refunded.',
       revise: 'Your price was sent to the brand.',
     }[action];
@@ -73,17 +73,17 @@ export default function BookingCard({ deal, role, onDone }) {
     if (action === 'accept') {
       const diff = Number(res.data?.difference_charged || 0);
       toast.success(diff > 0
-        ? `New price accepted — ${inr(diff)} more was charged from your credits.`
-        : (diff < 0 ? `New price accepted — ${inr(-diff)} was refunded to your wallet.` : 'New price accepted.'));
+        ? `New price accepted - ${inr(diff)} more was charged from your credits.`
+        : (diff < 0 ? `New price accepted - ${inr(-diff)} was refunded to your wallet.` : 'New price accepted.'));
     } else {
-      toast.success('Booking cancelled — you have been refunded in full.');
+      toast.success('Booking cancelled - you have been refunded in full.');
     }
     return res;
   });
 
   const sendBrief = () => call(async () => {
     const res = await axios.post(`${API}/bookings/${id}/brief`, { brief_text: brief });
-    toast.success('Brief sent — the work has started.');
+    toast.success('Brief sent - the work has started.');
     return res;
   });
 
@@ -103,7 +103,7 @@ export default function BookingCard({ deal, role, onDone }) {
           </header>
           <div className="bkc-facts">
             <Row label="Videos" value={videos} />
-            <Row label="Delivery" value={c.delivery_date || '—'} />
+            <Row label="Delivery" value={c.delivery_date || '-'} />
             <Row label="You'll be paid" value={inr(subtotal)} strong />
           </div>
 
@@ -150,13 +150,13 @@ export default function BookingCard({ deal, role, onDone }) {
         <div className="bkc-wait"><Clock size={16} /> You proposed <b>{inr(proposed)}</b>. Waiting for the brand to accept or cancel.</div>
       )}
       {role === 'creator' && status === 'accepted' && !c.brief_sent && (
-        <div className="bkc-wait"><Clock size={16} /> Booking confirmed. Waiting for the brand to send the brief — the work starts then.</div>
+        <div className="bkc-wait"><Clock size={16} /> Booking confirmed. Waiting for the brand to send the brief - the work starts then.</div>
       )}
 
       {/* ---------- brand: waiting on the creator ---------- */}
       {role === 'brand' && status === 'pending_creator' && (
         <div className="bkc-wait">
-          <Clock size={16} /> {inr(Number(c.amount_paid || 0))} is held in escrow. Waiting for the creator to accept — you're refunded in full if they decline.
+          <Clock size={16} /> {inr(Number(c.amount_paid || 0))} is held in escrow. Waiting for the creator to accept - you're refunded in full if they decline.
         </div>
       )}
 
@@ -202,7 +202,7 @@ export default function BookingCard({ deal, role, onDone }) {
               <label>The brief
                 <textarea rows={8} value={brief} onChange={(e) => setBrief(e.target.value)} placeholder="What should the creator make?" autoFocus />
               </label>
-              <p className="bkc-hint">Pre-filled from what you wrote at checkout — edit it before sending. Contact details are not allowed.</p>
+              <p className="bkc-hint">Pre-filled from what you wrote at checkout - edit it before sending. Contact details are not allowed.</p>
               <div className="bkc-actions">
                 <button className="bkc-btn ghost" onClick={() => setMode(null)} disabled={busy}>Back</button>
                 <button className="bkc-btn go" onClick={sendBrief} disabled={busy || !brief.trim()}>

@@ -136,7 +136,7 @@ export default function BusinessProfileSetup() {
       const { data } = await axios.post(`${API}/validate/website`, { url: v });
       setWebCheck(data.valid
         ? { status: 'valid', msg: 'Website is live and reachable.' }
-        : { status: 'invalid', msg: "We couldn't reach this website — check the address." });
+        : { status: 'invalid', msg: "We couldn't reach this website - check the address." });
     } catch { setWebCheck(null); }
   };
 
@@ -406,7 +406,7 @@ function ThemeStyles() {
           overflow: hidden;
         }
 
-        /* Top bar — UGCad.io logo, matches the creator onboarding page */
+        /* Top bar - UGCad.io logo, matches the creator onboarding page */
         .bp-topbar {
           position: relative;
           z-index: 1;

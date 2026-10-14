@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { uploadMedia } from '../utils/upload';
@@ -9,7 +10,7 @@ import AdminLayout from '../components/AdminLayout';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 const assetUrl = (u) => (!u ? '' : (/^https?:\/\//i.test(u) ? u : `${BACKEND_URL}${String(u).startsWith('/') ? '' : '/'}${u}`));
-const fmtDate = (d) => (d ? new Date(d).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—');
+const fmtDate = (d) => (d ? new Date(d).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '-');
 
 /**
  * Editing Queue — deliverables the brand marked "Edited by UGC.ad".
@@ -37,7 +38,7 @@ export default function AdminEditing() {
       setLoading(false);
     }
   };
-  useEffect(() => { load(); }, []);
+  useLiveEffect(() => { load(); }, []);
 
   const complete = async (workId) => {
     if (!file) { toast.error('Choose the edited video file first.'); return; }
@@ -49,7 +50,7 @@ export default function AdminEditing() {
       await axios.post(`${API}/admin/editing-queue/${workId}/complete`, {
         edited_file_url: url, note: note.trim() || undefined,
       });
-      toast.success('Edited cut attached — the brand can now review.');
+      toast.success('Edited cut attached - the brand can now review.');
       setActiveId(null); setFile(null); setNote('');
       load();
     } catch (e) {
@@ -74,7 +75,7 @@ export default function AdminEditing() {
             <div>
               <strong style={{ fontSize: 15 }}>{r.campaign_title}</strong>
               <div style={{ fontSize: 13, color: '#6b7093', marginTop: 2 }}>
-                Brand: {r.brand_name || '—'} · Creator: {r.creator_name} · Raw received {fmtDate(r.submitted_at)}
+                Brand: {r.brand_name || '-'} · Creator: {r.creator_name} · Raw received {fmtDate(r.submitted_at)}
               </div>
             </div>
             <span style={{ alignSelf: 'flex-start', fontSize: 11, fontWeight: 700, letterSpacing: '.05em', background: '#fbf1da', color: '#9a6a00', padding: '4px 10px', borderRadius: 6 }}>AWAITING EDIT</span>
@@ -96,7 +97,7 @@ export default function AdminEditing() {
               <input type="file" accept="video/*" onChange={(e) => setFile(e.target.files?.[0] || null)} />
               <textarea
                 value={note} onChange={(e) => setNote(e.target.value)} rows={2}
-                placeholder="Editor's note (optional — visible in the audit log)"
+                placeholder="Editor's note (optional - visible in the audit log)"
                 style={{ display: 'block', width: '100%', marginTop: 10, borderRadius: 8, border: '1px solid #ddd', padding: 8, fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box' }}
               />
               <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>

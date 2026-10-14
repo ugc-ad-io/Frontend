@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../App';
@@ -24,7 +25,7 @@ export default function WorkReview({ embedId, onClose }) {
   const [review, setReview] = useState('');
   const [revisionFeedback, setRevisionFeedback] = useState('');
 
-  useEffect(() => {
+  useLiveEffect(() => {
     const fetchWork = async () => {
       try {
         const response = await axios.get(`${API}/work/${workId}`);
@@ -120,7 +121,7 @@ export default function WorkReview({ embedId, onClose }) {
         <div className="work-section">
           <h3>Submitted Files</h3>
           {work.watermark_protected && (
-            <p className="watermark-note">🔒 Watermarked preview — the clean original is released to you after you approve.</p>
+            <p className="watermark-note">🔒 Watermarked preview - the clean original is released to you after you approve.</p>
           )}
           <div className="files-grid">
             {(work.work_files || []).length === 0 && (
@@ -159,7 +160,7 @@ export default function WorkReview({ embedId, onClose }) {
 
         {(work.status === 'approved' || work.can_download) ? (
           <div className="approved-panel">
-            <p className="approved-note"><CheckCircle size={18} /> Approved — payment released. The clean, watermark-free file is now yours to download.</p>
+            <p className="approved-note"><CheckCircle size={18} /> Approved - payment released. The clean, watermark-free file is now yours to download.</p>
             <button className="btn-download" onClick={handleDownload} data-testid="download-btn">
               <Download size={20} /> Download Video
             </button>
@@ -398,7 +399,7 @@ export default function WorkReview({ embedId, onClose }) {
           margin-bottom: 0;
         }
 
-        /* Corner watermark — the UGCad.io logo (was a black "U / UGC" box). */
+        /* Corner watermark - the UGCad.io logo (was a black "U / UGC" box). */
         .file-watermark {
           position: absolute;
           inset: 0;

@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -12,7 +13,7 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000'
 const API = `${BACKEND_URL}/api`;
 
 const displayHandle = (obj, nicknameKey = 'nickname', usernameKey = 'username') => {
-  if (!obj) return '—';
+  if (!obj) return '-';
   // Show a NAME, never an "@handle": prefer real name, then the nickname/username
   // with any leading "@" stripped, then a dash.
   const clean = (v) => (typeof v === 'string' && v.trim() ? v.trim().replace(/^@+/, '') : '');
@@ -20,7 +21,7 @@ const displayHandle = (obj, nicknameKey = 'nickname', usernameKey = 'username') 
     clean(obj.full_name) || clean(obj.display_name) || clean(obj.business_name) ||
     clean(obj.brand_name) || clean(obj.legal_name) || clean(obj.profile?.full_name) ||
     clean(obj.profile?.display_name) || clean(obj.profile?.name) || clean(obj.name) ||
-    clean(obj[nicknameKey]) || clean(obj[usernameKey]) || '—'
+    clean(obj[nicknameKey]) || clean(obj[usernameKey]) || '-'
   );
 };
 
@@ -41,7 +42,7 @@ const QUEUES = [
   { key: 'reported', label: 'User reports', icon: Flag,
     desc: 'Messages reported by users for harassment or spam.' },
   { key: 'strike', label: 'Strike watch', icon: ShieldAlert,
-    desc: 'Messages from users already on strike watch — reviewed with extra scrutiny.' },
+    desc: 'Messages from users already on strike watch - reviewed with extra scrutiny.' },
 ];
 
 // Fallback rules so the panel renders even before the backend endpoint exists.
@@ -71,7 +72,7 @@ export default function AdminFlaggedMessages() {
   const [proposing, setProposing] = useState(false);
   const [draftRule, setDraftRule] = useState({ type: 'keyword', label: '', pattern: '' });
 
-  useEffect(() => {
+  useLiveEffect(() => {
     fetchAllChats();
     fetchRules();
   }, []);
@@ -138,8 +139,8 @@ export default function AdminFlaggedMessages() {
     setEscalating(null);
 
     const labels = {
-      approve: 'Approved — message delivered, strike restored if applicable.',
-      confirm: 'Violation confirmed — strike applied and user notified.',
+      approve: 'Approved - message delivered, strike restored if applicable.',
+      confirm: 'Violation confirmed - strike applied and user notified.',
       escalate: escalation === 'suspend'
         ? 'User suspended.' : 'User warned.',
     };
@@ -156,7 +157,7 @@ export default function AdminFlaggedMessages() {
       toast.success(labels[action]);
     } catch {
       // Backend endpoint may not exist yet — keep the optimistic UI but be honest.
-      toast.message(labels[action], { description: 'Recorded locally — moderation endpoint not yet available.' });
+      toast.message(labels[action], { description: 'Recorded locally - moderation endpoint not yet available.' });
     }
   };
 
@@ -172,7 +173,7 @@ export default function AdminFlaggedMessages() {
       // appending an optimistic {enabled: true} object is what used to tell the
       // admin their rule was live while the stored row said otherwise.
       await fetchRules();
-      toast.success('Rule added — it blocks matching messages from now on.');
+      toast.success('Rule added - it blocks matching messages from now on.');
       setDraftRule({ type: 'keyword', label: '', pattern: '' });
       setProposing(false);
     } catch (e) {
@@ -250,7 +251,7 @@ export default function AdminFlaggedMessages() {
               <div>
                 <h2><Filter size={18} /> Filter rules</h2>
                 <p>Regex patterns and keyword lists the contact-info filter runs against every message.
-                  A rule you add goes live immediately — switch it off or delete it if it misfires.</p>
+                  A rule you add goes live immediately - switch it off or delete it if it misfires.</p>
               </div>
               <button className="afm-btn-primary" onClick={() => setProposing(true)} data-testid="propose-rule">
                 <Plus size={16} /> Add new rule
@@ -374,15 +375,15 @@ export default function AdminFlaggedMessages() {
                       <div className="afm-message-body">{msg.message}</div>
                       {isFlagged && (
                         <div className="afm-message-flag">
-                          ⚠️ {msg.reported ? 'Reported by user' : 'Content filtered'} — reported to admin
+                          ⚠️ {msg.reported ? 'Reported by user' : 'Content filtered'} - reported to admin
                         </div>
                       )}
 
                       {!isFlagged ? null : res ? (
                         <div className={`afm-resolved afm-resolved-${res.action}`} data-testid={`resolution-${idx}`}>
-                          {res.action === 'approve' && <><Check size={14} /> Approved — message delivered, strike restored</>}
-                          {res.action === 'confirm' && <><AlertTriangle size={14} /> Violation confirmed — strike applied, user notified</>}
-                          {res.action === 'escalate' && <><ArrowUpRight size={14} /> Escalated — user {res.escalation === 'suspend' ? 'suspended' : 'warned'}</>}
+                          {res.action === 'approve' && <><Check size={14} /> Approved - message delivered, strike restored</>}
+                          {res.action === 'confirm' && <><AlertTriangle size={14} /> Violation confirmed - strike applied, user notified</>}
+                          {res.action === 'escalate' && <><ArrowUpRight size={14} /> Escalated - user {res.escalation === 'suspend' ? 'suspended' : 'warned'}</>}
                         </div>
                       ) : escalating === key ? (
                         <div className="afm-escalate-choice" data-testid={`escalate-choice-${idx}`}>
@@ -419,7 +420,7 @@ export default function AdminFlaggedMessages() {
             {queueChats.length === 0 ? (
               <div className="afm-empty">
                 <CheckCircle size={64} color="#22c55e" />
-                <p>Nothing in the {activeQueue?.label.toLowerCase()} queue — looks clean!</p>
+                <p>Nothing in the {activeQueue?.label.toLowerCase()} queue - looks clean!</p>
                 <span>Items will appear here when detected.</span>
               </div>
             ) : (
@@ -447,7 +448,7 @@ export default function AdminFlaggedMessages() {
                       </div>
                     </div>
                     <div className="afm-card-flag">
-                      <AlertTriangle size={14} /> {flaggedCount(chat)} flagged message{flaggedCount(chat) !== 1 ? 's' : ''} — view & action
+                      <AlertTriangle size={14} /> {flaggedCount(chat)} flagged message{flaggedCount(chat) !== 1 ? 's' : ''} - view & action
                     </div>
                   </article>
                 ))}
@@ -514,7 +515,7 @@ export default function AdminFlaggedMessages() {
         .afm-messages { padding: 12px 14px; max-height: calc(100dvh - 275px); overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
         .afm-no-messages { text-align: center; color: #94a3b8; padding: 24px; margin: 0; }
         .afm-message { background: #fffbeb; border: 1px solid #f59e0b; border-radius: 9px; padding: 9px 11px; transition: opacity 0.2s ease; }
-        /* Non-flagged messages are shown for context — keep them neutral, not amber. */
+        /* Non-flagged messages are shown for context - keep them neutral, not amber. */
         .afm-message.is-clean { background: #fff; border-color: #e8ebf0; }
         .afm-message.is-approve { background: #f0fdf4; border-color: #86efac; }
         .afm-message.is-confirm { background: #fef2f2; border-color: #fca5a5; }

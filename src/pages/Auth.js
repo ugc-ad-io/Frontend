@@ -293,7 +293,7 @@ export default function Auth() {
       setPassword('');
       setIsLogin(true);
       setView('auth');
-      toast.success('Password reset — please sign in with your new password.');
+      toast.success('Password reset - please sign in with your new password.');
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Could not reset password'));
     } finally {
@@ -789,12 +789,12 @@ export default function Auth() {
           <div>
             <h2 className="ap-promo-title">Where brands<br />meet real<br />creators.</h2>
             <p className="ap-promo-text">
-              UGCad connects brands with authentic UGC creators — post a campaign,
+              UGCad connects brands with authentic UGC creators - post a campaign,
               get matched with the right talent, and turn real content into results,
               all in one place.
             </p>
           </div>
-          <p className="ap-promo-stat">More than 17k creators &amp; brands joined — it&apos;s your turn.</p>
+          <p className="ap-promo-stat">More than 17k creators &amp; brands joined - it&apos;s your turn.</p>
         </div>
       </aside>
       </div>
@@ -804,7 +804,7 @@ export default function Auth() {
         .ap-root {
           /* dvh, with vh first as the fallback for browsers without it. On a phone 100vh
              counts the strip behind the address bar, so the screen was taller than what is
-             actually visible — the card sat off-centre and the page scrolled a little even
+             actually visible - the card sat off-centre and the page scrolled a little even
              with nothing to scroll to. dvh measures the real visible viewport. */
           min-height: 100vh;
           min-height: 100dvh;
@@ -1022,7 +1022,7 @@ export default function Auth() {
           color: #94A3B8;
         }
         /* Hide the browser's built-in password reveal/clear icons (Edge/IE) so
-           only our custom eye toggle shows — otherwise there are two eye icons. */
+           only our custom eye toggle shows - otherwise there are two eye icons. */
         .ap-input.input-field::-ms-reveal,
         .ap-input.input-field::-ms-clear {
           display: none;
@@ -1166,7 +1166,7 @@ export default function Auth() {
           justify-content: center;
           min-height: 40px;
           /* .ap-oauth centres its children, which shrank this empty box to 0px wide, so
-             the width measured before Google renders fell back to 320 — wider than the
+             the width measured before Google renders fell back to 320 - wider than the
              form on small phones. Full width gives that measurement the real column. */
           width: 100%;
         }
@@ -1228,7 +1228,7 @@ export default function Auth() {
         }
 
         /* ══════════════════════════════════════════════════════════════
-           Split auth layout — form on the left, UGC promo panel on the right
+           Split auth layout - form on the left, UGC promo panel on the right
            ══════════════════════════════════════════════════════════════ */
         .ap-root {
           display: flex;
@@ -1275,7 +1275,7 @@ export default function Auth() {
           margin: 0;
           padding: 0;
         }
-        /* In-card logo hidden — the brand mark now lives at the page's top-left. */
+        /* In-card logo hidden - the brand mark now lives at the page's top-left. */
         .ap-logo-wrap { display: none; }
         .ap-page-logo {
           position: absolute;
@@ -1311,11 +1311,11 @@ export default function Auth() {
           backdrop-filter: none;
         }
         .ap-back:hover { background: rgba(15,18,45,0.1); color: #15163a; border-color: rgba(15,18,45,0.22); }
-        /* Sign-up form is shifted right — pull just the back arrow back left. */
+        /* Sign-up form is shifted right - pull just the back arrow back left. */
         .ap-shell.is-signup .ap-back { margin-left: -66px; }
 
         /* Promo panel (right) */
-        /* Animated swap — Sign Up: form left · Sign In: form right.
+        /* Animated swap - Sign Up: form left · Sign In: form right.
            Panels slide with transform (grid order can't animate). Form (z-index 2)
            slides over the promo. On sign-in the form shifts one column right and
            the promo one column left; sign-up is the resting (no-transform) state. */
@@ -1330,7 +1330,7 @@ export default function Auth() {
           color: #fff;
           border-radius: 0;
           margin: 0;
-          /* Brand hero image on the left panel — shown as-is (no dark overlay).
+          /* Brand hero image on the left panel - shown as-is (no dark overlay).
              Optimized WebP (~33KB) with JPG fallback; the original PNG was 1.3MB and slow.
              Longhand so image-set-unaware engines fall back to the JPG and the colour stays. */
           background-color: #0b0b16;
@@ -1365,12 +1365,12 @@ export default function Auth() {
         /* Positioned over the light card baked into the hero image (lower area). */
         .ap-promo-text { position: absolute; left: 53%; top: 73%; width: 40%; color: #26386e;
           font-size: 13px; font-weight: 500; line-height: 1.6; margin: 0; z-index: 2; }
-        /* Sign-up panel is wider, so the image crops a bit differently — nudge the
+        /* Sign-up panel is wider, so the image crops a bit differently - nudge the
            description down on sign-up only. */
         .ap-shell.is-signup .ap-promo-text { top: 75%; left: 55%; }
         /* Reset / forgot / new-password / 2FA views make the shell much shorter, so the
            description (pinned at top:73%) spilled out of the panel and collided with the
-           stat line. Those views don't need the paragraph — drop it and keep the title. */
+           stat line. Those views don't need the paragraph - drop it and keep the title. */
         .ap-shell.is-compact .ap-promo-text { display: none; }
         /* Cap the width so it wraps onto 2–3 lines instead of running one long line
            straight off the edge of the panel. */
@@ -1396,7 +1396,7 @@ export default function Auth() {
 
         /* The title and description sit on cards painted INTO the hero image (860×1075,
            drawn with background-size: cover, centred). Percentages of the panel only
-           matched those cards at one panel shape — on a shorter or taller panel the image
+           matched those cards at one panel shape - on a shorter or taller panel the image
            crops differently and the text slid off its card. Position them in image pixels
            instead: one image px = --s screen px, image offset by --ox/--oy. Browsers
            without container units keep the percentage positions above. */
@@ -1417,7 +1417,7 @@ export default function Auth() {
             left: calc(var(--ox) + 450 * var(--s));
             top: calc(var(--oy) + 795 * var(--s));
             /* A tall panel (sign-up) crops the image's sides, cutting off the card's right
-               end — wrap inside what is still visible rather than run off the panel. */
+               end - wrap inside what is still visible rather than run off the panel. */
             width: min(calc(355 * var(--s)), calc(100cqw - var(--ox) - 450 * var(--s) - 22px));
             font-size: clamp(10.5px, calc(22.5 * var(--s)), 15px);
             line-height: 1.5;
@@ -1425,11 +1425,11 @@ export default function Auth() {
         }
 
         /* Corner logo needs ~210px free beside the card (980px login / 1120px sign-up).
-           Below that it sat on top of the card and the back arrow — put it in the flow,
+           Below that it sat on top of the card and the back arrow - put it in the flow,
            centred above the card. */
         @media (min-width: 861px) and (max-width: 1539px) {
           .ap-root { flex-direction: column; }
-          .ap-page-logo { position: static; margin-bottom: 16px; }
+          .ap-page-logo { position: static; align-self: flex-start; margin-bottom: 16px; }
         }
 
         /* Short laptop screens (720p, 768p, scaled 1080p): tighten vertical spacing so the
@@ -1444,32 +1444,33 @@ export default function Auth() {
           .ap-oauth { margin-top: 12px; gap: 10px; }
           .ap-footer { margin-top: 12px; }
           /* A short panel crops the image so its light card reaches the bottom edge,
-             right where this line sits — drop it rather than print over the card. */
+             right where this line sits - drop it rather than print over the card. */
           .ap-promo-stat { display: none; }
         }
 
         @media (max-width: 860px) {
+          .ap-root { flex-direction: column; }
           .ap-shell { grid-template-columns: 1fr; max-width: 420px; max-height: none; }
           .ap-promo { display: none; }
-          /* single column — never slide the form off-screen */
+          /* single column - never slide the form off-screen */
           .ap-shell.is-signin .ap-left, .ap-shell.is-signin .ap-promo { transform: none !important; }
           /* Top padding 40 -> 28. Trimmed from the desktop value so the card doesn't waste
-             the fold, but not as tight as 18px — the back arrow needs a little clearance from
+             the fold, but not as tight as 18px - the back arrow needs a little clearance from
              the card's top edge rather than sitting right against it. */
           .ap-left { padding: 28px 28px 32px; align-items: center; }
-          /* Arrow moves OUT OF FLOW and onto the heading's own line — the usual mobile
+          /* Arrow moves OUT OF FLOW and onto the heading's own line - the usual mobile
              pattern of a back control at the left with the title centred beside it. While it
              was a flex child it occupied a full row of its own, so "Create account" could
              never sit level with it however much the gap was trimmed.
              .ap-left is position:relative, so these offsets resolve against it; matching its
              padding keeps the arrow on the same left edge as the rest of the content.
              The heading is centred and ~200px wide inside a ~324px column, so it starts well
-             clear of the 38px arrow — they share the line without colliding. */
+             clear of the 38px arrow - they share the line without colliding. */
           .ap-back {
             position: absolute;
             top: 28px;
             /* 28 -> 10. The 38px box is kept for the tap target even though the chip is now
-               invisible, so left is measured from the box edge, not the glyph — 10px puts
+               invisible, so left is measured from the box edge, not the glyph - 10px puts
                the arrow itself roughly on the content's left edge. */
             left: 10px;
             margin: 0;
@@ -1482,7 +1483,7 @@ export default function Auth() {
           .ap-back:hover { background: transparent; border-color: transparent; }
           .ap-header { margin-bottom: 18px; }
           /* .ap-shell.is-signup .ap-left sets padding-left:106px to shift the form right
-             in the desktop two-column split layout — that rule has no media guard, so on
+             in the desktop two-column split layout - that rule has no media guard, so on
              mobile it was ALSO eating 106px instead of the intended 28px, squeezing
              .ap-card down to ~165px. That starved the role-selector's 1fr/1fr grid of
              real width, and the wider "Business" button overflowed off the right edge of
@@ -1494,11 +1495,11 @@ export default function Auth() {
           /* Single column: the shell now fills the screen, so the page-level brand mark
              (absolute at 24/34 against .ap-root) landed INSIDE the card and sat on top of
              the back arrow and the "Create account" heading. There is no free corner left
-             to put it in, so drop it here and bring back the card's own logo — centred
+             to put it in, so drop it here and bring back the card's own logo - centred
              above the title, which is what the sibling justify-content rule below always
              intended but could never do while .ap-logo-wrap was display:none. */
-          .ap-page-logo { display: none; }
-          .ap-logo-wrap { display: flex; justify-content: center; margin-bottom: 14px; }
+          .ap-page-logo { display: block; position: static; align-self: flex-start; margin: 0 0 16px 8px; }
+          .ap-logo-wrap { display: none; }
           /* 64px is the desktop card size; on a phone it crowds the heading. The 38px back
              arrow sits at the same height on the far left, so the two share the row. */
           .ap-logo { height: 40px; }
@@ -1513,7 +1514,7 @@ export default function Auth() {
            At 360px the form column offers ~304px, but the role pair's MIN-CONTENT width is
            ~314px (icon 36 + gap 10 + label + 36px padding, twice, plus the 10px grid gap).
            A 1fr track will not shrink below its content, so "Business" pushed past the card
-           edge and was clipped by .ap-shell's overflow:hidden — exactly the cut-off button.
+           edge and was clipped by .ap-shell's overflow:hidden - exactly the cut-off button.
            Trimming the padding, icon and label brings min-content under the available width
            so the pair fits side by side instead of overflowing. */
         @media (max-width: 400px) {
@@ -1539,6 +1540,14 @@ export default function Auth() {
             white-space: nowrap;
           }
           .ap-role-icon { width: 30px; height: 30px; flex-shrink: 0; }
+        }
+        @media (max-width:1539px) {
+          .ap-root { padding-top:80px; }
+          .ap-page-logo { position:absolute!important; top:24px; left:26px; margin:0!important; }
+        }
+        @media (max-width:860px) {
+          .ap-root { padding:80px 16px 24px; justify-content:flex-start; }
+          .ap-shell .ap-left { grid-column:1; grid-row:1; min-width:0; width:100%; transform:none!important; transition:none; }
         }
       `}</style>
     </div>

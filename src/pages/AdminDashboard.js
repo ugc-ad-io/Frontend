@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../App';
@@ -101,16 +102,16 @@ export default function AdminDashboard() {
   // (Removed the dead Applications-review state — see the note by fetchStats.)
 
   const displayHandle = (obj, nicknameKey = 'nickname', usernameKey = 'username') => {
-    if (!obj) return '—';
+    if (!obj) return '-';
     // Show a NAME, never an "@handle".
     const clean = (v) => (typeof v === 'string' && v.trim() ? v.trim().replace(/^@+/, '') : '');
     return (
       clean(obj.full_name) || clean(obj.business_name) || clean(obj.name) ||
-      clean(obj[nicknameKey]) || clean(obj[usernameKey]) || '—'
+      clean(obj[nicknameKey]) || clean(obj[usernameKey]) || '-'
     );
   };
 
-  useEffect(() => {
+  useLiveEffect(() => {
     // Only request what this member's role is actually allowed to read. Firing every
     // admin endpoint regardless of capability makes the backend 403 each one and
     // floods the console with errors for limited roles (Team & Roles).
@@ -127,7 +128,7 @@ export default function AdminDashboard() {
     if (can(user, 'user_management')) fetchAllUsers();
   }, []);
 
-  useEffect(() => {
+  useLiveEffect(() => {
     const nextTab = tabSlugToId[adminPage] || 'stats';
     setActiveTab(nextTab);
 
@@ -698,6 +699,7 @@ export default function AdminDashboard() {
       <AdminTopbar />
 
       <div className="dashboard-content">
+        {activeTab !== 'stats' && <button type="button" className="btn-secondary" onClick={() => navigate('/dashboard/admin')}>← Back to dashboard</button>}
         {(() => {
           const titles = {
             stats: ['Overview', 'A snapshot of the platform.'],
@@ -724,6 +726,9 @@ export default function AdminDashboard() {
             const tiles = [
               can(user, 'review_applications') && { key: 'profiles', label: 'Pending profiles', value: pendingProfiles.length, hint: 'Awaiting review' },
               can(user, 'manage_briefs') && { key: 'campaigns', label: 'Pending campaigns', value: pendingCampaigns.length, hint: 'Awaiting review' },
+              can(user, 'manage_shipping') && { key: 'shipping', label: 'Pending shipments', value: stats.pending_shipments || 0, hint: 'Awaiting dispatch' },
+              can(user, 'manage_kyc') && { key: 'kyc', label: 'Pending KYC', value: stats.pending_kyc || 0, hint: 'Awaiting verification' },
+              can(user, 'manage_gst') && { key: 'gst', label: 'Pending GST', value: stats.pending_gst || 0, hint: 'Awaiting verification' },
               can(user, 'release_payouts') && { key: 'withdrawals', label: 'Withdrawals', value: pendingWithdrawals.length, hint: 'Pending payout' },
               can(user, 'manage_deals') && {
                 key: 'active', label: 'Active campaigns',
@@ -740,6 +745,9 @@ export default function AdminDashboard() {
             const queue = [
               can(user, 'review_applications') && { icon: <Users size={15} />, label: 'Profile approvals', count: pendingProfiles.length, to: '/dashboard/admin/profiles' },
               can(user, 'manage_briefs') && { icon: <Briefcase size={15} />, label: 'Campaign approvals', count: pendingCampaigns.length, to: '/dashboard/admin/campaigns' },
+              can(user, 'manage_shipping') && { icon: <FileText size={15} />, label: 'Shipment queue', count: stats.pending_shipments || 0, to: '/dashboard/admin/shipping' },
+              can(user, 'manage_kyc') && { icon: <CheckCircle size={15} />, label: 'KYC approvals', count: stats.pending_kyc || 0, to: '/dashboard/admin/kyc' },
+              can(user, 'manage_gst') && { icon: <FileText size={15} />, label: 'GST approvals', count: stats.pending_gst || 0, to: '/dashboard/admin/gst' },
               can(user, 'release_payouts') && { icon: <IndianRupee size={15} />, label: 'Withdrawal requests', count: pendingWithdrawals.length, to: '/dashboard/admin/withdrawals' },
             ].filter(Boolean);
 
@@ -1152,7 +1160,7 @@ export default function AdminDashboard() {
                     <tbody>
                       {staff.map((member) => (
                         <tr key={member.id}>
-                          <td>{String(member.full_name || member.name || member.nickname || member.email || '—').replace(/^@+/, '')}</td>
+                          <td>{String(member.full_name || member.name || member.nickname || member.email || '-').replace(/^@+/, '')}</td>
                           <td>{member.email}</td>
                           <td><span className="badge badge-active">{member.role.replace('_', ' ')}</span></td>
                           <td><span className={`status-badge ${member.approval_status === 'approved' ? 'active' : 'inactive'}`}>
@@ -1304,7 +1312,7 @@ export default function AdminDashboard() {
                     <div key={member.id} className="staff-card">
                       <div className="staff-header">
                         <div className="staff-info">
-                          <h3>{String(member.full_name || member.name || member.nickname || member.email || '—').replace(/^@+/, '')}</h3>
+                          <h3>{String(member.full_name || member.name || member.nickname || member.email || '-').replace(/^@+/, '')}</h3>
                           <p className="staff-email">{member.email}</p>
                         </div>
                         <span className={`role-badge ${member.role}`}>
@@ -1389,7 +1397,7 @@ export default function AdminDashboard() {
             <div className="user-details-grid">
               <div className="detail-row">
                 <span className="detail-label">Username:</span>
-                <span className="detail-value">{selectedUser.username ? `@${selectedUser.username}` : (selectedUser.nickname || '—')}</span>
+                <span className="detail-value">{selectedUser.username ? `@${selectedUser.username}` : (selectedUser.nickname || '-')}</span>
               </div>
               <div className="detail-row">
                 <span className="detail-label">Email:</span>

@@ -51,6 +51,7 @@ function AdminLayout({ children }) {
         <AdminTopbar onMenuToggle={() => setNavOpen((v) => !v)} />
 
         <div className="dashboard-content">
+          <button type="button" className="btn-secondary" onClick={() => navigate('/dashboard/admin')}>← Back to dashboard</button>
           {(() => {
             const titles = {
               applications: ['Applications',   'Creator, brand applications and profile approvals'],
@@ -58,18 +59,18 @@ function AdminLayout({ children }) {
               assigned:     ['My Users',       'Creators & brands in the categories assigned to you'],
               deals:        ['Deals',          'All active and past deals on the platform'],
               disputes:     ['Disputes',       'Review evidence and rule on creator/brand disputes'],
-              shipping:     ['Shipping Queue', 'Manual label requests — target SLA 4 hours'],
-              editing:      ['Editing Queue',  'Raw footage from "Edited by UGC.ad" deals — attach the final cut'],
+              shipping:     ['Shipping Queue', 'Manual label requests - target SLA 4 hours'],
+              editing:      ['Editing Queue',  'Raw footage from "Edited by UGC.ad" deals - attach the final cut'],
               users:        ['Users',          'Search, edit, warn, suspend or ban users'],
-              kyc:          ['Creator KYC',    'Verify Aadhaar + PAN — a creator cannot withdraw until this passes'],
+              kyc:          ['Creator KYC',    'Verify Aadhaar + PAN - a creator cannot withdraw until this passes'],
               showcase:     ['Home Showcase',  'Curate the "Top Earner" cards shown on the creator home hero'],
               gst:          ['Brand GST',      'Review and verify brand GST / business details'],
               financials:   ['Financials',     'Wallets, escrow, payouts and withdrawals'],
               chat:         ['Chat Oversight', 'Flagged messages and contact-info filter log'],
               reports:      ['Reports',        'Exports, metrics and platform summaries'],
-              audit:        ['Audit Log',      'Immutable record of every admin action — retained 7 years'],
-              settings:     ['Settings',       'Platform config — founder access only'],
-              roles:        ['Team & Roles',   'Admin role structure and staff access — founder manages'],
+              audit:        ['Audit Log',      'Immutable record of every admin action - retained 7 years'],
+              settings:     ['Settings',       'Platform config - founder access only'],
+              roles:        ['Team & Roles',   'Admin role structure and staff access - founder manages'],
             };
             const [title, subtitle] = titles[activeTab] || ['Admin Dashboard', 'Manage the platform'];
             return (

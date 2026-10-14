@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { X, Building2, User, Mail, Phone, Globe } from 'lucide-react';
@@ -13,7 +14,7 @@ export default function BrandProfileModal({ id, fallbackName, onClose }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
+  useLiveEffect(() => {
     let alive = true;
     if (!id) { setLoading(false); setError('No brand id was provided for this deal.'); return; }
     setLoading(true);
@@ -71,7 +72,7 @@ export default function BrandProfileModal({ id, fallbackName, onClose }) {
               {rows.map(({ icon: Icon, label, value }) => (
                 <div key={label} className="bpm-field">
                   <span className="bpm-label"><Icon size={13} /> {label}</span>
-                  <span className="bpm-value">{value || '—'}</span>
+                  <span className="bpm-value">{value || '-'}</span>
                 </div>
               ))}
               <div className="bpm-field bpm-field-wide">
@@ -79,7 +80,7 @@ export default function BrandProfileModal({ id, fallbackName, onClose }) {
                 {websiteHref ? (
                   <a className="bpm-value bpm-link" href={websiteHref} target="_blank" rel="noreferrer">{website}</a>
                 ) : (
-                  <span className="bpm-value">—</span>
+                  <span className="bpm-value">-</span>
                 )}
               </div>
             </div>

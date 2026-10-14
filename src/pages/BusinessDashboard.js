@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
@@ -222,7 +223,7 @@ function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile, o
     setDeclined(prev => new Set(prev).add(id));
     try {
       await axios.post(`${API}/campaigns/${campaign.id}/bids/${encodeURIComponent(id)}/decline`);
-      toast.success('Bid declined — the creator has been notified.');
+      toast.success('Bid declined - the creator has been notified.');
     } catch (e) {
       setDeclined(prev => { const next = new Set(prev); next.delete(id); return next; });
       toast.error(apiErrorMessage(e, 'Could not decline this bid'));
@@ -336,7 +337,7 @@ function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile, o
                 {bidSplitLabel(bid) && <span>{bidSplitLabel(bid)}</span>}
               </div>
               <div className="cb-bid-collapsible cb-bid-stat">
-                <strong>{bid.estimated_delivery_days ? `${bid.estimated_delivery_days} Days` : '—'}</strong>
+                <strong>{bid.estimated_delivery_days ? `${bid.estimated_delivery_days} Days` : '-'}</strong>
                 <span>Delivery</span>
               </div>
               <div className="cb-bid-collapsible cb-bid-actions">
@@ -391,16 +392,16 @@ function getCampaignStages(campaign) {
 
 function getNextActionHint(campaign) {
   const status = campaign.status;
-  if (status === 'draft') return 'Draft — finish and publish this brief.';
+  if (status === 'draft') return 'Draft - finish and publish this brief.';
   if (status === 'pending_approval') return 'Awaiting admin approval.';
-  if (status === 'completed') return 'Completed — creator payout processed.';
+  if (status === 'completed') return 'Completed - creator payout processed.';
   if (status === 'work_submitted') return 'Action needed: review the submitted work.';
   if (campaign.selected_creator) {
     return (campaign.requires_shipment || campaign.shipment_option === 'yes')
-      ? 'Creator selected — ship the product, then await delivery.'
-      : 'Creator selected — awaiting content delivery.';
+      ? 'Creator selected - ship the product, then await delivery.'
+      : 'Creator selected - awaiting content delivery.';
   }
-  if (status === 'active') return `Live — ${campaign.bids?.length || 0} bid(s) received. Select a creator.`;
+  if (status === 'active') return `Live - ${campaign.bids?.length || 0} bid(s) received. Select a creator.`;
   return 'In progress.';
 }
 
@@ -635,7 +636,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
   };
   const [objectiveInput, setObjectiveInput] = useState('');
 
-  useEffect(() => {
+  useLiveEffect(() => {
     if (user?.id) fetchCampaigns();
   }, [user?.id]);
 
@@ -643,11 +644,11 @@ export default function BusinessDashboard({ page = 'overview' }) {
   // Browse Creators tab is open) and refetch only when filters/sort change — NOT on every
   // tab navigation. This keeps the already-loaded list in state so switching to the tab is
   // instant instead of firing a fresh (slow) request and flashing a spinner each time.
-  useEffect(() => {
+  useLiveEffect(() => {
     if (user?.id) fetchCreatorDirectory();
   }, [user?.id, creatorFilters, creatorSort]);
 
-  useEffect(() => {
+  useLiveEffect(() => {
     // Preload the wallet on mount so it's ready before the tab is opened, and refresh
     // it whenever the Wallet tab is entered (silently — no loading flash after first load).
     if (user?.id && (page === 'wallet' || !walletLoadedRef.current)) {
@@ -655,7 +656,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
     }
   }, [user?.id, page]);
 
-  useEffect(() => {
+  useLiveEffect(() => {
     // Load sent briefs/offers whenever the Sent Briefs tab is opened so the brand
     // always sees the latest accepted/declined/countered statuses.
     if (user?.id && page === 'sent-briefs') {
@@ -790,7 +791,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         budget_max: parseFloat(formData.budget_max),
         requires_shipment: formData.shipment_option === 'yes'
       });
-      toast.success('Campaign published — creators can see it now!');
+      toast.success('Campaign published - creators can see it now!');
       setShowCreateModal(false);
       setFormData({
         title: '',
@@ -822,7 +823,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
       shipment_option: campaign.requires_shipment ? 'yes' : 'no',
     });
     setShowCreateModal(true);
-    toast.info('Editing a copy — review the details and publish when ready.');
+    toast.info('Editing a copy - review the details and publish when ready.');
   };
 
   const fetchCreatorDirectory = async () => {
@@ -925,8 +926,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
       // reads as missing money. Keep whatever was already on screen and SAY that
       // the load failed instead.
       if (!walletLoadedRef.current) setWalletData(normalizeWalletData({}));
-      setWalletError(apiErrorMessage(error, 'Could not load your wallet. Check your connection and refresh — your balance is safe.'));
-      toast.error('Wallet failed to load — showing cached data.');
+      setWalletError(apiErrorMessage(error, 'Could not load your wallet. Check your connection and refresh - your balance is safe.'));
+      toast.error('Wallet failed to load - showing cached data.');
     } finally {
       setWalletLoading(false);
     }
@@ -948,9 +949,9 @@ export default function BusinessDashboard({ page = 'overview' }) {
         name: user?.nickname || user?.full_name,
         email: user?.email,
         contact: user?.phone,
-        description: `Wallet recharge — ${formatMoney(order.amount)}`,
+        description: `Wallet recharge - ${formatMoney(order.amount)}`,
       });
-      toast.success(result?.message || 'Payment successful — wallet credited.');
+      toast.success(result?.message || 'Payment successful - wallet credited.');
       setWalletAmount('');
       await fetchWallet();
     } catch (error) {
@@ -1020,7 +1021,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
   // Preload each shipment record (courier / tracking / status / ETA) as soon as the
   // campaigns are known — NOT on every tab switch — so opening the Shipments tab is instant.
-  useEffect(() => {
+  useLiveEffect(() => {
     const shipCampaigns = campaigns.filter((c) => c.requires_shipment || c.shipment_option === 'yes');
     if (shipCampaigns.length === 0) return undefined;
     let cancelled = false;
@@ -1040,7 +1041,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
     'pending-bids': 'Review creator proposals and select the best fit for each campaign',
     'browse-creator': 'Discover vetted creators and send private invitations',
     'all-campaigns': 'Track every brief from draft to delivery',
-    'sent-briefs': 'Every private invitation, custom and counter offer you sent — and whether creators accepted, declined or countered',
+    'sent-briefs': 'Every private invitation, custom and counter offer you sent - and whether creators accepted, declined or countered',
     'work-review': 'Review submitted creator work and approve deliverables',
     shipments: 'Manage product shipments and creator selection for delivery campaigns',
     wallet: 'Track balance, add funds, and review wallet activity',
@@ -1705,7 +1706,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
               ? briefs
               : briefs.filter(b => (briefFilter === 'expired' ? ['expired', 'revoked'] : [briefFilter]).includes(b.status_bucket));
             const briefAmount = (b) => {
-              if (b.amount == null || b.amount === '') return '—';
+              if (b.amount == null || b.amount === '') return '-';
               const s = String(b.amount);
               return /^[₹\s]*[\d,.\s]+$/.test(s) ? formatMoney(s.replace(/[₹,\s]/g, '')) : s;
             };
@@ -1848,7 +1849,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                           </div>
                           {b.status_bucket === 'declined' && b.decline_reason && (
                             <div style={{ marginTop: 8, fontSize: 12.5, color: '#b91c1c', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                              <AlertCircle size={13} /> Declined: {DECLINE_LABELS[b.decline_reason] || b.decline_reason}{b.response_note ? ` — "${b.response_note}"` : ''}
+                              <AlertCircle size={13} /> Declined: {DECLINE_LABELS[b.decline_reason] || b.decline_reason}{b.response_note ? ` - "${b.response_note}"` : ''}
                             </div>
                           )}
                         </div>
@@ -2401,10 +2402,10 @@ export default function BusinessDashboard({ page = 'overview' }) {
                                   </span>
                                 </td>
                                 <td className="ship-strong">{c.title}</td>
-                                <td>{s?.courier || s?.courier_name || '—'}</td>
-                                <td>{s?.tracking_number || '—'}</td>
+                                <td>{s?.courier || s?.courier_name || '-'}</td>
+                                <td>{s?.tracking_number || '-'}</td>
                                 <td><span className={`ship-status ${st === 'delivered' || st === 'transit' ? st : (c.selected_creator ? 'ready' : 'awaiting')}`}>{st === 'delivered' ? 'Delivered' : st === 'transit' ? 'In Transit' : (c.selected_creator ? 'Ready to Ship' : 'Awaiting Creator')}</span></td>
-                                <td className="ship-muted">{s?.expected_delivery ? formatDate(s.expected_delivery) : '—'}</td>
+                                <td className="ship-muted">{s?.expected_delivery ? formatDate(s.expected_delivery) : '-'}</td>
                                 <td className="ship-action">
                                   {c.selected_creator
                                     ? <button type="button" onClick={() => setModalView({ type: 'shipment', id: c.id, ship: st !== 'delivered' && st !== 'transit' })}>{st === 'delivered' ? 'View' : st === 'transit' ? 'Track' : 'Ship'}</button>
@@ -2729,7 +2730,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           display: flex;
           background: #f6f7fc;
 
-          /* Compact, SaaS-grade type scale — overrides the oversized global clamp()
+          /* Compact, SaaS-grade type scale - overrides the oversized global clamp()
              sizes just inside this dashboard (matches the creator dashboard). */
           --fs-h1: 22px;   /* page title */
           --fs-h2: 16px;   /* section / card titles */
@@ -5208,7 +5209,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           gap: 22px;
         }
 
-        /* Creator Bids — campaign picker (one campaign's bids at a time) */
+        /* Creator Bids - campaign picker (one campaign's bids at a time) */
         .cb-campaign-filter { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
         .cb-campaign-filter span { color: #8a8fc0; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; }
         .cb-campaign-filter select {
@@ -5358,7 +5359,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
            icon, nudged further right (away from the name) via extra margin. */
         .cb-bid-name { width: 100%; }
         .cb-bid-name .cb-star {
-          /* margin-right pushes the star AWAY from the edge (left) — keep it small/zero
+          /* margin-right pushes the star AWAY from the edge (left) - keep it small/zero
              so the auto left-margin can carry the star as far right as possible. */
           margin-left: auto; margin-right: 0; width: 40px; height: 40px; font-size: 26px;
           border: none; background: none;
@@ -5389,7 +5390,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .cb-accepted-tag { display:inline-flex; align-items:center; padding:7px 14px; border-radius:999px; background:#ecfdf3; color:#067647; font-weight:700; font-size:13px; }
         .cb-empty { padding: 40px; text-align: center; color: #9296ba; font-size: 14px; }
 
-        /* "View all N bids" — only 3 show by default, this reveals the rest. */
+        /* "View all N bids" - only 3 show by default, this reveals the rest. */
         .cb-view-all {
           display: flex; align-items: center; justify-content: center; gap: 6px;
           width: 100%; padding: 14px; margin-top: -1px;
@@ -5399,7 +5400,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
         .cb-view-all:hover { background: #f2f3ff; }
 
-        /* Mobile expand/collapse arrow — hidden on desktop where everything already shows. */
+        /* Mobile expand/collapse arrow - hidden on desktop where everything already shows. */
         .cb-expand { display: none; }
 
         @media (max-width: 860px) {
@@ -5863,7 +5864,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           grid-template-columns: repeat(6, minmax(0, 1fr));
           gap: 12px;
         }
-        /* Two creator cards side by side are too cramped on a phone — one column. */
+        /* Two creator cards side by side are too cramped on a phone - one column. */
         @media (max-width: 560px) {
           .creator-directory-grid { grid-template-columns: 1fr; gap: 14px; }
         }
@@ -6454,7 +6455,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           padding: 0 32px 24px;
         }
 
-        /* Desktop keeps the 5-column table — the in/out icon is mobile-only. */
+        /* Desktop keeps the 5-column table - the in/out icon is mobile-only. */
         .wallet-row-ic { display: none; }
         .wallet-row {
           display: grid;
@@ -7515,7 +7516,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
           .wallet-recharge-card { padding: 18px 16px; }
           .wallet-table { padding: 0 12px 16px; }
 
-          /* Mobile transaction list — reference-style rows: a circular in/out icon,
+          /* Mobile transaction list - reference-style rows: a circular in/out icon,
              the type + date stacked on the left, and the signed amount + status on
              the right. Replaces the old "labeled cell stack". */
           .wallet-row.wallet-head { display: none; }   /* two classes to beat the base */
@@ -7595,7 +7596,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
 
         /* =========================================================
-           BRAND UI — polished compact redesign overlay
+           BRAND UI - polished compact redesign overlay
            Scoped to .dashboard-page; matches the Creator workspace.
            ========================================================= */
         .dashboard-page {
@@ -7707,13 +7708,13 @@ export default function BusinessDashboard({ page = 'overview' }) {
           box-shadow: var(--bz-sh-md);
         }
 
-        /* KPI stat cards — compact. Scoped to .stat-card so it does NOT hit the
+        /* KPI stat cards - compact. Scoped to .stat-card so it does NOT hit the
            campaign-card stat tiles, which reuse .stat-value (caused giant budget text). */
         .dashboard-page .stat-card { padding: 18px; gap: 16px; }
         .dashboard-page .stat-card .stat-icon { width: 50px; height: 50px; border-radius: 13px; }
         .dashboard-page .stat-card .stat-value { font-size: 1.5rem; font-weight: 700; }
 
-        /* Campaign stat tiles (Budget / Bids / Posted) — keep compact, no balloon/wrap */
+        /* Campaign stat tiles (Budget / Bids / Posted) - keep compact, no balloon/wrap */
         .dashboard-page .all-campaigns-section .campaign-stats { gap: 10px; }
         .dashboard-page .all-campaigns-section .stat {
           padding: 11px 12px; border-radius: 12px;
@@ -7728,7 +7729,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         }
         .dashboard-page .all-campaigns-section .campaign-card-detailed { min-height: 0; }
 
-        /* Status chip — previously had no color classes, so it rendered as plain text */
+        /* Status chip - previously had no color classes, so it rendered as plain text */
         .dashboard-page .badge {
           display: inline-flex; align-items: center;
           padding: 5px 11px; border-radius: 999px;

@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
@@ -116,7 +117,7 @@ export default function BrandWelcomePage() {
     { id: 'behind-scenes', label: 'Behind the Scenes', icon: 'camera' }
   ];
 
-  useEffect(() => {
+  useLiveEffect(() => {
     const fetchCampaigns = async () => {
       try {
         const response = await axios.get(`${API}/campaigns`);
@@ -128,7 +129,7 @@ export default function BrandWelcomePage() {
     fetchCampaigns();
   }, []);
 
-  useEffect(() => {
+  useLiveEffect(() => {
     const fetchContentCategories = async () => {
       try {
         const response = await axios.get(`${API}/categories`);
@@ -724,7 +725,7 @@ export default function BrandWelcomePage() {
             <div className="explore-section-header">
               <span className="section-eyebrow">DISCOVER</span>
               <h2>Explore Popular Categories</h2>
-              <p className="section-subtitle">Browse creators by content type — find the right fit for your campaign</p>
+              <p className="section-subtitle">Browse creators by content type - find the right fit for your campaign</p>
             </div>
             <div className="explore-container">
               <div className="categories-sidebar">

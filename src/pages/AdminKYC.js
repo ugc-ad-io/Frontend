@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -36,14 +37,14 @@ export default function AdminKYC() {
     } finally { setLoading(false); }
   };
 
-  useEffect(() => { load(tab); /* eslint-disable-next-line */ }, [tab]);
+  useLiveEffect(() => { load(tab); /* eslint-disable-next-line */ }, [tab]);
 
   const review = async (row, action, reason = '') => {
     if (action === 'reject' && !reason.trim()) return;
     setBusyId(row.id);
     try {
       await axios.post(`${API}/admin/kyc/${row.id}/review`, { action, reason });
-      toast.success(action === 'approve' ? 'KYC verified — the creator can now withdraw.' : 'KYC rejected.');
+      toast.success(action === 'approve' ? 'KYC verified - the creator can now withdraw.' : 'KYC rejected.');
       if (action === 'reject') {
         setRejectTarget(null);
         setRejectionReason('');
@@ -84,14 +85,14 @@ export default function AdminKYC() {
                 <article key={row.id} className={`akyc-card${isExpanded ? ' is-expanded' : ''}`} data-testid={`kyc-row-${row.id}`}>
                   <div className="akyc-summary">
                     <div className="akyc-who">
-                      <strong>{k.full_legal_name || k.name_on_pan || row.full_name || row.name || row.email || '—'}</strong>
+                      <strong>{k.full_legal_name || k.name_on_pan || row.full_name || row.name || row.email || '-'}</strong>
                     </div>
                     <div className="akyc-preview">
-                      <span><label>Aadhaar</label><b className="mono">{k.aadhaar_number || '—'}</b></span>
-                      <span><label>PAN</label><b className="mono">{k.pan_number || '—'}</b></span>
-                      <span><label>UPI ID</label><b>{row.upi_id || '—'}</b></span>
-                      <span><label>DOB</label><b>{k.date_of_birth || '—'}</b></span>
-                      <span><label>Gender</label><b>{(k.gender || '—').replace(/_/g, ' ')}</b></span>
+                      <span><label>Aadhaar</label><b className="mono">{k.aadhaar_number || '-'}</b></span>
+                      <span><label>PAN</label><b className="mono">{k.pan_number || '-'}</b></span>
+                      <span><label>UPI ID</label><b>{row.upi_id || '-'}</b></span>
+                      <span><label>DOB</label><b>{k.date_of_birth || '-'}</b></span>
+                      <span><label>Gender</label><b>{(k.gender || '-').replace(/_/g, ' ')}</b></span>
                     </div>
                     <span className={`akyc-badge ${k.status}`}>{k.status}</span>
                     {k.status === 'pending' && (
@@ -114,8 +115,8 @@ export default function AdminKYC() {
                   {isExpanded && (
                     <div className="akyc-details">
                       <div className="akyc-fields">
-                        <div><label>Address</label><span>{k.address ? [k.address.line, k.address.city, k.address.state, k.address.pincode].filter(Boolean).join(', ') : '—'}</span></div>
-                        <div><label>Submitted</label><span>{k.submitted_at ? new Date(k.submitted_at).toLocaleString() : '—'}</span></div>
+                        <div><label>Address</label><span>{k.address ? [k.address.line, k.address.city, k.address.state, k.address.pincode].filter(Boolean).join(', ') : '-'}</span></div>
+                        <div><label>Submitted</label><span>{k.submitted_at ? new Date(k.submitted_at).toLocaleString() : '-'}</span></div>
                       </div>
                       <div className="akyc-docs">
                         {[
@@ -124,7 +125,7 @@ export default function AdminKYC() {
                           ['Aadhaar back', k.aadhaar_back_url],
                         ].map(([label, url]) => (
                           <a key={label} className={`akyc-doc ${url ? '' : 'is-missing'}`} href={url ? docUrl(url) : undefined} target="_blank" rel="noreferrer">
-                            <ExternalLink size={14} /> {label}{url ? '' : ' — missing'}
+                            <ExternalLink size={14} /> {label}{url ? '' : ' - missing'}
                           </a>
                         ))}
                       </div>
@@ -162,7 +163,7 @@ export default function AdminKYC() {
             />
             <small>This message will be shown to the creator.</small>
             <div className="akyc-reject-card-actions">
-              <button type="button" className="akyc-modal-cancel" onClick={() => setRejectTarget(null)}>Cancel</button>
+              <button type="button" className="akyc-modal-cancel" onClick={() => setRejectTarget(null)}>← Back</button>
               <button
                 type="button"
                 className="akyc-modal-confirm"
@@ -184,7 +185,9 @@ export default function AdminKYC() {
         .akyc-empty{background:#fff;border:1.5px solid #eef2f9;border-radius:14px;padding:40px;text-align:center;color:#8a90a6}
         .akyc-list{display:flex;flex-direction:column;gap:6px}
         .akyc-card{background:#fff;border:1.5px solid #eef2f9;border-radius:12px;padding:0 16px}
-        .akyc-summary{min-height:88px;display:grid;grid-template-columns:220px minmax(600px,1fr) auto auto 36px;align-items:center;gap:14px}
+        .akyc{width:100%;min-width:0}
+        .akyc-card{width:100%;min-width:0;box-sizing:border-box}
+        .akyc-summary{min-height:88px;display:grid;grid-template-columns:minmax(130px,220px) minmax(0,1fr) auto auto 36px;align-items:center;gap:14px}
         .akyc-who{display:flex;align-items:center;gap:10px;min-width:0}
         .akyc-who strong{color:#07074e;font-size:17px}
         .akyc-who small{color:#98a1ad;font-size:12.5px;overflow:hidden;text-overflow:ellipsis}
@@ -200,12 +203,12 @@ export default function AdminKYC() {
         .akyc-expand:hover{background:#f4f5ff;color:#07074e}
         .akyc-expand svg{transition:transform .2s ease}
         .akyc-expand[aria-expanded="true"] svg{transform:rotate(180deg)}
-        .akyc-details{display:grid;grid-template-columns:minmax(360px,520px) 220px 1fr;align-items:center;gap:24px;padding:12px 0;border-top:1px solid #eef2f9}
+        .akyc-details{display:grid;grid-template-columns:minmax(0,1fr) minmax(120px,220px) minmax(0,1fr);align-items:center;gap:24px;padding:12px 0;border-top:1px solid #eef2f9}
         .akyc-fields{display:contents}
         .akyc-fields label{display:block;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#98a1ad;margin-bottom:3px}
         .akyc-fields span{font-size:13.5px;color:#1a202c;font-weight:600}
         .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.05em}
-        .akyc-docs{display:flex;justify-self:end;gap:8px;flex-wrap:nowrap;margin:0}
+        .akyc-docs{display:flex;justify-self:end;gap:8px;flex-wrap:wrap;margin:0}
         .akyc-doc{display:inline-flex;align-items:center;gap:6px;border:1px solid #d6dbff;background:#f8f9ff;color:#4452f0;border-radius:9px;padding:7px 12px;font-size:12.5px;font-weight:600;text-decoration:none}
         .akyc-doc:hover{background:#eef0ff}
         .akyc-doc.is-missing{border-color:#fecdca;background:#fef3f2;color:#b42318;pointer-events:none}
@@ -232,7 +235,7 @@ export default function AdminKYC() {
         .akyc-modal-cancel{border:1px solid #dfe3ee;background:#fff;color:#344054}
         .akyc-modal-confirm{border:1px solid #b42318;background:#b42318;color:#fff}
         .akyc-modal-confirm:disabled{opacity:.45;cursor:not-allowed}
-        @media(max-width:900px){
+        @media(max-width:1200px){
           .akyc-summary{grid-template-columns:minmax(0,1fr) auto auto 36px;gap:8px}
           .akyc-preview{display:none}
           .akyc-who{flex-direction:column;align-items:flex-start;gap:2px}

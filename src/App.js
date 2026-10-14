@@ -7,6 +7,8 @@ import Loader from './components/Loader';
 import AdminLayout from './components/AdminLayout';
 import AgreementGate from './components/AgreementGate';
 import { Toaster } from 'sonner';
+import { useLiveEffect, useLiveUpdates } from './lib/liveUpdates';
+import HorizontalAccess from './components/HorizontalAccess';
 
 // ── Route-level code splitting ───────────────────────────────────────────────
 // Every page is lazy-loaded so a visitor only downloads the chunk for the route
@@ -126,10 +128,10 @@ axios.interceptors.request.use((config) => {
 // cache so data can't go stale after an action. Realtime reads are never cached.
 const GET_CACHE = new Map(); // key -> { response, ts }
 const GET_CACHE_STALE_MS = 60_000; // within this window a repeat GET is served instantly
-const GET_CACHE_SKIP = /\/(chat|messages|typing|unread-count|notifications)\b/i;
+const GET_CACHE_SKIP = /\/(auth|live|chat|messages|typing|unread-count|notifications)\b/i;
 const baseAdapter = axios.getAdapter(axios.defaults.adapter);
 const getCacheKey = (config) =>
-  axios.getUri(config).replace(/([?&])(t|_)=\d+/g, '$1').replace(/[?&]+$/, '');
+  `${localStorage.getItem('token') || ''}:${axios.getUri(config).replace(/([?&])(t|_)=\d+/g, '$1').replace(/[?&]+$/, '')}`;
 
 axios.interceptors.request.use((config) => {
   const method = (config.method || 'get').toLowerCase();
@@ -203,19 +205,20 @@ axios.interceptors.response.use(
 
 function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  useLiveUpdates(user ? localStorage.getItem('token') : null, () => GET_CACHE.clear());
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
-  useEffect(() => {
+  useLiveEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
       axios.get(`${API}/auth/me`)
         .then(res => {
           setUser(res.data);
         })
-        .catch(() => {
-          localStorage.removeItem('token');
+        .catch(error => {
+          if (error?.response?.status === 401) { localStorage.removeItem('token'); setUser(null); }
         })
         .finally(() => setLoading(false));
     } else {
@@ -258,6 +261,7 @@ function AuthProvider({ children }) {
   };
 
   const logout = () => {
+    GET_CACHE.clear();
     localStorage.removeItem('token');
     localStorage.removeItem('ops_admin_token');
     localStorage.removeItem('ops_admin_user');
@@ -278,6 +282,7 @@ function AuthProvider({ children }) {
         </div>
       )}
       {children}
+      <HorizontalAccess />
       {/* One-time Creator & Brand Agreement gate. Only creators/brands are asked,
           only once their profile is approved and they reach the dashboard (never on
           signup or the profile form), and only until they accept the current version

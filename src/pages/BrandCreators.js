@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -448,7 +449,7 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
     if (bigVideoOriginal && original !== bigVid) setBigVid(original);
   };
 
-  return (
+  return createPortal(
     <div className="bcq-overlay" onClick={onClose}>
       <div className="bcq-card" onClick={(e) => e.stopPropagation()}>
         <button type="button" className="bcq-close" aria-label="Close" onClick={onClose}><X size={18} /></button>
@@ -526,7 +527,7 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
           </div>
         </div>
       </div>
-    </div>
+    </div>, document.body,
   );
 }
 
@@ -547,7 +548,7 @@ export default function BrandCreators() {
   const [preview, setPreview] = useState(null);   // quick-preview card
   const viewProfile = (c) => setPreview(c);
 
-  useEffect(() => {
+  useLiveEffect(() => {
     let active = true;
     (async () => {
       if (active) {

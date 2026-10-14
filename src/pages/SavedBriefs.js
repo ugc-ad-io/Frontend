@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
@@ -28,7 +29,7 @@ export default function SavedBriefs() {
   const [hydrating, setHydrating] = useState(true);
 
   // Reflect saves/removes made here or on the Browse page.
-  useEffect(() => {
+  useLiveEffect(() => {
     const sync = () => setSaved(getSavedBriefs());
     window.addEventListener('ugc-saved-changed', sync);
     // Pull the durable saved set from the backend (syncs across devices).
@@ -54,7 +55,7 @@ export default function SavedBriefs() {
       const iBid = campaign.bids?.some((bid) => bid.creator_id === user?.id);
       setOpenBrief(normalizeBrief(campaign, 0, iBid ? [campaign] : []));
     } catch {
-      toast.error('Could not load this campaign — it may have been removed.');
+      toast.error('Could not load this campaign - it may have been removed.');
     } finally {
       setOpening(null);
     }

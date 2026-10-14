@@ -79,7 +79,7 @@ const subsFor = (s) => SUBSECTIONS[s] || [STEPS[s - 1]];
 // else skips the address/shipping/receipt steps of the deal entirely.
 const PRODUCT_TYPES = [
   { value: 'physical', label: 'Physical product', hint: 'You ship an item to the creator', ships: true },
-  { value: 'digital',  label: 'Digital / App',    hint: 'App, software or download — nothing to ship' },
+  { value: 'digital',  label: 'Digital / App',    hint: 'App, software or download - nothing to ship' },
   { value: 'service',  label: 'Service',          hint: 'A service, subscription or experience' },
   { value: 'other',    label: 'Other',            hint: 'Describe it yourself' },
 ];
@@ -564,7 +564,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
           // Same rule as above: a draft's saved brand name never overrides the
           // brand profile, which is what the published campaign will show.
           setForm(current => ({ ...current, ...mapped, brandName: brandFromProfile.current || mapped.brandName || current.brandName }));
-          toast.success('Draft loaded — continue where you left off');
+          toast.success('Draft loaded - continue where you left off');
         }
       })
       .catch(() => toast.error('Could not load that draft'));
@@ -589,7 +589,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
         console.log('[Duplicate] fields copied:', n, mapped, '\nraw campaign:', res.data);
         // Brand name stays the profile's, never the copied campaign's.
         setForm(current => ({ ...current, ...mapped, brandName: brandFromProfile.current || mapped.brandName || current.brandName }));
-        toast.success(`Copied brief loaded — ${n} field${n === 1 ? '' : 's'} carried over. Edit and publish.`);
+        toast.success(`Copied brief loaded - ${n} field${n === 1 ? '' : 's'} carried over. Edit and publish.`);
       })
       .catch(() => toast.error('Could not load that brief to duplicate'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -872,7 +872,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
       // "Draft saved" toast, so the brand thought it was on their account when the
       // server had rejected it outright. That's half of "I saved it and it's gone".
       toast.warning('Saved on this device only', {
-        description: apiErrorMessage(error, "We couldn't save it to your account — it won't show in Drafts until it saves."),
+        description: apiErrorMessage(error, "We couldn't save it to your account - it won't show in Drafts until it saves."),
       });
     } finally {
       setSavingDraft(false);
@@ -934,12 +934,12 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
         await pushDraft(buildPayload());
         // Stop the unmount handler re-sending the identical payload a tick later.
         lastAutoSaveRef.current = JSON.stringify(form);
-        toast.success('Draft saved — pick it up from the Drafts tab.');
+        toast.success('Draft saved - pick it up from the Drafts tab.');
         if (onDraftSaved) onDraftSaved();
         return true;
       } catch (error) {
         toast.warning('Saved on this device only', {
-          description: apiErrorMessage(error, "We couldn't save it to your account — it won't show in Drafts."),
+          description: apiErrorMessage(error, "We couldn't save it to your account - it won't show in Drafts."),
         });
         return false;
       }
@@ -1140,7 +1140,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
         await axios.post(`${API}/campaigns`, { ...payload, status: 'pending_approval' });
       }
       clearDraftStorage();
-      toast.success('Brief published — creators can see it now');
+      toast.success('Brief published - creators can see it now');
       navigate(publishMode === 'invite' ? '/dashboard/business/pending-bids' : '/dashboard/business');
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Failed to publish brief'));
@@ -1295,7 +1295,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
                   )}
                   {!needsShipping && (
                     <small style={{ display: 'block', marginTop: 8, color: '#0891b2', fontWeight: 600, fontSize: 12 }}>
-                      ℹ No physical product — shipping &amp; delivery-address steps are skipped.
+                      ℹ No physical product - shipping &amp; delivery-address steps are skipped.
                     </small>
                   )}
                 </div>
@@ -1306,7 +1306,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
                     <input className="input-field" value={form.brandName} disabled />
                     <small style={{ display: 'block', marginTop: 6, color: '#64748b', fontSize: 12 }}>
                       {form.brandName
-                        ? 'Comes from your brand profile — every campaign is published under this name. '
+                        ? 'Comes from your brand profile - every campaign is published under this name. '
                         : 'No brand name on your profile yet. '}
                       <button type="button" onClick={() => navigate('/settings')}
                         style={{ background: 'none', border: 0, padding: 0, color: '#4f46e5', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}>
@@ -1377,7 +1377,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
                           <button type="button" className={item.editedBy !== 'ugc' ? 'active' : ''} onClick={() => updateDeliverable(item.id, { editedBy: 'creator' })}>Creator</button>
                           <button type="button" className={item.editedBy === 'ugc' ? 'active' : ''} onClick={() => updateDeliverable(item.id, { editedBy: 'ugc' })}>UGC.ad</button>
                         </div>
-                        <small>{item.editedBy === 'ugc' ? "UGC.ad's team edits this deliverable — our admin team is notified once you submit the brief." : 'The creator edits and delivers the finished cut themselves.'}</small>
+                        <small>{item.editedBy === 'ugc' ? "UGC.ad's team edits this deliverable - our admin team is notified once you submit the brief." : 'The creator edits and delivers the finished cut themselves.'}</small>
                       </div>
                     )}
                     <div className="form-group"><label>Aspect ratio *</label><div className="brief-chip-grid compact">{ASPECTS.map(ratio => <ToggleChip key={ratio} active={item.aspectRatios.includes(ratio)} onClick={() => updateDeliverable(item.id, { aspectRatios: item.aspectRatios.includes(ratio) ? item.aspectRatios.filter(r => r !== ratio) : [...item.aspectRatios, ratio] })}>{ratio}</ToggleChip>)}</div></div>
@@ -1393,7 +1393,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
                       <button type="button" className={form.scriptProvider !== 'ugc' ? 'active' : ''} onClick={() => set('scriptProvider', 'brand')}>Brand</button>
                       <button type="button" className={form.scriptProvider === 'ugc' ? 'active' : ''} onClick={() => set('scriptProvider', 'ugc')}>UGC.ad</button>
                     </div>
-                    <small>{form.scriptProvider === 'ugc' ? "UGC.ad's team writes the script during brief review — our admin team is notified once you submit the brief, and the script will appear in the brief before the creator starts." : 'Enter the script below. It will be shown to the creator as part of the brief.'}</small>
+                    <small>{form.scriptProvider === 'ugc' ? "UGC.ad's team writes the script during brief review - our admin team is notified once you submit the brief, and the script will appear in the brief before the creator starts." : 'Enter the script below. It will be shown to the creator as part of the brief.'}</small>
                   </div>
                   {form.scriptProvider !== 'ugc' && (
                     <div className="form-group">
@@ -1416,7 +1416,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
             {step === 3 && subStep === 1 && (
               <>
                 <div className="form-row"><div className="form-group"><label>Required phrases (up to 5)</label>{renderTextList('requiredPhrases', 5, 'Perfect for oily skin')}</div><div className="form-group"><label>Required visual shots (up to 5)</label>{renderTextList('requiredShots', 5, 'Close-up of label')}</div></div>
-                <div className="form-row"><div className="form-group"><label>Call to action *</label><select className="input-field" value={form.callToAction} onChange={e => set('callToAction', e.target.value)}>{CTAS.map(item => <option key={item}>{item}</option>)}</select></div>{form.callToAction === 'Use code' && <div className="form-group"><label>Promo code *</label><input className="input-field" value={form.promoCode} onChange={e => set('promoCode', e.target.value)} /></div>}{CTA_INPUT[form.callToAction] && <div className="form-group"><label>{CTA_INPUT[form.callToAction].label} *</label><input className="input-field" placeholder={CTA_INPUT[form.callToAction].ph} value={form.ctaLink} onChange={e => set('ctaLink', e.target.value)} />{form.ctaLink && !ctaLinkValid(form.callToAction, form.ctaLink) && <small style={{ color: '#ef4444', fontSize: 12, marginTop: 4, display: 'block' }}>{CTA_INPUT[form.callToAction].type === 'handle' ? 'Enter a valid @handle or profile link — no random text.' : 'Enter a valid link (e.g. https://yourbrand.com) — no random text.'}</small>}</div>}</div>
+                <div className="form-row"><div className="form-group"><label>Call to action *</label><select className="input-field" value={form.callToAction} onChange={e => set('callToAction', e.target.value)}>{CTAS.map(item => <option key={item}>{item}</option>)}</select></div>{form.callToAction === 'Use code' && <div className="form-group"><label>Promo code *</label><input className="input-field" value={form.promoCode} onChange={e => set('promoCode', e.target.value)} /></div>}{CTA_INPUT[form.callToAction] && <div className="form-group"><label>{CTA_INPUT[form.callToAction].label} *</label><input className="input-field" placeholder={CTA_INPUT[form.callToAction].ph} value={form.ctaLink} onChange={e => set('ctaLink', e.target.value)} />{form.ctaLink && !ctaLinkValid(form.callToAction, form.ctaLink) && <small style={{ color: '#ef4444', fontSize: 12, marginTop: 4, display: 'block' }}>{CTA_INPUT[form.callToAction].type === 'handle' ? 'Enter a valid @handle or profile link - no random text.' : 'Enter a valid link (e.g. https://yourbrand.com) - no random text.'}</small>}</div>}</div>
                 <div className="form-row"><div className="form-group"><label>Required hashtags</label><input className="input-field" value={form.hashtags} onChange={e => handleHashtagsChange(e.target.value)} placeholder="#brand #launch" /><small>Up to 10 hashtags.</small></div><div className="form-group"><label>Brand handle tag *</label><div className="brief-segment"><button className={form.brandHandleTag ? 'active' : ''} type="button" onClick={() => set('brandHandleTag', true)}>Yes</button><button className={!form.brandHandleTag ? 'active' : ''} type="button" onClick={() => set('brandHandleTag', false)}>No</button></div></div></div>
               </>
             )}
@@ -1477,7 +1477,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
                 <div className="form-group">
                   <label>Reference videos (up to 3)</label>
                   {renderRefVideos(3)}
-                  <small>Paste a link, or upload a video file (max 200MB) — creators see uploaded clips inline.</small>
+                  <small>Paste a link, or upload a video file (max 200MB) - creators see uploaded clips inline.</small>
                 </div>
               </>
             )}
@@ -1510,9 +1510,9 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
               <>
                 <div className="form-row">
                   {needsShipping && (
-                    <div className="form-group"><label>Product shipping by *</label><input className="input-field" type="date" min={addDays(new Date().toISOString().slice(0, 10), 1)} value={form.productShippingBy} onChange={e => set('productShippingBy', e.target.value)} /><small>Cannot be today — earliest is tomorrow.</small></div>
+                    <div className="form-group"><label>Product shipping by *</label><input className="input-field" type="date" min={addDays(new Date().toISOString().slice(0, 10), 1)} value={form.productShippingBy} onChange={e => set('productShippingBy', e.target.value)} /><small>Cannot be today - earliest is tomorrow.</small></div>
                   )}
-                  <div className="form-group"><label>{anyEdited ? 'Raw video delivery by *' : 'Content delivery by *'}</label><input className="input-field" type="date" min={form.productShippingBy || addDays(new Date().toISOString().slice(0, 10), 1)} value={form.draftDeliveryBy} onChange={e => set('draftDeliveryBy', e.target.value)} /><small>{needsShipping ? (draftDeliverySuggestion ? `Suggested from shipping date: ${draftDeliverySuggestion}` : 'Suggested as product shipping + 7 days.') : 'No product to ship — the creator starts as soon as they accept.'}</small></div>
+                  <div className="form-group"><label>{anyEdited ? 'Raw video delivery by *' : 'Content delivery by *'}</label><input className="input-field" type="date" min={form.productShippingBy || addDays(new Date().toISOString().slice(0, 10), 1)} value={form.draftDeliveryBy} onChange={e => set('draftDeliveryBy', e.target.value)} /><small>{needsShipping ? (draftDeliverySuggestion ? `Suggested from shipping date: ${draftDeliverySuggestion}` : 'Suggested as product shipping + 7 days.') : 'No product to ship - the creator starts as soon as they accept.'}</small></div>
                 </div>
                 <div className="form-row"><div className="form-group"><label>Revisions included *</label><input className="input-field" type="number" min="0" value={form.revisions} onChange={e => set('revisions', Number(e.target.value))} /><small>Extra revisions: Rs. 500 each (Rs. 300 to the creator)</small></div>{anyEdited && <div className="form-group"><label>Edited video delivery by *</label><input className="input-field" type="date" min={form.draftDeliveryBy || form.productShippingBy || addDays(new Date().toISOString().slice(0, 10), 1)} value={form.finalDeliveryBy} onChange={e => set('finalDeliveryBy', e.target.value)} /><small>The creator edits after you approve the raw video.</small></div>}</div>
               </>
@@ -1604,7 +1604,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
           <div className="brief-modal">
             <h3>Confirm publishing</h3>
             <p className="brief-hold-callout">
-              <strong>Rs. {totalDebit.toLocaleString('en-IN')} will be placed ON HOLD</strong> in your wallet, locked in secure escrow — this money is <strong>held, not spent</strong>.
+              <strong>Rs. {totalDebit.toLocaleString('en-IN')} will be placed ON HOLD</strong> in your wallet, locked in secure escrow - this money is <strong>held, not spent</strong>.
             </p>
             <p className="brief-hold-breakdown">
               Rs. {budget.toLocaleString('en-IN')} per raw video × {totalVideos} videos = Rs. {(budget * totalVideos).toLocaleString('en-IN')}
@@ -1621,7 +1621,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
       )}
 
       <style>{`
-        /* "N more characters needed" — amber until the minimum length is met */
+        /* "N more characters needed" - amber until the minimum length is met */
         .brief-need{color:#b45309;font-weight:600}
         /* top step-tabs (General / Address … style) */
         .pab-tabs{display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid #eef0f6;padding:0 4px 0 0;margin-bottom:18px}
@@ -1798,7 +1798,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
 
         /* ---- Mobile (must stay after the desktop rules above so it wins) ---- */
         @media (max-width: 640px) {
-          /* minmax(0,..) not 1fr — plain 1fr lets the wide tab row/stepper
+          /* minmax(0,..) not 1fr - plain 1fr lets the wide tab row/stepper
              stretch the column past the viewport instead of scrolling. */
           .brief-builder-page { grid-template-columns: minmax(0, 1fr); }
           .brief-panel, .step-content, .pab-tabs { min-width: 0; max-width: 100%; }

@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect, Fragment } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
@@ -66,12 +67,12 @@ export default function CampaignDetails({ embedId, onClose }) {
   const [inviteMessage, setInviteMessage] = useState('');
   const [inviteBrief, setInviteBrief] = useState('');
 
-  useEffect(() => {
+  useLiveEffect(() => {
     fetchCampaign();
   }, [id]);
 
   // Brands on the "Request Matches" path get an ops-curated shortlist (PRD 5.4).
-  useEffect(() => {
+  useLiveEffect(() => {
     if (!campaign || !user) return;
     const owner = user.role === 'business' && ownsCampaign(user, campaign);
     if (owner && campaign.match_status) fetchShortlist();
@@ -95,7 +96,7 @@ export default function CampaignDetails({ embedId, onClose }) {
         message: inviteMessage,
         brief: inviteBrief,
       });
-      toast.success('Invitation sent — opening chat with the creator…');
+      toast.success('Invitation sent - opening chat with the creator…');
       const creatorId = inviteTarget.creator_id;
       setInviteTarget(null);
       setInviteMessage('');
@@ -117,7 +118,7 @@ export default function CampaignDetails({ embedId, onClose }) {
     setShortlistBusy(true);
     try {
       await axios.post(`${API}/campaigns/${id}/shortlist/request-new`);
-      toast.success('New shortlist requested — our team will curate fresh matches');
+      toast.success('New shortlist requested - our team will curate fresh matches');
       await fetchCampaign();
       await fetchShortlist();
     } catch (error) {
@@ -164,7 +165,7 @@ export default function CampaignDetails({ embedId, onClose }) {
       const held = Number(response.data?.amount) || 0;
       // A multi-creator brief with slots still open: stay so the brand can keep hiring.
       if (slotsLeft(campaign) > 1) {
-        toast.success(`${firstName({ nickname: response.data.creator_nickname }, 'Creator')} hired — ₹${held.toLocaleString('en-IN')} held in escrow. You can hire ${slotsLeft(campaign) - 1} more.`);
+        toast.success(`${firstName({ nickname: response.data.creator_nickname }, 'Creator')} hired - ₹${held.toLocaleString('en-IN')} held in escrow. You can hire ${slotsLeft(campaign) - 1} more.`);
         await fetchCampaign();
         return;
       }
@@ -238,7 +239,7 @@ export default function CampaignDetails({ embedId, onClose }) {
     if (!user?.profile_completed) {
       setShowBidModal(false);
       toast.error('Finish your creator profile before bidding');
-      navigate('/profile-setup/creator');
+      navigate('/settings?tab=profile');
       return;
     }
     const maximum = maxCampaignBid(campaign);
@@ -299,7 +300,7 @@ export default function CampaignDetails({ embedId, onClose }) {
     <Wrap {...wrapProps}>
     <div className="campaign-details-page">
       <style>{`
-        /* Marketplace restyle — only applies under the creator top-nav shell (.cmk-app) */
+        /* Marketplace restyle - only applies under the creator top-nav shell (.cmk-app) */
         .cmk-app .campaign-details-page{min-height:auto;background:transparent;padding:0;display:block}
         .cmk-app .page-header{max-width:none;margin:0 0 18px}
         .cmk-app .back-btn{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid #e9ebf4;
@@ -503,7 +504,7 @@ export default function CampaignDetails({ embedId, onClose }) {
                 <div className="brief-text">
                   {campaign.script_text
                     ? <p className="brief-line">{campaign.script_text}</p>
-                    : <p className="brief-line">UGC.ad is preparing the script — check back before you start.</p>}
+                    : <p className="brief-line">UGC.ad is preparing the script - check back before you start.</p>}
                 </div>
               </div>
             )}
@@ -539,7 +540,7 @@ export default function CampaignDetails({ embedId, onClose }) {
                   <div className="shortlist-state">
                     <p>Our team is curating creator matches for this brief. You'll be notified as soon as your shortlist is ready.</p>
                     {shortlist?.shortlist_request_count > 0 && (
-                      <span className="shortlist-hint">New shortlist requested — sit tight while we find fresh matches.</span>
+                      <span className="shortlist-hint">New shortlist requested - sit tight while we find fresh matches.</span>
                     )}
                   </div>
                 ) : (
@@ -726,7 +727,7 @@ export default function CampaignDetails({ embedId, onClose }) {
                   id="inviteBrief"
                   value={inviteBrief}
                   onChange={(e) => setInviteBrief(e.target.value)}
-                  placeholder="Share the brief details for this creator — deliverables, key talking points, do's & don'ts…"
+                  placeholder="Share the brief details for this creator - deliverables, key talking points, do's & don'ts…"
                   rows="4"
                   data-testid="invite-brief"
                 />

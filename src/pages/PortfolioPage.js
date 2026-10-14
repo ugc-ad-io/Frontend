@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
@@ -207,7 +208,7 @@ export default function PortfolioPage() {
 
   // Seed from context immediately, then refresh from /auth/me (which returns the
   // full doc incl. nested signup portfolio) so signup-uploaded work shows up too.
-  useEffect(() => {
+  useLiveEffect(() => {
     setPortfolio(collectPortfolio(user));
     let cancelled = false;
     (async () => {

@@ -60,7 +60,7 @@ function AdminSidebar({ activeTab, onTabClick, user, mobileOpen = false, onClose
       <div className="admin-sidebar-note">
         UGCad.io Admin Console
         <br />
-        Internal — authorised staff only
+        Internal - authorised staff only
       </div>
     </aside>
     </>

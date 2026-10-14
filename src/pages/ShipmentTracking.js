@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -91,7 +92,7 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
     return res.data.file_url;
   };
 
-  useEffect(() => {
+  useLiveEffect(() => {
     if (campaignId) {
       fetchCampaign();
       fetchShipment();
@@ -214,7 +215,7 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
   // Pre-fill the pickup address from the brand's account (Settings → Company) so it is
   // never retyped. Editable — the pickup can be elsewhere than the billing address.
   const [pickupFromAccount, setPickupFromAccount] = useState(false);
-  useEffect(() => {
+  useLiveEffect(() => {
     if (!showShipModal) return undefined;
     let alive = true;
     axios.get(`${API}/shipping/account-address`).then(({ data }) => {
@@ -256,7 +257,7 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
           country: 'India',
         },
       });
-      toast.success('Shipment requested — our team will prepare your label shortly.');
+      toast.success('Shipment requested - our team will prepare your label shortly.');
       setShowShipModal(false);
       fetchShipment();
     } catch (error) {
@@ -321,7 +322,7 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
           steps: [
             'Create the content exactly as described in the brief.',
             'Submit your work for review from "My Active Work".',
-            'Wait for the brand to approve it — your payment is released on approval.',
+            'Wait for the brand to approve it - your payment is released on approval.',
           ],
         };
       }
@@ -330,7 +331,7 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
         steps: [
           'Watch for the package to arrive at your address.',
           'Record an unboxing video as you open it (you may need it if anything is wrong).',
-          'Click "Mark as Received" once it arrives — report any damage or wrong item there.',
+          'Click "Mark as Received" once it arrives - report any damage or wrong item there.',
           'Then create your content and submit it from "My Active Work".',
         ],
       };
@@ -409,7 +410,7 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
         {!hasRealShipment ? (
           <div className="no-shipment">
             <Package size={64} />
-            <p>{isBusiness ? 'Ready to ship — submit your product & pickup details and our team will prepare the shipping label.' : 'No shipment details available yet'}</p>
+            <p>{isBusiness ? 'Ready to ship - submit your product & pickup details and our team will prepare the shipping label.' : 'No shipment details available yet'}</p>
             {isBusiness && (
               <button
                 className="btn-primary ship-cta"
@@ -447,7 +448,7 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
                 <h3>Tracking Information</h3>
                 <div className="detail-item">
                   <span className="label">Tracking Number:</span>
-                  <span className="value">{shipment.tracking_number || '—'}</span>
+                  <span className="value">{shipment.tracking_number || '-'}</span>
                 </div>
                 {shipment.courier_name && (
                   <div className="detail-item">
@@ -572,7 +573,7 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
         <div className="modal-overlay ship-portal-overlay" onClick={() => !uploading && setShowShipModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>Ship Product</h2>
-            <p className="ship-help">Enter the product details and your pickup address. Our team will prepare a pre-paid label and dispatch it to the creator. The creator's delivery address is handled securely — you don't need it.</p>
+            <p className="ship-help">Enter the product details and your pickup address. Our team will prepare a pre-paid label and dispatch it to the creator. The creator's delivery address is handled securely - you don't need it.</p>
             <form onSubmit={handleShipProduct} className="shipment-form">
               <div className="form-group">
                 <label htmlFor="s-desc">Product description</label>
@@ -725,7 +726,7 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
               </div>
 
               <div className="form-group">
-                <label htmlFor="courier-file">Courier Slip (PDF or image — optional)</label>
+                <label htmlFor="courier-file">Courier Slip (PDF or image - optional)</label>
                 <input
                   id="courier-file"
                   type="file"
@@ -1318,7 +1319,7 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
           flex: 1;
         }
 
-        /* Embedded inside the dashboard PageModal — drop the full-page
+        /* Embedded inside the dashboard PageModal - drop the full-page
            background and the redundant outer card so it sits flush. */
         .shipment-page.is-embed {
           min-height: 0;
@@ -1331,7 +1332,7 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
           margin: 0 0 18px;
         }
 
-        /* The modal/drawer background is near-white (#fdfdfe) — the button's default
+        /* The modal/drawer background is near-white (#fdfdfe) - the button's default
            white fill + faint #e2e8f0 border was blending straight into it, so the
            "Back" control effectively disappeared inside the Manage Shipment drawer. */
         .shipment-page.is-embed .back-btn {

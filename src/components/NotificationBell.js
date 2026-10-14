@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import React, { useState, useEffect, useRef } from 'react';
 import { Bell, Check, X } from 'lucide-react';
 import axios from 'axios';
@@ -37,7 +38,7 @@ const NotificationBell = () => {
   // don't spam toasts for notifications that arrived before this page opened.
   const seenIdsRef = useRef(null);
 
-  useEffect(() => {
+  useLiveEffect(() => {
     fetchNotifications();
     fetchUnreadCount();
 

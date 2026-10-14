@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createPortal } from 'react-dom';
@@ -144,7 +145,7 @@ const mediaUrl = (u) => {
   if (!token) return base;
   return `${base}${base.includes('?') ? '&' : '?'}token=${encodeURIComponent(token)}`;
 };
-const isVideo = (u) => /\.(mp4|webm|mov|m4v)$/i.test(String(u || '').split('?')[0]);
+  const isVideo = (u) => /\.(mp4|webm|mov|m4v)(?:[?#]|$)|\/video\//i.test(String(u || ''));
 const pfUrl = (it) => (typeof it === 'string' ? it : (it?.videoUrl || it?.link || it?.url || (Array.isArray(it?.urls) && it.urls[0]) || it?.original_url || ''));
 const inr = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
 // A portfolio item's own price, shown to the creator AND the brand — the whole
@@ -324,7 +325,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
 
   const [reviews, setReviews] = useState([]);
 
-  useEffect(() => {
+  useLiveEffect(() => {
     let a = true;
     axios.get(`${API}/profile/${id}`).then((r) => { if (a) setData(r.data); }).catch(() => {}).finally(() => { if (a) setLoading(false); });
     axios.get(`${API}/reviews/creator/${id}`).then((r) => { if (a) setReviews(Array.isArray(r.data) ? r.data : []); }).catch(() => {});
@@ -343,7 +344,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
   const avgRating = reviewCount ? (reviews.reduce((s, r) => s + (r.rating || 0), 0) / reviewCount) : 0;
 
   // Resolve reviewer (brand) names + avatars for the review cards.
-  useEffect(() => {
+  useLiveEffect(() => {
     const ids = [...new Set(reviews.map((r) => r.reviewer_id).filter(Boolean))];
     if (!ids.length) return undefined;
     let a = true;
@@ -366,7 +367,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
   // Resolve the campaign behind each review for the Fiverr-style detail row
   // (price · delivery time · category · delivered video).
   const [revCampaigns, setRevCampaigns] = useState({});
-  useEffect(() => {
+  useLiveEffect(() => {
     const ids = [...new Set(reviews.map((r) => r.campaign_id).filter(Boolean))];
     if (!ids.length) return undefined;
     let a = true;
@@ -438,7 +439,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
       // profile-photo upload), so the banner can't silently fail mid-flow.
       const r = await uploadFile(file, '/profile/upload-banner');
       const url = r.banner || r.file_url || '';
-      if (!url) { toast.error('Upload failed — no file URL returned.'); return; }
+      if (!url) { toast.error('Upload failed - no file URL returned.'); return; }
       setLocalBanner(url);
       setData((d) => (d ? { ...d, banner: url } : d));
       toast.success('Banner updated');
@@ -470,7 +471,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
     try {
       const up = await uploadFile(file, '/upload/file');
       setAddForm((f) => ({ ...f, url: up.file_url || '' }));
-      toast.success('Video uploaded — add details and save');
+      toast.success('Video uploaded - add details and save');
     } catch { toast.error('Could not upload video'); }
     finally { setBusy(''); if (workRef.current) workRef.current.value = ''; }
   };
@@ -601,13 +602,15 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
   // (editable) view uses. Picking a different key order here meant a clip that
   // played fine for the creator could resolve to a dead `urls[0]`/`original_url`
   // on the brand view and render "Media unavailable".
-  const realVids = (data?.portfolio || [])
+  const savedPortfolio = [...(Array.isArray(p.portfolio_items) ? p.portfolio_items : []), ...(Array.isArray(data?.portfolio) ? data.portfolio : []), ...(Array.isArray(p.portfolio) ? p.portfolio : [])];
+  if (!savedPortfolio.length && p.intro_video) savedPortfolio.push(p.intro_video);
+  const realVids = savedPortfolio
     .map((it) => {
       const url = pfUrl(it);
       const meta = typeof it === 'string' ? {} : it;
       return { url, category: meta.category || '', price: meta.price || '', delivery: meta.delivery || '', brand: meta.brand || '' };
     })
-    .filter((v) => v.url && !String(v.url).startsWith('blob:'));
+    .filter((v, index, all) => v.url && !String(v.url).startsWith('blob:') && all.findIndex(other => other.url === v.url) === index);
   // Only the creator's own uploaded videos — no stock/sample fallback.
   const vids = realVids;
 
@@ -1183,7 +1186,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                           const price = (camp.budget_max || camp.budget_min)
                             ? inr(camp.budget_max || camp.budget_min) : 'On request';
                           const days = selBid.estimated_delivery_days || camp.estimated_delivery_days;
-                          const duration = days ? `${days} day${Number(days) > 1 ? 's' : ''}` : '—';
+                          const duration = days ? `${days} day${Number(days) > 1 ? 's' : ''}` : '-';
                           // Prefer the actually-delivered work video; if the campaign
                           // has none stored, fall back to one of the creator's portfolio
                           // videos so every review still shows a (watermarked) clip.
@@ -1273,7 +1276,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-hl label{display:block;color:#9296ba;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
         .cpm-hl strong{display:block;color:#07074e;font-size:16px;font-weight:800;margin-top:3px;text-transform:capitalize;
           overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-        /* Keep Category / Price / Delivery on ONE line (3 cols) even on phones —
+        /* Keep Category / Price / Delivery on ONE line (3 cols) even on phones -
            just shrink the text so ₹50,000 etc. still fit. */
         @media (max-width:520px){.cpm-highlights{grid-template-columns:auto auto auto;justify-content:space-between;gap:10px}
           .cpm-hl label{font-size:10px}.cpm-hl strong{font-size:14px}}
@@ -1316,17 +1319,19 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-sec-block + .cpm-sec-block{margin-top:28px;border-top:1px solid #eef0f6;padding-top:24px}
         .cpm-sec-title{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:18px;font-weight:800;color:#15163a;margin:0 0 16px}
         .cpm-page .cpm{overflow:visible}
-        /* Tabs scroll normally now — the fixed compact header is the only pinned bar. */
-        /* Fixed compact header — stays at the top the whole time once shown. */
+        /* Tabs scroll normally now - the fixed compact header is the only pinned bar. */
+        /* Fixed compact header - stays at the top the whole time once shown. */
         .cpm-fixedhead{position:fixed;top:0;left:0;right:0;z-index:1450;display:flex;align-items:center;gap:12px;
           padding:10px 20px;background:#fff;border-bottom:1px solid #eef0f6;box-shadow:0 4px 16px rgba(15,22,58,.08);
           transform:translateY(-120%);opacity:0;pointer-events:none;transition:transform .22s ease,opacity .2s ease}
         .cpm-fixedhead.is-shown{transform:translateY(0);opacity:1;pointer-events:auto}
-        .cpm-page .cpm-fixedhead{top:72px}
+        .cmk-app.has-rail .cpm-page .cpm-fixedhead{left:76px;top:72px}
+        .cmk-app.has-rail:has(.hsr.is-open) .cpm-page .cpm-fixedhead{left:240px}
         /* On mobile the app nav is hidden while the profile is open, so the compact
            header sits at the very top. */
         @media (max-width:760px){
-          .cpm-page .cpm-fixedhead{top:0}
+          .cmk-app.has-rail .cpm-page .cpm-fixedhead,
+          .cmk-app.has-rail:has(.hsr.is-open) .cpm-page .cpm-fixedhead{left:0;top:0}
           body.cpm-open .cmk-nav{display:none}
         }
         .cpm-sh-ava{width:36px;height:36px;border-radius:50%;flex:none;overflow:hidden;background:#4452f0;color:#fff;
@@ -1401,7 +1406,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         /* per-video caption: category chip + price / duration */
         .cpm-vid-item{display:flex;flex-direction:column;gap:8px}
         .cpm-vid-cap{padding:0 2px}
-        /* Brand on the left, category chip pushed to the right — same line. */
+        /* Brand on the left, category chip pushed to the right - same line. */
         .cpm-vid-headrow{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:9px}
         .cpm-vid-headrow .cpm-vid-brand{margin-top:0;min-width:0;flex:1}
         .cpm-vid-headrow .cpm-vid-cat{flex:none}
@@ -1509,7 +1514,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-begin{background:linear-gradient(100deg,#12124f,#07074e);color:#fff;border:none;border-radius:30px;padding:11px 22px;font-weight:800;font-size:13.5px;cursor:pointer;font-family:inherit;box-shadow:0 12px 26px -12px rgba(7,7,78,.7)}
         .cpm-begin:hover{filter:brightness(1.06)}
         .cpm-mobilebar{display:none}
-        /* Hide the app's floating message FAB on mobile while a profile is open —
+        /* Hide the app's floating message FAB on mobile while a profile is open -
            it would sit right on top of the bottom Send Message bar. */
         @media(max-width:640px){body.cpm-open .cmk-post-fab{display:none}}
         /* When a chat popup is open on top, hide this profile's fixed bottom bar so
@@ -1519,7 +1524,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
           /* On phones the modal fills the screen like a real page (no floating card). */
           .cpm-ov{padding:0;align-items:stretch;background:#fff;backdrop-filter:none}
           .cpm-ov > .cpm{width:100%;min-height:100vh;border-radius:0;box-shadow:none}
-          /* Send Message lives in the fixed bottom bar on mobile — drop the top one. */
+          /* Send Message lives in the fixed bottom bar on mobile - drop the top one. */
           .cpm-msg-top{display:none}
           /* Send a Brief drops down to sit on the name's line, right side. */
           .cpm-actions{position:absolute;top:112px;right:24px;left:auto;margin:0}
@@ -1529,7 +1534,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
           /* Reserve room so a longer name doesn't run under Send a Brief. */
           .cpm-name{padding-right:130px}
           /* Self (editable) view has TWO wide buttons (Add Work / Edit Profile), not
-             the brand view's one narrow "Send a Brief" — pinning them absolute here
+             the brand view's one narrow "Send a Brief" - pinning them absolute here
              overlapped the Verified badge and name. Let them flow in-line below the
              avatar instead, like a normal row, same as everything else on this page. */
           .cpm-phead.is-editable .cpm-actions{position:absolute;top:62px;right:24px;margin:0}

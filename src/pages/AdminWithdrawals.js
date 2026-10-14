@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -12,7 +13,7 @@ export default function AdminWithdrawals() {
   const [pendingWithdrawals, setPendingWithdrawals] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  useLiveEffect(() => {
     fetchPendingWithdrawals();
   }, []);
 
@@ -91,7 +92,7 @@ export default function AdminWithdrawals() {
           <div className="aw-empty">
             <CheckCircle size={64} color="#22c55e" />
             <p>No pending withdrawals</p>
-            <span>All caught up — new requests will appear here.</span>
+            <span>All caught up - new requests will appear here.</span>
           </div>
         ) : (
           <div className="aw-grid">

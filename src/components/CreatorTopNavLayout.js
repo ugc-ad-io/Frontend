@@ -86,7 +86,7 @@ export default function CreatorTopNavLayout({ children, notifications = 0 }) {
   const showKycBanner = user?.role === 'creator' && kycStatus !== 'verified' && !isActive('/kyc');
   const KYC_BANNER = {
     not_submitted: { tone: 'warn', text: 'Verify your identity (KYC) to submit bids, unlock withdrawals, and get prioritised for campaigns.', cta: 'Verify KYC' },
-    pending: { tone: 'info', text: "Your KYC is under review — we'll let you know once it's verified.", cta: 'View status' },
+    pending: { tone: 'info', text: "Your KYC is under review - we'll let you know once it's verified.", cta: 'View status' },
     rejected: { tone: 'warn', text: 'Your KYC needs attention. Please review and resubmit your documents.', cta: 'Fix KYC' },
   };
   const kb = KYC_BANNER[kycStatus] || KYC_BANNER.not_submitted;

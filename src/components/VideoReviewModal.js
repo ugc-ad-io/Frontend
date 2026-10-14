@@ -177,7 +177,7 @@ export default function VideoReviewModal({
                     className="vrm-marker"
                     style={{ left: `${Math.min(100, (c.timestamp_seconds / duration) * 100)}%` }}
                     onClick={(e) => { e.stopPropagation(); seek(c.timestamp_seconds); }}
-                    title={`${fmtTs(c.timestamp_seconds)} — ${c.text}`}
+                    title={`${fmtTs(c.timestamp_seconds)} - ${c.text}`}
                   >
                     {i + 1}
                   </button>
@@ -207,10 +207,10 @@ export default function VideoReviewModal({
             <div className="vrm-free">Tap a timestamp to jump to the exact moment the brand marked for a change.</div>
           )}
           {!readOnly && typeof nextFee === 'number' && nextFee > 0 && (
-            <div className="vrm-fee">Paid revision — ₹{nextFee} will be charged from your wallet (₹300 of it goes to the creator). Include every change you need in this one.</div>
+            <div className="vrm-fee">Paid revision - ₹{nextFee} will be charged from your wallet (₹300 of it goes to the creator). Include every change you need in this one.</div>
           )}
           {!readOnly && freeRemaining === 1 && (
-            <div className="vrm-fee">This is your last free revision — include all your changes now. Every revision after this costs ₹500 (₹300 goes to the creator).</div>
+            <div className="vrm-fee">This is your last free revision - include all your changes now. Every revision after this costs ₹500 (₹300 goes to the creator).</div>
           )}
           {!readOnly && typeof freeRemaining === 'number' && freeRemaining > 1 && (
             <div className="vrm-free">{freeRemaining} free revisions remaining.</div>
@@ -218,7 +218,7 @@ export default function VideoReviewModal({
           {!readOnly && contactHit && (
             <div className="vrm-warn">
               <AlertTriangle size={15} />
-              <span>Remove phone numbers and email addresses — keep communication on-platform.</span>
+              <span>Remove phone numbers and email addresses - keep communication on-platform.</span>
             </div>
           )}
 
@@ -228,7 +228,7 @@ export default function VideoReviewModal({
                 <p><MessageSquare size={17} /> No comments yet</p>
                 <small>{readOnly
                   ? 'The brand left no timestamped notes on this video.'
-                  : 'Play the video, pause where you want a change, and type below — your note is pinned to that moment.'}</small>
+                  : 'Play the video, pause where you want a change, and type below - your note is pinned to that moment.'}</small>
               </div>
             ) : ordered.map((c) => (
               <div className="vrm-c" key={c.id}>
@@ -318,10 +318,10 @@ export default function VideoReviewModal({
           .vrm-stage{position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center;background:#000;overflow:hidden}
           /* Fill the stage and letterbox with object-fit:contain so the WHOLE frame
              is always visible (a portrait clip no longer overflows and gets its
-             bottom cropped) — no fullscreen needed. */
+             bottom cropped) - no fullscreen needed. */
           .vrm-stage video{width:100%;height:100%;object-fit:contain;display:block}
           /* Hard-guarantee a single timeline: even if the browser (or a stray
-             \`controls\` attribute) tries to draw native controls, keep them hidden —
+             \`controls\` attribute) tries to draw native controls, keep them hidden -
              the custom track below is the only scrub bar. */
           .vrm-stage video::-webkit-media-controls,
           .vrm-stage video::-webkit-media-controls-enclosure,

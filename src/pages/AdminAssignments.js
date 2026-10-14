@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -16,7 +17,7 @@ export default function AdminAssignments() {
   const [selectedManager, setSelectedManager] = useState('');
   const [showAssignModal, setShowAssignModal] = useState(false);
 
-  useEffect(() => {
+  useLiveEffect(() => {
     fetchAll();
   }, []);
 

@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
@@ -85,7 +86,7 @@ export function MyBidsContent() {
     finally { setDetailLoading(false); }
   };
 
-  useEffect(() => {
+  useLiveEffect(() => {
     if (user?.approval_status && user.approval_status !== 'approved') return undefined;
     fetchData();
     const interval = setInterval(fetchData, 10000);
@@ -207,7 +208,7 @@ export function MyBidsContent() {
                 <div className="mb-grid">
                   <div className="mb-stat"><small>Brief Budget</small><strong>{budget}</strong></div>
                   <div className="mb-stat"><small>Your Bid</small><strong>{formatMoney(bid.amount)}</strong></div>
-                  <div className="mb-stat"><small>Delivery</small><strong>{bid.estimated_delivery_days ? `${bid.estimated_delivery_days} days` : '—'}</strong></div>
+                  <div className="mb-stat"><small>Delivery</small><strong>{bid.estimated_delivery_days ? `${bid.estimated_delivery_days} days` : '-'}</strong></div>
                   <div className="mb-stat"><small>Submitted</small><strong>{fmtDate(selected.submitted_at || bid.submitted_at)}</strong></div>
                 </div>
 

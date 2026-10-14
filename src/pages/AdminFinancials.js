@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -60,7 +61,7 @@ export default function AdminFinancials() {
   const [walletTxLoading, setWalletTxLoading] = useState(false);
   const [working, setWorking] = useState(false);
 
-  useEffect(() => {
+  useLiveEffect(() => {
     fetchAnalytics();
     fetchWithdrawals();
     fetchUsers();
@@ -69,7 +70,7 @@ export default function AdminFinancials() {
     fetchOverview();
   }, []);
 
-  useEffect(() => { fetchRevenue(revenuePeriod); }, [revenuePeriod]);
+  useLiveEffect(() => { fetchRevenue(revenuePeriod); }, [revenuePeriod]);
 
   const fetchAnalytics = async () => {
     try { const r = await axios.get(`${API}/admin/analytics`); setAnalytics(r.data); } catch { /* optional */ }
@@ -297,8 +298,8 @@ export default function AdminFinancials() {
                     <tr key={w.id} data-testid={`fin-withdrawal-${w.id}`}>
                       <td className="afn-strong">{w.user_id}</td>
                       <td className="afn-strong">{inr(w.amount)}</td>
-                      <td>{w.payment_method || '—'}</td>
-                      <td>{w.requested_at ? new Date(w.requested_at).toLocaleDateString() : '—'}</td>
+                      <td>{w.payment_method || '-'}</td>
+                      <td>{w.requested_at ? new Date(w.requested_at).toLocaleDateString() : '-'}</td>
                       <td><span className="afn-badge warn">{w.status}</span></td>
                       <td className="afn-row-actions">
                         <button className="afn-approve" onClick={() => handleApprove(w.id)} data-testid={`fin-approve-${w.id}`}><CheckCircle size={15} /> Approve</button>
@@ -343,11 +344,11 @@ export default function AdminFinancials() {
                             return (
                               <tr key={pid} data-testid={`payout-${pid}`}>
                                 <td className="afn-strong">{p.creator_nickname || p.creator_handle || p.creator || p.creator_id || p.user_id}</td>
-                                <td>{p.campaign_title || p.deal_id || '—'}</td>
+                                <td>{p.campaign_title || p.deal_id || '-'}</td>
                                 <td>{inr(gross)}</td>
                                 <td className="afn-tds">−{inr(tds)}</td>
                                 <td className="afn-strong">{inr(net)}</td>
-                                <td><span className="afn-badge neutral">{String(p.method || p.payment_method || '—').toUpperCase()}</span></td>
+                                <td><span className="afn-badge neutral">{String(p.method || p.payment_method || '-').toUpperCase()}</span></td>
                                 <td><span className={`afn-badge ${status === 'held' ? 'danger' : status === 'released' ? 'good' : 'info'}`}>{status}</span></td>
                                 <td className="afn-row-actions">
                                   {canReleasePayouts && status !== 'released' && (
@@ -409,7 +410,7 @@ export default function AdminFinancials() {
               <div className={`afn-recon-banner ${escrowMatches ? 'good' : 'bad'}`} data-testid="escrow-recon">
                 <span>Sum of individual escrows <strong>{inr(escrowSum)}</strong></span>
                 {platformEscrow != null && <span>Platform escrow balance <strong>{inr(platformEscrow)}</strong></span>}
-                <span className="afn-recon-flag">{escrowMatches ? <><CheckCircle size={14} /> Reconciled</> : <><XCircle size={14} /> Mismatch — investigate</>}</span>
+                <span className="afn-recon-flag">{escrowMatches ? <><CheckCircle size={14} /> Reconciled</> : <><XCircle size={14} /> Mismatch - investigate</>}</span>
               </div>
               {escrow.length === 0 ? (
                 <div className="afn-empty"><Lock size={48} /><p>No funds in escrow</p><span>Funds held against active deals will be listed here with release controls.</span></div>
@@ -423,8 +424,8 @@ export default function AdminFinancials() {
                         {/* Real NAME first, handle only as a fallback. The rest of the app
                             follows person_display_name's rule that the website never
                             surfaces a raw @handle where a company or person name exists. */}
-                        <td>{e.brand || e.brand_handle || '—'}</td>
-                        <td>{e.creator || e.creator_handle || '—'}</td>
+                        <td>{e.brand || e.brand_handle || '-'}</td>
+                        <td>{e.creator || e.creator_handle || '-'}</td>
                         <td className="afn-strong">{inr(e.amount || e.held_amount)}</td>
                         <td><span className="afn-badge info">{e.status || 'held'}</span></td>
                         <td className="afn-row-actions">
@@ -498,7 +499,7 @@ export default function AdminFinancials() {
           <div className="afn-scrim" onClick={() => setWalletDetail(null)} />
           <aside className="afn-drawer" data-testid="wallet-drawer">
             <header className="afn-modal-head">
-              <h2>Wallet — {walletDetail.full_name || walletDetail.business_name || walletDetail.name || walletDetail.nickname || walletDetail.email}</h2>
+              <h2>Wallet - {walletDetail.full_name || walletDetail.business_name || walletDetail.name || walletDetail.nickname || walletDetail.email}</h2>
               <button className="afn-icon" onClick={() => setWalletDetail(null)} aria-label="Close"><X size={18} /></button>
             </header>
             <div className="afn-drawer-summary">
@@ -519,9 +520,9 @@ export default function AdminFinancials() {
                       const amt = Number(t.amount || 0);
                       return (
                         <tr key={t.id || i}>
-                          <td>{t.created_at || t.date ? new Date(t.created_at || t.date).toLocaleDateString() : '—'}</td>
-                          <td><span className="afn-badge neutral">{t.type || t.reason_code || '—'}</span></td>
-                          <td>{t.reason || t.description || '—'}</td>
+                          <td>{t.created_at || t.date ? new Date(t.created_at || t.date).toLocaleDateString() : '-'}</td>
+                          <td><span className="afn-badge neutral">{t.type || t.reason_code || '-'}</span></td>
+                          <td>{t.reason || t.description || '-'}</td>
                           <td className={amt >= 0 ? 'afn-credit' : 'afn-tds'}>{amt >= 0 ? '+' : '−'}{inr(Math.abs(amt))}</td>
                         </tr>
                       );

@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useAuth } from '../App';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
@@ -49,7 +50,7 @@ export default function DashboardLayout({
     }
   }
 
-  useEffect(() => {
+  useLiveEffect(() => {
     if (user?.id) {
       axios.get(`${API}/auth/me`)
         .then(res => setUser(res.data))

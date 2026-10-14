@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -121,7 +122,7 @@ export default function BrandWorkReview() {
     } finally { setLoading(false); }
   };
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, []);
+  useLiveEffect(() => { load(); /* eslint-disable-next-line */ }, []);
   useEffect(() => { setPage(1); }, [tab, perPage]);
 
   // Close the mobile filter menu on any outside click.
@@ -165,10 +166,10 @@ export default function BrandWorkReview() {
     try {
       const { data } = await axios.post(`${API}/deals/${id}/approve`);
       toast.success(data?.payout_status === 'awaiting_edited'
-        ? 'Raw video approved — the creator will submit the edited video next'
+        ? 'Raw video approved - the creator will submit the edited video next'
         : it?.stage === 'raw' && it?.editMode === 'ugc'
-          ? 'Raw video approved — creator paid, UGC.ad is editing it'
-          : 'Approved — payment released to the creator');
+          ? 'Raw video approved - creator paid, UGC.ad is editing it'
+          : 'Approved - payment released to the creator');
       await load();
       // Ask for a rating right after approval. This tab used to approve silently — only
       // the standalone /work-review/:id page prompted — so brands approving from here
@@ -184,7 +185,7 @@ export default function BrandWorkReview() {
       await axios.post(`${API}/reviews`, {
         campaign_id: reviewFor.campaignId || reviewFor.id, creator_id: reviewFor.creatorId, rating, review,
       });
-      toast.success('Review submitted — thanks for the feedback!');
+      toast.success('Review submitted - thanks for the feedback!');
       setReviewFor(null);
     } catch (e) {
       toast.error(e?.response?.data?.detail || 'Could not submit your review');
@@ -230,7 +231,7 @@ export default function BrandWorkReview() {
       });
       // Say so when money actually moved — a bare "Revision requested" hid the debit.
       toast.success(data?.paid
-        ? `Revision requested — ₹${data.fee_charged} charged. Wallet balance: ₹${Math.round(data.new_balance)}.`
+        ? `Revision requested - ₹${data.fee_charged} charged. Wallet balance: ₹${Math.round(data.new_balance)}.`
         : 'Revision requested');
       setRevisionFor(null);
       setRevisionCampaignId(null);
@@ -348,7 +349,7 @@ export default function BrandWorkReview() {
             {pageRows.map((it) => {
               const st = STATUS[it.status] || STATUS.pending_review;
               const duration = durations[it.id] || '';
-              const ftype = fileExt(it.files[0]) || '—';
+              const ftype = fileExt(it.files[0]) || '-';
               return (
                 <article key={it.id} className="bwr-card">
                   <Thumb file={it.files[0]} onOpen={() => openFile(it)} watermark={it.status !== 'approved'} onDuration={(v) => setDurations((p) => (p[it.id] === v ? p : { ...p, [it.id]: v }))} />
@@ -384,7 +385,7 @@ export default function BrandWorkReview() {
                     </div>
 
                     <div className="bwr-meta">
-                      <div className="bwr-meta-item"><Clock size={16} /><div><label>Duration</label><span>{duration || '—'}</span></div></div>
+                      <div className="bwr-meta-item"><Clock size={16} /><div><label>Duration</label><span>{duration || '-'}</span></div></div>
                       <div className="bwr-meta-item"><FileVideo size={16} /><div><label>File Type</label><span>{ftype}</span></div></div>
                       <div className="bwr-meta-item"><Calendar size={16} /><div><label>Submitted</label><span>{fmtDate(it.submittedAt)}</span></div></div>
                     </div>
@@ -416,7 +417,7 @@ export default function BrandWorkReview() {
                     )}
                     {it.status === 'pending_review' && (
                       <>
-                        <button type="button" className="bwr-btn approve" onClick={() => approve(it.id)}><CheckCircle2 size={16} /> {it.stage === 'raw' ? (it.editMode === 'ugc' ? 'Approve raw — UGC.ad edits next' : 'Approve raw — creator edits next') : 'Approve'}</button>
+                        <button type="button" className="bwr-btn approve" onClick={() => approve(it.id)}><CheckCircle2 size={16} /> {it.stage === 'raw' ? (it.editMode === 'ugc' ? 'Approve raw - UGC.ad edits next' : 'Approve raw - creator edits next') : 'Approve'}</button>
                         {/* Single revision path: the timestamped video-review flow, labelled
                             "Request Revision". Only shown when there's a video to scrub. */}
                         {it.files.some((f) => isVideo(assetUrl(f))) && (

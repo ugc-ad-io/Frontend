@@ -822,8 +822,8 @@
 .bc-cats button.is-active{background:linear-gradient(135deg,#12124f,#07074e);border-color:transparent;color:#fff;box-shadow:0 10px 24px -10px rgba(7,7,78,.6)}
 /* Six equal columns keep every creator card visible within the available width. */
 .bc-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:28px 20px}
-@media (max-width:1200px){.bc-grid{grid-template-columns:repeat(4,minmax(0,215px))}}
-@media (max-width:1000px){.bc-grid{grid-template-columns:repeat(3,minmax(0,215px))}}
+@media (max-width:1200px){.bc-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (max-width:1000px){.bc-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 /* Phone: two ROWS that scroll sideways instead of a tall 2-column column-scroll.
    grid-auto-flow:column with 2 explicit rows fills top→bottom then moves right, so the
    same markup becomes a 2-row track — no array splitting and no duplicated cards.
@@ -906,9 +906,9 @@
 @media (max-width:600px){.bc-vid-overlay{padding:14px}}
 
 /* ── Creator quick-preview card (click a creator → peek, then full details) ── */
-.bcq-overlay{position:fixed;inset:0;z-index:210;background:rgba(8,10,30,.6);backdrop-filter:blur(6px);
+.bcq-overlay{position:fixed;inset:0;z-index:2000;background:rgba(8,10,30,.6);backdrop-filter:blur(6px);
   display:flex;align-items:center;justify-content:center;padding:24px}
-.bcq-card{position:relative;display:flex;background:#fff;border-radius:22px;overflow:hidden;width:min(94vw,640px);
+.bcq-card{position:relative;display:flex;background:#fff;border-radius:22px;overflow:auto;max-height:calc(100dvh - 48px);width:min(94vw,640px);
   box-shadow:0 40px 90px -30px rgba(8,10,30,.7)}
 .bcq-close{position:absolute;top:12px;right:12px;z-index:4;width:36px;height:36px;border-radius:50%;border:none;
   background:rgba(255,255,255,.92);color:#15163a;display:grid;place-items:center;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.18)}

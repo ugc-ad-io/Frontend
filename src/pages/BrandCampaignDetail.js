@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../App';
@@ -29,7 +30,7 @@ import PhotoOrInitial from '../components/PhotoOrInitial';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 const inr = (n) => `Rs. ${Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
-const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : '—');
+const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : '-');
 const assetUrl = (u) => (!u ? '' : (/^https?:\/\//i.test(u) ? u : `${BACKEND_URL}${String(u).startsWith('/') ? '' : '/'}${u}`));
 // The /profile endpoint stores the photo under several keys (top-level or nested
 // under `profile`), so a single `.profile_photo` check missed most creators and
@@ -52,7 +53,7 @@ const STATUS_BADGE = {
   work_submitted: { label: 'In Review', cls: 'review' },
   completed: { label: 'Completed', cls: 'done' },
   pending_approval: { label: 'Pending Approval', cls: 'pending' },
-  awaiting_brand_confirmation: { label: 'Script Ready — Confirm', cls: 'pending' },
+  awaiting_brand_confirmation: { label: 'Script Ready - Confirm', cls: 'pending' },
   rejected: { label: 'Rejected', cls: 'rejected' },
   cancelled: { label: 'Cancelled', cls: 'rejected' },
   // Admin moderation — an on-hold/banned brief must not fall through to "Live".
@@ -85,7 +86,7 @@ function ScriptConfirmCard({ campaign, onDone }) {
       toast.success(data?.message || 'Done');
       onDone?.();
     } catch (e) {
-      toast.error(e?.response?.data?.detail || 'Could not submit — try again.');
+      toast.error(e?.response?.data?.detail || 'Could not submit - try again.');
     } finally {
       setBusy(false);
     }
@@ -93,18 +94,18 @@ function ScriptConfirmCard({ campaign, onDone }) {
 
   return (
     <div style={{ background: '#fffdf4', border: '1px solid #e7d9a0', borderRadius: 12, padding: '18px 20px', margin: '14px 0' }}>
-      <strong style={{ display: 'block', fontSize: 16, marginBottom: 6 }}>📝 Your script is ready — review it before the brief goes live</strong>
+      <strong style={{ display: 'block', fontSize: 16, marginBottom: 6 }}>📝 Your script is ready - review it before the brief goes live</strong>
       <p style={{ margin: '0 0 12px', fontSize: 13.5, color: '#6b6236' }}>
         UGC.ad wrote this script for your campaign. Creators will only see the brief after you confirm.
       </p>
       <div style={{ whiteSpace: 'pre-wrap', background: '#fff', border: '1px solid #eee4bd', borderRadius: 8, padding: '12px 14px', fontSize: 14, maxHeight: 320, overflowY: 'auto' }}>
-        {campaign.script_text || 'No script text attached — contact support.'}
+        {campaign.script_text || 'No script text attached - contact support.'}
       </div>
       {changesOpen && (
         <textarea
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder="What should the team change? Be specific — tone, hook, product points…"
+          placeholder="What should the team change? Be specific - tone, hook, product points…"
           rows={3}
           style={{ width: '100%', marginTop: 12, borderRadius: 8, border: '1px solid #ddd', padding: 10, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }}
         />
@@ -113,7 +114,7 @@ function ScriptConfirmCard({ campaign, onDone }) {
         {!changesOpen ? (
           <>
             <button className="cmk-btn-primary-sm" disabled={busy} onClick={() => act('confirm')}>
-              <Check size={15} /> {busy ? 'Publishing…' : 'Confirm — send to creators'}
+              <Check size={15} /> {busy ? 'Publishing…' : 'Confirm - send to creators'}
             </button>
             <button className="cmk-btn-ghost-sm" disabled={busy} onClick={() => setChangesOpen(true)}>
               Request changes
@@ -207,7 +208,7 @@ function WorkTile({ url }) {
 }
 
 // Some profile fields (e.g. followers) are objects — never render those directly.
-const safeText = (v, fb = '—') => {
+const safeText = (v, fb = '-') => {
   if (v == null || v === '') return fb;
   if (typeof v === 'object') return fb;
   return String(v);
@@ -427,11 +428,11 @@ export default function BrandCampaignDetail() {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { load(); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useLiveEffect(() => { load(); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Whose review am I looking at? Re-fetch when the brand switches creators so the
   // "Add a review" vs "Rated ★" state on a completed deal follows the active creator.
-  useEffect(() => {
+  useLiveEffect(() => {
     if (!activeCreatorId) { setMyReview(null); return; }
     let live = true;
     axios.get(`${API}/reviews/creator/${activeCreatorId}`)
@@ -449,7 +450,7 @@ export default function BrandCampaignDetail() {
   // Multi-creator: pull the ACTIVE creator's own work submission so the Work Review
   // tab and approve/revise/download follow the switcher. Single-creator keeps using
   // the campaign-level work_submission untouched.
-  useEffect(() => {
+  useLiveEffect(() => {
     if (creators.length <= 1 || !activeCreatorId) { setActiveWork(null); return; }
     let live = true;
     axios.get(`${API}/work/campaign/${id}?creator_id=${encodeURIComponent(activeCreatorId)}`)
@@ -545,10 +546,10 @@ export default function BrandCampaignDetail() {
       if (!wid) return toast.error('No submitted work to approve yet');
       const { data } = await axios.post(`${API}/work/${wid}/approve`);
       toast.success(data?.payout_status === 'awaiting_edited'
-        ? 'Raw video approved — the creator will submit the edited video next'
+        ? 'Raw video approved - the creator will submit the edited video next'
         : ws?.stage === 'raw' && editModeOf(campaign) === 'ugc'
-          ? 'Raw video approved — creator paid, UGC.ad is editing it'
-          : 'Approved — payment released to the creator');
+          ? 'Raw video approved - creator paid, UGC.ad is editing it'
+          : 'Approved - payment released to the creator');
       refresh();
     } catch (e) { toast.error(e?.response?.data?.detail || 'Failed to approve'); }
   };
@@ -565,8 +566,8 @@ export default function BrandCampaignDetail() {
       const left = Number(data?.slots_left ?? 0);
       toast.success(
         left > 0
-          ? `${who} selected — the deal has started. ${left} slot${left === 1 ? '' : 's'} still open.`
-          : `${who} selected — the deal has started. This brief is now fully staffed.`
+          ? `${who} selected - the deal has started. ${left} slot${left === 1 ? '' : 's'} still open.`
+          : `${who} selected - the deal has started. This brief is now fully staffed.`
       );
       await load();
     } catch (e) {
@@ -589,7 +590,7 @@ export default function BrandCampaignDetail() {
       const back = Number(data?.refunded || 0);
       toast.success(
         back > 0
-          ? `Hiring closed with ${data.creators_hired} creator${data.creators_hired === 1 ? '' : 's'} — ₹${Math.round(back).toLocaleString('en-IN')} refunded to your wallet.`
+          ? `Hiring closed with ${data.creators_hired} creator${data.creators_hired === 1 ? '' : 's'} - ₹${Math.round(back).toLocaleString('en-IN')} refunded to your wallet.`
           : `Hiring closed with ${data.creators_hired} creator${data.creators_hired === 1 ? '' : 's'}.`
       );
       await load();
@@ -607,7 +608,7 @@ export default function BrandCampaignDetail() {
       const { data } = await axios.post(`${API}/work/${wid}/request-revision`, payload);
       // Say so when money actually moved — a bare "Revision requested" hid the debit.
       toast.success(data?.paid
-        ? `Revision requested — ₹${data.fee_charged} charged. Wallet balance: ₹${Math.round(data.new_balance)}.`
+        ? `Revision requested - ₹${data.fee_charged} charged. Wallet balance: ₹${Math.round(data.new_balance)}.`
         : 'Revision requested');
       setRevisionOpen(false);
       refresh();
@@ -672,7 +673,7 @@ export default function BrandCampaignDetail() {
       await axios.post(`${API}/reviews`, { campaign_id: id, creator_id: creatorId, rating, review });
       setMyReview({ campaign_id: id, creator_id: creatorId, reviewer_id: user?.id, rating, review });
       setReviewOpen(false);
-      toast.success('Review submitted — thanks for the feedback!');
+      toast.success('Review submitted - thanks for the feedback!');
     } catch (e) {
       toast.error(e?.response?.data?.detail || 'Could not submit your review');
     }
@@ -795,7 +796,7 @@ export default function BrandCampaignDetail() {
                         <div className="bwr-meta">
                           {wsLabeled.map((f) => (
                             <button key={`${f.kind}-${f.url}`} type="button" className="bwr-btn"
-                              onClick={() => (isVideo(assetUrl(f.url)) ? setVideoModal({ src: assetUrl(f.url), watermark: wsStatus !== 'approved', title: `${campaign.title} — ${f.label}` }) : window.open(assetUrl(f.url), '_blank'))}>
+                              onClick={() => (isVideo(assetUrl(f.url)) ? setVideoModal({ src: assetUrl(f.url), watermark: wsStatus !== 'approved', title: `${campaign.title} - ${f.label}` }) : window.open(assetUrl(f.url), '_blank'))}>
                               <Play size={15} /> {f.label}
                             </button>
                           ))}
@@ -814,8 +815,8 @@ export default function BrandCampaignDetail() {
                       </div>
 
                       <div className="bwr-meta">
-                        <div className="bwr-meta-item"><Clock size={16} /><div><label>Duration</label><span>{wsDur || '—'}</span></div></div>
-                        <div className="bwr-meta-item"><FileVideo size={16} /><div><label>File Type</label><span>{fileExt(wsFirst) || '—'}</span></div></div>
+                        <div className="bwr-meta-item"><Clock size={16} /><div><label>Duration</label><span>{wsDur || '-'}</span></div></div>
+                        <div className="bwr-meta-item"><FileVideo size={16} /><div><label>File Type</label><span>{fileExt(wsFirst) || '-'}</span></div></div>
                         <div className="bwr-meta-item"><Calendar size={16} /><div><label>Submitted</label><span>{fmtDate(ws.submitted_at)}</span></div></div>
                       </div>
                     </div>
@@ -851,7 +852,7 @@ export default function BrandCampaignDetail() {
                         : <button type="button" className="bwr-btn" onClick={() => setReviewOpen(true)}><Star size={16} /> Add a review</button>
                       )}
                       {wsStatus === 'pending_review' && (<>
-                        <button type="button" className="bwr-btn approve" onClick={approveWork}><CheckCircle2 size={16} /> {ws.stage === 'raw' ? (editModeOf(campaign) === 'ugc' ? 'Approve raw — UGC.ad edits next' : 'Approve raw — creator edits next') : 'Approve'}</button>
+                        <button type="button" className="bwr-btn approve" onClick={approveWork}><CheckCircle2 size={16} /> {ws.stage === 'raw' ? (editModeOf(campaign) === 'ugc' ? 'Approve raw - UGC.ad edits next' : 'Approve raw - creator edits next') : 'Approve'}</button>
                         <button type="button" className="bwr-btn" onClick={requestRevision}><RefreshCw size={16} /> Request Revision</button>
                       </>)}
                       {wsStatus === 'revision_requested' && (
@@ -875,8 +876,8 @@ export default function BrandCampaignDetail() {
                   // returns dispute_id: None and asks the two of you to settle it in the
                   // deal chat first. Saying "a dispute was opened" made brands sit and
                   // wait for an admin who was never coming.
-                  scope_creep: { cls: 'bad', text: 'Creator says these changes go beyond the brief. Nothing is disputed yet — reply in the deal chat below to agree what is in scope.' },
-                  partial_dispute: { cls: 'bad', text: 'Creator accepted some changes and pushed back on the rest. Nothing is disputed yet — reply in the deal chat below to settle the remaining items.' },
+                  scope_creep: { cls: 'bad', text: 'Creator says these changes go beyond the brief. Nothing is disputed yet - reply in the deal chat below to agree what is in scope.' },
+                  partial_dispute: { cls: 'bad', text: 'Creator accepted some changes and pushed back on the rest. Nothing is disputed yet - reply in the deal chat below to settle the remaining items.' },
                 };
                 const a = ANSWER[answer];
                 const items = revisionItems(rev);
@@ -948,7 +949,7 @@ export default function BrandCampaignDetail() {
         {/* Campaign Progress — horizontal; shipment folded in */}
         <div className="bcd-card bcd-progress-card">
           <div className="bcd-progress-head">
-            <h3>Campaign Progress{creators.length > 1 && handle ? ` — ${handle.replace(/^@/, '')}` : ''}</h3>
+            <h3>Campaign Progress{creators.length > 1 && handle ? ` - ${handle.replace(/^@/, '')}` : ''}</h3>
             {(campaign.requires_shipment || ship.required) && (delivered || shipped) && (
               <div className="bcd-progress-ship">
                 <span className={`bcd-pill ${delivered ? 'ok' : 'info'}`}>{delivered ? 'Delivered' : 'Shipped'}</span>
@@ -963,7 +964,7 @@ export default function BrandCampaignDetail() {
               <div key={i} className={`bcd-hstep ${s.done ? 'done' : ''} ${s.current ? 'current' : ''} ${!s.done && !s.current ? 'todo' : ''}`}>
                 <span className="bcd-hstep-dot">{s.done ? <Check size={13} /> : null}</span>
                 <strong>{s.label}</strong>
-                <small>{s.date ? fmtDate(s.date) : (s.current ? 'In progress' : '—')}</small>
+                <small>{s.date ? fmtDate(s.date) : (s.current ? 'In progress' : '-')}</small>
               </div>
             ))}
           </div>
@@ -979,11 +980,11 @@ export default function BrandCampaignDetail() {
             <div className="bcd-progress-mini-top">
               <div className="bcd-progress-mini-end">
                 <strong>{steps[0].label}</strong>
-                <small>{steps[0].date ? fmtDate(steps[0].date) : '—'}</small>
+                <small>{steps[0].date ? fmtDate(steps[0].date) : '-'}</small>
               </div>
               <div className="bcd-progress-mini-end right">
                 <strong>{steps[steps.length - 1].label}</strong>
-                <small>{steps[steps.length - 1].date ? fmtDate(steps[steps.length - 1].date) : '—'}</small>
+                <small>{steps[steps.length - 1].date ? fmtDate(steps[steps.length - 1].date) : '-'}</small>
               </div>
             </div>
             <div className="bcd-progress-mini-track">
@@ -993,7 +994,7 @@ export default function BrandCampaignDetail() {
               <span className="bcd-progress-mini-dot end" />
             </div>
             <div className="bcd-progress-mini-foot">
-              <span>{steps[progressIdx]?.current ? `${steps[progressIdx].label} — in progress` : steps[progressIdx]?.label}</span>
+              <span>{steps[progressIdx]?.current ? `${steps[progressIdx].label} - in progress` : steps[progressIdx]?.label}</span>
               <ChevronRight size={15} className="bcd-progress-mini-chev" />
             </div>
           </button>
@@ -1005,7 +1006,7 @@ export default function BrandCampaignDetail() {
                   <span className="bcd-vstep-dot">{s.done ? <Check size={12} /> : null}</span>
                   <div className="bcd-vstep-body">
                     <strong>{s.label}</strong>
-                    <small>{s.date ? fmtDate(s.date) : (s.current ? 'In progress' : '—')}</small>
+                    <small>{s.date ? fmtDate(s.date) : (s.current ? 'In progress' : '-')}</small>
                   </div>
                 </div>
               ))}
@@ -1014,8 +1015,8 @@ export default function BrandCampaignDetail() {
           {(campaign.requires_shipment || ship.required) && (
             <div className="bcd-ship-detail">
               <div className="bcd-kv"><label>Status</label><strong>{delivered ? 'Delivered' : shipped ? 'Shipped' : 'Pending'}</strong></div>
-              <div className="bcd-kv"><label>Tracking ID</label><strong>{ship.tracking_id || '—'}</strong></div>
-              <div className="bcd-kv"><label>Courier</label><strong>{ship.courier || '—'}</strong></div>
+              <div className="bcd-kv"><label>Tracking ID</label><strong>{ship.tracking_id || '-'}</strong></div>
+              <div className="bcd-kv"><label>Courier</label><strong>{ship.courier || '-'}</strong></div>
               {delivered && <div className="bcd-kv"><label>Delivered on</label><strong>{fmtDate(rec.received_at || ship.delivered_at)}</strong></div>}
 
               {/* This panel was read-only: it showed "Pending / — / —" with no way
@@ -1072,7 +1073,7 @@ export default function BrandCampaignDetail() {
                 <div className="bcd-kv-row">
                   <div className="bcd-kv"><label>Deliverables</label><strong>{safeText(creator.deliverables_completed, '0')} done</strong></div>
                   <div className="bcd-kv"><label>Starting Rate</label><strong>{safeText((cp.rate_card && cp.rate_card.expected_payout) || cp.expectedPayout || creator.budget_range, 'On request')}</strong></div>
-                  <div className="bcd-kv"><label>Skills</label><strong>{Array.isArray(cp.skills) && cp.skills.length ? cp.skills.slice(0, 2).join(', ') : safeText(creator.content_style, '—')}</strong></div>
+                  <div className="bcd-kv"><label>Skills</label><strong>{Array.isArray(cp.skills) && cp.skills.length ? cp.skills.slice(0, 2).join(', ') : safeText(creator.content_style, '-')}</strong></div>
                 </div>
                 {cp.bio && <p className="bcd-cre-bio">{cp.bio}</p>}
                 <div className="bcd-cre-actions">
@@ -1100,14 +1101,14 @@ export default function BrandCampaignDetail() {
               <div className="bcd-bids">
                 <p className="bcd-bids-h">
                   {hiredIds.length > 0
-                    ? `${hiredIds.length} of ${wanted} hired — ${openSlots} slot${openSlots === 1 ? '' : 's'} left. You're only charged when you pick someone.`
-                    : `${openBids.length} creator${openBids.length === 1 ? '' : 's'} applied — pick up to ${wanted}. You're only charged when you pick someone.`}
+                    ? `${hiredIds.length} of ${wanted} hired - ${openSlots} slot${openSlots === 1 ? '' : 's'} left. You're only charged when you pick someone.`
+                    : `${openBids.length} creator${openBids.length === 1 ? '' : 's'} applied - pick up to ${wanted}. You're only charged when you pick someone.`}
                 </p>
                 {/* Hired at least one but don't want to fill every slot? Close hiring
                     now and get the unused slots' budget back. */}
                 {hiredIds.length > 0 && (
                   <button type="button" className="bcd-finish-hiring" onClick={finishHiring} disabled={finishing} data-testid="finish-hiring-btn">
-                    <Check size={14} /> {finishing ? 'Closing…' : `Finish hiring with ${hiredIds.length} — refund ${openSlots} slot${openSlots === 1 ? '' : 's'}`}
+                    <Check size={14} /> {finishing ? 'Closing…' : `Finish hiring with ${hiredIds.length} - refund ${openSlots} slot${openSlots === 1 ? '' : 's'}`}
                   </button>
                 )}
                 {openBids.map((b) => (
@@ -1136,7 +1137,7 @@ export default function BrandCampaignDetail() {
                   </div>
                 ))}
                 {openBids.length === 0 && hiredIds.length > 0 && (
-                  <p className="bcd-muted">No more pending bids — waiting for more creators to apply for the remaining {openSlots} slot{openSlots === 1 ? '' : 's'}, or finish hiring above.</p>
+                  <p className="bcd-muted">No more pending bids - waiting for more creators to apply for the remaining {openSlots} slot{openSlots === 1 ? '' : 's'}, or finish hiring above.</p>
                 )}
               </div>
             )}
@@ -1216,7 +1217,7 @@ export default function BrandCampaignDetail() {
       )}
 
       <style>{`
-        /* Deal chat — shared thread with the creator */
+        /* Deal chat - shared thread with the creator */
         .bcd-dchat h3{display:flex;align-items:center;gap:7px;margin:0;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:16px;color:#15163a}
         .bcd-dchat-sub{margin:4px 0 12px;color:#8b90b0;font-size:13px}
         .bcd-dchat-list{max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:10px;padding:4px 2px}
@@ -1243,7 +1244,7 @@ export default function BrandCampaignDetail() {
         .bcd-dchat-input button{flex:none;width:42px;border:0;border-radius:11px;background:#15163a;color:#fff;cursor:pointer;display:grid;place-items:center}
         .bcd-dchat-input button:disabled{opacity:.45;cursor:not-allowed}
 
-        /* View Details — right-side slide-in drawer */
+        /* View Details - right-side slide-in drawer */
         .bcd-drawer-overlay{position:fixed;inset:0;z-index:1000;background:rgba(15,22,58,.45);backdrop-filter:blur(2px);display:flex;justify-content:flex-end}
         .bcd-drawer{width:min(680px,100%);height:100%;background:#fff;display:flex;flex-direction:column;box-shadow:-24px 0 60px rgba(15,22,58,.28);animation:bcd-slide .3s cubic-bezier(.2,.7,.2,1)}
         @keyframes bcd-slide{from{transform:translateX(48px);opacity:.5}to{transform:none;opacity:1}}
@@ -1317,7 +1318,7 @@ export default function BrandCampaignDetail() {
         .bcd-pill{display:inline-block;font-size:11.5px;font-weight:800;padding:5px 12px;border-radius:20px;text-transform:uppercase}
         .bcd-pill.ok{background:#dcfce7;color:#15a35b}.bcd-pill.info{background:#e0e7ff;color:#4452f0}.bcd-pill.warn{background:#fdf2e0;color:#d98314}
         /* Left column (Progress + Deliverables stacked) beside the Creator card */
-        /* Shipment details always show, so the layout is static — both columns
+        /* Shipment details always show, so the layout is static - both columns
            stretch to equal height and Deliverables fills the left column. */
         .bcd-row-main{display:grid;grid-template-columns:1.4fr 1fr;gap:20px;align-items:stretch}
         /* min-width:0 lets the columns shrink instead of a wide child (the horizontal
@@ -1402,7 +1403,7 @@ export default function BrandCampaignDetail() {
           .bcd-progress-mini-chev{flex:none;transition:transform .2s ease}
           .bcd-progress-mini[aria-expanded="true"] .bcd-progress-mini-chev{transform:rotate(90deg)}
 
-          /* Full timeline, revealed on tap — a vertical dot-and-line list. */
+          /* Full timeline, revealed on tap - a vertical dot-and-line list. */
           .bcd-vsteps{display:flex;flex-direction:column;margin-top:14px;padding:2px 4px 0}
           .bcd-vstep{display:flex;gap:12px;position:relative;padding-bottom:22px}
           .bcd-vstep:last-child{padding-bottom:0}

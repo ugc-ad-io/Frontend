@@ -34,7 +34,7 @@ export const DEMO_CAMPAIGNS = [
     selected_creator: 'demo-cr-2',
     created_at: '2026-06-10T11:30:00Z',
     bids: [
-      { id: 'demo-b4', creator_id: 'demo-cr-2', public_creator_id: 'CRE-2087', creator_nickname: 'sarah.huge', category: 'Lifestyle • Fashion', amount: 12000, estimated_delivery_days: 5, proposal: 'Festive styling is my specialty — expect punchy, scroll-stopping edits.' },
+      { id: 'demo-b4', creator_id: 'demo-cr-2', public_creator_id: 'CRE-2087', creator_nickname: 'sarah.huge', category: 'Lifestyle • Fashion', amount: 12000, estimated_delivery_days: 5, proposal: 'Festive styling is my specialty - expect punchy, scroll-stopping edits.' },
     ],
   },
   {
@@ -50,7 +50,7 @@ export const DEMO_CAMPAIGNS = [
     selected_creator: 'demo-cr-3',
     created_at: '2026-06-05T08:15:00Z',
     bids: [
-      { id: 'demo-b5', creator_id: 'demo-cr-3', public_creator_id: 'CRE-3310', creator_nickname: 'rohan.creator', category: 'Fitness • Health', amount: 11000, estimated_delivery_days: 4, proposal: 'Perfect fit for my fitness audience — clean macros-focused storytelling.' },
+      { id: 'demo-b5', creator_id: 'demo-cr-3', public_creator_id: 'CRE-3310', creator_nickname: 'rohan.creator', category: 'Fitness • Health', amount: 11000, estimated_delivery_days: 4, proposal: 'Perfect fit for my fitness audience - clean macros-focused storytelling.' },
     ],
   },
   {
@@ -82,7 +82,7 @@ export const DEMO_CAMPAIGNS = [
     selected_creator: null,
     created_at: '2026-06-20T16:45:00Z',
     bids: [
-      { id: 'demo-b7', creator_id: 'demo-cr-3', public_creator_id: 'CRE-3310', creator_nickname: 'rohan.creator', category: 'Fitness • Health', amount: 1900, estimated_delivery_days: 3, proposal: 'Gym content is exactly my lane — expect dynamic, motivational edits.' },
+      { id: 'demo-b7', creator_id: 'demo-cr-3', public_creator_id: 'CRE-3310', creator_nickname: 'rohan.creator', category: 'Fitness • Health', amount: 1900, estimated_delivery_days: 3, proposal: 'Gym content is exactly my lane - expect dynamic, motivational edits.' },
       { id: 'demo-b8', creator_id: 'demo-cr-5', public_creator_id: 'CRE-5120', creator_nickname: 'priya.moves', category: 'Fitness • Yoga', amount: 1700, estimated_delivery_days: 4, proposal: 'Calm, aspirational movement content with great natural lighting.' },
       { id: 'demo-b9', creator_id: 'demo-cr-6', public_creator_id: 'CRE-6033', creator_nickname: 'arjun.fit', category: 'Fitness • Strength', amount: 2100, estimated_delivery_days: 2, proposal: 'Fast turnaround, punchy hooks, strong CTA.' },
       { id: 'demo-b10', creator_id: 'demo-cr-7', public_creator_id: 'CRE-7088', creator_nickname: 'neha.active', category: 'Lifestyle • Fitness', amount: 1500, estimated_delivery_days: 5, proposal: 'Relatable everyday-athlete storytelling that converts.' },
@@ -143,7 +143,7 @@ export const DEMO_OVERVIEW_CREATORS = [
 const ORIGIN = typeof window !== 'undefined' ? window.location.origin : '';
 const reel = (n) => `${ORIGIN}/creator/${n}`;
 export const DEMO_WORK_REVIEW = [
-  { id: 'demo-wr-1', title: 'Summer Glow Serum — Morning Routine', campaign: 'Summer Skincare Collection', creatorId: 'demo-cr-1', creator: '@jennifer.l', photo: '', files: [reel('video_27.mp4')], submittedAt: '2026-06-25T09:30:00Z', status: 'approved' },
+  { id: 'demo-wr-1', title: 'Summer Glow Serum - Morning Routine', campaign: 'Summer Skincare Collection', creatorId: 'demo-cr-1', creator: '@jennifer.l', photo: '', files: [reel('video_27.mp4')], submittedAt: '2026-06-25T09:30:00Z', status: 'approved' },
   { id: 'demo-wr-2', title: 'Festive Try-On Haul Reel', campaign: 'Festive Fashion Haul', creatorId: 'demo-cr-2', creator: '@sarah.huge', photo: '', files: [reel('video_29.mp4')], submittedAt: '2026-06-26T14:10:00Z', status: 'approved' },
   { id: 'demo-wr-3', title: 'Protein Bar Taste Test', campaign: 'Protein Snack Launch', creatorId: 'demo-cr-3', creator: '@rohan.creator', photo: '', files: [reel('video_30.mp4')], submittedAt: '2026-06-24T11:00:00Z', status: 'pending_review' },
   { id: 'demo-wr-4', title: 'Smart Plug 3 Use-Cases Demo', campaign: 'Smart Home Gadget Demo', creatorId: 'demo-cr-4', creator: '@tech.with.amir', photo: '', files: [reel('video_32.mp4')], submittedAt: '2026-06-23T16:45:00Z', status: 'pending_review' },

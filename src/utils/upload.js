@@ -15,10 +15,10 @@ const POLL_GIVE_UP_MS = 30 * 60 * 1000;
 const mbOf = (file) => Math.round(file.size / 1048576);
 
 export const tooLargeMessage = (file, maxMb = MAX_UPLOAD_MB) =>
-  `${file.name || 'This file'} is ${mbOf(file)} MB. The maximum is ${maxMb} MB — compress or trim it and try again.`;
+  `${file.name || 'This file'} is ${mbOf(file)} MB. The maximum is ${maxMb} MB - compress or trim it and try again.`;
 
 const interrupted = (maxMb) =>
-  `The upload was interrupted. Check your connection and try again — videos must be ${maxMb} MB or smaller.`;
+  `The upload was interrupted. Check your connection and try again - videos must be ${maxMb} MB or smaller.`;
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 

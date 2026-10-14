@@ -107,7 +107,7 @@ export default function CreatorSignup() {
           </h1>
         </div>
         <p className="cs-sub">
-          Brands post real projects. You apply, create, and get paid—no outreach needed.
+          Brands post real projects. You apply, create, and get paid-no outreach needed.
         </p>
 
         {/* Email */}
@@ -352,7 +352,7 @@ export default function CreatorSignup() {
           cursor: pointer;
           transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
         }
-        /* The dropdown list itself renders in the OS palette — force dark text on
+        /* The dropdown list itself renders in the OS palette - force dark text on
            light so the options stay readable on Windows/Chrome. */
         .cs-dial option { color: #0f172a; background: #ffffff; }
         .cs-dial:focus {

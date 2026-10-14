@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../App';
@@ -80,14 +81,14 @@ export default function BrowseBriefs() {
     }
   };
 
-  useEffect(() => {
+  useLiveEffect(() => {
     fetchData();
     const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Keep the bookmark state in sync if saves change here or on the Saved page.
-  useEffect(() => {
+  useLiveEffect(() => {
     const sync = () => setSavedIds(getSavedIds());
     window.addEventListener('ugc-saved-changed', sync);
     return () => window.removeEventListener('ugc-saved-changed', sync);
@@ -319,10 +320,11 @@ export default function BrowseBriefs() {
             return;
           }
           // KYC gate: unverified creators can't bid — nudge them to verify first.
-          if (user?.kyc?.status !== 'verified') {
+          if (user?.kyc?.status !== 'verified' && !user?.kyc_verified) {
             toast.error('Verify your KYC before submitting a bid.');
             return navigate('/kyc');
           }
+          if (!user?.profile_completed) { toast.error('Complete your creator profile before bidding.'); return navigate('/settings?tab=profile'); }
           openBidForm(b);
         }}
       />
@@ -345,7 +347,7 @@ export default function BrowseBriefs() {
                 <div className="bb-viewbid-title"><CheckCircle2 size={22} /><strong>Bid Already Submitted</strong></div>
                 <div className="bb-viewbid-stats">
                   <div><span>Your Bid Amount</span><strong>₹{Number(bid.amount || 0).toLocaleString('en-IN')}</strong></div>
-                  <div><span>Estimated Delivery</span><strong>{bid.estimated_delivery_days || '—'} days</strong></div>
+                  <div><span>Estimated Delivery</span><strong>{bid.estimated_delivery_days || '-'} days</strong></div>
                   <div><span>Status</span><strong className="bb-viewbid-status">{status}</strong></div>
                 </div>
                 <div className="bb-viewbid-proposal">

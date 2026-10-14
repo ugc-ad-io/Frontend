@@ -1,3 +1,4 @@
+import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../App';
@@ -87,7 +88,7 @@ export default function WorkSubmission() {
   // nothing about its submission changes.
   const needsEdited = (campaign?.deliverable_items || []).some((d) => d && d.edited_required);
 
-  useEffect(() => {
+  useLiveEffect(() => {
     if (campaignId) {
       fetchCampaign();
     }

@@ -237,6 +237,17 @@ export default function AdminUsers({
     }
   };
 
+  // One click from the table row: pick or un-pick a creator for the brand side
+  // "Meet Creators Approved by Our UGCAD Team" collection. Shows at once and undoes itself on failure.
+  const toggleUgcadApproved = async (u) => {
+    const next = !u.ugcad_approved;
+    const setFlag = (value) => setAllUsers((prev) => prev.map((x) => (x.id === u.id ? { ...x, ugcad_approved: value } : x)));
+    setFlag(next);
+    const ok = await adminPost('/admin/user/ugcad-approved', { user_id: u.id, approved: next },
+      next ? 'Marked as UGCAD approved' : 'Removed from UGCAD approved');
+    if (!ok) setFlag(!next);
+  };
+
   // ---- filtering ---------------------------------------------------------------
   const q = searchTerm.trim().toLowerCase();
   const qNoHash = q.replace(/^[#@]/, '');
@@ -498,6 +509,14 @@ export default function AdminUsers({
                       <td>
                         <div className="au-actions">
                           <button className="au-btn au-btn-view" onClick={() => openDetail(u)} title="View profile"><Eye size={14} /></button>
+                          {isCreator(u) && caps.userMgmt && (
+                            <button
+                              className={`au-btn au-btn-ugcad${u.ugcad_approved ? ' on' : ''}`}
+                              onClick={() => toggleUgcadApproved(u)}
+                              aria-pressed={!!u.ugcad_approved}
+                              title={u.ugcad_approved ? 'UGCAD approved: click to remove' : 'Mark UGCAD approved'}
+                            ><BadgeCheck size={14} /></button>
+                          )}
                           <button className="au-btn au-btn-edit" onClick={() => handleEdit(u)}>Edit</button>
                           {caps.ban && (
                             <button className={`au-btn ${isInactive(u) ? 'au-btn-unban' : 'au-btn-ban'}`} onClick={() => openBan(u)}>
@@ -649,6 +668,10 @@ export default function AdminUsers({
         .au-btn-ban:hover { background: #fecaca; }
         .au-btn-unban { background: #dcfce7; color: #166534; }
         .au-btn-unban:hover { background: #bbf7d0; }
+        .au-btn-ugcad { background: #f1f5f9; color: #94a3b8; padding: 6px 9px; }
+        .au-btn-ugcad:hover { background: #e2e8f0; color: #475569; }
+        .au-btn-ugcad.on { background: #dcfce7; color: #166534; }
+        .au-btn-ugcad.on:hover { background: #bbf7d0; }
         .au-btn-primary { background: linear-gradient(100deg,#12124f,#07074e); color: #fff; padding: 10px 18px; font-size: 0.9rem; box-shadow: 0 12px 26px -12px rgba(7,7,78,.7); }
         .au-btn-primary:hover { background: #2e2e94; }
         .au-btn-secondary { background: #e2e8f0; color: #4a5568; padding: 10px 18px; font-size: 0.9rem; }

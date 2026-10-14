@@ -641,6 +641,7 @@ export default function BrandCampaignDetail() {
   // There is nobody to ship to until a creator is on the campaign — and the label
   // flow reads the creator's address server-side — so shipping is gated on this.
   const creatorSelected = !!(campaign.selected_creator || creator?.id || deal?.creator?.id);
+  const shippingAllowed = !['rejected', 'cancelled', 'banned'].includes(campaign.status) && campaign.booking_status !== 'declined';
   // Multi-creator hiring: who's already on the brief, how many slots remain, and
   // which bids are still up for grabs (a hired creator shouldn't be re-selectable).
   const hiredIds = selectedCreators(campaign);
@@ -1014,7 +1015,7 @@ export default function BrandCampaignDetail() {
               ))}
             </div>
           )}
-          {(campaign.requires_shipment || ship.required) && (
+          {shippingAllowed && (campaign.requires_shipment || ship.required) && (
             <div className="bcd-ship-detail">
               <div className="bcd-kv"><label>Status</label><strong>{delivered ? 'Delivered' : shipped ? 'Shipped' : 'Pending'}</strong></div>
               <div className="bcd-kv"><label>Tracking ID</label><strong>{ship.tracking_id || '-'}</strong></div>
@@ -1195,7 +1196,7 @@ export default function BrandCampaignDetail() {
 
       {/* Same shipment drawer the dashboard uses — reload on close so the panel's
           tracking id / courier reflect whatever was just entered. */}
-      {shipmentOpen && (
+      {shippingAllowed && shipmentOpen && (
         <PageModal drawer maxWidth={560} onClose={() => { setShipmentOpen(false); load(); }}>
           <ShipmentTracking
             embedCampaignId={campaign.id || campaign._id}

@@ -4,6 +4,9 @@ import { shouldRecoverChunk, freshPageUrl } from '../utils/chunkRecovery';
 export default class AppErrorBoundary extends Component {
   state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }
+  componentDidUpdate(previous) {
+    if (this.state.failed && previous.resetKey !== this.props.resetKey) this.setState({ failed: false });
+  }
   componentDidCatch(error) {
     console.error('Website failed to load', error);
     try {

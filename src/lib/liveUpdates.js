@@ -68,7 +68,9 @@ export function useLiveUpdates(token, invalidate) {
     };
     check();
     const timer = setInterval(check, 15000);
-    const resume = () => { check(true); };
+    // Coming back to the tab only refreshes if the cursor really moved. Forcing it wiped the
+    // read cache on every focus, so the first clicks after switching windows were slow.
+    const resume = () => { check(); };
     const changedInput = event => { const form = event.target.closest?.('form'); if (form) dirtyForms.add(form); };
     const savedInput = event => { dirtyForms.delete(event.target.closest?.('form')); };
     window.addEventListener('focus', resume);

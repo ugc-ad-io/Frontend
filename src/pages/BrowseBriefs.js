@@ -86,7 +86,7 @@ export default function BrowseBriefs() {
 
   useLiveEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 10000);
+    const interval = setInterval(fetchData, 60000); // live updates push changes; this is only a safety net
     return () => clearInterval(interval);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

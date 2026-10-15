@@ -101,21 +101,21 @@ export default function BrandWorkReview() {
 
   const load = async () => {
     try {
-      const [review, dealList] = await Promise.all([
-        // One row per (campaign, creator) — campaign.work_submission (the old source
-        // here) is a single field overwritten on every submit, so a second hired
-        // creator's work silently replaced the first's and never showed up.
-        axios.get(`${API}/business/work-review?t=${Date.now()}`).catch(() => ({ data: [] })),
-        // Carries revision_tracker (free left / next fee) — the review list doesn't,
-        // so without this the modal can't warn the brand before a ₹500 debit.
-        axios.get(`${API}/deals/business`).catch(() => ({ data: [] })),
-      ]);
-      const trackerMap = {};
-      (Array.isArray(dealList.data) ? dealList.data : []).forEach((d) => {
-        const cid = d?.campaign?.id || d?.campaign_id;
-        if (cid) trackerMap[String(cid)] = d.revision_tracker || {};
+      // Carries revision_tracker (free left / next fee) — the review list doesn't, so the
+      // modal can't warn the brand before a ₹500 debit without it. It is the slow call (it
+      // builds every deal), so it is NOT awaited: the list shows as soon as the rows arrive.
+      axios.get(`${API}/deals/business`).catch(() => ({ data: [] })).then((dealList) => {
+        const trackerMap = {};
+        (Array.isArray(dealList.data) ? dealList.data : []).forEach((d) => {
+          const cid = d?.campaign?.id || d?.campaign_id;
+          if (cid) trackerMap[String(cid)] = d.revision_tracker || {};
+        });
+        setTrackers(trackerMap);
       });
-      setTrackers(trackerMap);
+      // One row per (campaign, creator) — campaign.work_submission (the old source
+      // here) is a single field overwritten on every submit, so a second hired
+      // creator's work silently replaced the first's and never showed up.
+      const review = await axios.get(`${API}/business/work-review?t=${Date.now()}`).catch(() => ({ data: [] }));
       setItems(Array.isArray(review.data) ? review.data : []);
     } catch (e) {
       setItems([]);

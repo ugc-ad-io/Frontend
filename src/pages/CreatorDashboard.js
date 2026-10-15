@@ -160,7 +160,7 @@ export default function CreatorDashboard() {
 
     if (user?.id) {
       fetchAllData();
-      const interval = setInterval(fetchAllData, 10000);
+      const interval = setInterval(fetchAllData, 60000); // live updates push changes; this is only a safety net
       return () => clearInterval(interval);
     }
   }, [user?.approval_status, user?.id]);

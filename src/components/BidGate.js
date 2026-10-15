@@ -110,27 +110,15 @@ export function useBidGate(user) {
   return { ensureProfile, showFee, percent, ui };
 }
 
-/** The fee, spelled out inside the bid form and updated as the creator types the amount. */
-export function BidFeeNotice({ amount, percent = DEFAULT_COMMISSION_PERCENT }) {
-  const b = feeBreakdown(amount, percent);
+/** The fee rate, stated inside the bid form. Deliberately no per-bid maths. */
+export function BidFeeNotice({ percent = DEFAULT_COMMISSION_PERCENT }) {
   return (
     <div className="bfee" data-testid="bid-fee-notice">
       <strong>UGC.ad platform fee: {pctLabel(percent)}%</strong>
       <span>Deducted from your payout when the brand approves your work. TDS, if applicable, is separate.</span>
-      {b && (
-        <dl>
-          <div><dt>Your bid</dt><dd>{inr(b.gross)}</dd></div>
-          <div><dt>Platform fee ({pctLabel(percent)}%)</dt><dd>− {inr(b.fee)}</dd></div>
-          <div className="net"><dt>You receive</dt><dd>{inr(b.net)}</dd></div>
-        </dl>
-      )}
       <style>{`
         .bfee{display:flex;flex-direction:column;gap:4px;background:#f6f7ff;border:1px solid #e6e9ff;border-radius:12px;padding:11px 13px;font-size:.82rem;color:#4a4f73;font-weight:500}
         .bfee strong{color:#15163a;font-size:.88rem}
-        .bfee dl{margin:6px 0 0;display:grid;gap:3px}
-        .bfee dl div{display:flex;justify-content:space-between;gap:12px}
-        .bfee dt,.bfee dd{margin:0}
-        .bfee .net{border-top:1px solid #dfe3ff;padding-top:5px;margin-top:2px;font-weight:700;color:#15163a}
       `}</style>
     </div>
   );

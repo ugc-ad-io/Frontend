@@ -127,14 +127,9 @@ test('if the server cannot be reached it falls back to the website checklist', a
   expect(container.querySelectorAll('[data-testid="bgate-missing"] li').length).toBeGreaterThan(0);
 });
 
-test('the in-form notice shows the fee and the amount the creator receives, updating with the bid', async () => {
-  await act(async () => { root.render(<BidFeeNotice amount="" percent={20} />); });
+test('the in-form notice states the fee rate and never calculates the bid', async () => {
+  await act(async () => { root.render(<BidFeeNotice amount="2500" percent={20} />); });
   expect(text()).toContain('platform fee: 20%');
   expect(text()).not.toContain('You receive');
-
-  await act(async () => { root.render(<BidFeeNotice amount="2500" percent={20} />); });
-  expect(text()).toContain('₹2,500');
-  expect(text()).toContain('₹500');
-  expect(text()).toContain('You receive');
-  expect(text()).toContain('₹2,000');
+  expect(text()).not.toContain('₹');
 });

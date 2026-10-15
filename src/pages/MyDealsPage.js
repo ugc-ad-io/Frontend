@@ -1,3 +1,4 @@
+import { loadCreatorDeal } from '../utils/creatorDeals';
 import { useLiveEffect } from '../lib/liveUpdates';
 import briefDeliveryLabel from '../utils/briefDeliveryLabel';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -539,35 +540,26 @@ export default function MyDealsPage() {
     }
   };
 
-  const fetchDeals = async () => {
+  const selectedDealIdRef = useRef(null);
+  selectedDealIdRef.current = selectedDeal?.campaign?.id || searchParams.get('campaign') || searchParams.get('deal');
+  const dealFetchSequence = useRef(0);
+  const fetchingDeals = useRef(false);
+  const fetchDeals = async (requestedId) => {
+    if (fetchingDeals.current && !requestedId) return;
+    const sequence = ++dealFetchSequence.current;
+    fetchingDeals.current = true;
     try {
-      const res = await axios.get(`${API}/deals/my`);
-      const list = (res.data || []).filter((item) => {
-        const creatorId = item.creator?.id ?? item.creator_id;
-        return creatorId == null || String(creatorId) === String(user.id);
-      });
+      const { list, detail } = await loadCreatorDeal(API, requestedId || selectedDealIdRef.current);
+      if (sequence !== dealFetchSequence.current) return;
       setDeals(list);
-      const campaignParam = searchParams.get('campaign');
-      const dealParam = searchParams.get('deal');
-      setSelectedDeal((current) => {
-        if (!list.length) return null;
-        // Deep-link from My Bids / My Active Work: preselect the matching deal.
-        if (!current) {
-          if (dealParam) {
-            const byDeal = list.find((d) => getDealId(d) === dealParam);
-            if (byDeal) return byDeal;
-          }
-          if (campaignParam) {
-            const byCampaign = list.find((d) => String(d.campaign?.id) === String(campaignParam));
-            if (byCampaign) return byCampaign;
-          }
-        }
-        return list.find((item) => getDealId(item) === getDealId(current)) || list[0];
-      });
+      setSelectedDeal(detail);
     } catch (error) {
-      toast.error('Failed to load deals');
+      if (sequence === dealFetchSequence.current) toast.error('Failed to load deals');
     } finally {
-      setLoading(false);
+      if (sequence === dealFetchSequence.current) {
+        fetchingDeals.current = false;
+        setLoading(false);
+      }
     }
   };
 
@@ -786,7 +778,8 @@ export default function MyDealsPage() {
     }
     const nextDeals = deals.filter((deal) => getDealId(deal) !== dealId);
     setDeals(nextDeals);
-    setSelectedDeal(nextDeals[0] || null);
+    if (nextDeals.length) fetchDeals(getDealId(nextDeals[0]));
+    else navigate('/my-deals');
     toast.success('Deal archived');
   };
 
@@ -999,7 +992,7 @@ export default function MyDealsPage() {
         <div className="cmk-dr-back">
           <button type="button" aria-label="Back to My Deals" title="Back to My Deals" onClick={() => navigate('/my-deals')}><ArrowLeft size={20} /></button>
           {deals.length > 1 && (
-            <select value={String(getDealId(selectedDeal))} onChange={(e) => setSelectedDeal(deals.find((d) => String(getDealId(d)) === e.target.value) || selectedDeal)}>
+            <select value={String(getDealId(selectedDeal))} onChange={(e) => fetchDeals(deals.find(d => String(getDealId(d)) === e.target.value)?.campaign?.id || e.target.value)}>
               {deals.map((d) => <option key={getDealId(d)} value={String(getDealId(d))}>{getDealTitle(d)}</option>)}
             </select>
           )}

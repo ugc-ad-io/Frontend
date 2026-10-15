@@ -1,5 +1,5 @@
 import { useLiveEffect } from '../lib/liveUpdates';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
@@ -117,13 +117,17 @@ export default function MyDealsHubPage() {
     return () => clearInterval(interval);
   }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const fetchingDeals = useRef(false);
   const fetchDeals = async () => {
+    if (fetchingDeals.current) return;
+    fetchingDeals.current = true;
     try {
-      const res = await axios.get(`${API}/deals/my?t=${Date.now()}`);
+      const res = await axios.get(`${API}/deals/my?summary=true`);
       setDeals(res.data || []);
     } catch {
       toast.error('Failed to load deals');
     } finally {
+      fetchingDeals.current = false;
       setLoading(false);
     }
   };

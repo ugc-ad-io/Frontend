@@ -381,9 +381,10 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
     return () => { a = false; };
   }, [reviews]);
 
-  // Seed the editable copies once data arrives.
+  // Keep the entire draft while editing: live refreshes and image uploads can
+  // update data between sections. Only seed again after saving or cancelling.
   useEffect(() => {
-    if (!data) return;
+    if (!data || editing) return;
     const pr = data.profile || {};
     const sl = pr.social_links || {};
     setForm({
@@ -408,7 +409,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
       deliveryDays: String(pr.delivery_days || (pr.rate_card && pr.rate_card.delivery_days) || ''),
     });
     setPf(Array.isArray(data.portfolio) ? data.portfolio : []);
-  }, [data]);
+  }, [data, editing]);
 
   const uploadFile = async (file, endpoint) => {
     // The generic uploader (portfolio videos) must not send big videos through the server.

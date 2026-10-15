@@ -787,6 +787,7 @@ export default function MessagesPage() {
       await axios.post(`${API}/chat/action-cards`, {
         recipient_id: selectedId,
         type: actionComposerType,
+        deal_id: counteringCardId ? messages.find(item => item.id === counteringCardId)?.deal_id : undefined,
         fields: getActionCardPayloadFields()
       });
       // If this counter replies to a specific offer, mark that offer as countered

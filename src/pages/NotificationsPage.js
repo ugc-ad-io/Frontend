@@ -1,3 +1,4 @@
+import { resolveNotifLink } from '../utils/notificationLinks';
 import { useLiveEffect } from '../lib/liveUpdates';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
@@ -35,7 +36,7 @@ export default function NotificationsPage() {
   const markAll = async () => {
     try { await axios.post(`${API}/notifications/mark-all-read`); load(); } catch { /* ignore */ }
   };
-  const open = (n) => { if (!n.read) markRead(n.id); if (n.link) navigate(n.link); };
+  const open = (n) => { if (!n.read) markRead(n.id); if (n.link) navigate(resolveNotifLink(n.link)); };
 
   const unread = items.filter((n) => !n.read).length;
   const Layout = user?.role === 'business' ? BrandTopNavLayout : CreatorTopNavLayout;

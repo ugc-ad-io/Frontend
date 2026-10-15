@@ -1,3 +1,4 @@
+import { resolveNotifLink } from '../utils/notificationLinks';
 import { useLiveEffect } from '../lib/liveUpdates';
 import React, { useState, useEffect, useRef } from 'react';
 import { Bell, Check, X } from 'lucide-react';
@@ -12,21 +13,6 @@ const API = `${BACKEND_URL}/api`;
 // don't exist, so clicking them called navigate() on a dead path and nothing happened.
 // This rewrites the known-bad/legacy paths to the real ones — and because it runs on
 // read, it fixes notifications ALREADY sitting in the DB, not just new ones.
-const LEGACY_LINK_MAP = {
-  '/deals': '/my-deals',
-  '/payouts': '/withdrawal',
-  '/creator-dashboard': '/dashboard/creator',
-  '/dashboard/creator/inbox': '/messages',
-  '/dashboard/business/deals': '/dashboard/business/all-campaigns',
-  '/admin/match-queue': '/dashboard/admin/campaigns',
-  '/admin/campaigns': '/dashboard/admin/campaigns',
-  '/dashboard/admin/flagged-messages': '/dashboard/admin/flagged',
-};
-const resolveNotifLink = (link) => {
-  if (!link) return null;
-  const [path, rest] = String(link).split(/(?=[?#])/);
-  return (LEGACY_LINK_MAP[path] || path) + (rest || '');
-};
 
 const NotificationBell = () => {
   const [notifications, setNotifications] = useState([]);
@@ -81,7 +67,7 @@ const NotificationBell = () => {
         toast(n.title || 'New notification', {
           description: n.message,
           action: n.link
-            ? { label: 'Open', onClick: () => navigate(n.link) }
+            ? { label: 'Open', onClick: () => navigate(resolveNotifLink(n.link)) }
             : undefined,
         });
       });

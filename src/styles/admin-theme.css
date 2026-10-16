@@ -861,44 +861,61 @@
   .admin-dashboard .admin-user-name { display: none; }
 }
 
-/* ---------- Phone app shell (PWA): one app bar + bottom bar Home | Reviews | Deals | More ---------- */
+/* ---------- Phone app shell (PWA): one app bar + bottom bar Home | Reviews | Deals | More ----------
+   Layout ownership (each safe-area inset applied ONCE, see --safe-* in admin-mobile.css):
+   - app bar (sticky, in flow) owns the top inset;
+   - bottom bar (fixed, overlays content) owns the bottom inset; the page reserves exactly its
+     height so the last item scrolls clear of it;
+   - the page owns the side insets. One document scroll; no fixed heights stacked on 100vh. */
 .admin-mobile-nav { display: none; }
 .admin-dashboard .admin-topbar-title { display: none; }
 
-@media (max-width: 768px) {
+@media (max-width: 768px), (max-height: 500px) and (pointer: coarse) {
+  .App, .admin-dashboard { min-height: 100vh; min-height: 100dvh; }
+  /* phones navigate with the bottom bar + More; the desktop sidebar/drawer never shows */
+  .admin-dashboard .admin-sidebar, .admin-nav-backdrop { display: none !important; }
   .admin-mobile-nav {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     position: fixed;
     left: 0; right: 0; bottom: 0;
     z-index: 50;
-    background: #fff;
+    background: #fff;                         /* continuous through the inset area */
     border-top: 1px solid #E4E7F0;
-    padding-bottom: env(safe-area-inset-bottom);
+    padding: 0 var(--safe-right) var(--safe-bottom) var(--safe-left);
   }
   .admin-mobile-nav-item {
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
-    min-height: 56px; padding: 0; border: 0; background: none; font: inherit;
-    color: #667085; font-size: 12px; font-weight: 500; text-decoration: none; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+    height: var(--am-nav-h); min-width: 0; padding: 0 4px; border: 0; background: none; font: inherit;
+    color: #667085; font-size: 12px; line-height: 16px; font-weight: 500; text-decoration: none; cursor: pointer;
   }
+  .admin-mobile-nav-item > svg { width: 24px; height: 24px; flex-shrink: 0; display: block; }
+  .admin-mobile-nav-item > span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .admin-mobile-nav-item.is-active { color: #5557EE; font-weight: 600; }
   .admin-mobile-nav-item:focus-visible { outline: 2px solid #5557EE; outline-offset: -4px; }
-  /* room for the bottom bar so the last row/button is never covered */
-  .admin-dashboard .admin-main { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  /* exactly the bar's height: the content's own bottom padding gives the breathing gap */
+  .admin-dashboard .admin-main { padding-bottom: calc(var(--am-nav-h) + var(--safe-bottom)); }
+  /* typing: the bar would ride up on the keyboard and cover the field, so it steps aside */
+  body:has(.admin-dashboard :is(input:not([type=checkbox]):not([type=radio]):not([type=file]), textarea, select):focus) .admin-mobile-nav { display: none; }
   /* the bottom bar replaces the hamburger drawer and the "back to dashboard" link */
   .admin-dashboard .admin-mobile-toggle,
   .admin-dashboard .admin-dashboard-back { display: none; }
-  /* one compact app bar: title left, account right; the in-page heading is hidden */
-  .admin-dashboard .admin-topbar { padding-top: env(safe-area-inset-top); }
-  .admin-dashboard .admin-topbar-title { display: block; margin: 0 auto 0 0; font-size: 20px; font-weight: 700; color: #110E45; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* one compact app bar: 56px content + the top inset, title and account vertically centred */
+  .admin-dashboard .admin-topbar {
+    height: auto;
+    min-height: calc(var(--am-appbar-h) + var(--safe-top));
+    padding: var(--safe-top) calc(12px + var(--safe-right)) 0 calc(16px + var(--safe-left));
+    gap: 8px;
+  }
+  .admin-dashboard .admin-topbar-title { display: block; min-width: 0; margin: 0 auto 0 0; font-size: 20px; line-height: 1.2; font-weight: 700; color: #110E45; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .admin-dashboard .admin-user-btn { min-height: 44px; }
   .admin-dashboard .page-head { display: none; }
-  .admin-dashboard .admin-review-tabs { margin-bottom: 16px; }
+  .admin-dashboard .admin-review-tabs { margin-bottom: 12px; }
   /* ONE gutter: #root and <main> each added 14px on phones (site-wide rule), plus the content's
-     own padding. Same fix as the brand/creator app: the app bar spans the screen, content keeps 16px. */
+     own padding. The app bar spans the screen, content keeps 16px (plus side insets in landscape). */
   #root:has(.admin-dashboard),
   .admin-dashboard .admin-main { padding-left: 0 !important; padding-right: 0 !important; }
-  .admin-dashboard .admin-topbar { padding-left: 16px; padding-right: 12px; }
-  .admin-dashboard .dashboard-content { padding: 16px; }
+  .admin-dashboard .dashboard-content { padding: 16px calc(16px + var(--safe-right)) 16px calc(16px + var(--safe-left)); max-width: none; }
   /* More menu: over the page, under the bottom bar (detail pages sit above both) */
   .admin-more.am-detail { z-index: 49; gap: 0; }
 }

@@ -35,6 +35,33 @@ export const visibleAdminTabs = (user) => ADMIN_TABS
   // founder already has the full "Users" tab, so hide it for founders.
   .filter((tab) => !(tab.id === 'assigned' && isFounder(user)));
 
+// Admin pages draw under the notch/home indicator and pad for it themselves (viewport-fit=cover);
+// the rest of the site keeps the default viewport. Also keeps a just-selected filter chip in view
+// inside its horizontally scrolling row.
+function useAdminPhoneChrome(isPhone) {
+  useEffect(() => {
+    const meta = document.querySelector('meta[name="viewport"]');
+    const before = meta?.getAttribute('content');
+    if (meta && before && !/viewport-fit/.test(before)) meta.setAttribute('content', `${before}, viewport-fit=cover`);
+    return () => { if (meta && before) meta.setAttribute('content', before); };
+  }, []);
+  useEffect(() => {
+    if (!isPhone) return undefined;
+    const onClick = (event) => {
+      const row = event.target.closest?.('.am-chips');
+      if (!row) return;
+      requestAnimationFrame(() => {
+        const chip = row.querySelector('.am-chip.is-active') || event.target.closest('.am-chip');
+        if (!chip) return;
+        const r = row.getBoundingClientRect(); const c = chip.getBoundingClientRect();
+        if (c.left < r.left || c.right > r.right - 28) row.scrollBy({ left: c.left < r.left ? c.left - r.left - 8 : c.right - r.right + 36, behavior: 'smooth' });
+      });
+    };
+    document.addEventListener('click', onClick);
+    return () => document.removeEventListener('click', onClick);
+  }, [isPhone]);
+}
+
 const REVIEW_PATHS = ['/dashboard/admin/applications', '/dashboard/admin/campaigns', '/dashboard/admin/kyc', '/dashboard/admin/profiles'];
 const HOME_PATHS = ['/dashboard/admin', '/dashboard/admin/overview', '/dashboard/admin/stats'];
 
@@ -86,7 +113,7 @@ function AdminMoreMenu({ user, activeTab, onTabClick, onClose }) {
         <h1 style={{ paddingLeft: 8 }}>More</h1>
         <button type="button" className="am-icon-btn" aria-label="Close" onClick={onClose}><X size={22} /></button>
       </header>
-      <div className="am-detail-body" style={{ paddingBottom: 'calc(88px + env(safe-area-inset-bottom))' }}>
+      <div className="am-detail-body" style={{ paddingBottom: 'calc(var(--am-nav-h) + var(--safe-bottom) + 16px)' }}>
         <div className="am-section am-identity" style={{ flexDirection: 'row' }}>
           <span className="am-avatar" aria-hidden="true">{name.trim().charAt(0).toUpperCase()}</span>
           <span className="am-card-main">
@@ -136,6 +163,7 @@ function AdminSidebar({ activeTab, onTabClick, user, mobileOpen = false, onClose
   const [moreOpen, setMoreOpen] = useState(false);
   const { pathname } = useLocation();
   useEffect(() => { setMoreOpen(false); }, [pathname]);
+  useAdminPhoneChrome(isPhone);
 
   return (
     <>

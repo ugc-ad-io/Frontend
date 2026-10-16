@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Users, Megaphone, Package, BadgeCheck, ReceiptText, IndianRupee, FileText, ClipboardCheck,
@@ -9,6 +10,39 @@ const greeting = () => {
   const hour = new Date().getHours();
   return hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 };
+/**
+ * "Good afternoon, Admin Master" on one line when it fits. When it does not, a deliberate
+ * fallback: the greeting, then the name as a smaller secondary line (truncated, full name in
+ * the title) - never one oversized heading wrapped across two lines.
+ */
+function Greeting({ name }) {
+  const lineRef = useRef(null);
+  const [split, setSplit] = useState(false);
+  const hello = greeting();
+  useLayoutEffect(() => {
+    const check = () => {
+      setSplit(false);
+      requestAnimationFrame(() => { const el = lineRef.current; if (el) setSplit(el.scrollWidth > el.clientWidth + 1); });
+    };
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, [name, hello]);
+  return (
+    <div className="am-greeting">
+      {split ? (
+        <>
+          <h1>{hello}</h1>
+          <p className="am-greeting-name" title={name}>{name}</p>
+        </>
+      ) : (
+        <h1 ref={lineRef} title={`${hello}, ${name}`}>{hello}, {name}</h1>
+      )}
+      <p>Here’s what’s happening today.</p>
+    </div>
+  );
+}
+
 const inr = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
 
 /**
@@ -79,20 +113,17 @@ export default function AdminHomePhone({ user, stats, pendingProfiles, pendingCa
 
   return (
     <div className="am admin-home-phone">
-      <div className="am-greeting">
-        <h1>{greeting()}, {name}</h1>
-        <p>Here’s what’s happening today.</p>
-      </div>
+      <Greeting name={name} />
 
       {tiles.length > 0 && (
-        <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <h2 className="am-section-title">Overview</h2>
           <div className="am-tiles">{tiles.map(tile)}</div>
         </section>
       )}
 
       {queue.length > 0 && (
-        <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div className="am-section-head">
             <h2 className="am-section-title">Needs attention</h2>
             {waiting > 0 && <span className="am-badge am-badge--wait">{waiting} waiting</span>}
@@ -104,7 +135,7 @@ export default function AdminHomePhone({ user, stats, pendingProfiles, pendingCa
       {secondary.length > 0 && <div className="am-tiles">{secondary.map(tile)}</div>}
 
       {actions.length > 0 && (
-        <section style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <section style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <h2 className="am-section-title">Quick actions</h2>
           {rows(actions, false)}
         </section>

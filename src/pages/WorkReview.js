@@ -49,7 +49,7 @@ export default function WorkReview({ embedId, onClose }) {
       toast.success(res.data?.message || 'Content approved. The creator has been paid.');
       // Stay on the page in an "approved" state so the brand can download the clean file.
       setWork((prev) => prev ? { ...prev, status: 'approved', watermark_protected: false, can_download: true } : prev);
-      setShowReviewModal(true);
+      if (res.data?.payout_status === 'released' && work?.stage !== 'raw') setShowReviewModal(true);
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Failed to approve work'));
     }

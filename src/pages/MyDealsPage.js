@@ -450,6 +450,7 @@ export default function MyDealsPage() {
   const [uploadPercent, setUploadPercent] = useState(null);
   const [uploadingEvidence, setUploadingEvidence] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const submitLock = useRef(false);
   const [mobileSection, setMobileSection] = useState('workspace');
   const [showAllActivity, setShowAllActivity] = useState(false);
   const [stepsExpanded, setStepsExpanded] = useState(false);
@@ -591,6 +592,8 @@ export default function MyDealsPage() {
       toast.error('Upload an unboxing video before marking received');
       return;
     }
+    if (submitLock.current) return;
+    submitLock.current = true;
     try {
       await axios.post(`${API}/deals/${selectedDeal.deal_id}/receipt`, {
         received_at: new Date().toISOString(),
@@ -603,7 +606,7 @@ export default function MyDealsPage() {
       fetchDeals();
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Receipt submission failed'));
-    }
+    } finally { submitLock.current = false; }
   };
 
   const handleSubmitContent = async () => {
@@ -621,6 +624,8 @@ export default function MyDealsPage() {
       return;
     }
 
+    if (submitLock.current) return;
+    submitLock.current = true;
     setSubmitting(true);
     try {
       await axios.post(`${API}/deals/${selectedDeal.deal_id}/content`, {
@@ -639,6 +644,7 @@ export default function MyDealsPage() {
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Submission failed'));
     } finally {
+      submitLock.current = false;
       setSubmitting(false);
     }
   };

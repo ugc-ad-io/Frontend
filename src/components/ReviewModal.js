@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Star, X } from 'lucide-react';
 
 /**
@@ -11,12 +11,16 @@ export default function ReviewModal({ title = 'Rate this creator', subtitle, onS
   const [hover, setHover] = useState(0);
   const [review, setReview] = useState('');
   const [busy, setBusy] = useState(false);
+  const submitLock = useRef(false);
 
   const submit = async () => {
+    if (submitLock.current) return;
+    submitLock.current = true;
     setBusy(true);
     try {
       await onSubmit({ rating, review: review.trim() });
     } finally {
+      submitLock.current = false;
       setBusy(false);
     }
   };
@@ -61,8 +65,8 @@ export default function ReviewModal({ title = 'Rate this creator', subtitle, onS
       </div>
 
       <style>{`
-        .rvm-overlay{position:fixed;inset:0;z-index:1200;background:rgba(15,22,58,.5);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:24px}
-        .rvm-card{position:relative;width:min(440px,100%);background:#fff;border-radius:20px;padding:26px 24px 22px;box-shadow:0 30px 70px rgba(15,22,58,.42);animation:rvm-pop .2s ease}
+        .rvm-overlay{position:fixed;inset:0;z-index:1200;background:rgba(15,22,58,.5);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:24px;overflow-y:auto;overscroll-behavior:contain}
+        .rvm-card{position:relative;width:min(440px,100%);background:#fff;border-radius:20px;padding:26px 24px 22px;max-height:calc(100dvh - 48px);overflow-y:auto;box-shadow:0 30px 70px rgba(15,22,58,.42);animation:rvm-pop .2s ease}
         @keyframes rvm-pop{from{transform:translateY(12px) scale(.98);opacity:0}to{transform:none;opacity:1}}
         .rvm-x{position:absolute;top:14px;right:14px;width:32px;height:32px;border:none;border-radius:9px;background:#f1f3fa;color:#15163a;cursor:pointer;display:grid;place-items:center}
         .rvm-x:hover{background:#e7eaf5}

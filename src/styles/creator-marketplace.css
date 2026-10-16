@@ -2011,3 +2011,8 @@
 .cat-rail > *{flex:none;scroll-snap-align:start;margin:0!important}
 .cat-rail-card{flex:0 1 auto;margin-left:auto;max-width:96px}
 .cat-rail-quick{margin-top:4px;max-width:100%}
+
+/* Prominent entry to the team-approved creator collection. */
+.bc-approved-link{background:var(--indigo,#07074e);color:#fff;padding:12px 18px;border-radius:12px;font-weight:700;box-shadow:0 4px 12px #07074e24;text-align:left}
+.bc-approved-link__check{color:#fff}
+.bc-approved-link:hover{background:#20206b;text-decoration:none}

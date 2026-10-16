@@ -1,3 +1,4 @@
+import { mediaUrl } from '../utils/mediaUrl';
 import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -22,7 +23,7 @@ import PhotoOrInitial from '../components/PhotoOrInitial';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
-const assetUrl = (u) => (!u ? '' : (/^https?:\/\//i.test(u) ? u : `${BACKEND_URL}${String(u).startsWith('/') ? '' : '/'}${u}`));
+const assetUrl = mediaUrl;
 const isVideo = (u) => /\.(mp4|webm|mov|m4v|avi|mkv)$/i.test(String(u || '').split('?')[0]);
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
 const fmtDur = (s) => { if (!s || !isFinite(s)) return ''; const m = Math.floor(s / 60); const sec = Math.floor(s % 60); return `${m}:${String(sec).padStart(2, '0')}`; };
@@ -36,6 +37,7 @@ function Thumb({ file, onOpen, onDuration, watermark }) {
   const [broken, setBroken] = useState(false);
   const url = assetUrl(file);
   const vid = isVideo(url);
+  useEffect(() => { setBroken(false); setD(''); }, [url]);
   return (
     <div className="bwr-thumb" onClick={onOpen}>
       {url && !broken ? (vid
@@ -165,7 +167,7 @@ export default function BrandWorkReview() {
       // Ask for a rating right after approval. This tab used to approve silently — only
       // the standalone /work-review/:id page prompted — so brands approving from here
       // were never asked to review the creator.
-      if (it?.creatorId) setReviewFor(it);
+      if (it?.creatorId && data?.payout_status === 'released' && it?.stage !== 'raw') setReviewFor(it);
     }
     catch { toast.error('Failed to approve'); }
     finally { busy.current = false; }
@@ -229,9 +231,9 @@ export default function BrandWorkReview() {
       toast.error(e?.response?.data?.detail || 'Failed to request revision');
     } finally { setRevSubmitting(false); }
   };
-  const download = async (id, title) => {
+  const download = async (id, title, asset) => {
     try {
-      await downloadDeliverable(API, id, title);
+      await downloadDeliverable(API, id, title, asset);
     } catch (err) {
       // The server sends the reason (not approved / no file / not authorized).
       toast.error(apiErrorMessage(err, 'Download failed'));
@@ -401,7 +403,9 @@ export default function BrandWorkReview() {
                     </div>
 
                     {it.status === 'approved' && (
-                      <button type="button" className="bwr-btn primary" onClick={() => download(it.id, it.title)}><Download size={16} /> Download</button>
+                      <div>{(it.labeledFiles || []).length > 1 ? it.labeledFiles.map(f => (
+                        <button key={f.kind} type="button" className="bwr-btn primary" onClick={() => download(it.id, `${it.title}-${f.kind}`, f.kind)}><Download size={16} /> Download {f.label}</button>
+                      )) : <button type="button" className="bwr-btn primary" onClick={() => download(it.id, it.title)}><Download size={16} /> Download</button>}</div>
                     )}
                     {it.status === 'pending_review' && (
                       <>
@@ -486,8 +490,9 @@ export default function BrandWorkReview() {
               {videoErr ? (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, minHeight: 260, padding: 24, color: '#fff', textAlign: 'center' }}>
                   <FileVideo size={40} style={{ opacity: 0.6 }} />
-                  <strong>This video is no longer available</strong>
-                  <span style={{ fontSize: 13, opacity: 0.75 }}>The file couldn't be loaded from storage. Ask the creator to resubmit it.</span>
+                  <strong>Video could not be loaded</strong>
+                  <span style={{ fontSize: 13, opacity: 0.75 }}>Check your connection and retry loading the video.</span>
+                  <button type="button" className="bwr-btn" onClick={() => setVideoErr(false)}>Retry video</button>
                 </div>
               ) : (
                 <video

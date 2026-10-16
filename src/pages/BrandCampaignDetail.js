@@ -1,3 +1,4 @@
+import { mediaUrl } from '../utils/mediaUrl';
 import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -31,7 +32,7 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000'
 const API = `${BACKEND_URL}/api`;
 const inr = (n) => `Rs. ${Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : '-');
-const assetUrl = (u) => (!u ? '' : (/^https?:\/\//i.test(u) ? u : `${BACKEND_URL}${String(u).startsWith('/') ? '' : '/'}${u}`));
+const assetUrl = mediaUrl;
 // The /profile endpoint stores the photo under several keys (top-level or nested
 // under `profile`), so a single `.profile_photo` check missed most creators and
 // fell back to the initial. Resolve it the same way CreatorProfileModal does.
@@ -618,12 +619,12 @@ export default function BrandCampaignDetail() {
       toast.error(e?.response?.data?.detail || e.message || 'Failed to request revision');
     } finally { setRevSubmitting(false); }
   };
-  const downloadWork = async () => {
+  const downloadWork = async (asset) => {
     try {
       const wid = await resolveWorkId();
       if (!wid) return toast.error('No submitted work to download yet');
       // The server names the file with its real extension (mp4/mov/png/pdf).
-      await downloadDeliverable(API, wid, campaign.title);
+      await downloadDeliverable(API, wid, campaign.title, asset);
     } catch (e) {
       toast.error(e?.response?.status === 403 ? 'Download unlocks after you approve the work' : 'Could not download the deliverable');
     }
@@ -846,7 +847,7 @@ export default function BrandCampaignDetail() {
                       </div>
 
                       {wsStatus === 'approved' && (
-                        <button type="button" className="bwr-btn primary" onClick={downloadWork}><Download size={16} /> Download</button>
+                        <div>{wsLabeled.length > 1 ? wsLabeled.map(f => <button key={f.kind} type="button" className="bwr-btn primary" onClick={() => downloadWork(f.kind)}><Download size={16} /> Download {f.label}</button>) : <button type="button" className="bwr-btn primary" onClick={() => downloadWork()}><Download size={16} /> Download</button>}</div>
                       )}
                       {/* Review CTA — shows once the deal is complete (approval OR a
                           dispute ruling). Reviewed already? Show it's done instead. */}

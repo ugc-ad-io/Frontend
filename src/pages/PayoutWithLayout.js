@@ -196,7 +196,7 @@ export default function PayoutWithLayout() {
               <thead>
                 <tr>
                   <th>From</th><th>Campaign</th><th>Deal amount</th>
-                  <th>Platform fee</th><th>You received</th><th>Date</th>
+                  <th>Total deductions</th><th>You received</th><th>Date</th>
                 </tr>
               </thead>
               <tbody>
@@ -243,8 +243,12 @@ export default function PayoutWithLayout() {
                     {open && (
                       <div className="pwl-earning-details">
                         <p><span>Deal amount</span><strong>{inr(row.gross_amount)}</strong></p>
-                        <p><span>Platform fee</span><strong>{fees ? `− ${inr(fees)}` : '-'}</strong></p>
+                        <p><span>Platform fee</span><strong>{Number(row.commission_amount) ? `− ${inr(row.commission_amount)}` : '-'}</strong></p>
+                        {Number(row.tds_amount) > 0 && <p><span>TDS</span><strong>{inr(row.tds_amount)}</strong></p>}
+                        {Number(row.penalty_amount) > 0 && <p><span>Late delivery penalty</span><strong>{inr(row.penalty_amount)}</strong></p>}
+                        {Number(row.revision_credit) > 0 && <p><span>Revision credit</span><strong>{inr(row.revision_credit)}</strong></p>}
                         <p><span>You received</span><strong>{inr(row.net_amount)}</strong></p>
+                        <p><span>Total deductions</span><strong>{inr(fees)}</strong></p>
                         <p><span>Date</span><strong>{row.created_at ? new Date(row.created_at).toLocaleDateString('en-IN') : '-'}</strong></p>
                       </div>
                     )}

@@ -22,7 +22,19 @@ export default function HorizontalAccess() {
       return [...found];
     };
     const scan = () => {
-      const available = candidates();
+      // A background table must not expose its floating controls over an open panel.
+      const panelOpen = [...document.querySelectorAll(
+        '[role="dialog"], [aria-modal="true"], [class*="overlay"], [class*="backdrop"], [class*="scrim"], [class*="drawer"], [class*="popup"], .admin-sidebar.is-open, .hsr.is-open'
+      )].some(element => {
+        const style = getComputedStyle(element);
+        const box = element.getBoundingClientRect();
+        return !element.closest('[hidden], [aria-hidden="true"][data-state="closed"]')
+          && style.display !== 'none' && style.visibility !== 'hidden' && Number(style.opacity) !== 0
+          && box.width > 0 && box.height > 0
+          && box.bottom > 0 && box.top < window.innerHeight && box.right > 0 && box.left < window.innerWidth
+          && (style.position === 'fixed' || element.matches('[role="dialog"], [aria-modal="true"]'));
+      });
+      const available = panelOpen ? [] : candidates();
       if (!available.includes(active)) active = available[0];
       setTarget(active || null);
       setPosition(active?.scrollLeft || 0);
@@ -34,12 +46,23 @@ export default function HorizontalAccess() {
       scan();
     };
     scan();
+    // Respond immediately to panels mounting, closing, or toggling visibility.
+    let frame;
+    const observer = new MutationObserver(records => {
+      if (records.every(record => record.target instanceof Element && record.target.closest('.horizontal-access'))) return;
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(scan);
+    });
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true,
+      attributeFilter: ['class', 'style', 'hidden', 'open', 'aria-hidden', 'data-state'] });
     const timer = setInterval(scan, 1000);
     window.addEventListener('resize', scan);
     document.addEventListener('scroll', scan, true);
     document.addEventListener('pointerover', choose);
     return () => {
       clearInterval(timer);
+      observer.disconnect();
+      cancelAnimationFrame(frame);
       window.removeEventListener('resize', scan);
       document.removeEventListener('scroll', scan, true);
       document.removeEventListener('pointerover', choose);

@@ -17,9 +17,9 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000'
  * @param {string} [name]    file name without extension (the server adds the real one)
  * @throws the axios error, with the server's reason in response.data.detail
  */
-export async function downloadDeliverable(api, workId, name) {
+export async function downloadDeliverable(api, workId, name, asset) {
   const { data } = await axios.get(`${api}/work/${encodeURIComponent(workId)}/download`, {
-    params: { as_link: 1, ...(name ? { name } : {}) },
+    params: { as_link: 1, ...(asset ? { asset } : {}), ...(name ? { name } : {}) },
   });
   const href = /^https?:\/\//i.test(data.url) ? data.url : `${BACKEND_URL}${data.url}`;
 

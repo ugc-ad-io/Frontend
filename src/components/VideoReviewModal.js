@@ -1,3 +1,4 @@
+import { mediaUrl } from '../utils/mediaUrl';
 import { useState, useRef } from 'react';
 import { X, Trash2, RefreshCw, AlertTriangle, Send, MessageSquare, Play, Pause, Maximize2 } from 'lucide-react';
 import { findContactInfo } from './RevisionRequestModal';
@@ -41,6 +42,7 @@ export default function VideoReviewModal({
   const [timeline, setTimeline] = useState('48h');   // '24h' | '48h' | 'custom'
   const [customDeadline, setCustomDeadline] = useState('');
   const [playing, setPlaying] = useState(false);
+  const [videoError, setVideoError] = useState(false);
 
   // datetime-local min = now (can't set a deadline in the past). Local time, no seconds.
   const minDeadline = (() => {
@@ -150,18 +152,21 @@ export default function VideoReviewModal({
                 below is the single source of truth (and carries the markers). */}
             <video
               ref={videoRef}
-              src={src}
+              src={mediaUrl(src)}
               playsInline
               disablePictureInPicture={watermark}
               onContextMenu={watermark ? (e) => e.preventDefault() : undefined}
               onClick={togglePlay}
               onTimeUpdate={(e) => setNow(e.target.currentTime)}
               onLoadedMetadata={(e) => setDuration(e.target.duration || 0)}
+              onError={() => { setVideoError(true); setPlaying(false); }}
+              onCanPlay={() => setVideoError(false)}
               onPlay={() => setPlaying(true)}
               onPause={() => setPlaying(false)}
               onEnded={() => setPlaying(false)}
             />
             {watermark && <span className="vrm-wm" aria-hidden="true" />}
+            {videoError && <button type="button" style={{ position: 'absolute', zIndex: 3, inset: '40% 20%', background: '#fff', borderRadius: 12 }} onClick={() => { setVideoError(false); videoRef.current?.load(); }}>Video could not load. Tap to retry</button>}
           </div>
 
           {/* The one and only scrub bar: click anywhere to seek, dots are comments. */}

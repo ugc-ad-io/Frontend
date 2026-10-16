@@ -92,6 +92,18 @@ export default function AdminShipping() {
     setLabelFile(r.label_url || null);
   };
 
+  const remindAddress = async () => {
+    if (!active || working) return;
+    setWorking(true);
+    try {
+      const { data } = await axios.post(`${API}/admin/shipping/${getId(active)}/remind-address`, null, {
+        params: active.creator_id ? { creator_id: active.creator_id } : {},
+      });
+      toast.success(data.message);
+    } catch (e) { toast.error(apiErrorMessage(e, 'Could not send reminder')); }
+    finally { setWorking(false); }
+  };
+
   const handleGenerateLabel = async () => {
     if (!active || working) return;
     setWorking(true);
@@ -315,6 +327,7 @@ export default function AdminShipping() {
                 <p className="ash-sla-line"><Clock3 size={13} /> Requested {(active.requested_at || active.created_at) ? new Date(active.requested_at || active.created_at).toLocaleString() : '-'} · SLA target {SLA_TARGET_HOURS}h</p>
               </div>
 
+              <button type="button" className="ash-btn" disabled={working} onClick={remindAddress}>Send address reminder</button>
               <div className="ash-addrbox">
                 <span className="ash-internal">Internal only</span>
                 <div className="ash-addrcol">

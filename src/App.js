@@ -9,6 +9,7 @@ import './styles/admin-mobile.css';
 import Loader from './components/Loader';
 import RouteLoadingBoundary from './components/RouteLoadingBoundary';
 import AdminLayout from './components/AdminLayout';
+import OverlayBack from './components/OverlayBack';
 import AgreementGate from './components/AgreementGate';
 import { Toaster } from 'sonner';
 import { useLiveEffect, useLiveUpdates } from './lib/liveUpdates';
@@ -411,6 +412,7 @@ function App() {
         <ThemeProvider>
         <AuthProvider>
           <ScrollToTop />
+          <OverlayBack />
           <Toaster position="top-right" richColors closeButton />
           <RouteLoadingBoundary>
           <Routes>

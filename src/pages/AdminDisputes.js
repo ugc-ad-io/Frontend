@@ -1,12 +1,14 @@
 import { useLiveEffect } from '../lib/liveUpdates';
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { AlertTriangle, Clock, Scale, X, FileText, MessageSquare, Package, Image as ImageIcon, History, Paperclip, Save, UserCheck, ShieldCheck, Gavel } from 'lucide-react';
+import { AlertTriangle, Clock, Scale, X, FileText, MessageSquare, Package, Image as ImageIcon, History, Paperclip, Save, UserCheck, ShieldCheck, Gavel, ArrowLeft, ChevronRight, SlidersHorizontal, RefreshCw } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 import { useAuth } from '../App';
 import { DISPUTE_CAP, ROLE_LABELS, normalizeRole } from '../utils/adminRoles';
+import useIsPhone from '../lib/useIsPhone';
+import '../styles/admin-mobile-ops.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -45,6 +47,33 @@ function slaClass(d) {
 
 const mediaUrl = (u) => (!u ? '' : String(u).startsWith('http') ? u : `${BACKEND_URL}${u}`);
 
+// ---- phone (PWA) helpers ----
+const EVIDENCE_TABS = [['brief', FileText, 'Brief'], ['timeline', History, 'Timeline'], ['chat', MessageSquare, 'Chat'], ['content', ImageIcon, 'Content'], ['shipping', Package, 'Shipping'], ['evidence', Paperclip, 'Evidence'], ['prior', AlertTriangle, 'Prior']];
+const STATUS_TONE = { open: 'wait', info_requested: 'info', appealed: 'bad', resolved: 'ok', closed: 'ok' };
+const SLA_TONE = { 'sla-red': 'bad', 'sla-orange': 'wait', 'sla-green': 'ok', 'sla-done': 'neutral' };
+const words = (s) => String(s || '').replace(/_/g, ' ');
+const fmtDay = (v) => (v ? new Date(v).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '-');
+const slaText = (x) => (['resolved', 'closed'].includes(x.status) ? ''
+  : x.sla_breached ? 'SLA breached'
+  : typeof x.sla_hours_remaining === 'number' ? `${x.sla_hours_remaining}h SLA left` : '');
+const EMPTY_PHONE_FILTERS = { severity: '', type: '', assigned: '' };
+
+function PhoneSheet({ title, onClose, children, foot, testId }) {
+  return (
+    <>
+      <div className="am-sheet-backdrop" onClick={onClose} />
+      <section className="am-sheet" role="dialog" aria-modal="true" aria-label={title} data-testid={testId}>
+        <header className="am-sheet-head">
+          <h2>{title}</h2>
+          <button type="button" className="am-icon-btn" onClick={onClose} aria-label="Close"><X size={20} /></button>
+        </header>
+        <div className="am-sheet-body">{children}</div>
+        {foot && <footer className="am-sheet-foot">{foot}</footer>}
+      </section>
+    </>
+  );
+}
+
 export default function AdminDisputes() {
   const { user: me } = useAuth();
   // Per-role dispute resolution ceiling (PRD 11): Ops Regular ₹25K, Ops Senior ₹1L, Founder ∞.
@@ -80,6 +109,9 @@ export default function AdminDisputes() {
   const [penaltyParty, setPenaltyParty] = useState('creator');
   const [savingDraft, setSavingDraft] = useState(false);
   const [peerReviewState, setPeerReviewState] = useState(null); // null | 'requested' | 'approved'
+  const isPhone = useIsPhone();
+  const [phoneSheet, setPhoneSheet] = useState(null); // phone: 'filters' | 'rule' | 'info'
+  const [filterDraft, setFilterDraft] = useState(EMPTY_PHONE_FILTERS);
 
   const fetchDisputes = useCallback(async () => {
     setLoading(true);
@@ -258,6 +290,386 @@ export default function AdminDisputes() {
   const peerReviewBlocked = needsPeerReview && peerReviewState !== 'approved';
   // PRD 11 — block ruling when the settlement exceeds this admin's role limit.
   const overRoleCap = Number.isFinite(myDisputeCap) && settlementTotal > myDisputeCap;
+
+  // ===================== Phone (PWA) layout =====================
+  if (isPhone) {
+    const filterCount = [severityFilter, typeFilter, assignedFilter].filter(Boolean).length;
+    const openPhone = (id) => { setPhoneSheet(null); openDispute(id); };
+    const closeDetail = () => { if (!busy) { setPhoneSheet(null); setSelected(null); } };
+    const closeSheet = () => { if (!busy && !savingDraft) setPhoneSheet(null); };
+    const openFilters = () => { setFilterDraft({ severity: severityFilter, type: typeFilter, assigned: assignedFilter }); setPhoneSheet('filters'); };
+    const applyFilters = () => {
+      setSeverityFilter(filterDraft.severity); setTypeFilter(filterDraft.type); setAssignedFilter(filterDraft.assigned);
+      setPhoneSheet(null);
+    };
+    const draft = (key) => (e) => setFilterDraft((f) => ({ ...f, [key]: e.target.value }));
+    // Uploads from the evidence panel plus the URLs attached when the dispute was raised.
+    const uploads = selected ? [...(selected.evidence_uploads || []), ...(d?.evidence_urls || [])] : [];
+    const badges = (x) => (
+      <span className="am-badges">
+        <span className={`am-badge am-badge--${STATUS_TONE[x.status] || 'neutral'}`}>{words(x.status || 'open')}</span>
+        <span className={`am-badge am-badge--${['high', 'critical'].includes(x.severity) ? 'bad' : 'neutral'}`}>{x.severity || 'normal'}</span>
+        {slaText(x) && <span className={`am-badge am-badge--${SLA_TONE[slaClass(x)]}`}>{slaText(x)}</span>}
+      </span>
+    );
+    const card = (x, canAssign) => {
+      const who = x.assigned_to_name || x.assigned_to;
+      const why = x.reason || x.description;
+      return (
+        <article key={x.id} className="am-card" data-testid={`dispute-card-${x.id}`}>
+          <button type="button" className="amo-card-open" onClick={() => openPhone(x.id)}>
+            <span className="am-card-head">
+              <span className="am-card-main">
+                <span className="am-card-title">{words(x.dispute_type) || 'Dispute'}</span>
+                <span className="am-card-sub amo-mono">#{shortId(x.id)}{x.deal_id ? ` · Deal ${x.deal_id}` : ''}</span>
+                <span className="am-card-sub">Brand {shortId(x.business_id)} ↔ Creator {shortId(x.creator_id)}</span>
+              </span>
+              <ChevronRight size={20} className="am-row-chevron" />
+            </span>
+            {why && <span className="amo-clamp">{why}</span>}
+            {badges(x)}
+          </button>
+          <div className="am-card-foot">
+            <span className="am-card-sub">Opened {fmtDay(x.created_at)} · {ageLabel(x.created_at)} ago</span>
+            {who ? <span className="am-card-sub">{who}</span>
+              : canAssign ? <button type="button" className="am-btn am-btn--link am-btn--sm" onClick={() => assignToMe(x.id)}>Assign me</button>
+              : <span className="am-card-sub">Unassigned</span>}
+          </div>
+        </article>
+      );
+    };
+    const ruleLabel = busy ? 'Settling…' : overRoleCap ? 'Over limit - escalate' : peerReviewBlocked ? 'Peer review required' : 'Record & settle';
+
+    return (
+      <AdminLayout>
+        <div className="am" data-testid="disputes-phone">
+          <div className="am-tabs" role="tablist">
+            <button type="button" role="tab" aria-selected={view === 'disputes'} className={view === 'disputes' ? 'is-active' : ''} onClick={() => setView('disputes')}>Disputes</button>
+            <button type="button" role="tab" aria-selected={view === 'appeals'} className={view === 'appeals' ? 'is-active' : ''} onClick={() => setView('appeals')}>Appeals{appeals.length ? ` (${appeals.length})` : ''}</button>
+          </div>
+
+          {view === 'disputes' ? (
+            <>
+              <div className="am-toolbar">
+                <span className="am-badges amo-fill">
+                  <span className="am-badge am-badge--bad"><AlertTriangle size={13} /> {openCount} open</span>
+                  <span className="am-badge am-badge--neutral">{visibleDisputes.length} shown</span>
+                  <span className="am-badge am-badge--info"><Scale size={13} /> {ROLE_LABELS[myRole]} · limit {Number.isFinite(myDisputeCap) ? money(myDisputeCap) : 'none'}</span>
+                </span>
+                <button type="button" className="am-filter-btn" onClick={fetchDisputes} aria-label="Refresh disputes"><RefreshCw size={20} /></button>
+                <button type="button" className="am-filter-btn" onClick={openFilters} aria-label={filterCount ? `Filters, ${filterCount} active` : 'Filters'} data-testid="disputes-filter-btn">
+                  <SlidersHorizontal size={20} />
+                  {filterCount > 0 && <span className="am-dot">{filterCount}</span>}
+                </button>
+              </div>
+              <div className="am-chips" role="group" aria-label="Dispute status">
+                {STATUS_FILTERS.map((s) => (
+                  <button key={s || 'all'} type="button" className={`am-chip${statusFilter === s ? ' is-active' : ''}`} aria-pressed={statusFilter === s} onClick={() => setStatusFilter(s)}>
+                    {s ? words(s) : 'All'}
+                  </button>
+                ))}
+              </div>
+              {loading && !disputes.length ? (
+                <div className="am-empty">Loading disputes…</div>
+              ) : !visibleDisputes.length ? (
+                <div className="am-empty">No disputes match this filter.</div>
+              ) : (
+                <div className="am-list">{visibleDisputes.map((x) => card(x, true))}</div>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="amo-callout amo-callout--bad"><ShieldCheck size={16} /> Appeals require senior-admin or founder review. The second ruling is final - no further appeals on-platform.</div>
+              {!appeals.length ? <div className="am-empty">No appeals in the queue.</div> : <div className="am-list">{appeals.map((x) => card(x, false))}</div>}
+            </>
+          )}
+
+          {(selected || detailLoading) && (
+            <div className="am-detail" role="dialog" aria-modal="true" aria-labelledby="amo-disp-title" data-testid="dispute-detail">
+              <header className="am-detail-head">
+                <button type="button" className="am-icon-btn" onClick={closeDetail} aria-label="Back to disputes"><ArrowLeft size={22} /></button>
+                <h1 id="amo-disp-title">Dispute #{shortId(d?.id)}</h1>
+              </header>
+
+              {detailLoading || !selected ? (
+                <div className="am-detail-body"><div className="am-empty">Loading evidence…</div></div>
+              ) : (
+                <>
+                  <div className="am-detail-body">
+                    <div className="amo-identity">
+                      <h2>{words(d.dispute_type) || 'Dispute'}</h2>
+                      {badges(d)}
+                    </div>
+
+                    <section className="am-section">
+                      <h3>Parties</h3>
+                      <div className="am-kv"><span>Brand</span><span>{selected.brand_name || '-'}</span></div>
+                      <div className="am-kv"><span>Creator</span><span>{selected.creator_name || '-'}</span></div>
+                      {d.deal_id && <div className="am-kv"><span>Deal</span><span className="amo-mono">{d.deal_id}</span></div>}
+                      <div className="am-kv"><span>Opened</span><span>{fmtDay(d.created_at)} · {ageLabel(d.created_at)} ago</span></div>
+                      <div className="am-kv"><span>Assigned</span><span>{d.assigned_to_name || d.assigned_to || 'Unassigned'}</span></div>
+                    </section>
+
+                    <section className="am-section">
+                      <h3>Reason</h3>
+                      <p>{d.reason || d.description || words(d.dispute_type) || '-'}</p>
+                    </section>
+
+                    <section className="am-section">
+                      <h3>Evidence</h3>
+                      <div className="am-chips" role="tablist" aria-label="Evidence">
+                        {EVIDENCE_TABS.map(([k, Icon, text]) => (
+                          <button key={k} type="button" role="tab" aria-selected={evidenceTab === k} className={`am-chip${evidenceTab === k ? ' is-active' : ''}`} onClick={() => setEvidenceTab(k)}>
+                            <Icon size={15} /> {text}
+                          </button>
+                        ))}
+                      </div>
+
+                      {evidenceTab === 'brief' && (
+                        <>
+                          <h4 className="amo-sub">{selected.brief?.title || 'Campaign'}</h4>
+                          <p className="amo-pre">{selected.brief?.brief_text || 'No brief text.'}</p>
+                          <div className="am-kv"><span>Held in escrow</span><span>{money(selected.brief?.per_video_budget || selected.brief?.budget_max)}</span></div>
+                        </>
+                      )}
+                      {evidenceTab === 'timeline' && (
+                        (selected.timeline || []).length ? (
+                          <ol className="am-timeline">
+                            {selected.timeline.map((t, i) => (
+                              <li key={i} className="am-step">
+                                <span className="am-step-dot" />
+                                <span className="amo-step-text">
+                                  <span className="am-step-label">{t.actor_name || t.actor_type}</span>
+                                  <span>{t.message || t.event_type}</span>
+                                  <span className="am-step-date">{(t.timestamp || '').slice(0, 16).replace('T', ' ')}</span>
+                                </span>
+                              </li>
+                            ))}
+                          </ol>
+                        ) : <p className="am-muted">No timeline events.</p>
+                      )}
+                      {evidenceTab === 'chat' && (
+                        (selected.chat_history || []).length ? selected.chat_history.map((m, i) => (
+                          <div key={i} className="amo-msg"><strong>{m.sender_name || shortId(m.sender_id)}</strong>{m.content || m.message || '[attachment]'}</div>
+                        )) : <p className="am-muted">No chat history.</p>
+                      )}
+                      {evidenceTab === 'content' && (
+                        (selected.content_versions || []).length ? selected.content_versions.map((c, i) => {
+                          const url = mediaUrl(c.video_url || (c.work_files || [])[0]);
+                          return (
+                            <div key={i} className="amo-tile">
+                              <span className="amo-tile-head">v{c.version} · {c.status}</span>
+                              {url ? <video className="amo-media" src={url} controls playsInline preload="metadata" /> : <span className="am-muted">No preview</span>}
+                            </div>
+                          );
+                        }) : <p className="am-muted">No content submitted.</p>
+                      )}
+                      {evidenceTab === 'shipping' && (
+                        selected.shipment ? (
+                          <>
+                            <div className="am-kv"><span>Tracking</span><span>{selected.shipment.tracking_number || '-'}</span></div>
+                            <div className="am-kv"><span>Courier</span><span>{selected.shipment.courier_name || '-'}</span></div>
+                            <div className="am-kv"><span>Status</span><span>{selected.shipment.courier_status || selected.shipment.status || '-'}</span></div>
+                            <div className="am-kv"><span>Received</span><span>{(selected.shipment.received_at || '-').toString().slice(0, 10)}</span></div>
+                          </>
+                        ) : <p className="am-muted">No shipment on this deal.</p>
+                      )}
+                      {evidenceTab === 'evidence' && (
+                        uploads.length ? uploads.map((u, i) => {
+                          const url = mediaUrl(u.url || u.file_url || u);
+                          const name = u.label || u.name || u.party || `Upload ${i + 1}`;
+                          return (
+                            <div key={i} className="amo-tile">
+                              <span className="amo-tile-head"><Paperclip size={14} /> {name}{u.uploaded_by ? ` · ${u.uploaded_by}` : ''}</span>
+                              {/\.(png|jpe?g|gif|webp)$/i.test(url) ? <img className="amo-media" src={url} alt={name} />
+                                : /\.(mp4|mov|webm)$/i.test(url) ? <video className="amo-media" src={url} controls playsInline preload="metadata" />
+                                : <a className="am-btn am-btn--link am-btn--sm" href={url} target="_blank" rel="noreferrer">Open file</a>}
+                            </div>
+                          );
+                        }) : <p className="am-muted">No evidence files uploaded by either party.</p>
+                      )}
+                      {evidenceTab === 'prior' && (
+                        (selected.prior_disputes || []).length ? (
+                          <ul className="amo-list">
+                            {selected.prior_disputes.map((p) => (
+                              <li key={p.id}><span className="amo-mono">#{shortId(p.id)}</span> · {words(p.dispute_type)} · {p.status} · {p.ruling || 'unruled'}</li>
+                            ))}
+                          </ul>
+                        ) : <p className="am-muted">No prior disputes for these parties.</p>
+                      )}
+                    </section>
+
+                    {resolved && (
+                      <section className="am-section">
+                        <h3>Resolved</h3>
+                        <div className="am-kv"><span>Ruling</span><span>{words(d.ruling)}</span></div>
+                        <div className="am-kv"><span>Refund to brand</span><span>{money(d.refund_amount)}</span></div>
+                        <div className="am-kv"><span>Released to creator</span><span>{money(d.creator_amount)}</span></div>
+                        {d.reasoning && <p className="amo-pre">{d.reasoning}</p>}
+                      </section>
+                    )}
+                  </div>
+
+                  {!resolved && (
+                    <div className="am-actionbar">
+                      <div className="am-actionbar-row">
+                        <button type="button" className="am-btn am-btn--secondary" disabled={busy} onClick={() => setPhoneSheet('info')} data-testid="dispute-info-open"><Clock size={18} /> Request info</button>
+                        <button type="button" className="am-btn am-btn--primary" disabled={busy} onClick={() => setPhoneSheet('rule')} data-testid="dispute-rule-open"><Gavel size={18} /> Ruling</button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {selected && !resolved && phoneSheet === 'rule' && (
+            <PhoneSheet
+              title="Ruling"
+              onClose={closeSheet}
+              testId="dispute-rule-sheet"
+              foot={(
+                <>
+                  <button type="button" className="am-btn am-btn--secondary" disabled={savingDraft || busy} onClick={saveDraft}><Save size={18} /> {savingDraft ? 'Saving…' : 'Save draft'}</button>
+                  <button type="button" className="am-btn am-btn--primary" disabled={busy || peerReviewBlocked || overRoleCap} onClick={submitRuling} data-testid="dispute-rule-submit">{ruleLabel}</button>
+                </>
+              )}
+            >
+              <div className="am-field">
+                <span className="am-field-label" id="amo-outcome">Outcome</span>
+                <div className="amo-options" role="group" aria-labelledby="amo-outcome">
+                  {RULING_OPTIONS.map((o) => (
+                    <button key={o.value} type="button" className={`amo-option${ruling === o.value ? ' is-active' : ''}`} aria-pressed={ruling === o.value} onClick={() => setRuling(o.value)}>
+                      <strong>{o.label}</strong><small>{o.hint}</small>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="amo-two">
+                <div className="am-field">
+                  <label htmlFor="amo-refund">Refund to brand (₹)</label>
+                  <input id="amo-refund" type="number" inputMode="decimal" min="0" value={refundAmount} onChange={(e) => setRefundAmount(e.target.value)} placeholder="0" />
+                </div>
+                <div className="am-field">
+                  <label htmlFor="amo-release">Release to creator (₹)</label>
+                  <input id="amo-release" type="number" inputMode="decimal" min="0" value={creatorAmount} onChange={(e) => setCreatorAmount(e.target.value)} placeholder="0" />
+                </div>
+              </div>
+              <span className="am-field-hint">Leave at 0 to use the default split for the selected outcome.</span>
+              <div className="am-field">
+                <label htmlFor="amo-ext">Extension (days, optional)</label>
+                <input id="amo-ext" type="number" inputMode="numeric" min="0" value={extensionDays} onChange={(e) => setExtensionDays(e.target.value)} placeholder="0" />
+              </div>
+              <div className="am-field">
+                <label htmlFor="amo-penalty">Penalty (₹, optional)</label>
+                <input id="amo-penalty" type="number" inputMode="decimal" min="0" value={penaltyAmount} onChange={(e) => setPenaltyAmount(e.target.value)} placeholder="0" />
+              </div>
+              <div className="am-field">
+                <span className="am-field-label" id="amo-penalty-party">Penalty applied to</span>
+                <div className="am-chips amo-chips-cap" role="group" aria-labelledby="amo-penalty-party">
+                  {['creator', 'brand'].map((p) => (
+                    <button key={p} type="button" className={`am-chip${penaltyParty === p ? ' is-active' : ''}`} aria-pressed={penaltyParty === p} onClick={() => setPenaltyParty(p)}>{p}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="am-field">
+                <label htmlFor="amo-reasoning">Reasoning (required, logged to the audit trail)</label>
+                <textarea id="amo-reasoning" rows={4} value={reasoning} onChange={(e) => setReasoning(e.target.value)} placeholder="Explain the decision…" />
+              </div>
+              <div className="am-field">
+                <label htmlFor="amo-note-creator">Note to creator</label>
+                <textarea id="amo-note-creator" rows={2} value={noteToCreator} onChange={(e) => setNoteToCreator(e.target.value)} placeholder="Message sent to the creator…" />
+              </div>
+              <div className="am-field">
+                <label htmlFor="amo-note-brand">Note to brand</label>
+                <textarea id="amo-note-brand" rows={2} value={noteToBrand} onChange={(e) => setNoteToBrand(e.target.value)} placeholder="Message sent to the brand…" />
+              </div>
+              {overRoleCap && (
+                <div className="amo-callout amo-callout--bad"><ShieldCheck size={16} /> This settlement ({money(settlementTotal)}) exceeds your {ROLE_LABELS[myRole]} limit of {money(myDisputeCap)}. Escalate to a senior admin or founder to settle.</div>
+              )}
+              {needsPeerReview && (
+                <div className={`amo-callout amo-callout--${peerReviewState === 'approved' ? 'ok' : 'wait'}`}>
+                  <ShieldCheck size={16} />
+                  {peerReviewState === 'approved'
+                    ? 'Peer review approved - you may finalise this ruling.'
+                    : peerReviewState === 'requested'
+                      ? `Settlement over ${money(PEER_REVIEW_THRESHOLD)} - awaiting a second admin's review.`
+                      : `Settlement over ${money(PEER_REVIEW_THRESHOLD)} requires peer review before it can be finalised.`}
+                </div>
+              )}
+              {needsPeerReview && peerReviewState !== 'approved' && (
+                <button type="button" className="am-btn am-btn--secondary" disabled={busy || peerReviewState === 'requested'} onClick={requestPeerReview}>
+                  <UserCheck size={18} /> {peerReviewState === 'requested' ? 'Review requested' : 'Request peer review'}
+                </button>
+              )}
+            </PhoneSheet>
+          )}
+
+          {selected && !resolved && phoneSheet === 'info' && (
+            <PhoneSheet
+              title="Request more info"
+              onClose={closeSheet}
+              testId="dispute-info-sheet"
+              foot={(
+                <>
+                  <button type="button" className="am-btn am-btn--secondary" disabled={busy} onClick={closeSheet}>Cancel</button>
+                  <button type="button" className="am-btn am-btn--primary" disabled={busy || !infoMessage.trim()} onClick={requestInfo} data-testid="dispute-info-submit">{busy ? 'Sending…' : 'Request info'}</button>
+                </>
+              )}
+            >
+              <div className="am-field">
+                <span className="am-field-label" id="amo-info-party">Ask</span>
+                <div className="am-chips amo-chips-cap" role="group" aria-labelledby="amo-info-party">
+                  {['creator', 'brand'].map((p) => (
+                    <button key={p} type="button" className={`am-chip${infoParty === p ? ' is-active' : ''}`} aria-pressed={infoParty === p} onClick={() => setInfoParty(p)}>{p}</button>
+                  ))}
+                </div>
+              </div>
+              <div className="am-field">
+                <label htmlFor="amo-info-msg">What do you need from them?</label>
+                <textarea id="amo-info-msg" rows={4} value={infoMessage} onChange={(e) => setInfoMessage(e.target.value)} />
+                <span className="am-field-hint">They get a 72h window to respond; the SLA pauses meanwhile.</span>
+              </div>
+            </PhoneSheet>
+          )}
+
+          {phoneSheet === 'filters' && (
+            <PhoneSheet
+              title="Filters"
+              onClose={closeSheet}
+              testId="disputes-filter-sheet"
+              foot={(
+                <>
+                  <button type="button" className="am-btn am-btn--secondary" onClick={() => setFilterDraft(EMPTY_PHONE_FILTERS)}>Reset</button>
+                  <button type="button" className="am-btn am-btn--primary" onClick={applyFilters}>Apply</button>
+                </>
+              )}
+            >
+              <div className="am-field">
+                <label htmlFor="amo-f-sev">Severity</label>
+                <select id="amo-f-sev" value={filterDraft.severity} onChange={draft('severity')}>
+                  {SEVERITY_FILTERS.map((s) => <option key={s || 'all'} value={s}>{s || 'All'}</option>)}
+                </select>
+              </div>
+              <div className="am-field">
+                <label htmlFor="amo-f-type">Type</label>
+                <select id="amo-f-type" value={filterDraft.type} onChange={draft('type')}>
+                  {TYPE_FILTERS.map((s) => <option key={s || 'all'} value={s}>{s ? words(s) : 'All'}</option>)}
+                </select>
+              </div>
+              <div className="am-field">
+                <label htmlFor="amo-f-assigned">Assigned</label>
+                <select id="amo-f-assigned" value={filterDraft.assigned} onChange={draft('assigned')}>
+                  <option value="">All</option>
+                  {assignedOptions.map((a) => <option key={a} value={a}>{a}</option>)}
+                </select>
+              </div>
+            </PhoneSheet>
+          )}
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>

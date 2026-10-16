@@ -1,15 +1,23 @@
 import { useLiveEffect } from '../lib/liveUpdates';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { UserPlus, X } from 'lucide-react';
+import { UserPlus, X, Users, Inbox } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
+import useIsPhone from '../lib/useIsPhone';
+import '../styles/admin-mobile-oversight.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
+// Phone badge tone per campaign status (same statuses the desktop colours).
+const STATUS_TONE = { active: 'ok', pending_approval: 'wait', completed: 'info' };
+
 export default function AdminAssignments() {
+  const isPhone = useIsPhone();
+  const [phoneTab, setPhoneTab] = useState('managers');
+  const [assigning, setAssigning] = useState(false); // phone: disables Confirm while the request runs
   const [assignments, setAssignments] = useState([]);
   const [allCampaigns, setAllCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -57,6 +65,102 @@ export default function AdminAssignments() {
   };
 
   const unassigned = allCampaigns.filter(c => !c.assigned_manager && c.status === 'active');
+
+  // ===================== Phone (PWA) layout =====================
+  if (isPhone) {
+    const openAssign = (c) => { setSelectedCampaign(c); setShowAssignModal(true); };
+    const closeAssign = () => { if (!assigning) setShowAssignModal(false); };
+    const confirmAssign = async () => {
+      setAssigning(true);
+      try { await handleAssign(); } finally { setAssigning(false); }
+    };
+    const campaignRow = (c, label) => (
+      <li key={c.id} className="amo-item">
+        <span className="am-card-main">
+          <span className="am-card-title">{c.title}</span>
+          <span className="am-badges"><span className={`am-badge am-badge--${STATUS_TONE[c.status] || 'neutral'}`}>{String(c.status || '').replace(/_/g, ' ')}</span></span>
+        </span>
+        <button type="button" className={`am-btn am-btn--sm ${label === 'Assign' ? 'am-btn--primary' : 'am-btn--secondary'}`} onClick={() => openAssign(c)} data-testid={`${label.toLowerCase()}-${c.id}`}>{label}</button>
+      </li>
+    );
+
+    return (
+      <AdminLayout>
+        <div className="am amo" data-testid="assignments-phone">
+          <p className="am-muted amo-flat">Auto-assigns 10 campaigns per manager. Manually reassign as needed.</p>
+
+          <div className="am-tabs" role="tablist">
+            <button type="button" role="tab" aria-selected={phoneTab === 'managers'} className={phoneTab === 'managers' ? 'is-active' : ''} onClick={() => setPhoneTab('managers')}>
+              Managers ({assignments.length})
+            </button>
+            <button type="button" role="tab" aria-selected={phoneTab === 'unassigned'} className={phoneTab === 'unassigned' ? 'is-active' : ''} onClick={() => setPhoneTab('unassigned')} data-testid="tab-unassigned">
+              Unassigned ({unassigned.length})
+            </button>
+          </div>
+
+          {loading ? (
+            <div className="am-empty">Loading assignments...</div>
+          ) : phoneTab === 'managers' ? (
+            assignments.length === 0 ? (
+              <div className="am-empty"><p>No campaign managers found</p><p>Create campaign manager accounts first.</p></div>
+            ) : (
+              <div className="am-list">
+                {assignments.map((a, idx) => (
+                  <section key={a.manager_id || idx} className="am-card" data-testid={`manager-card-${a.manager_id || idx}`}>
+                    <div className="am-card-head">
+                      <span className="am-avatar" aria-hidden="true"><Users size={20} /></span>
+                      <span className="am-card-main">
+                        <span className="am-card-title">{a.manager_nickname}</span>
+                        <span className="am-card-sub">{a.manager_email}</span>
+                      </span>
+                      <span className="am-badge am-badge--info">{a.campaign_count} campaigns</span>
+                    </div>
+                    {a.campaigns?.length > 0 ? (
+                      <ul className="amo-items">{a.campaigns.map((c) => campaignRow(c, 'Reassign'))}</ul>
+                    ) : (
+                      <p className="am-muted amo-flat">No campaigns assigned yet</p>
+                    )}
+                  </section>
+                ))}
+              </div>
+            )
+          ) : unassigned.length === 0 ? (
+            <div className="am-empty"><Inbox size={28} /><p>All campaigns are assigned</p></div>
+          ) : (
+            <ul className="amo-items amo-items--card">{unassigned.map((c) => campaignRow(c, 'Assign'))}</ul>
+          )}
+
+          {showAssignModal && selectedCampaign && (
+            <>
+              <div className="am-sheet-backdrop" onClick={closeAssign} />
+              <section className="am-sheet" role="dialog" aria-modal="true" aria-label="Assign campaign" data-testid="assign-sheet">
+                <header className="am-sheet-head">
+                  <h2>{selectedCampaign.assigned_manager ? 'Reassign' : 'Assign'} campaign</h2>
+                  <button type="button" className="am-icon-btn" onClick={closeAssign} disabled={assigning} aria-label="Close"><X size={20} /></button>
+                </header>
+                <div className="am-sheet-body">
+                  <div className="am-kv"><span>Campaign</span><span>{selectedCampaign.title}</span></div>
+                  <div className="am-field">
+                    <label htmlFor="amo-manager">Select manager</label>
+                    <select id="amo-manager" value={selectedManager} onChange={(e) => setSelectedManager(e.target.value)}>
+                      <option value="">-- Choose a manager --</option>
+                      {assignments.map((a) => (
+                        <option key={a.manager_id} value={a.manager_id}>{a.manager_nickname} ({a.campaign_count} campaigns)</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <footer className="am-sheet-foot">
+                  <button type="button" className="am-btn am-btn--secondary" onClick={closeAssign} disabled={assigning}>Cancel</button>
+                  <button type="button" className="am-btn am-btn--primary" onClick={confirmAssign} disabled={assigning} data-testid="assign-confirm">{assigning ? 'Saving…' : 'Confirm'}</button>
+                </footer>
+              </section>
+            </>
+          )}
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>

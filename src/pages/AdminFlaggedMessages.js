@@ -1,13 +1,15 @@
 import { useLiveEffect } from '../lib/liveUpdates';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import {
   AlertTriangle, CheckCircle, Flag, ShieldAlert, Filter,
-  Check, Ban, ArrowUpRight, Plus, X,
+  Check, Ban, ArrowUpRight, Plus, X, ArrowLeft, ChevronRight, Trash2,
 } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 import { apiErrorMessage } from '../utils/apiError';
+import useIsPhone from '../lib/useIsPhone';
+import '../styles/admin-mobile-oversight.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -53,7 +55,19 @@ const DEFAULT_RULES = [
   { id: 'r-callme', type: 'keyword', pattern: 'call me, text me, dm me, reach me at', label: 'Contact solicitations', enabled: true },
 ];
 
+// Phone: wrap the matched strings the contact filter returned (violations[].content) in <mark>.
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const highlightFlagged = (text, violations) => {
+  const hits = (violations || []).flatMap((v) => v?.content || []).filter((s) => typeof s === 'string' && s.trim());
+  if (!text || !hits.length) return text;
+  return String(text).split(new RegExp(`(${hits.map(escapeRe).join('|')})`, 'gi'))
+    .map((part, i) => (i % 2 ? <mark key={i}>{part}</mark> : part));
+};
+const violationLabel = (t) => String(t || '').replace(/_/g, ' ');
+
 export default function AdminFlaggedMessages() {
+  const isPhone = useIsPhone();
+  const [ruleBusy, setRuleBusy] = useState(false); // phone: disables rule buttons while a request runs
   const [allChats, setAllChats] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
@@ -207,6 +221,250 @@ export default function AdminFlaggedMessages() {
 
   const flaggedCount = (chat) =>
     chat.violation_count != null ? chat.violation_count : (chat.report_count || 0);
+
+  // ===================== Phone (PWA) layout =====================
+  if (isPhone) {
+    const openChat = (chat) => {
+      setChatMessages([]); // never show the previous conversation's lines under a new header
+      setEscalating(null);
+      setSelectedChat(chat);
+      fetchChatMessages(chat.user1.id, chat.user2.id);
+    };
+    const withBusy = (fn) => async (...args) => {
+      setRuleBusy(true);
+      try { await fn(...args); } finally { setRuleBusy(false); }
+    };
+    const nameOf = (side) => participantName(selectedChat, side);
+    const recipientOf = (msg) => {
+      if (!selectedChat || !msg.sender_id) return '';
+      if (msg.sender_id === selectedChat.user1?.id) return nameOf('user2');
+      if (msg.sender_id === selectedChat.user2?.id) return nameOf('user1');
+      return '';
+    };
+    const escIdx = escalating ? chatMessages.findIndex((m, i) => msgKey(m, i) === escalating) : -1;
+    const escMsg = escIdx >= 0 ? chatMessages[escIdx] : null;
+    const chatBadges = (chat) => (
+      <span className="am-badges">
+        {flaggedCount(chat) > 0 && <span className="am-badge am-badge--bad">{flaggedCount(chat)} flagged</span>}
+        {(chat.report_count || 0) > 0 && <span className="am-badge am-badge--wait">{chat.report_count} report{chat.report_count !== 1 ? 's' : ''}</span>}
+        {chat.on_strike_watch && <span className="am-badge am-badge--wait">Strike watch</span>}
+      </span>
+    );
+
+    return (
+      <AdminLayout>
+        <div className="am amo" data-testid="oversight-phone">
+          <div className="am-segmented" role="group" aria-label="Chat oversight view">
+            <button type="button" className={view === 'queue' ? 'is-active' : ''} aria-pressed={view === 'queue'} onClick={() => { setView('queue'); setSelectedChat(null); }}>Queues</button>
+            <button type="button" className={view === 'rules' ? 'is-active' : ''} aria-pressed={view === 'rules'} onClick={() => { setView('rules'); setSelectedChat(null); }} data-testid="tab-rules">Filter rules</button>
+          </div>
+
+          {view === 'rules' ? (
+            <>
+              <p className="am-muted amo-flat">
+                Regex patterns and keyword lists the contact-info filter runs against every message.
+                A rule you add goes live immediately - switch it off or delete it if it misfires.
+              </p>
+              <button type="button" className="am-btn am-btn--primary" onClick={() => setProposing(true)} data-testid="propose-rule">
+                <Plus size={18} /> Add new rule
+              </button>
+              <div className="am-list">
+                {rules.map((rule, idx) => (
+                  <div key={rule.id || idx} className="am-card" data-testid={`rule-${idx}`}>
+                    <div className="am-card-main">
+                      <span className="am-card-title">{rule.label}</span>
+                      <code className="amo-mono">{rule.pattern}</code>
+                    </div>
+                    <span className="am-badges">
+                      <span className="am-badge am-badge--info">{rule.type}</span>
+                      <span className={`am-badge am-badge--${rule.enabled ? 'ok' : rule.status === 'pending_review' ? 'wait' : 'neutral'}`}>
+                        {rule.enabled ? 'Active' : (rule.status === 'pending_review' ? 'Awaiting review' : 'Disabled')}
+                      </span>
+                    </span>
+                    <div className="am-card-foot">
+                      <button
+                        type="button"
+                        className={`am-btn am-btn--sm ${rule.enabled ? 'am-btn--secondary' : 'am-btn--primary'}`}
+                        disabled={ruleBusy}
+                        onClick={withBusy(() => toggleRule(rule))}
+                        data-testid={`toggle-rule-${idx}`}
+                      >
+                        {rule.enabled ? 'Switch off' : 'Approve & activate'}
+                      </button>
+                      <button
+                        type="button"
+                        className="am-icon-btn amo-del"
+                        disabled={ruleBusy}
+                        onClick={withBusy(() => deleteRule(rule))}
+                        aria-label={`Delete rule ${rule.label}`}
+                        data-testid={`delete-rule-${idx}`}
+                      >
+                        <Trash2 size={20} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="am-muted amo-flat">
+                <strong>Weekly edge-case review:</strong> patterns that produce false positives or misses are
+                collected here each week to refine the rule set. Approve/confirm decisions in the queue feed this review.
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="am-chips" role="group" aria-label="Queue">
+                {QUEUES.map((q) => (
+                  <button key={q.key} type="button" className={`am-chip${queue === q.key ? ' is-active' : ''}`} aria-pressed={queue === q.key} onClick={() => setQueue(q.key)} data-testid={`queue-stat-${q.key}`}>
+                    {q.label} <span className="am-chip-count">{countFor(q.key)}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="am-muted amo-flat">{activeQueue?.desc}</p>
+
+              {loading ? (
+                <div className="am-empty">Loading...</div>
+              ) : queueChats.length === 0 ? (
+                <div className="am-empty">
+                  <CheckCircle size={32} color="#067647" />
+                  <p>Nothing in the {activeQueue?.label.toLowerCase()} queue - looks clean!</p>
+                </div>
+              ) : (
+                <div className="am-list">
+                  {queueChats.map((chat, idx) => (
+                    <button key={chat.conversation_id || idx} type="button" className="am-card" onClick={() => openChat(chat)} data-testid={`flagged-chat-${idx}`}>
+                      <span className="am-card-head">
+                        <span className="am-avatar" aria-hidden="true"><AlertTriangle size={20} /></span>
+                        <span className="am-card-main">
+                          <span className="am-card-title">{participantName(chat, 'user1')} ↔ {participantName(chat, 'user2')}</span>
+                          {chat.last_message && <span className="am-card-sub amo-clamp">Last message: “{chat.last_message}”</span>}
+                        </span>
+                      </span>
+                      {chatBadges(chat)}
+                      <span className="am-card-foot">
+                        <span className="am-muted">{chat.last_message_at ? new Date(chat.last_message_at).toLocaleString() : ''}</span>
+                        <ChevronRight size={20} className="am-row-chevron" />
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {view === 'queue' && selectedChat && (
+            <div className="am-detail" role="dialog" aria-modal="true" aria-label="Conversation" data-testid="chat-detail">
+              <header className="am-detail-head">
+                <button type="button" className="am-icon-btn" onClick={() => { setEscalating(null); setSelectedChat(null); }} aria-label="Back to queue" data-testid="back-to-flagged"><ArrowLeft size={22} /></button>
+                <h1>Conversation</h1>
+              </header>
+              <div className="am-detail-body">
+                <section className="am-section">
+                  <h3>{nameOf('user1')} ↔ {nameOf('user2')}</h3>
+                  {chatBadges(selectedChat)}
+                </section>
+
+                {chatMessages.length === 0 ? (
+                  <div className="am-empty">No messages in this conversation</div>
+                ) : chatMessages.map((msg, idx) => {
+                  const key = msgKey(msg, idx);
+                  const res = resolutions[key];
+                  const isFlagged = !!(msg.filtered || msg.reported);
+                  const to = recipientOf(msg);
+                  return (
+                    <article key={idx} className={`am-section amo-msg${isFlagged ? ' is-flagged' : ''}`} data-testid={isFlagged ? `flagged-msg-${idx}` : `msg-${idx}`}>
+                      <div className="amo-msg-head">
+                        <strong>{displayHandle(msg, 'sender_nickname', 'sender_username')}{to && ` → ${to}`}</strong>
+                        <span className="am-muted">{msg.timestamp ? new Date(msg.timestamp).toLocaleString() : ''}</span>
+                      </div>
+                      <p>{isFlagged ? highlightFlagged(msg.message, msg.violations) : msg.message}</p>
+                      {isFlagged && (
+                        <span className="am-badges">
+                          <span className="am-badge am-badge--wait">{msg.reported ? 'Reported by user' : 'Content filtered'}</span>
+                          {(msg.violations || []).map((v, i) => <span key={i} className="am-badge am-badge--bad">{violationLabel(v?.type)}</span>)}
+                          {msg.blocked && <span className="am-badge am-badge--neutral">Blocked - not delivered</span>}
+                        </span>
+                      )}
+                      {!isFlagged ? null : res ? (
+                        <span className={`am-badge am-badge--${res.action === 'approve' ? 'ok' : 'bad'} amo-res`} data-testid={`resolution-${idx}`}>
+                          {res.action === 'approve' && <><Check size={14} /> Approved - message delivered, strike restored</>}
+                          {res.action === 'confirm' && <><AlertTriangle size={14} /> Violation confirmed - strike applied, user notified</>}
+                          {res.action === 'escalate' && <><ArrowUpRight size={14} /> Escalated - user {res.escalation === 'suspend' ? 'suspended' : 'warned'}</>}
+                        </span>
+                      ) : (
+                        <div className="amo-actions" data-testid={`msg-actions-${idx}`}>
+                          <button type="button" className="am-btn am-btn--secondary am-btn--sm" onClick={() => resolveMessage(msg, idx, 'approve')} data-testid={`approve-${idx}`}>
+                            <Check size={16} /> Approve (false positive)
+                          </button>
+                          <button type="button" className="am-btn am-btn--secondary am-btn--sm" onClick={() => resolveMessage(msg, idx, 'confirm')} data-testid={`confirm-${idx}`}>
+                            <AlertTriangle size={16} /> Confirm violation
+                          </button>
+                          <button type="button" className="am-btn am-btn--danger am-btn--sm" onClick={() => setEscalating(key)} data-testid={`escalate-${idx}`}>
+                            <ArrowUpRight size={16} /> Escalate
+                          </button>
+                        </div>
+                      )}
+                    </article>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {escMsg && (
+            <>
+              <div className="am-sheet-backdrop" onClick={() => setEscalating(null)} />
+              <section className="am-sheet" role="dialog" aria-modal="true" aria-label="Escalate" data-testid={`escalate-choice-${escIdx}`}>
+                <header className="am-sheet-head">
+                  <h2>Escalate to</h2>
+                  <button type="button" className="am-icon-btn" onClick={() => setEscalating(null)} aria-label="Close"><X size={20} /></button>
+                </header>
+                <div className="am-sheet-body">
+                  <p className="am-muted amo-flat">Action against {displayHandle(escMsg, 'sender_nickname', 'sender_username')} for this message.</p>
+                  <button type="button" className="am-btn am-btn--secondary" onClick={() => resolveMessage(escMsg, escIdx, 'escalate', 'warn')}>Warn user</button>
+                  <button type="button" className="am-btn am-btn--danger" onClick={() => resolveMessage(escMsg, escIdx, 'escalate', 'suspend')}><Ban size={18} /> Suspend user</button>
+                </div>
+                <footer className="am-sheet-foot">
+                  <button type="button" className="am-btn am-btn--secondary" onClick={() => setEscalating(null)}>Cancel</button>
+                </footer>
+              </section>
+            </>
+          )}
+
+          {view === 'rules' && proposing && (
+            <>
+              <div className="am-sheet-backdrop" onClick={() => { if (!ruleBusy) setProposing(false); }} />
+              <section className="am-sheet" role="dialog" aria-modal="true" aria-label="Add a new rule" data-testid="rule-form">
+                <header className="am-sheet-head">
+                  <h2>Add a new rule</h2>
+                  <button type="button" className="am-icon-btn" onClick={() => setProposing(false)} disabled={ruleBusy} aria-label="Close"><X size={20} /></button>
+                </header>
+                <div className="am-sheet-body">
+                  <div className="am-field">
+                    <label htmlFor="amo-rule-type">Type</label>
+                    <select id="amo-rule-type" value={draftRule.type} onChange={(e) => setDraftRule({ ...draftRule, type: e.target.value })}>
+                      <option value="keyword">Keyword list</option>
+                    </select>
+                  </div>
+                  <div className="am-field">
+                    <label htmlFor="amo-rule-label">Label</label>
+                    <input id="amo-rule-label" placeholder="e.g. Crypto wallet addresses" value={draftRule.label} onChange={(e) => setDraftRule({ ...draftRule, label: e.target.value })} />
+                  </div>
+                  <div className="am-field">
+                    <label htmlFor="amo-rule-pattern">{draftRule.type === 'regex' ? 'Regex pattern' : 'Keywords (comma-separated)'}</label>
+                    <input id="amo-rule-pattern" placeholder={draftRule.type === 'regex' ? '\\b0x[a-fA-F0-9]{40}\\b' : 'venmo, cashapp, paypal.me'} value={draftRule.pattern} onChange={(e) => setDraftRule({ ...draftRule, pattern: e.target.value })} />
+                  </div>
+                </div>
+                <footer className="am-sheet-foot">
+                  <button type="button" className="am-btn am-btn--secondary" onClick={() => setProposing(false)} disabled={ruleBusy}>Cancel</button>
+                  <button type="button" className="am-btn am-btn--primary" onClick={withBusy(submitRule)} disabled={ruleBusy} data-testid="submit-rule">Add rule</button>
+                </footer>
+              </section>
+            </>
+          )}
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>

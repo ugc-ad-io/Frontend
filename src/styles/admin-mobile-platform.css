@@ -1,0 +1,41 @@
+/* Phone-only extras for AdminRoles, AdminSettings, AdminHomeShowcase and
+   AdminNotificationTemplates (rendered only when useIsPhone() is true). */
+.am .amp-note { display: flex; flex-direction: row; align-items: flex-start; gap: 8px; margin: 0; font-size: 14px; line-height: 1.5; }
+.am .amp-note > svg { flex-shrink: 0; margin-top: 2px; }
+.am .amp-note--wait { color: var(--am-wait-fg); }
+.am .amp-note--bad { color: var(--am-bad-fg); }
+.am .amp-note--ok { color: var(--am-ok-fg); }
+.am .amp-row-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.am .amp-row-text small { font-size: 13px; color: var(--am-muted); font-weight: 400; overflow-wrap: anywhere; }
+.am .amp-btns { display: flex; flex-wrap: wrap; gap: 8px; }
+.am .amp-btns > .am-btn { flex: 1 1 auto; white-space: nowrap; }
+
+/* checkbox row with a 44px+ target */
+.am .amp-check { display: flex; align-items: center; gap: 12px; min-height: 48px; font-size: 15px; cursor: pointer; overflow-wrap: anywhere; }
+.am .amp-check input { width: 22px; height: 22px; flex-shrink: 0; accent-color: var(--am-primary); }
+
+/* per-capability View / Edit toggles (replaces the wide desktop grid) */
+.am .amp-caps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.am .amp-caps > li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid #EEF0F5; }
+.am .amp-caps > li:first-child { border-top: 0; }
+.am .amp-cap-label { flex: 1; min-width: 0; font-size: 14px; font-weight: 500; overflow-wrap: anywhere; }
+.am .amp-cap-toggles { display: flex; gap: 6px; flex-shrink: 0; }
+.am .amp-toggle { min-width: 60px; min-height: 44px; padding: 0 10px; border: 1px solid var(--am-border); border-radius: 10px; background: var(--am-surface); font: inherit; font-size: 13px; font-weight: 600; color: var(--am-muted); cursor: pointer; }
+.am .amp-toggle[aria-pressed="true"] { background: var(--am-selected); border-color: #C7C8FB; color: var(--am-info-fg); }
+.am .amp-toggle:focus-visible { outline: 2px solid var(--am-primary); outline-offset: 2px; }
+
+/* change-password steps */
+.am .amp-steps { display: flex; gap: 8px; }
+.am .amp-steps > span { flex: 1; padding: 8px 4px; border-radius: 8px; background: #F2F4F7; color: var(--am-muted); font-size: 13px; font-weight: 600; text-align: center; }
+.am .amp-steps > span.is-on { background: var(--am-selected); color: var(--am-info-fg); }
+.am .amp-steps > span.is-done { background: var(--am-ok-bg); color: var(--am-ok-fg); }
+
+/* notification templates: placeholder chips + preview */
+.am .amp-ph { min-height: 44px; padding: 0 12px; border: 1px solid var(--am-border); border-radius: 10px; background: var(--am-surface); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; color: var(--am-text); cursor: pointer; }
+.am .amp-preview { margin: 0; padding: 12px; border: 1px dashed #CBD5E1; border-radius: 10px; background: var(--am-bg); font-size: 14px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* showcase editor */
+.am .amp-video { width: 100%; max-height: 50vh; border-radius: 10px; background: #0B0B14; }
+.am .amp-busy { opacity: .5; pointer-events: none; }
+.am .amp-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; overflow-wrap: anywhere; }
+.am .amp-form { display: flex; flex-direction: column; gap: 18px; }

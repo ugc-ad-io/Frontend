@@ -1,9 +1,11 @@
 import { useLiveEffect } from '../lib/liveUpdates';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { CheckCircle, XCircle, Users as UsersIcon, ChevronDown, ChevronUp, Play, ExternalLink } from 'lucide-react';
+import { CheckCircle, XCircle, Users as UsersIcon, ChevronDown, ChevronUp, Play, ExternalLink, ChevronRight, ArrowLeft, X, Eye, EyeOff } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
+import useIsPhone from '../lib/useIsPhone';
+import '../styles/admin-mobile-users.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -152,8 +154,8 @@ function getInitials(name) {
   return (parts[0][0] + (parts[1]?.[0] || '')).toUpperCase();
 }
 
-function ProfileCard({ profile, onApprove, onReject }) {
-  const [open, setOpen] = useState(false);
+// Shared by the desktop card and the phone list/detail.
+function profileView(profile) {
   // Full submitted payload lives under .profile; merge any extra top-level fields too.
   const details = { ...(profile.profile || {}) };
   Object.entries(profile).forEach(([k, v]) => {
@@ -171,6 +173,27 @@ function ProfileCard({ profile, onApprove, onReject }) {
     profile.name || profile.nickname || profile.username || '-'
   ).replace(/^@+/, '');
   const avatarUrl = getAvatarUrl(details) || getAvatarUrl(profile);
+  return { details, fieldCount, displayName, avatarUrl };
+}
+
+const REJECT_REASON = 'Profile does not meet requirements';
+const roleLabel = (role) => (role === 'business' ? 'Brand' : role === 'creator' ? 'Creator' : (role || '-'));
+const maskEmail = (e) => {
+  const [box, domain] = String(e || '').split('@');
+  return domain ? `${box.slice(0, 2)}•••@${domain}` : (e || '-');
+};
+const maskPhone = (v) => (v ? `•••• ${String(v).replace(/\s/g, '').slice(-4)}` : '-');
+
+function PhoneProfileAvatar({ view, lg }) {
+  const [broken, setBroken] = useState(false);
+  const cls = `am-avatar${lg ? ' am-avatar--lg' : ''}`;
+  if (view.avatarUrl && !broken) return <img className={cls} src={view.avatarUrl} alt="" onError={() => setBroken(true)} />;
+  return <span className={cls} aria-hidden="true">{getInitials(view.displayName)}</span>;
+}
+
+function ProfileCard({ profile, onApprove, onReject }) {
+  const [open, setOpen] = useState(false);
+  const { details, fieldCount, displayName, avatarUrl } = profileView(profile);
 
   return (
     <article className="ap-card" data-testid={`profile-${profile.id}`}>
@@ -234,6 +257,12 @@ function ProfileCard({ profile, onApprove, onReject }) {
 export default function AdminProfiles() {
   const [pendingProfiles, setPendingProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
+  const isPhone = useIsPhone();
+  // phone (PWA) only
+  const [detailId, setDetailId] = useState(null);
+  const [revealContact, setRevealContact] = useState(false);
+  const [confirmReject, setConfirmReject] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   useLiveEffect(() => {
     fetchPendingProfiles();
@@ -269,7 +298,7 @@ export default function AdminProfiles() {
       await axios.post(`${API}/admin/approve-profile`, {
         item_id: userId,
         action: 'reject',
-        reason: 'Profile does not meet requirements'
+        reason: REJECT_REASON
       });
       toast.success('Profile rejected');
       fetchPendingProfiles();
@@ -277,6 +306,136 @@ export default function AdminProfiles() {
       toast.error('Failed to reject profile');
     }
   };
+
+  // ===================== Phone (PWA) layout =====================
+  if (isPhone) {
+    // The detail follows the live list: once approve/reject refetches and the profile
+    // leaves the queue, the detail closes by itself; on failure it stays open.
+    const selected = pendingProfiles.find((x) => x.id === detailId) || null;
+    const view = selected ? profileView(selected) : null;
+    const run = async (fn) => {
+      if (busy) return;
+      setBusy(true);
+      await fn(selected.id);
+      setBusy(false);
+      setConfirmReject(false);
+    };
+    const open = (id) => { setRevealContact(false); setConfirmReject(false); setDetailId(id); };
+
+    return (
+      <AdminLayout>
+        <div className="am amp" data-testid="profiles-phone">
+          <div className="am-tiles am-tiles--3">
+            <div className="am-tile am-tile--wait"><span className="am-tile-top"><UsersIcon size={16} /> Pending</span><span className="am-tile-value">{pendingProfiles.length}</span></div>
+            <div className="am-tile"><span className="am-tile-top">Creators</span><span className="am-tile-value">{pendingProfiles.filter((x) => x.role === 'creator').length}</span></div>
+            <div className="am-tile"><span className="am-tile-top">Brands</span><span className="am-tile-value">{pendingProfiles.filter((x) => x.role === 'business').length}</span></div>
+          </div>
+
+          {loading && pendingProfiles.length === 0 ? (
+            <div className="am-empty">Loading profiles...</div>
+          ) : pendingProfiles.length === 0 ? (
+            <div className="am-empty">
+              <CheckCircle size={40} color="#067647" />
+              <p>No pending profile approvals</p>
+              <p>All caught up - newly submitted profiles will appear here.</p>
+            </div>
+          ) : (
+            <div className="am-list">
+              {pendingProfiles.map((profile) => {
+                const v = profileView(profile);
+                return (
+                  <button key={profile.id} type="button" className="am-card" onClick={() => open(profile.id)} data-testid={`profile-card-${profile.id}`}>
+                    <span className="am-card-head">
+                      <PhoneProfileAvatar view={v} />
+                      <span className="am-card-main">
+                        <span className="am-card-title">{v.displayName}</span>
+                        <span className="am-card-sub">{maskEmail(profile.email)}</span>
+                      </span>
+                      <ChevronRight size={20} className="am-row-chevron" />
+                    </span>
+                    <span className="am-badges">
+                      <span className="am-badge am-badge--neutral">{roleLabel(profile.role)}</span>
+                      <span className="am-badge am-badge--wait">Pending review</span>
+                    </span>
+                    <span className="am-card-sub">{v.fieldCount} detail{v.fieldCount === 1 ? '' : 's'} submitted</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {selected && (
+            <div className="am-detail" role="dialog" aria-modal="true" aria-label="Profile review" data-testid="profile-detail">
+              <header className="am-detail-head">
+                <button type="button" className="am-icon-btn" onClick={() => setDetailId(null)} disabled={busy} aria-label="Back to profiles" data-testid="profile-detail-back"><ArrowLeft size={22} /></button>
+                <h1>Profile review</h1>
+              </header>
+              <div className="am-detail-body">
+                <div className="am-identity">
+                  <PhoneProfileAvatar view={view} lg />
+                  <div className="am-card-main">
+                    <h2>{view.displayName}</h2>
+                    <span className="am-badges">
+                      <span className="am-badge am-badge--neutral">{roleLabel(selected.role)}</span>
+                      <span className="am-badge am-badge--wait">Pending review</span>
+                    </span>
+                  </div>
+                </div>
+
+                <section className="am-section">
+                  <div className="amu-sec-head">
+                    <h3>Contact</h3>
+                    <button type="button" className="am-btn am-btn--link am-btn--sm" aria-pressed={revealContact} aria-label={`${revealContact ? 'Hide' : 'Show'} email and phone`} onClick={() => setRevealContact((x) => !x)}>
+                      {revealContact ? <EyeOff size={16} /> : <Eye size={16} />} {revealContact ? 'Hide' : 'Show'}
+                    </button>
+                  </div>
+                  <div className="am-kv"><span>Email</span><span>{revealContact ? (selected.email || '-') : maskEmail(selected.email)}</span></div>
+                  <div className="am-kv"><span>Phone</span><span className="amu-mono">{revealContact ? (phoneOf(selected) || '-') : maskPhone(phoneOf(selected))}</span></div>
+                </section>
+
+                <section className="am-section amp-details">
+                  <h3>Submitted details ({view.fieldCount})</h3>
+                  {view.fieldCount > 0 ? <DetailGroup obj={view.details} /> : <p className="am-muted">No additional details submitted.</p>}
+                </section>
+              </div>
+              <div className="am-actionbar">
+                <div className="am-actionbar-row">
+                  <button type="button" className="am-btn am-btn--danger" disabled={busy} onClick={() => setConfirmReject(true)} data-testid="profile-reject">
+                    <XCircle size={18} /> Reject
+                  </button>
+                  <button type="button" className="am-btn am-btn--primary" disabled={busy} onClick={() => run(handleApproveProfile)} data-testid="profile-approve">
+                    <CheckCircle size={18} /> {busy && !confirmReject ? 'Approving…' : 'Approve'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {selected && confirmReject && (
+            <>
+              <div className="am-sheet-backdrop" onClick={() => { if (!busy) setConfirmReject(false); }} />
+              <section className="am-sheet" role="dialog" aria-modal="true" aria-label="Reject profile" data-testid="profile-reject-sheet">
+                <header className="am-sheet-head">
+                  <h2>Reject this profile?</h2>
+                  <button type="button" className="am-icon-btn" onClick={() => setConfirmReject(false)} disabled={busy} aria-label="Close"><X size={20} /></button>
+                </header>
+                <div className="am-sheet-body">
+                  <p className="am-muted">{view.displayName} · {roleLabel(selected.role)}</p>
+                  <p>The rejection is sent with the reason: <strong>{REJECT_REASON}</strong></p>
+                </div>
+                <footer className="am-sheet-foot">
+                  <button type="button" className="am-btn am-btn--secondary" disabled={busy} onClick={() => setConfirmReject(false)}>Cancel</button>
+                  <button type="button" className="am-btn am-btn--danger" disabled={busy} onClick={() => run(handleRejectProfile)} data-testid="profile-reject-confirm">
+                    {busy ? 'Rejecting…' : 'Reject profile'}
+                  </button>
+                </footer>
+              </section>
+            </>
+          )}
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>

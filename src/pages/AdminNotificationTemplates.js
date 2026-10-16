@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { ArrowLeft, ChevronRight, Search, X } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
+import useIsPhone from '../lib/useIsPhone';
+import '../styles/admin-mobile-platform.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -22,7 +25,9 @@ const S = {
   btn: { padding: '9px 20px', fontSize: 14, borderRadius: 10 },
 };
 
-function TemplateCard({ ev, samples, onChanged }) {
+const AUDIENCES = ['All', 'Creator', 'Brand', 'Either party', 'Any user'];
+
+function TemplateCard({ ev, samples, onChanged, phone }) {
   const o = ev.override || {};
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -76,6 +81,110 @@ function TemplateCard({ ev, samples, onChanged }) {
       ? <textarea className="textarea-field" style={{ minHeight: 0 }} rows={rows} {...common} />
       : <input className="input-field" {...common} />;
   };
+
+  // ===================== Phone (PWA) layout =====================
+  // A card in the list; tapping opens a full-screen editor. Same state, save and reset,
+  // and the card stays mounted, so closing the editor keeps unsaved text.
+  if (phone) {
+    const pfield = (k, label, rows) => {
+      const common = { id: `nt-${ev.key}-${k}`, value: f[k], onChange: set(k), onFocus: () => setFocus(k) };
+      return (
+        <div className="am-field">
+          <label htmlFor={common.id}>{label}</label>
+          {rows ? <textarea rows={rows} {...common} /> : <input type="text" {...common} />}
+        </div>
+      );
+    };
+    const focusLabel = { title: 'title', message: 'message', emailSubject: 'email subject', emailBody: 'email body' }[focus];
+    return (
+      <>
+        <button type="button" className="am-card" onClick={() => setOpen(true)} data-testid={`template-${ev.key}`}>
+          <span className="am-card-head">
+            <span className="am-card-main">
+              <span className="am-card-title">{ev.label}</span>
+              <span className="am-card-sub">{fill(f.title, samples)}</span>
+            </span>
+            <ChevronRight size={18} className="am-row-chevron" />
+          </span>
+          <span className="am-badges">
+            <span className="am-badge am-badge--info">To: {ev.to}</span>
+            <span className="am-badge am-badge--neutral">Bell</span>
+            <span className={`am-badge am-badge--${f.emailEnabled ? 'ok' : 'neutral'}`}>Email {f.emailEnabled ? 'on' : 'off'}</span>
+            {edited && <span className="am-badge am-badge--wait">Edited</span>}
+          </span>
+        </button>
+
+        {open && (
+          <div className="am-detail" role="dialog" aria-modal="true" aria-label={ev.label} data-testid="template-editor">
+            <header className="am-detail-head">
+              <button type="button" className="am-icon-btn" aria-label="Back" onClick={() => setOpen(false)} data-testid="template-back"><ArrowLeft size={22} /></button>
+              <h1>{ev.label}</h1>
+            </header>
+            <div className="am-detail-body">
+              <div className="am-badges">
+                <span className="am-badge am-badge--info">To: {ev.to}</span>
+                {edited && <span className="am-badge am-badge--wait">Edited</span>}
+              </div>
+              <section className="am-section">
+                <h3>Bell notification</h3>
+                {pfield('title', 'Notification title')}
+                {pfield('message', 'Notification message', 3)}
+              </section>
+
+              <section className="am-section">
+                <h3>Auto-filled values</h3>
+                {ev.vars.length === 0 ? <p className="am-muted">None for this one.</p> : (
+                  <>
+                    <p className="am-muted">Tap to insert into the {focusLabel} field.</p>
+                    <div className="amp-btns">
+                      {ev.vars.map((v) => (
+                        <button type="button" key={v} className="amp-ph" title={`e.g. ${samples[v] ?? v}`}
+                          onClick={() => setF((p) => ({ ...p, [focus]: `${p[focus]}{${v}}` }))}>{`{${v}}`}</button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </section>
+
+              <section className="am-section">
+                <h3>Email</h3>
+                <label className="amp-check">
+                  <input type="checkbox" checked={f.emailEnabled}
+                    onChange={(e) => setF((p) => ({ ...p, emailEnabled: e.target.checked }))} data-testid="template-email-toggle" />
+                  Also send this as an email
+                </label>
+                {f.emailEnabled && (
+                  <>
+                    {pfield('emailSubject', 'Email subject')}
+                    {pfield('emailBody', 'Email body', 5)}
+                    <span className="am-field-hint">Starts as a copy of the notification. Change it only if the email should read differently.</span>
+                  </>
+                )}
+              </section>
+
+              <section className="am-section">
+                <h3>Preview (sample values)</h3>
+                <p className="amp-preview"><strong>{fill(f.title, samples)}</strong>{'\n'}{fill(f.message, samples)}</p>
+                {f.emailEnabled && (
+                  <p className="amp-preview"><span className="am-muted">Email - subject:</span> <strong>{fill(f.emailSubject, samples)}</strong>{'\n'}{fill(f.emailBody, samples)}</p>
+                )}
+              </section>
+            </div>
+            <div className="am-actionbar">
+              <div className="am-actionbar-row">
+                {edited && (
+                  <button type="button" className="am-btn am-btn--secondary" disabled={busy} onClick={reset} data-testid="template-reset">Reset to default</button>
+                )}
+                <button type="button" className="am-btn am-btn--primary" disabled={busy} onClick={save} data-testid="template-save">
+                  {busy ? 'Saving…' : 'Save changes'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }
 
   return (
     <div style={S.card} data-testid={`template-${ev.key}`}>
@@ -148,6 +257,7 @@ export default function AdminNotificationTemplates() {
   const [failed, setFailed] = useState(false);
   const [audience, setAudience] = useState('All');
   const [q, setQ] = useState('');
+  const isPhone = useIsPhone();
 
   const load = useCallback(async () => {
     try {
@@ -163,6 +273,20 @@ export default function AdminNotificationTemplates() {
   }, []);
   useEffect(() => { load(); }, [load]);
 
+  if (!data && isPhone) {
+    return (
+      <AdminLayout>
+        <div className="am amp">
+          {failed ? (
+            <div className="am-empty">
+              <p>Could not load the notification templates.</p>
+              <button type="button" className="am-btn am-btn--secondary" onClick={load}>Try again</button>
+            </div>
+          ) : <p className="am-empty">Loading notifications…</p>}
+        </div>
+      </AdminLayout>
+    );
+  }
   if (!data) {
     return (
       <AdminLayout>
@@ -176,6 +300,35 @@ export default function AdminNotificationTemplates() {
     (audience === 'All' || ev.to === audience) &&
     (!q || `${ev.label} ${ev.title} ${ev.message}`.toLowerCase().includes(q.toLowerCase())));
 
+  if (isPhone) {
+    return (
+      <AdminLayout>
+        <div className="am amp" data-testid="templates-phone">
+          <p className="am-muted">
+            Every automatic message the platform sends, with its default wording. Words in {'{curly brackets}'} are
+            filled in automatically. &quot;Reset to default&quot; goes back to the original text.
+          </p>
+          <label className="am-search">
+            <Search size={18} />
+            <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search notifications" aria-label="Search notifications" />
+            {q && <button type="button" className="am-search-clear" onClick={() => setQ('')} aria-label="Clear search"><X size={18} /></button>}
+          </label>
+          <div className="am-chips" role="group" aria-label="Audience">
+            {AUDIENCES.map((a) => (
+              <button key={a} type="button" className={`am-chip${audience === a ? ' is-active' : ''}`} aria-pressed={audience === a} onClick={() => setAudience(a)}>{a}</button>
+            ))}
+          </div>
+          <div className="am-list">
+            {shown.map((ev) => (
+              <TemplateCard key={ev.key + (ev.override?.updated_at || '')} ev={ev} samples={data.samples} onChanged={load} phone />
+            ))}
+          </div>
+          {shown.length === 0 && <p className="am-empty">No notifications match.</p>}
+        </div>
+      </AdminLayout>
+    );
+  }
+
   return (
     <AdminLayout>
     <div className="fade-in">
@@ -186,7 +339,7 @@ export default function AdminNotificationTemplates() {
       </p>
       <div style={{ display: 'flex', gap: 10, margin: '16px 0', flexWrap: 'wrap' }}>
         <select className="input-field" style={{ width: 180 }} value={audience} onChange={(e) => setAudience(e.target.value)}>
-          {['All', 'Creator', 'Brand', 'Either party', 'Any user'].map((a) => <option key={a}>{a}</option>)}
+          {AUDIENCES.map((a) => <option key={a}>{a}</option>)}
         </select>
         <input className="input-field" style={{ flex: 1, minWidth: 220 }} placeholder="Search notifications..."
           value={q} onChange={(e) => setQ(e.target.value)} />

@@ -1,9 +1,11 @@
 import { useLiveEffect } from '../lib/liveUpdates';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { BarChart, IndianRupee, Users, Briefcase, TrendingUp, Download } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
+import useIsPhone from '../lib/useIsPhone';
+import '../styles/admin-mobile-finance.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -11,6 +13,8 @@ const API = `${BACKEND_URL}/api`;
 export default function AdminAnalytics() {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
+  const isPhone = useIsPhone();
+  const [exporting, setExporting] = useState(false); // phone: export in flight
 
   useLiveEffect(() => {
     fetchAnalytics();
@@ -45,6 +49,79 @@ export default function AdminAnalytics() {
   };
 
   const a = analytics || {};
+
+  if (isPhone) {
+    const money = (n) => `₹${(n || 0).toLocaleString('en-IN')}`;
+    const earnings = a.total_creator_earnings || a.creator_earnings || 0;
+    const sections = [
+      ['Revenue Metrics', IndianRupee, [
+        ['Total Revenue', money(a.total_revenue)],
+        ['Platform Commission', money(a.platform_commission)],
+        ['Creator Earnings', money(a.creator_earnings || a.total_creator_earnings)],
+      ]],
+      ['User Growth', Users, [
+        ['Total Users', a.total_users || 0],
+        ['New Creators (30d)', a.new_creators || 0],
+        ['New Businesses (30d)', a.new_businesses || 0],
+      ]],
+      ['Campaign Metrics', Briefcase, [
+        ['Total Campaigns', a.total_campaigns || 0],
+        ['Active Campaigns', a.active_campaigns || 0],
+        ['Completed Campaigns', a.completed_campaigns || 0],
+      ]],
+      ['Performance', TrendingUp, [
+        ['Avg Campaign Value', `₹${a.avg_campaign_value?.toFixed(0) || '0'}`],
+        ['Success Rate', `${a.success_rate?.toFixed(1) || '0'}%`],
+        ['Monthly Growth', `${a.monthly_growth?.toFixed(1) || '0'}%`],
+      ]],
+    ];
+    const runExport = async () => { setExporting(true); try { await handleExportWithdrawals(); } finally { setExporting(false); } };
+    return (
+      <AdminLayout>
+        <div className="am">
+          <button type="button" className="am-btn am-btn--secondary" onClick={runExport} disabled={exporting} data-testid="analytics-export">
+            <Download size={18} /> {exporting ? 'Exporting…' : 'Export Withdrawals CSV'}
+          </button>
+          {loading && !analytics ? (
+            <div className="am-empty">Loading analytics…</div>
+          ) : !analytics ? (
+            <div className="am-empty">No analytics data available</div>
+          ) : (
+            <>
+              <div className="am-tiles amf-tiles">
+                <div className="am-tile">
+                  <span className="am-tile-top"><Users size={16} /> Total Creators</span>
+                  <span className="am-tile-value">{a.total_creators || 0}</span>
+                  <span className="amf-hint amf-ok">+{a.new_creators || 0} this month</span>
+                </div>
+                <div className="am-tile">
+                  <span className="am-tile-top"><Briefcase size={16} /> Total Businesses</span>
+                  <span className="am-tile-value">{a.total_businesses || 0}</span>
+                  <span className="amf-hint amf-ok">+{a.new_businesses || 0} this month</span>
+                </div>
+                <div className="am-tile">
+                  <span className="am-tile-top"><IndianRupee size={16} /> Creator Earnings</span>
+                  <span className="am-tile-value">{money(earnings)}</span>
+                  <span className="amf-hint">Total paid to creators</span>
+                </div>
+                <div className="am-tile am-tile--info">
+                  <span className="am-tile-top"><TrendingUp size={16} /> Platform Commission</span>
+                  <span className="am-tile-value">{money(a.platform_commission)}</span>
+                  <span className="amf-hint">20% of {money(earnings)}</span>
+                </div>
+              </div>
+              {sections.map(([title, Icon, rows]) => (
+                <section key={title} className="am-section">
+                  <h3 className="amf-icon-title"><Icon size={18} /> {title}</h3>
+                  {rows.map(([k, v]) => <div key={k} className="am-kv"><span>{k}</span><span>{v}</span></div>)}
+                </section>
+              ))}
+            </>
+          )}
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>

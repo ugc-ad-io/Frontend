@@ -1,0 +1,67 @@
+/* Phone-only extras for AdminUsers / AdminMyCreators (amu-) and AdminProfiles (amp-).
+   Rendered only when useIsPhone() is true. Builds on admin-mobile.css. */
+.amu-assigned { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; color: var(--am-muted); }
+.amu-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .03em; }
+
+/* a verified badge must not read like a plain role badge: icon + outline */
+.amu .amu-verified { box-shadow: inset 0 0 0 1px currentColor; }
+.amu .am-badge svg { flex-shrink: 0; }
+
+.amu-listhead { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; margin: -8px 0; }
+.amu-listhead-actions { display: flex; align-items: center; gap: 4px; }
+.amu-selectall { display: flex; align-items: center; gap: 10px; min-height: 44px; font-size: 14px; font-weight: 600; }
+.amu-selectall input, .amu-check, .amu-toggle input { width: 22px; height: 22px; flex-shrink: 0; accent-color: var(--am-primary); margin: 0; }
+.amu-check { align-self: center; }
+
+.amu-amount { display: flex; flex-direction: column; gap: 2px; }
+.amu .am-card-foot > .am-card-sub { text-align: right; }
+.amu-card-select { cursor: pointer; }
+.amu-card-select.is-selected { border-color: var(--am-primary); background: var(--am-selected); }
+.amu-card-banned { border-color: #F5B5AF; }
+
+/* bulk selection bar, above the app's bottom bar (56px + safe area) */
+.amu-bulkbar { position: fixed; left: 0; right: 0; bottom: calc(56px + env(safe-area-inset-bottom)); z-index: 55; padding-bottom: 12px; box-shadow: 0 -8px 24px rgba(15,23,42,.08); }
+.amu-bulk-head { display: flex; align-items: center; justify-content: space-between; font-size: 15px; }
+.amu-bulkbar .am-actionbar-row { gap: 8px; }
+.amu-selecting { padding-bottom: 120px; }
+
+/* detail */
+.amu-sec-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.amu-sec-head h3 { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 600; }
+.amu-sec-head .am-btn { min-height: 44px; padding: 0 8px; }
+.amu-sub { margin: 4px 0 0; font-size: 13px; font-weight: 600; color: var(--am-muted); }
+.amu-list { list-style: none; margin: 0; padding: 0; }
+.amu-list > li + li { border-top: 1px solid #EEF0F5; }
+.amu-item { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 10px 0; border: 0; background: none; font: inherit; font-size: 14px; color: var(--am-text); text-align: left; }
+button.amu-item { cursor: pointer; }
+.amu-item strong { font-weight: 600; overflow-wrap: anywhere; }
+.amu-item small { font-size: 12px; color: var(--am-muted); text-transform: capitalize; }
+.amu-item--stack { flex-direction: column; align-items: flex-start; gap: 2px; }
+.amu-violation { color: var(--am-bad-fg); text-transform: capitalize; }
+.amu-item small.amu-snip { font-style: italic; text-transform: none; }
+.amu-more { flex: 0 0 56px !important; padding: 0; }
+.amu-row--danger { color: var(--am-bad-fg); }
+.amu .am-row > svg:first-child { color: inherit; }
+
+/* filter sheet */
+.amu-range { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.amu-toggle { display: flex; align-items: flex-start; gap: 12px; min-height: 44px; font-size: 15px; font-weight: 600; cursor: pointer; }
+.amu-toggle small { display: block; font-size: 13px; font-weight: 400; color: var(--am-muted); }
+
+/* action sheet fields: desktop markup is <label>Text<input/></label>, styled like .am-field */
+.amu-form { display: flex; flex-direction: column; gap: 16px; }
+.amu-form label { display: flex; flex-direction: column; gap: 8px; font-size: 14px; font-weight: 600; color: var(--am-text); }
+.amu-form input, .amu-form select, .amu-form textarea { width: 100%; min-height: 48px; padding: 10px 14px; font: inherit; font-size: 16px; font-weight: 400; border: 1px solid var(--am-border); border-radius: 12px; background: var(--am-surface); color: var(--am-text); }
+.amu-form textarea { min-height: 96px; resize: vertical; }
+.amu-form p { margin: 0; font-size: 15px; color: var(--am-text); line-height: 1.5; }
+
+/* ---- AdminProfiles (amp-) : reuses the desktop DetailGroup markup ---- */
+.amp-details .ap-group { display: flex; flex-direction: column; gap: 12px; }
+.amp-details .ap-group--nested { padding: 12px; background: var(--am-bg); border-radius: 10px; }
+.amp-details .ap-group-title { margin: 0; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--am-primary); }
+.amp-details .ap-row { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.amp-details .ap-k { font-size: 12px; font-weight: 600; color: var(--am-muted); }
+.amp-details .ap-v { font-size: 15px; overflow-wrap: anywhere; }
+.amp-details .ap-nested { display: flex; flex-direction: column; gap: 8px; }
+.amp-details .ap-link-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.amp-details .ap-link { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border: 1px solid var(--am-border); border-radius: 12px; background: var(--am-selected); color: var(--am-info-fg); font-size: 14px; font-weight: 600; text-decoration: none; }

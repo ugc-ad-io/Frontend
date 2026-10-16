@@ -1,12 +1,19 @@
 import { useLiveEffect } from '../lib/liveUpdates';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Briefcase, PauseCircle, PlayCircle, Ban, Trash2, X } from 'lucide-react';
+import { Briefcase, PauseCircle, PlayCircle, Ban, Trash2, X, Search, ArrowLeft, ChevronRight, MoreHorizontal } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 import { useAuth } from '../App';
 import { can } from '../utils/adminRoles';
 import { apiErrorMessage } from '../utils/apiError';
+import useIsPhone from '../lib/useIsPhone';
+import '../styles/admin-mobile-ops.css';
+
+const ACTION_ICON = { pause: PauseCircle, resume: PlayCircle, ban: Ban, delete: Trash2 };
+// Phone status badge tones; anything unlisted reads neutral.
+const STATUS_TONE = { active: 'ok', pending_approval: 'wait', completed: 'info', rejected: 'bad', paused: 'wait', banned: 'bad' };
+const statusText = (s) => String(s || 'unknown').replace(/_/g, ' ');
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -50,6 +57,10 @@ export default function AdminAllCampaigns() {
   const [pending, setPending] = useState(null);
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
+  const isPhone = useIsPhone();
+  const [phoneStatus, setPhoneStatus] = useState('all'); // phone: status chip
+  const [detailId, setDetailId] = useState(null);        // phone: campaign open full-screen
+  const [moreOpen, setMoreOpen] = useState(false);       // phone: overflow actions sheet
 
   // Hold/resume/ban need review_applications; delete needs ban_users AND the founder
   // role (the backend enforces both - see admin_delete_campaign). Gating here keeps an
@@ -139,6 +150,188 @@ export default function AdminAllCampaigns() {
     pending: allCampaigns.filter(c => c.status === 'pending_approval').length,
     completed: allCampaigns.filter(c => c.status === 'completed').length,
   };
+
+  // ===================== Phone (PWA) layout =====================
+  if (isPhone) {
+    // The desktop's three stat statuses always show; any other status present joins them.
+    const statuses = Array.from(new Set(['active', 'pending_approval', 'completed', ...allCampaigns.map((c) => c.status).filter(Boolean)]));
+    const countOf = (s) => allCampaigns.filter((c) => c.status === s).length;
+    const shownList = phoneStatus === 'all' ? filtered : filtered.filter((c) => c.status === phoneStatus);
+    // Looked up live, so it refreshes after an action and closes itself once deleted.
+    const open = allCampaigns.find((c) => c.id === detailId);
+    const acts = open ? actionsFor(open) : [];
+    // Up to two actions sit in the bar; with three, Hold/Resume stays and the rest go to More.
+    const inline = acts.length <= 2 ? acts : acts.filter((a) => !MOD_ACTIONS[a].destructive);
+    const overflow = acts.filter((a) => !inline.includes(a));
+    const ask = (campaign, action) => { setMoreOpen(false); setPending({ campaign, action }); setReason(''); };
+    const badge = (c) => <span className={`am-badge am-badge--${STATUS_TONE[c.status] || 'neutral'}`}>{statusText(c.status)}</span>;
+    const holdBanReason = (c) => (
+      c.status === 'paused' && c.pause_reason ? ['On hold', c.pause_reason]
+        : c.status === 'banned' && c.ban_reason ? ['Banned', c.ban_reason] : null
+    );
+
+    return (
+      <AdminLayout>
+        <div className="am" data-testid="allcampaigns-phone">
+          <label className="am-search">
+            <Search size={18} />
+            <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Search title, business or status" aria-label="Search campaigns" />
+            {filter && <button type="button" className="am-search-clear" onClick={() => setFilter('')} aria-label="Clear search"><X size={18} /></button>}
+          </label>
+
+          <div className="am-chips" role="group" aria-label="Campaign status">
+            <button type="button" className={`am-chip${phoneStatus === 'all' ? ' is-active' : ''}`} aria-pressed={phoneStatus === 'all'} onClick={() => setPhoneStatus('all')}>
+              All <span className="am-chip-count">{allCampaigns.length}</span>
+            </button>
+            {statuses.map((s) => (
+              <button key={s} type="button" className={`am-chip${phoneStatus === s ? ' is-active' : ''}`} aria-pressed={phoneStatus === s} onClick={() => setPhoneStatus(s)}>
+                {statusText(s)} <span className="am-chip-count">{countOf(s)}</span>
+              </button>
+            ))}
+          </div>
+
+          {loading && !allCampaigns.length ? (
+            <div className="am-empty">Loading campaigns…</div>
+          ) : !shownList.length ? (
+            <div className="am-empty">{filter ? `No campaigns match "${filter}"` : 'No campaigns found'}</div>
+          ) : (
+            <div className="am-list">
+              {shownList.map((c) => {
+                const note = holdBanReason(c);
+                return (
+                  <button key={c.id} type="button" className="am-card" onClick={() => { setMoreOpen(false); setDetailId(c.id); }} data-testid={`allcampaign-card-${c.id}`}>
+                    <span className="am-card-head">
+                      <span className="am-thumb amo-thumb" aria-hidden="true"><Briefcase size={24} /></span>
+                      <span className="am-card-main">
+                        <span className="am-card-title">{c.title}</span>
+                        <span className="am-card-sub">{brandName(c)}</span>
+                        <span className="am-badges">{badge(c)}</span>
+                      </span>
+                    </span>
+                    {note && <span className="amo-clamp"><strong>{note[0]}:</strong> {note[1]}</span>}
+                    <span className="am-card-foot">
+                      <span className="amo-stack">
+                        <span className="am-amount-label">Budget · created {new Date(c.created_at).toLocaleDateString()}</span>
+                        <span className="am-amount">₹{c.budget_min} - ₹{c.budget_max}</span>
+                      </span>
+                      <ChevronRight size={20} className="am-row-chevron" />
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {open && (
+            <div className="am-detail" role="dialog" aria-modal="true" aria-labelledby="amo-camp-title" data-testid="allcampaign-detail">
+              <header className="am-detail-head">
+                <button type="button" className="am-icon-btn" onClick={() => { setMoreOpen(false); setDetailId(null); }} aria-label="Back to campaigns"><ArrowLeft size={22} /></button>
+                <h1 id="amo-camp-title">Campaign</h1>
+              </header>
+              <div className="am-detail-body">
+                <div className="amo-identity">
+                  <h2>{open.title}</h2>
+                  <span className="am-card-sub">{brandName(open)}</span>
+                  <span className="am-badges">{badge(open)}</span>
+                </div>
+                {holdBanReason(open) && (
+                  <div className="amo-callout amo-callout--wait"><span><strong>{holdBanReason(open)[0]}:</strong> {holdBanReason(open)[1]}</span></div>
+                )}
+                <section className="am-section">
+                  <h3>Details</h3>
+                  <div className="am-kv"><span>Business</span><span>{brandName(open)}</span></div>
+                  <div className="am-kv"><span>Budget</span><span>₹{open.budget_min} - ₹{open.budget_max}</span></div>
+                  <div className="am-kv"><span>Created</span><span>{new Date(open.created_at).toLocaleDateString()}</span></div>
+                  <div className="am-kv"><span>Status</span><span>{statusText(open.status)}</span></div>
+                </section>
+                <section className="am-section">
+                  <h3>Brief</h3>
+                  <p className="amo-pre">{open.brief_text || 'No brief text.'}</p>
+                </section>
+              </div>
+              {acts.length > 0 && (
+                <div className="am-actionbar">
+                  <div className="am-actionbar-row">
+                    {inline.map((a) => {
+                      const Icon = ACTION_ICON[a];
+                      return (
+                        <button key={a} type="button" className={`am-btn ${MOD_ACTIONS[a].destructive ? 'am-btn--danger' : 'am-btn--primary'}`} onClick={() => ask(open, a)} data-testid={`campaign-${a}-${open.id}`}>
+                          <Icon size={18} /> {MOD_ACTIONS[a].label}
+                        </button>
+                      );
+                    })}
+                    {overflow.length > 0 && (
+                      <button type="button" className="am-btn am-btn--secondary amo-more" onClick={() => setMoreOpen(true)} aria-label="More actions"><MoreHorizontal size={20} /></button>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {open && moreOpen && (
+            <>
+              <div className="am-sheet-backdrop" onClick={() => setMoreOpen(false)} />
+              <section className="am-sheet" role="dialog" aria-modal="true" aria-label="More actions">
+                <div className="am-sheet-head">
+                  <h2>More actions</h2>
+                  <button type="button" className="am-icon-btn" onClick={() => setMoreOpen(false)} aria-label="Close"><X size={20} /></button>
+                </div>
+                <div className="am-sheet-body">
+                  <ul className="am-rows amo-rows">
+                    {overflow.map((a) => {
+                      const Icon = ACTION_ICON[a];
+                      return (
+                        <li key={a}>
+                          <button type="button" className={`am-row${MOD_ACTIONS[a].destructive ? ' amo-row--danger' : ''}`} onClick={() => ask(open, a)} data-testid={`campaign-${a}-${open.id}`}>
+                            <Icon size={20} /><span className="am-row-label">{MOD_ACTIONS[a].verb}</span><ChevronRight size={18} className="am-row-chevron" />
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              </section>
+            </>
+          )}
+
+          {pending && (
+            <>
+              <div className="am-sheet-backdrop" onClick={() => !busy && setPending(null)} />
+              <section className="am-sheet" role="dialog" aria-modal="true" aria-labelledby="amo-mod-title" data-testid="moderation-sheet">
+                <div className="am-sheet-head">
+                  <h2 id="amo-mod-title">{MOD_ACTIONS[pending.action].verb}</h2>
+                  <button type="button" className="am-icon-btn" onClick={() => setPending(null)} disabled={busy} aria-label="Close"><X size={20} /></button>
+                </div>
+                <div className="am-sheet-body">
+                  <p className="am-muted"><strong>{pending.campaign.title}</strong> · {brandName(pending.campaign)}</p>
+                  <p className="am-muted">{MOD_ACTIONS[pending.action].blurb}</p>
+                  {pending.action !== 'delete' && (
+                    <div className="am-field">
+                      <label htmlFor="amo-mod-reason">Reason {MOD_ACTIONS[pending.action].destructive ? '(required)' : '(optional)'}</label>
+                      <textarea id="amo-mod-reason" rows={3} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="This is written to the audit log and sent to the brand." />
+                    </div>
+                  )}
+                </div>
+                <div className="am-sheet-foot">
+                  <button type="button" className="am-btn am-btn--secondary" onClick={() => setPending(null)} disabled={busy}>Cancel</button>
+                  <button
+                    type="button"
+                    className={`am-btn ${MOD_ACTIONS[pending.action].destructive ? 'am-btn--danger' : 'am-btn--primary'}`}
+                    onClick={runAction}
+                    disabled={busy || (MOD_ACTIONS[pending.action].destructive && pending.action !== 'delete' && !reason.trim())}
+                    data-testid="confirm-moderation"
+                  >
+                    {busy ? 'Working…' : MOD_ACTIONS[pending.action].label}
+                  </button>
+                </div>
+              </section>
+            </>
+          )}
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>

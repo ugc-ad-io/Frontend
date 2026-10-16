@@ -1,0 +1,57 @@
+/* Phone-only extras for AdminCampaigns (Briefs), AdminAllCampaigns, AdminDisputes and
+   AdminEditing. Rendered only when useIsPhone() is true. Builds on admin-mobile.css. */
+.am .amo-thumb { display: grid; place-items: center; background: var(--am-selected); color: var(--am-primary); }
+.am .amo-stack { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.am .amo-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.am .amo-meta { display: grid; gap: 6px; font-size: 13px; color: var(--am-text); }
+.am .amo-meta > span { display: flex; align-items: center; gap: 8px; overflow-wrap: anywhere; }
+.am .amo-meta svg { color: var(--am-muted); flex-shrink: 0; }
+.am .amo-go { display: inline-flex; align-items: center; gap: 2px; flex-shrink: 0; font-size: 14px; font-weight: 600; color: var(--am-primary); }
+.am .amo-clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 14px; line-height: 1.45; color: var(--am-text); }
+
+/* a card whose body opens the record and whose foot carries its own button */
+.am .amo-card-open { display: flex; flex-direction: column; gap: 10px; width: 100%; padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.am .amo-card-open:focus-visible { outline: 2px solid var(--am-primary); outline-offset: 4px; border-radius: 8px; }
+
+.am .amo-identity { display: flex; flex-direction: column; gap: 6px; }
+.am .amo-identity h2 { font-size: 20px; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; }
+.am .amo-pre { white-space: pre-wrap; }
+.am .amo-list { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.am .amo-sub { margin: 0; font-size: 13px; font-weight: 600; color: var(--am-muted); }
+
+.am .amo-callout { display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; border-radius: 10px; font-size: 13px; font-weight: 500; line-height: 1.45; }
+.am .amo-callout svg { flex-shrink: 0; margin-top: 1px; }
+.am .amo-callout--wait { background: var(--am-wait-bg); color: var(--am-wait-fg); }
+.am .amo-callout--bad { background: var(--am-bad-bg); color: var(--am-bad-fg); }
+.am .amo-callout--ok { background: var(--am-ok-bg); color: var(--am-ok-fg); }
+.am .amo-callout--info { background: var(--am-info-bg); color: var(--am-info-fg); }
+
+.am .amo-hint { margin: 0; font-size: 12px; color: var(--am-muted); text-align: center; }
+.am .am-actionbar-row > .amo-more { flex: 0 0 56px; padding: 0; }
+.am .amo-row--danger { color: var(--am-bad-fg); }
+.am .amo-rows .am-row > svg:first-child { color: inherit; }
+.am .am-row:disabled { opacity: .5; cursor: not-allowed; }
+
+/* ruling builder */
+.am .amo-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.am .amo-option { min-height: 60px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; border: 1px solid var(--am-border); border-radius: 12px; background: var(--am-surface); font: inherit; color: var(--am-text); text-align: left; cursor: pointer; }
+.am .amo-option strong { font-size: 14px; font-weight: 600; }
+.am .amo-option small { font-size: 12px; color: var(--am-muted); line-height: 1.35; }
+.am .amo-option.is-active { background: var(--am-selected); border-color: #C7C8FB; color: var(--am-info-fg); }
+.am .amo-two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.am .amo-two .am-field > label { min-height: 40px; display: flex; align-items: flex-end; }
+.am .amo-chips-cap .am-chip { text-transform: capitalize; min-height: 44px; }
+
+/* evidence media + messages */
+.am .amo-media { width: 100%; max-height: 280px; display: block; object-fit: contain; border-radius: 10px; background: #000; }
+.am .amo-tile { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid var(--am-border); border-radius: 12px; }
+.am .amo-tile-head { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--am-muted); overflow-wrap: anywhere; }
+.am .amo-msg { padding: 10px 12px; border-radius: 12px; background: var(--am-bg); font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.am .amo-msg strong { display: block; font-size: 12px; color: var(--am-muted); }
+.am .amo-step-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding-top: 2px; overflow-wrap: anywhere; font-size: 14px; }
+
+/* editing queue */
+.am .amo-files { display: flex; flex-wrap: wrap; gap: 8px; }
+.am .amo-files .am-btn { min-height: 44px; }
+.am .amo-fill { flex: 1; }
+.am .amo-file-name { font-size: 13px; color: var(--am-muted); overflow-wrap: anywhere; }

@@ -8,9 +8,12 @@ import {
   Users, Search, X, Eye, Download, Send, Ban, ShieldAlert, AlertTriangle,
   ArrowUpCircle, ArrowDownCircle, Wallet, Percent, MessageSquare,
   FileText, CreditCard, CalendarClock, Flag, Trash2, ShieldCheck, BadgeCheck,
+  ArrowLeft, MoreHorizontal, ChevronRight, Pencil, EyeOff, ExternalLink, SlidersHorizontal, CheckSquare,
 } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
-import { Skeleton } from '../components/Skeleton';
+import { Skeleton, SkeletonList } from '../components/Skeleton';
+import useIsPhone from '../lib/useIsPhone';
+import '../styles/admin-mobile-users.css';
 import { useAuth } from '../App';
 import { can, ROLE_LABELS, normalizeRole } from '../utils/adminRoles';
 import { levelLabelOf } from '../utils/creatorLevel';
@@ -63,6 +66,98 @@ const dateShort = (v) => (v ? String(v).slice(0, 10) : '-');
 const STATE_LABELS = { active: 'Active', suspended: 'Suspended', banned: 'Banned' };
 const PAYOUT_SCHEDULES = ['weekly', 'biweekly', 'monthly', 'on_request'];
 
+const mask4 = (v) => (v ? `•••• ${String(v).slice(-4)}` : '-');
+const docUrl = (uu) => (!uu ? '' : (String(uu).startsWith('http') ? uu : `${BACKEND_URL}${uu}`));
+// KYC is submitted to user.kyc (not user.profile); the payout account lives at the
+// top level (u.bank_details / u.upi_id) — that's where withdrawals read it.
+const payoutInfo = (u) => {
+  const kyc = u.kyc || {};
+  const bankDetails = u.bank_details || {};
+  return {
+    kyc,
+    kycAddr: kyc.address || {},
+    acct: bankDetails.account_number || p(u, 'bank_account', 'account_number'),
+    ifsc: bankDetails.ifsc_code || p(u, 'ifsc', 'ifsc_code'),
+    bankHolder: bankDetails.account_holder_name,
+    bankName: bankDetails.bank_name,
+    upiId: u.upi_id,
+    pan: kyc.pan_number || p(u, 'pan', 'pan_number'),
+    aadhaar: kyc.aadhaar_number || p(u, 'aadhaar', 'aadhaar_number'),
+    docs: [
+      ['PAN card', kyc.pan_doc_url || p(u, 'pan_url', 'pan_document')],
+      ['Aadhaar front', kyc.aadhaar_front_url || p(u, 'aadhaar_url', 'aadhaar_document')],
+      ['Aadhaar back', kyc.aadhaar_back_url],
+      ['Selfie', kyc.selfie_url],
+      ['GST Cert', p(u, 'gst_certificate', 'gst_url')],
+    ].filter(([, url]) => url),
+  };
+};
+
+// ---- phone (PWA) helpers ------------------------------------------------------
+// Email on phone cards: first 2 chars of the mailbox, then the domain.
+const maskEmail = (e) => {
+  const [box, domain] = String(e || '').split('@');
+  if (!domain) return e || '-';
+  return `${box.slice(0, 2)}•••@${domain}`;
+};
+const maskPhone = (v) => (v && v !== '-' ? mask4(String(v).replace(/\s/g, '')) : '-');
+const nameOf = (u) => (isBrand(u) ? businessName(u) : displayName(u));
+const typeLabel = (u) => (isBrand(u) ? 'Brand' : (isAdmin(u) ? 'Admin' : 'Creator'));
+const STATE_TONE = { active: 'ok', suspended: 'wait', banned: 'bad' };
+const VERIFY_BADGE = {
+  approved: ['ok', 'Verified'],
+  pending: ['wait', 'Verification pending'],
+  more_info: ['wait', 'More info requested'],
+  rejected: ['bad', 'Verification rejected'],
+};
+const EMPTY_PHONE_FILTERS = { state: '', verify: '', category: '', walletMin: '', walletMax: '', flagged: false, formNotFilled: false };
+
+function PhoneSheet({ title, onClose, children, foot, testId }) {
+  return (
+    <>
+      <div className="am-sheet-backdrop" onClick={onClose} />
+      <section className="am-sheet" role="dialog" aria-modal="true" aria-label={title} data-testid={testId}>
+        <header className="am-sheet-head">
+          <h2>{title}</h2>
+          <button type="button" className="am-icon-btn" onClick={onClose} aria-label="Close"><X size={20} /></button>
+        </header>
+        <div className="am-sheet-body">{children}</div>
+        {foot && <footer className="am-sheet-foot">{foot}</footer>}
+      </section>
+    </>
+  );
+}
+
+function PhoneAvatar({ u, lg }) {
+  // Same rule as the desktop drawer: a dead /uploads or localhost photo falls back to the initial.
+  const [broken, setBroken] = useState(false);
+  const raw = u.profile_photo;
+  const url = (raw && !/localhost/i.test(raw)) ? (String(raw).startsWith('http') ? raw : `${BACKEND_URL}${raw}`) : null;
+  const cls = `am-avatar${lg ? ' am-avatar--lg' : ''}`;
+  if (url && !broken) return <img className={cls} src={url} alt="" onError={() => setBroken(true)} />;
+  return <span className={cls} aria-hidden="true">{String(nameOf(u) || u.email || '?').replace(/^[@#]/, '').charAt(0).toUpperCase()}</span>;
+}
+
+function UserBadges({ u }) {
+  const st = userState(u);
+  const verify = isBrand(u) ? VERIFY_BADGE[u.approval_status || 'approved'] : null;
+  return (
+    <span className="am-badges">
+      <span className="am-badge am-badge--neutral">{typeLabel(u)}</span>
+      {isAdmin(u) && u.admin_role && <span className="am-badge am-badge--info">{ROLE_LABELS[normalizeRole(u.admin_role)] || 'Admin'}</span>}
+      {isCreator(u) && <span className="am-badge am-badge--info">{levelLabelOf(u.level_key ?? u.level)}</span>}
+      {isCreator(u) && u.ugcad_approved && <span className="am-badge am-badge--ok amu-verified"><BadgeCheck size={14} /> UGCAD approved</span>}
+      {verify && (
+        <span className={`am-badge am-badge--${verify[0]}${verify[0] === 'ok' ? ' amu-verified' : ''}`}>
+          {verify[0] === 'ok' && <ShieldCheck size={14} />} {verify[1]}
+        </span>
+      )}
+      <span className={`am-badge am-badge--${STATE_TONE[st]}`}>{STATE_LABELS[st]}</span>
+      {isFlagged(u) && <span className="am-badge am-badge--bad"><Flag size={12} /> {strikes(u).length} strike{strikes(u).length === 1 ? '' : 's'}</span>}
+    </span>
+  );
+}
+
 // Reused by the custom-admin "My Users" page (AdminMyCreators) so both admin views
 // share ONE table/detail UI. Only the data source + heading differ.
 export default function AdminUsers({
@@ -72,6 +167,7 @@ export default function AdminUsers({
 } = {}) {
   const { user: me } = useAuth();
   const navigate = useNavigate();
+  const isPhone = useIsPhone();
   // Capability gating (PRD 11 — role structure). This page is reachable by
   // founder + Ops Senior; ban / commission / pro are founder-only.
   const caps = {
@@ -124,6 +220,13 @@ export default function AdminUsers({
 
   // ban / unban confirmation modal
   const [banTarget, setBanTarget] = useState(null); // { user, banned }
+
+  // phone (PWA) only
+  const [phoneSheet, setPhoneSheet] = useState(null); // 'filters' | 'more'
+  const [filterDraft, setFilterDraft] = useState(EMPTY_PHONE_FILTERS);
+  const [selectMode, setSelectMode] = useState(false);
+  const [revealContact, setRevealContact] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
 
   useLiveEffect(() => { fetchAllUsers(); }, []);
 
@@ -331,6 +434,324 @@ export default function AdminUsers({
     banned: allUsers.filter((u) => userState(u) === 'banned').length,
     formNotFilled: allUsers.filter((u) => !u.profile_completed).length,
   };
+
+  // ===================== Phone (PWA) layout =====================
+  if (isPhone) {
+    const dirs = [
+      ['all', 'All', counts.total], ['creators', 'Creators', counts.creators],
+      ['brands', 'Brands', counts.brands], ['admins', 'Admins', allUsers.filter(isAdmin).length],
+    ];
+    const filterCount = [stateFilter, verifyFilter, categoryFilter, walletMin !== '', walletMax !== '', flaggedOnly, formNotFilled].filter(Boolean).length;
+    const openFilters = () => {
+      setFilterDraft({ state: stateFilter, verify: verifyFilter, category: categoryFilter, walletMin, walletMax, flagged: flaggedOnly, formNotFilled });
+      setPhoneSheet('filters');
+    };
+    const applyFilters = () => {
+      setStateFilter(filterDraft.state); setVerifyFilter(filterDraft.verify); setCategoryFilter(filterDraft.category);
+      setWalletMin(filterDraft.walletMin); setWalletMax(filterDraft.walletMax);
+      setFlaggedOnly(filterDraft.flagged); setFormNotFilled(filterDraft.formNotFilled);
+      setPhoneSheet(null);
+    };
+    const draft = (key) => (e) => setFilterDraft((f) => ({ ...f, [key]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
+    const clearAll = () => {
+      setSearchTerm(''); setStateFilter(''); setVerifyFilter(''); setCategoryFilter('');
+      setWalletMin(''); setWalletMax(''); setFlaggedOnly(false); setFormNotFilled(false);
+    };
+    const openPhoneDetail = (u) => { setRevealContact(false); setPhoneSheet(null); openDetail(u); };
+    const closePhoneDetail = () => { setPhoneSheet(null); setDetailUser(null); };
+    const exitSelect = () => { setSelectMode(false); setSelectedIds(new Set()); };
+    const saveEdit = async () => {
+      if (editSaving) return;
+      setEditSaving(true);
+      await handleUpdate();
+      setEditSaving(false);
+    };
+    const du = detailUser;
+    const moreActions = du && !isAdmin(du) ? [
+      caps.warnSuspend && { key: 'warn', Icon: AlertTriangle, label: 'Warn', run: () => setAction({ type: 'warn', user: du }) },
+      caps.warnSuspend && (du.suspended || du.status === 'suspended') && { key: 'unsuspend', Icon: ShieldCheck, label: 'Unsuspend', run: () => setAction({ type: 'unsuspend', user: du }) },
+      caps.warnSuspend && { key: 'suspend', Icon: ShieldAlert, label: 'Suspend', danger: true, run: () => setAction({ type: 'suspend', user: du }) },
+      caps.ban && { key: 'ban', Icon: Ban, label: isInactive(du) ? 'Unban' : 'Ban', danger: !isInactive(du), run: () => openBan(du) },
+      isBrand(du) && caps.financialPolicy && { key: 'commission', Icon: Percent, label: 'Adjust commission', run: () => setAction({ type: 'commission', user: du }) },
+      isBrand(du) && caps.wallet && { key: 'wallet', Icon: Wallet, label: 'Adjust wallet', run: () => setAction({ type: 'wallet', user: du }) },
+      isCreator(du) && caps.userMgmt && { key: 'ugcad', Icon: BadgeCheck, label: du.ugcad_approved ? 'Remove UGCAD approved' : 'Mark UGCAD approved', run: () => setAction({ type: du.ugcad_approved ? 'ugcadUnapprove' : 'ugcadApprove', user: du }) },
+      isCreator(du) && caps.userMgmt && { key: 'promote', Icon: ArrowUpCircle, label: 'Promote level', run: () => setAction({ type: 'promote', user: du }) },
+      isCreator(du) && caps.userMgmt && { key: 'demote', Icon: ArrowDownCircle, label: 'Demote level', run: () => setAction({ type: 'demote', user: du }) },
+      isCreator(du) && caps.userMgmt && { key: 'payout', Icon: CalendarClock, label: 'Payout schedule', run: () => setAction({ type: 'payout', user: du }) },
+      { key: 'message', Icon: MessageSquare, label: 'Send message', run: () => setAction({ type: 'message', user: du }) },
+      { key: 'edit', Icon: Pencil, label: 'Edit user', run: () => handleEdit(du) },
+      caps.ban && { key: 'delete', Icon: Trash2, label: 'Delete user', danger: true, run: () => setAction({ type: 'delete', user: du }) },
+    ].filter(Boolean) : [];
+
+    return (
+      <AdminLayout>
+        <div className={`am amu${selectMode ? ' amu-selecting' : ''}`} data-testid="users-phone">
+          {assignedCats !== null && (
+            <div className="amu-assigned">
+              {assignedCats.length
+                ? <>Your categories: <span className="am-badges">{assignedCats.map((c) => <span key={c} className="am-badge am-badge--info">{c}</span>)}</span></>
+                : 'No categories assigned to you yet - ask the founder to assign some on the Team & Roles page.'}
+            </div>
+          )}
+
+          <div className="am-toolbar">
+            <label className="am-search">
+              <Search size={18} />
+              <input
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder={tab === 'brands' ? 'Search business, legal name, GST, email' : 'Search handle, name, email, phone'}
+                aria-label="Search users"
+                data-testid="users-search-input"
+              />
+              {searchTerm && <button type="button" className="am-search-clear" onClick={() => setSearchTerm('')} aria-label="Clear search"><X size={18} /></button>}
+            </label>
+            <button type="button" className="am-filter-btn" onClick={openFilters} aria-label={filterCount ? `Filters, ${filterCount} active` : 'Filters'} data-testid="users-filter-btn">
+              <SlidersHorizontal size={20} />
+              {filterCount > 0 && <span className="am-dot">{filterCount}</span>}
+            </button>
+          </div>
+
+          <div className="am-chips" role="group" aria-label="Directory">
+            {dirs.map(([k, label, n]) => (
+              <button key={k} type="button" className={`am-chip${tab === k ? ' is-active' : ''}`} aria-pressed={tab === k} onClick={() => { setTab(k); setStateFilter(''); setCategoryFilter(''); setVerifyFilter(''); }}>
+                {label} <span className="am-chip-count">{n}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="am-tiles am-tiles--3">
+            <button type="button" className="am-tile am-tile--wait" aria-pressed={flaggedOnly} onClick={() => setFlaggedOnly((v) => !v)}>
+              <span className="am-tile-top"><Flag size={16} /> Flagged</span><span className="am-tile-value">{counts.flagged}</span>
+            </button>
+            <button type="button" className="am-tile" aria-pressed={stateFilter === 'banned'} onClick={() => setStateFilter((s) => (s === 'banned' ? '' : 'banned'))}>
+              <span className="am-tile-top"><Ban size={16} /> Banned</span><span className="am-tile-value">{counts.banned}</span>
+            </button>
+            <button type="button" className="am-tile am-tile--info" aria-pressed={formNotFilled} onClick={() => setFormNotFilled((v) => !v)}>
+              <span className="am-tile-top"><AlertTriangle size={16} /> Form not filled</span><span className="am-tile-value">{counts.formNotFilled}</span>
+            </button>
+          </div>
+
+          <div className="amu-listhead">
+            {selectMode ? (
+              <label className="amu-selectall">
+                <input type="checkbox" checked={allVisibleSelected} onChange={toggleSelectAll} /> Select all {filtered.length} shown
+              </label>
+            ) : (
+              <span className="am-muted">{filtered.length} user{filtered.length === 1 ? '' : 's'} shown</span>
+            )}
+            {!selectMode && (
+              <span className="amu-listhead-actions">
+                <button type="button" className="am-btn am-btn--link am-btn--sm" onClick={exportSelected}><Download size={16} /> Export</button>
+                <button type="button" className="am-btn am-btn--secondary am-btn--sm" onClick={() => setSelectMode(true)} data-testid="users-select-btn"><CheckSquare size={16} /> Select</button>
+              </span>
+            )}
+          </div>
+
+          {loading && allUsers.length === 0 ? (
+            <SkeletonList rows={6} />
+          ) : filtered.length === 0 ? (
+            <div className="am-empty">
+              <p>{searchTerm ? `No users match "${searchTerm}"` : 'No users found'}</p>
+              {(searchTerm || filterCount > 0) && <button type="button" className="am-btn am-btn--link" onClick={clearAll}>Clear search and filters</button>}
+            </div>
+          ) : (
+            <div className="am-list">
+              {filtered.map((u) => {
+                const inner = (
+                  <>
+                    <span className="am-card-head">
+                      {selectMode && <input type="checkbox" className="amu-check" checked={selectedIds.has(u.id)} onChange={() => toggleSelect(u.id)} aria-label={`Select ${nameOf(u)}`} />}
+                      <PhoneAvatar u={u} />
+                      <span className="am-card-main">
+                        <span className="am-card-title">{nameOf(u)}</span>
+                        <span className="am-card-sub">{maskEmail(u.email)}</span>
+                      </span>
+                      {!selectMode && <ChevronRight size={20} className="am-row-chevron" />}
+                    </span>
+                    <UserBadges u={u} />
+                    <span className="am-card-foot">
+                      <span className="amu-amount">
+                        <span className="am-amount-label">Wallet balance</span>
+                        <span className="am-amount">{money(u.balance)}</span>
+                      </span>
+                      <span className="am-card-sub">{handleOf(u)}</span>
+                    </span>
+                  </>
+                );
+                return selectMode ? (
+                  <label key={u.id} className={`am-card amu-card-select${selectedIds.has(u.id) ? ' is-selected' : ''}`} data-testid={`user-card-${u.id}`}>{inner}</label>
+                ) : (
+                  <button key={u.id} type="button" className={`am-card${userState(u) === 'banned' ? ' amu-card-banned' : ''}`} onClick={() => openPhoneDetail(u)} data-testid={`user-card-${u.id}`}>{inner}</button>
+                );
+              })}
+            </div>
+          )}
+
+          {selectMode && (
+            <div className="am-actionbar amu-bulkbar" data-testid="users-bulkbar">
+              <div className="amu-bulk-head">
+                <strong>{selectedUsers.length} selected</strong>
+                <button type="button" className="am-btn am-btn--link am-btn--sm" onClick={exitSelect}>Done</button>
+              </div>
+              <div className="am-actionbar-row">
+                <button type="button" className="am-btn am-btn--secondary am-btn--sm" onClick={exportSelected}><Download size={16} /> Export</button>
+                <button type="button" className="am-btn am-btn--primary am-btn--sm" disabled={!selectedUsers.length} onClick={() => setAction({ type: 'announce', users: selectedUsers })} data-testid="users-announce-btn"><Send size={16} /> Announce</button>
+                <button type="button" className="am-btn am-btn--danger am-btn--sm" disabled={!selectedUsers.length} onClick={() => setAction({ type: 'delete', users: selectedUsers })}><Trash2 size={16} /> Delete</button>
+              </div>
+            </div>
+          )}
+
+          {du && (
+            <PhoneUserDetail
+              u={du}
+              onBack={closePhoneDetail}
+              onMore={() => setPhoneSheet('more')}
+              onEdit={() => handleEdit(du)}
+              onAction={(type) => setAction({ type, user: du })}
+              deals={userDeals(du)}
+              disputes={userDisputes(du)}
+              brandCampaigns={brandCampaigns}
+              activityLoading={deals === null || disputes === null}
+              onOpenDeal={(campaignId) => { setDetailUser(null); navigate(`/dashboard/admin/deals?deal=${campaignId}`); }}
+              revealBank={revealBank}
+              setRevealBank={setRevealBank}
+              revealContact={revealContact}
+              setRevealContact={setRevealContact}
+            />
+          )}
+
+          {showEditModal && selectedUser && (
+            <div className="am-detail" role="dialog" aria-modal="true" aria-label="Edit user" data-testid="user-edit">
+              <header className="am-detail-head">
+                <button type="button" className="am-icon-btn" onClick={() => setShowEditModal(false)} disabled={editSaving} aria-label="Cancel editing"><ArrowLeft size={22} /></button>
+                <h1>Edit user</h1>
+              </header>
+              <div className="am-detail-body">
+                <p className="am-muted">{nameOf(selectedUser)} · {typeLabel(selectedUser)}</p>
+                <div className="am-field">
+                  <label htmlFor="amu-edit-name">Full name</label>
+                  <input id="amu-edit-name" type="text" value={editData.full_name} onChange={(e) => setEditData({ ...editData, full_name: e.target.value })} />
+                </div>
+                <div className="am-field">
+                  <label htmlFor="amu-edit-username">Username (@handle)</label>
+                  <input id="amu-edit-username" type="text" autoCapitalize="none" value={editData.username} onChange={(e) => setEditData({ ...editData, username: e.target.value })} placeholder="username" />
+                </div>
+                <div className="am-field">
+                  <label htmlFor="amu-edit-id">User ID</label>
+                  <input id="amu-edit-id" type="text" autoCapitalize="none" value={editData.public_creator_id} onChange={(e) => setEditData({ ...editData, public_creator_id: e.target.value })} placeholder="public id" />
+                </div>
+                <div className="am-field">
+                  <label htmlFor="amu-edit-email">Email</label>
+                  <input id="amu-edit-email" type="email" autoCapitalize="none" value={editData.email} onChange={(e) => setEditData({ ...editData, email: e.target.value })} />
+                </div>
+              </div>
+              <div className="am-actionbar">
+                <div className="am-actionbar-row">
+                  <button type="button" className="am-btn am-btn--secondary" disabled={editSaving} onClick={() => setShowEditModal(false)}>Cancel</button>
+                  <button type="button" className="am-btn am-btn--primary" disabled={editSaving} onClick={saveEdit} data-testid="user-edit-save">{editSaving ? 'Saving…' : 'Save changes'}</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {phoneSheet === 'filters' && (
+            <PhoneSheet
+              title="Filters"
+              onClose={() => setPhoneSheet(null)}
+              testId="users-filter-sheet"
+              foot={(
+                <>
+                  <button type="button" className="am-btn am-btn--secondary" onClick={() => setFilterDraft(EMPTY_PHONE_FILTERS)}>Reset</button>
+                  <button type="button" className="am-btn am-btn--primary" onClick={applyFilters} data-testid="users-filter-apply">Apply</button>
+                </>
+              )}
+            >
+              {tab !== 'brands' ? (
+                <div className="am-field">
+                  <label htmlFor="amu-f-state">Account state</label>
+                  <select id="amu-f-state" value={filterDraft.state} onChange={draft('state')}>
+                    <option value="">All states</option>
+                    <option value="active">Active</option>
+                    <option value="suspended">Suspended</option>
+                    <option value="banned">Banned</option>
+                  </select>
+                </div>
+              ) : (
+                <div className="am-field">
+                  <label htmlFor="amu-f-verify">Verification</label>
+                  <select id="amu-f-verify" value={filterDraft.verify} onChange={draft('verify')}>
+                    <option value="">All</option>
+                    <option value="approved">Verified</option>
+                    <option value="pending">Pending</option>
+                    <option value="more_info">More info</option>
+                    <option value="rejected">Rejected</option>
+                  </select>
+                </div>
+              )}
+              <div className="am-field">
+                <label htmlFor="amu-f-cat">Category</label>
+                <select id="amu-f-cat" value={filterDraft.category} onChange={draft('category')}>
+                  <option value="">All categories</option>
+                  {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              {tab === 'brands' && (
+                <div className="amu-range">
+                  <div className="am-field">
+                    <label htmlFor="amu-f-min">Wallet min (₹)</label>
+                    <input id="amu-f-min" type="number" inputMode="decimal" value={filterDraft.walletMin} onChange={draft('walletMin')} />
+                  </div>
+                  <div className="am-field">
+                    <label htmlFor="amu-f-max">Wallet max (₹)</label>
+                    <input id="amu-f-max" type="number" inputMode="decimal" value={filterDraft.walletMax} onChange={draft('walletMax')} />
+                  </div>
+                </div>
+              )}
+              <label className="amu-toggle">
+                <input type="checkbox" checked={filterDraft.flagged} onChange={draft('flagged')} />
+                <span>Flagged only <small>Users with chat-filter strikes</small></span>
+              </label>
+              <label className="amu-toggle">
+                <input type="checkbox" checked={filterDraft.formNotFilled} onChange={draft('formNotFilled')} />
+                <span>Form not filled <small>Signed up, never submitted profile setup</small></span>
+              </label>
+            </PhoneSheet>
+          )}
+
+          {du && phoneSheet === 'more' && (
+            <PhoneSheet title="User actions" onClose={() => setPhoneSheet(null)} testId="user-more-sheet">
+              <ul className="am-rows">
+                {moreActions.map(({ key, Icon, label, danger, run }) => (
+                  <li key={key}>
+                    <button type="button" className={`am-row${danger ? ' amu-row--danger' : ''}`} onClick={() => { setPhoneSheet(null); run(); }} data-testid={`user-action-${key}`}>
+                      <Icon size={20} /><span className="am-row-label">{label}</span><ChevronRight size={18} className="am-row-chevron" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </PhoneSheet>
+          )}
+
+          {action && (
+            <ActionModal
+              phone
+              action={action}
+              onClose={() => setAction(null)}
+              onDone={() => {
+                if (action.users) setSelectMode(false);
+                if (action.type === 'delete' && action.user) setDetailUser(null);
+                setAction(null); fetchAllUsers(); setSelectedIds(new Set());
+              }}
+              adminPost={adminPost}
+            />
+          )}
+
+          {banTarget && <BanModal phone target={banTarget} onClose={() => setBanTarget(null)} onConfirm={confirmBan} />}
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
@@ -768,33 +1189,13 @@ function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, dea
   const brand = isBrand(u);
   const admin = isAdmin(u);
   const adminRoleLabel = ROLE_LABELS[normalizeRole(u.admin_role)] || 'Admin';
-  // KYC is submitted to user.kyc (not user.profile); the payout account lives at the
-  // top level (u.bank_details / u.upi_id) — that's where withdrawals read it.
-  const kyc = u.kyc || {};
-  const kycAddr = kyc.address || {};
-  const bankDetails = u.bank_details || {};
-  const acct = bankDetails.account_number || p(u, 'bank_account', 'account_number');
-  const ifsc = bankDetails.ifsc_code || p(u, 'ifsc', 'ifsc_code');
-  const bankHolder = bankDetails.account_holder_name;
-  const bankName = bankDetails.bank_name;
-  const upiId = u.upi_id;
-  const pan = kyc.pan_number || p(u, 'pan', 'pan_number');
-  const aadhaar = kyc.aadhaar_number || p(u, 'aadhaar', 'aadhaar_number');
-  const docUrl = (uu) => (!uu ? '' : (String(uu).startsWith('http') ? uu : `${BACKEND_URL}${uu}`));
-  const docs = [
-    ['PAN card', kyc.pan_doc_url || p(u, 'pan_url', 'pan_document')],
-    ['Aadhaar front', kyc.aadhaar_front_url || p(u, 'aadhaar_url', 'aadhaar_document')],
-    ['Aadhaar back', kyc.aadhaar_back_url],
-    ['Selfie', kyc.selfie_url],
-    ['GST Cert', p(u, 'gst_certificate', 'gst_url')],
-  ].filter(([, url]) => url);
+  const { kyc, kycAddr, acct, ifsc, bankHolder, bankName, upiId, pan, aadhaar, docs } = payoutInfo(u);
   const earned = deals.reduce((s, d) => s + (Number(d.amount) || 0), 0);
   // Brand campaigns come from /admin/business/:id/campaigns (live + completed).
   // null means the request is still in flight; [] means loaded-but-empty.
   const campaigns = brandCampaigns || [];
   const campaignsLoading = brand && brandCampaigns === null;
 
-  const mask4 = (v) => (v ? `•••• ${String(v).slice(-4)}` : '-');
   // A stored photo can be a dead /uploads path or a localhost URL that 404s in prod —
   // fall back to the initial instead of showing a broken-image icon.
   const [avatarBroken, setAvatarBroken] = useState(false);
@@ -1035,6 +1436,215 @@ function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, dea
   );
 }
 
+// =============================================================================
+// Phone (PWA) user detail — the desktop drawer's tabs as stacked sections
+// =============================================================================
+function KV({ label, value, mono }) {
+  const display = (value !== null && typeof value === 'object')
+    ? (Array.isArray(value) ? value.join(', ') : (Object.entries(value).filter(([, v]) => v != null && v !== '').map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`).join(' · ') || '-'))
+    : value;
+  return <div className="am-kv"><span>{label}</span><span className={mono ? 'amu-mono' : undefined}>{display || '-'}</span></div>;
+}
+
+function ShowToggle({ on, set, what }) {
+  return (
+    <button type="button" className="am-btn am-btn--link am-btn--sm" aria-pressed={on} aria-label={`${on ? 'Hide' : 'Show'} ${what}`} onClick={() => set((v) => !v)}>
+      {on ? <EyeOff size={16} /> : <Eye size={16} />} {on ? 'Hide' : 'Show'}
+    </button>
+  );
+}
+
+function PhoneUserDetail({
+  u, onBack, onMore, onEdit, onAction, deals, disputes, brandCampaigns, activityLoading, onOpenDeal,
+  revealBank, setRevealBank, revealContact, setRevealContact,
+}) {
+  const brand = isBrand(u);
+  const admin = isAdmin(u);
+  const { kyc, kycAddr, acct, ifsc, bankHolder, bankName, upiId, pan, aadhaar, docs } = payoutInfo(u);
+  const earned = deals.reduce((s, d) => s + (Number(d.amount) || 0), 0);
+  const campaigns = brandCampaigns || [];
+  const campaignsLoading = brand && brandCampaigns === null;
+  const list = (loading, items, empty, render) => (
+    loading ? <p className="am-muted">Loading…</p>
+      : (!items || items.length === 0) ? <p className="am-muted">{empty}</p>
+        : <ul className="amu-list">{items.map(render)}</ul>
+  );
+
+  return (
+    <div className="am-detail" role="dialog" aria-modal="true" aria-label="User detail" data-testid="user-detail">
+      <header className="am-detail-head">
+        <button type="button" className="am-icon-btn" onClick={onBack} aria-label="Back to users" data-testid="user-detail-back"><ArrowLeft size={22} /></button>
+        <h1>{typeLabel(u)} profile</h1>
+        {!admin && <button type="button" className="am-icon-btn" onClick={onMore} aria-label="More actions"><MoreHorizontal size={22} /></button>}
+      </header>
+
+      <div className="am-detail-body">
+        <div className="am-identity">
+          <PhoneAvatar u={u} lg />
+          <div className="am-card-main">
+            <h2>{nameOf(u)}</h2>
+            <span className="am-card-sub">{handleOf(u)}</span>
+            <UserBadges u={u} />
+          </div>
+        </div>
+
+        <section className="am-section">
+          <div className="amu-sec-head">
+            <h3>{admin ? 'Admin account' : 'Public profile'}</h3>
+            <ShowToggle on={revealContact} set={setRevealContact} what="email and mobile" />
+          </div>
+          {admin ? (
+            <>
+              <KV label="Name" value={displayName(u)} />
+              <KV label="Admin role" value={ROLE_LABELS[normalizeRole(u.admin_role)] || 'Admin'} />
+              {Array.isArray(u.assigned_categories) && u.assigned_categories.length > 0 && <KV label="Assigned categories" value={u.assigned_categories} />}
+            </>
+          ) : brand ? (
+            <>
+              <KV label="Business name" value={businessName(u)} />
+              <KV label="Legal name" value={legalName(u)} />
+              <KV label="GSTIN" value={gstin(u)} mono />
+              <KV label="Website" value={p(u, 'website')} />
+            </>
+          ) : (
+            <KV label="Handle" value={handleOf(u)} />
+          )}
+          <KV label="Email" value={revealContact ? u.email : maskEmail(u.email)} />
+          <KV label="Mobile" value={revealContact ? phone(u) : maskPhone(phone(u))} mono />
+          <KV label="Joined" value={dateShort(u.created_at || u.createdAt)} />
+          {!admin && <KV label="Category" value={category(u)} />}
+          {!admin && <KV label="Flags / strikes" value={String(strikes(u).length)} />}
+          {admin && <p className="am-muted">Manage this admin’s role &amp; permissions on the Team &amp; Roles page.</p>}
+        </section>
+
+        {isCreator(u) && (
+          <section className="am-section" data-testid="user-kyc">
+            <div className="amu-sec-head">
+              <h3>KYC &amp; payout {kyc.status && <span className={`am-badge am-badge--${kyc.status === 'verified' ? 'ok' : kyc.status === 'rejected' ? 'bad' : 'wait'}`}>{kyc.status}</span>}</h3>
+              {u.kyc && (pan || aadhaar || acct) && <ShowToggle on={revealBank} set={setRevealBank} what="PAN, Aadhaar and account number" />}
+            </div>
+            {!u.kyc ? <p className="am-muted">No KYC submitted yet.</p> : (
+              <>
+                <KV label="Legal name" value={kyc.full_legal_name || realName(u)} />
+                <KV label="Date of birth" value={kyc.date_of_birth} />
+                <KV label="Gender" value={kyc.gender} />
+                <KV label="PAN" value={pan ? (revealBank ? pan : mask4(pan)) : '-'} mono />
+                <KV label="Aadhaar" value={aadhaar ? (revealBank ? aadhaar : mask4(aadhaar)) : '-'} mono />
+                <KV label="Address" value={[kycAddr.line, kycAddr.city, kycAddr.state, kycAddr.pincode].filter(Boolean).join(', ')} />
+                <KV label="Payout method" value={kyc.payout_method === 'upi' ? 'UPI' : (acct ? 'Bank account' : '-')} />
+                {upiId && <KV label="UPI ID" value={upiId} />}
+                {acct && (
+                  <>
+                    <KV label="Account holder" value={bankHolder} />
+                    <KV label="Bank" value={bankName} />
+                    <KV label="Account no." value={revealBank ? acct : mask4(acct)} mono />
+                    <KV label="IFSC" value={ifsc} />
+                  </>
+                )}
+                {kyc.rejection_reason && <KV label="Rejection reason" value={kyc.rejection_reason} />}
+                <KV label="Submitted" value={dateShort(kyc.submitted_at)} />
+                {docs.length > 0 && (
+                  <ul className="am-rows">
+                    {docs.map(([label, url]) => (
+                      <li key={label}>
+                        <a className="am-row" href={docUrl(url)} target="_blank" rel="noreferrer">
+                          <FileText size={20} /><span className="am-row-label">{label}</span><ExternalLink size={18} className="am-row-chevron" />
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </>
+            )}
+          </section>
+        )}
+
+        {!admin && (
+          <>
+            {brand ? (
+              <section className="am-section">
+                <h3>Campaigns</h3>
+                {list(campaignsLoading, campaigns, 'No campaigns found for this brand.', (c) => {
+                  const st = (c.status || '').replace(/_/g, ' ');
+                  const tone = c.status === 'completed' ? 'ok' : c.status === 'rejected' ? 'bad' : 'wait';
+                  const budget = (c.budget_min != null || c.budget_max != null) ? `${money(c.budget_min)} – ${money(c.budget_max)}` : null;
+                  return (
+                    <li key={c.id}>
+                      <button type="button" className="amu-item" onClick={() => onOpenDeal(c.id)}>
+                        <span className="am-card-main">
+                          <strong>{c.title}</strong>
+                          <small>{dateShort(c.created_at)}{budget ? ` · ${budget}` : ''}{c.selected_creator ? ' · matched' : ''}</small>
+                        </span>
+                        <span className={`am-badge am-badge--${tone}`}>{st || 'live'}</span>
+                        <ChevronRight size={18} className="am-row-chevron" />
+                      </button>
+                    </li>
+                  );
+                })}
+              </section>
+            ) : (
+              <section className="am-section">
+                <h3>Deals</h3>
+                {list(activityLoading, deals, 'No deals for this creator.', (d) => (
+                  <li key={d.id} className="amu-item">
+                    <span className="am-card-main">
+                      <strong>{d.title || d.campaign_title || 'Deal'}</strong>
+                      <small>{(d.current_state || '').replace(/_/g, ' ')}</small>
+                    </span>
+                    <strong>{money(d.amount)}</strong>
+                  </li>
+                ))}
+              </section>
+            )}
+
+            <section className="am-section">
+              <h3>Disputes</h3>
+              {list(activityLoading, disputes, 'No disputes on record.', (d) => (
+                <li key={d.id} className="amu-item">
+                  <span className="am-card-main"><strong>#{String(d.id).slice(0, 8)}</strong><small>{(d.dispute_type || 'general').replace(/_/g, ' ')}</small></span>
+                  <span className={`am-badge am-badge--${d.status === 'open' ? 'wait' : 'ok'}`}>{d.status}</span>
+                </li>
+              ))}
+            </section>
+
+            <section className="am-section">
+              <h3>Chat filter violations</h3>
+              {list(false, strikes(u), 'No chat-filter violations.', (s, i) => (
+                <li key={i} className="amu-item amu-item--stack">
+                  <span><strong className="amu-violation">{s.category || 'violation'}</strong> · {dateShort(s.at)}{s.false_positive ? ' · (false positive)' : ''}</span>
+                  {s.matched?.length ? <small>Matched: {s.matched.join(', ')}</small> : null}
+                  {s.snippet ? <small className="amu-snip">“{s.snippet}”</small> : null}
+                </li>
+              ))}
+            </section>
+
+            <section className="am-section">
+              <h3>{brand ? 'Wallet' : 'Earnings'}</h3>
+              <KV label={brand ? 'Wallet balance' : 'Available balance'} value={money(u.balance)} />
+              {!brand && <KV label="Earned (settled deals)" value={money(earned)} />}
+              {!brand && <KV label="Pending payout" value={money(u.balance)} />}
+              {!brand && <KV label="Payout schedule" value={u.payout_schedule || p(u, 'payout_schedule') || 'weekly'} />}
+              {brand && <KV label="Commission rate" value={u.commission_rate != null ? `${u.commission_rate}%` : (p(u, 'commission_rate') ? `${p(u, 'commission_rate')}%` : 'platform default')} />}
+              <h4 className="amu-sub">Transaction history</h4>
+              {list(false, deals.slice(0, 8), 'No transactions yet.', (d) => (
+                <li key={d.id} className="amu-item"><span className="am-card-main">{d.title || 'Deal'}</span><strong>{money(d.amount)}</strong></li>
+              ))}
+            </section>
+          </>
+        )}
+      </div>
+
+      <div className="am-actionbar">
+        <div className="am-actionbar-row">
+          <button type="button" className="am-btn am-btn--secondary" onClick={onEdit} data-testid="user-edit-btn"><Pencil size={18} /> Edit</button>
+          <button type="button" className="am-btn am-btn--primary" onClick={() => onAction('message')}><MessageSquare size={18} /> Message</button>
+          {!admin && <button type="button" className="am-btn am-btn--secondary amu-more" onClick={onMore} aria-label="More actions" data-testid="user-more-btn"><MoreHorizontal size={20} /></button>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Row({ label, value, reveal, revealed }) {
   // Some profile fields (e.g. socials / per-platform followers) are objects like
   // { youtube, instagram, ... }. Rendering an object directly crashes React
@@ -1083,7 +1693,7 @@ const ACTION_META = {
 
 const BAN_REASONS = ['Spam / scam', 'Fake profile', 'Abusive behaviour', 'Payment fraud', 'Repeat policy violation'];
 
-function BanModal({ target, onClose, onConfirm }) {
+function BanModal({ target, onClose, onConfirm, phone }) {
   const { user: u, banned } = target;
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
@@ -1095,6 +1705,58 @@ function BanModal({ target, onClose, onConfirm }) {
     await onConfirm(reason.trim());
     setBusy(false);
   };
+
+  if (phone) {
+    const close = () => { if (!busy) onClose(); };
+    return (
+      <PhoneSheet
+        title={banned ? 'Unban this user?' : 'Ban this user?'}
+        onClose={close}
+        testId="user-ban-sheet"
+        foot={(
+          <>
+            <button type="button" className="am-btn am-btn--secondary" disabled={busy} onClick={close}>Cancel</button>
+            <button
+              type="button"
+              className={`am-btn ${banned ? 'am-btn--primary' : 'am-btn--danger'}`}
+              onClick={submit}
+              disabled={busy || (!banned && !reason.trim())}
+              data-testid="user-ban-submit"
+            >
+              {busy ? 'Working…' : (banned ? 'Yes, unban' : 'Yes, ban user')}
+            </button>
+          </>
+        )}
+      >
+        <p className="am-muted">
+          {banned
+            ? 'They will regain access to their account and can log in again.'
+            : 'They will be signed out immediately and blocked from logging in until you unban them.'}
+        </p>
+        <div className="am-identity">
+          <PhoneAvatar u={u} />
+          <div className="am-card-main">
+            <span className="am-card-title">{name && name !== '-' ? name : u.email}</span>
+            <span className="am-card-sub">{maskEmail(u.email)} · {typeLabel(u)}</span>
+          </div>
+        </div>
+        {!banned && (
+          <>
+            <div className="am-field">
+              <label htmlFor="amu-ban-reason">Ban reason (required)</label>
+              <textarea id="amu-ban-reason" rows={3} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Why is this user being banned? Logged to the audit trail." />
+              <span className="am-field-hint">This action is recorded in the audit log and can be reversed later.</span>
+            </div>
+            <div className="am-chips" role="group" aria-label="Common reasons">
+              {BAN_REASONS.map((r) => (
+                <button key={r} type="button" className={`am-chip${reason === r ? ' is-active' : ''}`} onClick={() => setReason(r)}>{r}</button>
+              ))}
+            </div>
+          </>
+        )}
+      </PhoneSheet>
+    );
+  }
 
   return (
     <div className="au-modal-overlay" onClick={onClose}>
@@ -1154,7 +1816,7 @@ function BanModal({ target, onClose, onConfirm }) {
   );
 }
 
-function ActionModal({ action, onClose, onDone, adminPost }) {
+function ActionModal({ action, onClose, onDone, adminPost, phone }) {
   const meta = ACTION_META[action.type];
   const [text, setText] = useState('');
   const [amount, setAmount] = useState('');
@@ -1233,16 +1895,8 @@ function ActionModal({ action, onClose, onDone, adminPost }) {
     if (ok) onDone();
   };
 
-  return (
-    <div className="au-modal-overlay" onClick={onClose}>
-      <div className="au-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="au-modal-head">
-          <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Icon size={18} /> {meta.title}</h2>
-          <button onClick={onClose}><X size={20} /></button>
-        </div>
-        <div className="au-modal-body">
-          <p style={{ margin: 0, fontSize: '0.82rem', color: '#718096' }}>Target: <strong style={{ color: '#07074e' }}>{targetName}</strong></p>
-
+  const fields = (
+    <>
           {(meta.kind === 'text') && (
             <label>{meta.label}<textarea rows={4} value={text} onChange={(e) => setText(e.target.value)} placeholder="Type here…" /></label>
           )}
@@ -1269,6 +1923,42 @@ function ActionModal({ action, onClose, onDone, adminPost }) {
             </label>
           )}
           {meta.kind === 'confirm' && <p style={{ margin: 0, fontSize: '0.9rem', color: '#2d3748' }}>{meta.msg}</p>}
+    </>
+  );
+
+  if (phone) {
+    const close = () => { if (!busy) onClose(); };
+    const danger = ['suspend', 'delete'].includes(action.type);
+    return (
+      <PhoneSheet
+        title={meta.title}
+        onClose={close}
+        testId={`user-action-sheet-${action.type}`}
+        foot={(
+          <>
+            <button type="button" className="am-btn am-btn--secondary" disabled={busy} onClick={close}>Cancel</button>
+            <button type="button" className={`am-btn ${danger ? 'am-btn--danger' : 'am-btn--primary'}`} disabled={busy} onClick={submit} data-testid="user-action-submit">
+              {busy ? 'Working…' : meta.btn}
+            </button>
+          </>
+        )}
+      >
+        <p className="am-muted">Target: <strong>{targetName}</strong></p>
+        <div className="amu-form">{fields}</div>
+      </PhoneSheet>
+    );
+  }
+
+  return (
+    <div className="au-modal-overlay" onClick={onClose}>
+      <div className="au-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="au-modal-head">
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Icon size={18} /> {meta.title}</h2>
+          <button onClick={onClose}><X size={20} /></button>
+        </div>
+        <div className="au-modal-body">
+          <p style={{ margin: 0, fontSize: '0.82rem', color: '#718096' }}>Target: <strong style={{ color: '#07074e' }}>{targetName}</strong></p>
+          {fields}
         </div>
         <div className="au-modal-actions">
           <button className="au-btn au-btn-secondary" onClick={onClose}>Cancel</button>

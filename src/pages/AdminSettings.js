@@ -2,13 +2,23 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { Save, ShieldAlert, Mail, Check, CreditCard, Plus, X } from 'lucide-react';
+import { Save, ShieldAlert, Mail, Check, CreditCard, Plus, X, ArrowLeft, ChevronRight, Percent, Clock3, Truck, Wallet, Ban, ToggleLeft, Gift } from 'lucide-react';
 import { useAuth } from '../App';
 import AdminLayout from '../components/AdminLayout';
 import { isFounder as roleIsFounder } from '../utils/adminRoles';
+import useIsPhone from '../lib/useIsPhone';
+import '../styles/admin-mobile-platform.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
+
+// Phone: the Economics card split into focused groups (same NUMERIC_FIELDS keys).
+const PHONE_ECON_GROUPS = [
+  ['fees', 'Commission & listing fees', Percent, ['commission_rate', 'listing_fee', 'listing_fee_multi_deliverable', 'listing_fee_multi_creator', 'listing_fee_large_campaign']],
+  ['review', 'Revisions & auto-approval', Clock3, ['revision_price', 'auto_approval_days']],
+  ['late', 'Late-ship fees', Truck, ['late_ship_fee_per_day', 'late_ship_fee_cap']],
+];
+const capLevel = (lvl) => String(lvl).charAt(0).toUpperCase() + String(lvl).slice(1);
 
 const NUMERIC_FIELDS = [
   ['commission_rate', 'Commission rate (%)'],
@@ -26,7 +36,9 @@ const NUMERIC_FIELDS = [
 export default function AdminSettings() {
   const { user } = useAuth();
   const isFounder = roleIsFounder(user);
-  const [settings, setSettings] = useState(null);
+  const isPhone = useIsPhone();
+  const [phoneSection, setPhoneSection] = useState(null); // phone: open settings group
+  const [, setSettings] = useState(null);
   const [draft, setDraft] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -155,6 +167,219 @@ export default function AdminSettings() {
       setSaving(false);
     }
   };
+
+  // ===================== Phone (PWA) layout =====================
+  // Same state/handlers as desktop. Every group edits the one shared `draft`, so
+  // unsaved input survives switching groups; Save sends the whole draft as before.
+  if (isPhone) {
+    const num = (key, label) => (
+      <div className="am-field" key={key}>
+        <label htmlFor={`as-ph-${key}`}>{label}</label>
+        <input id={`as-ph-${key}`} type="number" min="0" inputMode={/days/.test(label) ? 'numeric' : 'decimal'}
+          value={draft[key] ?? ''} disabled={!isFounder} onChange={(e) => setField(key, e.target.value)} />
+      </div>
+    );
+    const labelOf = Object.fromEntries(NUMERIC_FIELDS);
+    const flags = Object.entries(draft.feature_flags || {});
+    const tiers = draft.wallet_bonus_tiers || [];
+    const restricted = Array.isArray(draft.restricted_categories) ? draft.restricted_categories.join(', ') : draft.restricted_categories || '';
+    const sections = [
+      ['email', 'Email delivery', Mail, !emailHealth ? 'Checking…' : emailHealth.configured ? `Sending as ${emailHealth.from}` : 'Disabled on this server'],
+      ['gateways', 'Payment gateways', CreditCard, gatewaysLoading ? 'Loading…' : gateways.length ? `${gateways.length} configured` : 'None configured'],
+      ...PHONE_ECON_GROUPS.map(([id, title, Icon, keys]) => [id, title, Icon, keys.map((k) => draft[k] ?? '-').join(' · ')]),
+      ['payout', 'Payout delay by level', Wallet, `${Object.keys(draft.payout_delay_days || {}).length} levels`],
+      ['restricted', 'Restricted brand categories', Ban, restricted || 'None'],
+      ['flags', 'Feature flags', ToggleLeft, `${flags.filter(([, on]) => on).length} of ${flags.length} on`],
+      ['tiers', 'Recharge bonus tiers', Gift, `${tiers.length} tier${tiers.length === 1 ? '' : 's'}`],
+    ];
+    const open = sections.find(([id]) => id === phoneSection);
+    const econ = PHONE_ECON_GROUPS.find(([id]) => id === phoneSection);
+    const setTier = (i, key, value) => setField('wallet_bonus_tiers', tiers.map((x, j) => (j === i ? { ...x, [key]: value } : x)));
+    const setGw = (key, value) => setGatewayDraft((d) => ({ ...d, [key]: value }));
+    // Back from the gateway form returns to the gateway list; otherwise to the section list.
+    const back = () => (phoneSection === 'gateways' && editingGateway !== null ? setEditingGateway(null) : setPhoneSection(null));
+
+    let body = null;
+    let bar = null;
+    if (phoneSection === 'email') {
+      body = (
+        <section className="am-section">
+          {!emailHealth ? <p className="am-muted">Checking…</p> : emailHealth.configured ? (
+            <>
+              <p className="amp-note amp-note--ok"><Check size={16} /> <span>Configured - sending as <b>{emailHealth.from}</b></span></p>
+              {emailHealth.in_quiet_hours && (
+                <p className="amp-note amp-note--wait"><ShieldAlert size={16} /> <span>Quiet hours (10pm–8am IST): non-critical emails are held back right now. In-app notifications still record.</span></p>
+              )}
+            </>
+          ) : (
+            <p className="amp-note amp-note--bad"><ShieldAlert size={16} /> <span><b>Email is DISABLED on this server.</b> RESEND_API_KEY is not set, so every send is skipped silently. Add it to the environment and redeploy.</span></p>
+          )}
+          <div className="am-field">
+            <label htmlFor="as-ph-test-to">Send a test email to</label>
+            <input id="as-ph-test-to" type="email" inputMode="email" autoComplete="email" value={testTo} onChange={(e) => setTestTo(e.target.value)} placeholder="you@example.com" />
+            <span className="am-field-hint">Sends a real email and reports what the provider said.</span>
+          </div>
+        </section>
+      );
+      bar = (
+        <button type="button" className="am-btn am-btn--primary" onClick={sendTestEmail} disabled={testing || !testTo.trim()}>
+          <Mail size={18} /> {testing ? 'Sending…' : 'Send test email'}
+        </button>
+      );
+    } else if (phoneSection === 'gateways' && isFounder && editingGateway !== null) {
+      body = (
+        <section className="am-section" data-testid="settings-gateway-form">
+          <h3 style={{ textTransform: 'capitalize' }}>{editingGateway === 'new' ? 'Add gateway' : `Edit ${editingGateway}`}</h3>
+          {editingGateway === 'new' && (
+            <div className="am-field">
+              <label htmlFor="as-ph-gw-name">Provider</label>
+              <select id="as-ph-gw-name" value={gatewayDraft.gateway_name} onChange={(e) => setGw('gateway_name', e.target.value)}>
+                <option value="razorpay">Razorpay</option>
+                <option value="cashfree">Cashfree</option>
+              </select>
+            </div>
+          )}
+          <div className="am-field">
+            <label htmlFor="as-ph-gw-key">Key ID / Client ID</label>
+            <input id="as-ph-gw-key" type="text" autoComplete="off" autoCapitalize="off" value={gatewayDraft.key_id} onChange={(e) => setGw('key_id', e.target.value)} placeholder="e.g. rzp_live_xxxxxxxx" />
+            <span className="am-field-hint">Required</span>
+          </div>
+          <div className="am-field">
+            <label htmlFor="as-ph-gw-secret">Key Secret / Client Secret</label>
+            <input id="as-ph-gw-secret" type="password" autoComplete="new-password" value={gatewayDraft.key_secret} onChange={(e) => setGw('key_secret', e.target.value)} placeholder="Paste the secret" />
+            <span className="am-field-hint">Required. It's never shown back, so paste it again when editing.</span>
+          </div>
+          <label className="amp-check"><input type="checkbox" checked={gatewayDraft.enabled} onChange={(e) => setGw('enabled', e.target.checked)} /> Enabled</label>
+          <label className="amp-check"><input type="checkbox" checked={gatewayDraft.is_default} onChange={(e) => setGw('is_default', e.target.checked)} /> Default gateway (used when a deal doesn&apos;t specify one)</label>
+        </section>
+      );
+      bar = (
+        <div className="am-actionbar-row">
+          <button type="button" className="am-btn am-btn--secondary" onClick={() => setEditingGateway(null)} disabled={savingGateway}>Cancel</button>
+          <button type="button" className="am-btn am-btn--primary" onClick={saveGateway} disabled={savingGateway} data-testid="settings-gateway-save">
+            <Save size={18} /> {savingGateway ? 'Saving…' : 'Save gateway'}
+          </button>
+        </div>
+      );
+    } else if (phoneSection === 'gateways') {
+      body = gatewaysLoading ? <p className="am-empty">Loading…</p> : gateways.length === 0 ? (
+        <p className="am-empty">No payment gateway configured - checkout can&apos;t take real payments.</p>
+      ) : (
+        <div className="am-list">
+          {gateways.map((g) => (
+            <article className="am-card" key={g.gateway_name}>
+              <div className="am-card-main">
+                <span className="am-card-title" style={{ textTransform: 'capitalize' }}>{g.gateway_name}</span>
+                <span className="am-card-sub amp-mono">{g.key_id || '-'}</span>
+              </div>
+              <span className="am-badges">
+                {g.is_default && <span className="am-badge am-badge--info">Default</span>}
+                <span className={`am-badge am-badge--${g.enabled !== false ? 'ok' : 'neutral'}`}>{g.enabled !== false ? 'Enabled' : 'Disabled'}</span>
+              </span>
+              {isFounder && (
+                <div className="am-card-foot amp-btns">
+                  <button type="button" className="am-btn am-btn--secondary am-btn--sm" onClick={() => toggleGatewayEnabled(g)}>{g.enabled !== false ? 'Disable' : 'Enable'}</button>
+                  <button type="button" className="am-btn am-btn--secondary am-btn--sm" onClick={() => openEditGateway(g)}>Edit keys</button>
+                </div>
+              )}
+            </article>
+          ))}
+        </div>
+      );
+      bar = isFounder && (
+        <button type="button" className="am-btn am-btn--primary" onClick={openAddGateway}><Plus size={18} /> Add gateway</button>
+      );
+    } else if (open) {
+      body = (
+        <section className="am-section">
+          {econ && econ[3].map((k) => num(k, labelOf[k]))}
+          {phoneSection === 'payout' && Object.entries(draft.payout_delay_days || {}).map(([lvl, days]) => (
+            <div className="am-field" key={lvl}>
+              <label htmlFor={`as-ph-lvl-${lvl}`}>{capLevel(lvl)} (days)</label>
+              <input id={`as-ph-lvl-${lvl}`} type="number" inputMode="numeric" min="0" value={days} disabled={!isFounder}
+                onChange={(e) => setField('payout_delay_days', { ...draft.payout_delay_days, [lvl]: Number(e.target.value) })} />
+            </div>
+          ))}
+          {phoneSection === 'restricted' && (
+            <div className="am-field">
+              <label htmlFor="as-ph-restricted">Restricted categories</label>
+              <textarea id="as-ph-restricted" rows="4" disabled={!isFounder} value={restricted}
+                onChange={(e) => setField('restricted_categories', e.target.value)} placeholder="comma-separated" />
+              <span className="am-field-hint">Separate categories with commas.</span>
+            </div>
+          )}
+          {phoneSection === 'flags' && (flags.length ? flags.map(([flag, on]) => (
+            <label className="amp-check" key={flag} style={{ textTransform: 'capitalize' }}>
+              <input type="checkbox" checked={!!on} disabled={!isFounder}
+                onChange={(e) => setField('feature_flags', { ...draft.feature_flags, [flag]: e.target.checked })} />
+              {flag}
+            </label>
+          )) : <p className="am-muted">No feature flags.</p>)}
+          {phoneSection === 'tiers' && (
+            <>
+              <p className="am-muted">A brand recharging ≥ the amount gets that instant % bonus. Highest matching tier wins.</p>
+              {tiers.length === 0 && <p className="am-muted">No tiers set.</p>}
+              {tiers.map((t, i) => (
+                <div className="am-tiles" key={i}>
+                  <div className="am-field">
+                    <label htmlFor={`as-ph-tier-amt-${i}`}>Recharge ≥ (₹)</label>
+                    <input id={`as-ph-tier-amt-${i}`} type="number" inputMode="decimal" min="0" value={t.amount ?? ''} disabled={!isFounder} onChange={(e) => setTier(i, 'amount', e.target.value)} />
+                  </div>
+                  <div className="am-field">
+                    <label htmlFor={`as-ph-tier-pct-${i}`}>Bonus %</label>
+                    <input id={`as-ph-tier-pct-${i}`} type="number" inputMode="decimal" min="0" value={t.bonus_percent ?? ''} disabled={!isFounder} onChange={(e) => setTier(i, 'bonus_percent', e.target.value)} />
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+        </section>
+      );
+      bar = isFounder ? (
+        <button type="button" className="am-btn am-btn--primary" onClick={save} disabled={saving} data-testid="settings-save">
+          <Save size={18} /> {saving ? 'Saving…' : 'Save settings'}
+        </button>
+      ) : (
+        <p className="amp-note amp-note--wait"><ShieldAlert size={16} /> <span>Founder-only. You can view these but not change them.</span></p>
+      );
+    }
+
+    return (
+      <AdminLayout>
+        <div className="am amp" data-testid="settings-phone">
+          {!isFounder && (
+            <p className="am-section amp-note amp-note--wait"><ShieldAlert size={16} /> <span>Platform settings are founder-only. You can view but not change them.</span></p>
+          )}
+          {loading ? <p className="am-empty">Loading settings…</p> : (
+            <ul className="am-rows">
+              {sections.map(([id, title, Icon, sub]) => (
+                <li key={id}>
+                  <button type="button" className="am-row" onClick={() => setPhoneSection(id)} data-testid={`settings-section-${id}`}>
+                    <Icon size={20} />
+                    <span className="amp-row-text"><span className="am-row-label">{title}</span><small>{sub}</small></span>
+                    {id === 'email' && emailHealth && !emailHealth.configured && <span className="am-badge am-badge--bad">Off</span>}
+                    {id === 'gateways' && !gatewaysLoading && !gateways.length && <span className="am-badge am-badge--bad">None</span>}
+                    <ChevronRight size={18} className="am-row-chevron" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {open && !loading && (
+            <div className="am-detail" role="dialog" aria-modal="true" aria-label={open[1]} data-testid="settings-detail">
+              <header className="am-detail-head">
+                <button type="button" className="am-icon-btn" aria-label="Back" onClick={back} data-testid="settings-back"><ArrowLeft size={22} /></button>
+                <h1>{open[1]}</h1>
+              </header>
+              <div className="am-detail-body">{body}</div>
+              {bar && <div className="am-actionbar">{bar}</div>}
+            </div>
+          )}
+        </div>
+      </AdminLayout>
+    );
+  }
 
   if (loading) return <AdminLayout><p>Loading settings…</p></AdminLayout>;
 

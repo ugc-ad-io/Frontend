@@ -1,10 +1,12 @@
 import { useLiveEffect } from '../lib/liveUpdates';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { CheckCircle, XCircle, Briefcase, X, Eye } from 'lucide-react';
+import { CheckCircle, XCircle, Briefcase, X, Eye, ArrowLeft, ChevronRight, Tag, Target, Package } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 import { apiErrorMessage } from '../utils/apiError';
+import useIsPhone from '../lib/useIsPhone';
+import '../styles/admin-mobile-ops.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -12,6 +14,28 @@ const API = `${BACKEND_URL}/api`;
 // Show the business's real company name — never their @username handle
 // (business_nickname / brand_handle are the handle sources, so they're excluded).
 const brandName = (c) => String(c?.brand_name || c?.business_name || c?.company_name || '').replace(/^@+/, '').trim() || '-';
+// The reason sent with every rejection from this queue (there is no free-text box).
+const REJECT_REASON = 'Campaign does not meet guidelines';
+
+// Phone: the brief text is "Label: value" lines (see PostABrief buildBriefText).
+// Group it into headed sections; unlabeled lines (numbered deliverables) join the
+// section above. A label must start with a letter, so "9:16" never becomes one.
+const BRIEF_HEAD = /^([A-Za-z][A-Za-z /&()'-]{0,38}):\s*(.*)$/;
+const briefSections = (text) => {
+  const out = [];
+  String(text || '').split('\n').forEach((raw) => {
+    const line = raw.trim();
+    if (!line) return;
+    const m = line.match(BRIEF_HEAD);
+    // `inline`: the value sat on the label line ("Usage rights: a; b"), so its "; " parts are a list.
+    if (m) out.push({ h: m[1], lines: m[2] ? [m[2]] : [], inline: !!m[2] });
+    else if (out.length) out[out.length - 1].lines.push(line);
+    else out.push({ h: 'Brief', lines: [line] });
+  });
+  return out.filter((s) => s.lines.length);
+};
+const budgetText = (c) => `₹${c.budget_min} - ₹${c.budget_max}`;
+const statusText = (s) => String(s || '').replace(/_/g, ' ');
 
 export default function AdminCampaigns() {
   const [pendingCampaigns, setPendingCampaigns] = useState([]);
@@ -21,6 +45,9 @@ export default function AdminCampaigns() {
   // separate from `selected.script_text` so typing doesn't need a round-trip.
   const [scriptDraft, setScriptDraft] = useState('');
   const openModal = (campaign) => { setSelected(campaign); setScriptDraft(campaign.script_text || ''); };
+  const isPhone = useIsPhone();
+  const [busy, setBusy] = useState(false);            // phone: a decision is in flight
+  const [rejectOpen, setRejectOpen] = useState(false); // phone: reject confirmation sheet
 
   useLiveEffect(() => {
     fetchPendingCampaigns();
@@ -45,22 +72,208 @@ export default function AdminCampaigns() {
       await axios.post(`${API}/admin/approve-campaign`, body);
       toast.success('Campaign approved successfully');
       fetchPendingCampaigns();
+      return true;
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Failed to approve campaign'));
+      return false;
     }
   };
 
   const handleReject = async (id) => {
     try {
       await axios.post(`${API}/admin/approve-campaign`, {
-        item_id: id, action: 'reject', reason: 'Campaign does not meet guidelines'
+        item_id: id, action: 'reject', reason: REJECT_REASON
       });
       toast.success('Campaign rejected');
       fetchPendingCampaigns();
+      return true;
     } catch {
       toast.error('Failed to reject campaign');
+      return false;
     }
   };
+
+  // ===================== Phone (PWA) layout =====================
+  if (isPhone) {
+    const ugcScript = selected?.script_provider === 'ugc';
+    const closeDetail = () => { if (!busy) { setRejectOpen(false); setSelected(null); } };
+    // Close the brief only once the decision saved, so a failure keeps the admin's place.
+    const decide = async (run) => {
+      setBusy(true);
+      const ok = await run();
+      setBusy(false);
+      if (ok) { setRejectOpen(false); setSelected(null); }
+    };
+    const needsScript = (c) => c.script_provider === 'ugc' && !c.script_text;
+    // Brief-text sections already shown from a structured field above are skipped.
+    const shown = new Set(['script']);
+    if (selected?.product_name) shown.add('product');
+    if (selected?.product_description) shown.add('product description');
+    if (selected?.campaign_hook) shown.add('hook');
+    if (selected?.key_message) shown.add('key message');
+    if (selected?.objectives?.length) shown.add('objectives');
+    const sections = selected ? briefSections(selected.brief_text).filter((s) => !shown.has(s.h.toLowerCase())) : [];
+    const deliverables = Array.isArray(selected?.deliverable_items) ? selected.deliverable_items : [];
+
+    return (
+      <AdminLayout>
+        <div className="am" data-testid="briefs-phone">
+          {!loading && <p className="am-muted">{pendingCampaigns.length} {pendingCampaigns.length === 1 ? 'brief' : 'briefs'} awaiting approval</p>}
+
+          {loading && !pendingCampaigns.length ? (
+            <div className="am-empty">Loading briefs…</div>
+          ) : !pendingCampaigns.length ? (
+            <div className="am-empty">No pending campaign approvals. New submissions will appear here.</div>
+          ) : (
+            <div className="am-list">
+              {pendingCampaigns.map((c, i) => (
+                <button key={c.id || c._id || `campaign-${i}`} type="button" className="am-card" onClick={() => openModal(c)} data-testid={`brief-card-${c.id}`}>
+                  <span className="am-card-head">
+                    <span className="am-thumb amo-thumb" aria-hidden="true"><Briefcase size={24} /></span>
+                    <span className="am-card-main">
+                      <span className="am-card-title">{c.title}</span>
+                      <span className="am-card-sub">{brandName(c)}</span>
+                      <span className="am-badges">
+                        <span className="am-badge am-badge--wait">{statusText(c.status)}</span>
+                        {needsScript(c) && <span className="am-badge am-badge--bad">Needs script</span>}
+                      </span>
+                    </span>
+                  </span>
+                  <span className="amo-meta">
+                    <span><Tag size={15} /> {c.product_category || c.category || 'No category'}</span>
+                    <span><Target size={15} /> {c.objectives?.join(', ') || 'No objective'}</span>
+                    <span><Package size={15} /> Shipment {c.requires_shipment ? 'required' : 'not required'}</span>
+                  </span>
+                  <span className="am-card-foot">
+                    <span className="amo-stack">
+                      <span className="am-amount-label">Budget</span>
+                      <span className="am-amount">{budgetText(c)}</span>
+                    </span>
+                    <span className="amo-go">Review <ChevronRight size={18} /></span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {selected && (
+            <div className="am-detail" role="dialog" aria-modal="true" aria-labelledby="amo-brief-title" data-testid="brief-detail">
+              <header className="am-detail-head">
+                <button type="button" className="am-icon-btn" onClick={closeDetail} aria-label="Back to briefs"><ArrowLeft size={22} /></button>
+                <h1 id="amo-brief-title">Brief review</h1>
+              </header>
+
+              <div className="am-detail-body">
+                <div className="amo-identity">
+                  <h2>{selected.title}</h2>
+                  <span className="am-card-sub">{brandName(selected)}</span>
+                  <span className="am-badges"><span className="am-badge am-badge--wait">{statusText(selected.status)}</span></span>
+                </div>
+
+                <section className="am-section">
+                  <h3>At a glance</h3>
+                  <div className="am-kv"><span>Business</span><span>{brandName(selected)}</span></div>
+                  <div className="am-kv"><span>Budget</span><span>{budgetText(selected)}</span></div>
+                  {(selected.product_category || selected.category) && <div className="am-kv"><span>Category</span><span>{selected.product_category || selected.category}</span></div>}
+                  {selected.objectives?.length > 0 && <div className="am-kv"><span>Objectives</span><span>{selected.objectives.join(', ')}</span></div>}
+                  {Array.isArray(selected.usage_platforms) && selected.usage_platforms.length > 0 && (
+                    <div className="am-kv"><span>Platforms</span><span>{selected.usage_platforms.join(', ')}</span></div>
+                  )}
+                  <div className="am-kv"><span>Requires shipment</span><span>{selected.requires_shipment ? 'Yes' : 'No'}</span></div>
+                </section>
+
+                {(selected.product_name || selected.product_description) && (
+                  <section className="am-section">
+                    <h3>Product</h3>
+                    {selected.product_name && <p><strong>{selected.product_name}</strong></p>}
+                    {selected.product_description && <p>{selected.product_description}</p>}
+                  </section>
+                )}
+                {selected.campaign_hook && <section className="am-section"><h3>Hook</h3><p>{selected.campaign_hook}</p></section>}
+                {selected.key_message && <section className="am-section"><h3>Key message</h3><p>{selected.key_message}</p></section>}
+                {deliverables.length > 0 && (
+                  <section className="am-section">
+                    <h3>Deliverables</h3>
+                    <ul className="amo-list">
+                      {deliverables.map((d, i) => (
+                        <li key={i}>{d.quantity || 1} × {d.type || '-'}{d.edited_required ? ` (edited by ${d.edited_by === 'ugc' ? 'UGC.ad' : 'creator'})` : ''}</li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
+
+                <section className="am-section">
+                  <h3>Script</h3>
+                  {ugcScript ? (
+                    <div className="am-field">
+                      <label htmlFor="amo-script">Write the script for the creator (required)</label>
+                      <textarea id="amo-script" rows={8} value={scriptDraft} onChange={(e) => setScriptDraft(e.target.value)} placeholder="Write the script for the creator..." />
+                      <span className="am-field-hint">This brief can't be approved until a script is added.</span>
+                    </div>
+                  ) : (
+                    <p className="amo-pre">{selected.script_text || 'None entered'}</p>
+                  )}
+                </section>
+
+                {sections.map((s, i) => {
+                  const parts = s.inline && s.lines.length === 1 && s.lines[0].includes('; ') ? s.lines[0].split('; ') : null;
+                  return (
+                    <section key={`${s.h}-${i}`} className="am-section">
+                      <h3>{s.h}</h3>
+                      {parts ? (
+                        <ul className="amo-list">{parts.map((p, j) => <li key={j}>{p}</li>)}</ul>
+                      ) : s.lines.map((l, j) => <p key={j}>{l}</p>)}
+                    </section>
+                  );
+                })}
+              </div>
+
+              <div className="am-actionbar">
+                {ugcScript && !scriptDraft.trim() && <p className="amo-hint">Add the script above to approve.</p>}
+                <div className="am-actionbar-row">
+                  <button type="button" className="am-btn am-btn--danger" disabled={busy} onClick={() => setRejectOpen(true)}>
+                    <XCircle size={18} /> Reject
+                  </button>
+                  <button
+                    type="button"
+                    className="am-btn am-btn--primary"
+                    disabled={busy || (ugcScript && !scriptDraft.trim())}
+                    onClick={() => decide(() => handleApprove(selected.id, ugcScript ? scriptDraft.trim() : undefined))}
+                    data-testid="brief-approve"
+                  >
+                    <CheckCircle size={18} /> {busy && !rejectOpen ? 'Approving…' : 'Approve'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {selected && rejectOpen && (
+            <>
+              <div className="am-sheet-backdrop" onClick={() => !busy && setRejectOpen(false)} />
+              <section className="am-sheet" role="dialog" aria-modal="true" aria-labelledby="amo-reject-title">
+                <div className="am-sheet-head">
+                  <h2 id="amo-reject-title">Reject this brief?</h2>
+                  <button type="button" className="am-icon-btn" onClick={() => setRejectOpen(false)} disabled={busy} aria-label="Close"><X size={20} /></button>
+                </div>
+                <div className="am-sheet-body">
+                  <p className="am-muted">
+                    <strong>{selected.title}</strong> from {brandName(selected)} will be rejected with the reason “{REJECT_REASON}”.
+                  </p>
+                </div>
+                <div className="am-sheet-foot">
+                  <button type="button" className="am-btn am-btn--secondary" onClick={() => setRejectOpen(false)} disabled={busy}>Cancel</button>
+                  <button type="button" className="am-btn am-btn--danger" disabled={busy} onClick={() => decide(() => handleReject(selected.id))} data-testid="brief-reject-confirm">
+                    {busy ? 'Rejecting…' : 'Reject brief'}
+                  </button>
+                </div>
+              </section>
+            </>
+          )}
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>

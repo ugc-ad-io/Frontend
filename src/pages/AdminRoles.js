@@ -1,14 +1,16 @@
 import { useLiveEffect } from '../lib/liveUpdates';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { ShieldCheck, ShieldAlert, UserPlus, Check, X, Crown, Mail, AlertTriangle } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, UserPlus, Check, X, Crown, Mail, AlertTriangle, ArrowLeft, ChevronRight, KeyRound, UserMinus, Trash2, Layers } from 'lucide-react';
 import { useAuth } from '../App';
 import AdminLayout from '../components/AdminLayout';
 import { ADMIN_ROLES, ROLE_LABELS, ROLE_MATRIX, CAP_LABELS, ALL_CAPS, SCOPE_LABELS, isFounder as roleIsFounder } from '../utils/adminRoles';
 import { SkeletonTable } from '../components/Skeleton';
 import { CONTENT_CATEGORIES } from '../constants/contentCategories';
+import useIsPhone from '../lib/useIsPhone';
+import '../styles/admin-mobile-platform.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -24,6 +26,69 @@ const ROLE_TONE = {
   custom: 'custom',
 };
 const ACCESS_MODE_LABELS = { view: 'View', edit: 'Edit', both: 'Both' };
+
+// ---- Phone (PWA) helpers ----
+const memberName = (m) => String(m.full_name || m.name || m.nickname || m.email.split('@')[0]).replace(/^@+/, '');
+// chandan@gmail.com -> chand***@gmail.com (same rule as the Applications phone cards)
+const maskEmail = (e) => {
+  const [local, domain] = String(e || '').split('@');
+  if (!local || !domain) return String(e || '');
+  return `${local.slice(0, Math.min(5, Math.max(1, local.length - 2)))}***@${domain}`;
+};
+// The desktop picker stores a feature as caps[] + a mode ('view' | 'edit' | 'both').
+// The phone shows it as two toggles; both off removes the feature. Same saved shape.
+const capSides = (caps, modes, c) => {
+  if (!caps.includes(c)) return { view: false, edit: false };
+  const m = modes[c] || 'both';
+  return { view: m !== 'edit', edit: m !== 'view' };
+};
+const flipCapSide = (caps, modes, c, side) => {
+  const next = { ...capSides(caps, modes, c) };
+  next[side] = !next[side];
+  if (!next.view && !next.edit) return [caps.filter((x) => x !== c), modes];
+  const mode = next.view && next.edit ? 'both' : (next.view ? 'view' : 'edit');
+  return [caps.includes(c) ? caps : [...caps, c], { ...modes, [c]: mode }];
+};
+
+function PhoneCapList({ caps, modes, onChange }) {
+  return (
+    <ul className="amp-caps" data-testid="cap-list">
+      {ALL_CAPS.map((c) => {
+        const on = capSides(caps, modes, c);
+        return (
+          <li key={c}>
+            <span className="amp-cap-label">{CAP_LABELS[c]}</span>
+            <span className="amp-cap-toggles">
+              {['view', 'edit'].map((side) => (
+                <button key={side} type="button" className="amp-toggle" aria-pressed={on[side]}
+                  aria-label={`${CAP_LABELS[c]}: ${side}`} data-testid={`cap-${c}-${side}`}
+                  onClick={() => onChange(...flipCapSide(caps, modes, c, side))}>
+                  {side === 'view' ? 'View' : 'Edit'}
+                </button>
+              ))}
+            </span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+function PhoneSheet({ title, onClose, children, foot, testId }) {
+  return (
+    <>
+      <div className="am-sheet-backdrop" onClick={onClose} />
+      <section className="am-sheet" role="dialog" aria-modal="true" aria-label={title} data-testid={testId}>
+        <header className="am-sheet-head">
+          <h2>{title}</h2>
+          <button type="button" className="am-icon-btn" onClick={onClose} aria-label="Close"><X size={20} /></button>
+        </header>
+        <div className="am-sheet-body">{children}</div>
+        {foot && <footer className="am-sheet-foot">{foot}</footer>}
+      </section>
+    </>
+  );
+}
 
 export default function AdminRoles() {
   const { user } = useAuth();
@@ -68,6 +133,11 @@ export default function AdminRoles() {
     next.has(id) ? next.delete(id) : next.add(id);
     return next;
   });
+  // Phone (PWA) view state
+  const isPhone = useIsPhone();
+  const [phoneMemberId, setPhoneMemberId] = useState(null);
+  const [phoneRolesOpen, setPhoneRolesOpen] = useState(false);
+  const [phoneSheet, setPhoneSheet] = useState(null); // 'invite' | 'revoke'
 
   useLiveEffect(() => { fetchStaff(); fetchCategories(); }, []);
 
@@ -174,6 +244,7 @@ export default function AdminRoles() {
       setNewCapModes({});
       setNewScope('all');
       fetchStaff();
+      return true;
     } catch (e) {
       toast.error(apiErrorMessage(e, 'Failed to add admin'));
     } finally {
@@ -302,8 +373,6 @@ export default function AdminRoles() {
   };
 
   // ── Category work distribution ──
-  const seesAllCategories = (m) => m.admin_role === 'founder' || m.admin_role === 'ops_senior';
-  const openCatEditor = (m) => { setEditingMember(m); setSelectedCats(m.assigned_categories || []); setCustomCat(''); };
   const toggleCat = (c) => setSelectedCats((cur) => cur.includes(c) ? cur.filter((x) => x !== c) : [...cur, c]);
   const addCustomCat = () => {
     const v = customCat.trim();
@@ -324,6 +393,348 @@ export default function AdminRoles() {
       setSavingCats(false);
     }
   };
+
+  // ===================== Phone (PWA) layout =====================
+  // Same state, handlers, endpoints and confirmations as desktop. The wide tables
+  // become cards; modals become full-screen pages or bottom sheets.
+  if (isPhone) {
+    const member = staff.find((m) => m.id === phoneMemberId) || null;
+    const locked = member?.admin_role === 'founder';
+    const busy = !!member && savingId === member.id;
+    const short = (v) => v.trim().length > 0 && v.trim().length < 6;
+    const badEmail = newEmail.trim() !== '' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail.trim());
+    const roleBadge = (m) => (
+      <span className={`am-badge am-badge--${m.admin_role === 'founder' ? 'info' : 'neutral'}`}>
+        {m.admin_role === 'founder' && <Crown size={12} />} {ROLE_LABELS[m.admin_role] || m.role}
+      </span>
+    );
+    const statusBadge = (m) => (m.banned
+      ? <span className="am-badge am-badge--bad">Banned</span>
+      : m.suspended ? <span className="am-badge am-badge--wait">Suspended</span>
+        : <span className="am-badge am-badge--ok">Active</span>);
+    const closeInvite = () => { if (!adding) setPhoneSheet(null); };
+    const invite = async () => { if (await addAdmin()) setPhoneSheet(null); };
+    const confirmRevoke = async () => { await revoke(member); setPhoneSheet(null); };
+    const closeDelete = () => { if (!deleteTarget || savingId !== deleteTarget.id) setDeleteTarget(null); };
+    const scopeField = (id, value, onChange) => (
+      <div className="am-field">
+        <label htmlFor={id}>This admin manages</label>
+        <select id={id} value={value} onChange={(e) => onChange(e.target.value)}>
+          {Object.entries(SCOPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+        </select>
+      </div>
+    );
+
+    return (
+      <AdminLayout>
+        <div className="am amp" data-testid="roles-phone">
+          <section className="am-section">
+            <p className="amp-note"><ShieldCheck size={18} /> <span>You are signed in as <strong>{ROLE_LABELS[user?.admin_role] || 'Founder / Admin'}</strong></span></p>
+            {founder && <span className="am-badges"><span className="am-badge am-badge--info"><Crown size={12} /> Full access</span></span>}
+            {!founder && (
+              <p className="amp-note amp-note--wait"><ShieldAlert size={16} /> <span>Only the Founder can add admins, change roles, passwords or remove admins. You can view the team below.</span></p>
+            )}
+          </section>
+
+          <ul className="am-rows">
+            <li>
+              <button type="button" className="am-row" onClick={() => setPhoneRolesOpen(true)} data-testid="roles-structure-row">
+                <Layers size={20} /><span className="am-row-label">Role structure</span><ChevronRight size={18} className="am-row-chevron" />
+              </button>
+            </li>
+          </ul>
+
+          <div className="am-section-head">
+            <h2 className="am-section-title">Admin team {staff.length > 0 && <span className="am-chip-count">{staff.length}</span>}</h2>
+            {founder && (
+              <button type="button" className="am-btn am-btn--primary am-btn--sm" onClick={() => setPhoneSheet('invite')} data-testid="roles-invite">
+                <UserPlus size={16} /> Add admin
+              </button>
+            )}
+          </div>
+
+          {loading ? <p className="am-empty">Loading team…</p> : staff.length === 0 ? <p className="am-empty">No admin staff found.</p> : (
+            <div className="am-list">
+              {staff.map((m) => (
+                <button type="button" className="am-card" key={m.id} onClick={() => setPhoneMemberId(m.id)} data-testid={`staff-card-${m.id}`}>
+                  <span className="am-card-head">
+                    <span className="am-avatar" aria-hidden="true">{memberName(m)[0]?.toUpperCase()}</span>
+                    <span className="am-card-main">
+                      <span className="am-card-title">{memberName(m)}</span>
+                      <span className="am-card-sub">{maskEmail(m.email)}</span>
+                    </span>
+                    <ChevronRight size={18} className="am-row-chevron" />
+                  </span>
+                  <span className="am-badges">
+                    {roleBadge(m)}
+                    {m.admin_role === 'custom' && <span className="am-badge am-badge--neutral">{SCOPE_LABELS[m.admin_scope || 'all']}</span>}
+                    {statusBadge(m)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* ---- Role structure reference ---- */}
+          {phoneRolesOpen && (
+            <div className="am-detail" role="dialog" aria-modal="true" aria-label="Role structure">
+              <header className="am-detail-head">
+                <button type="button" className="am-icon-btn" aria-label="Back" onClick={() => setPhoneRolesOpen(false)}><ArrowLeft size={22} /></button>
+                <h1>Role structure</h1>
+              </header>
+              <div className="am-detail-body">
+                {ROLE_MATRIX.map((r) => (
+                  <section className="am-section" key={r.role}>
+                    <span className="am-badges">{roleBadge({ admin_role: r.role })}</span>
+                    <p className="amp-note amp-note--ok"><Check size={16} /> <span>{r.canDo}</span></p>
+                    {r.cannotDo === '-'
+                      ? <p className="am-muted">No restrictions</p>
+                      : <p className="amp-note amp-note--bad"><X size={16} /> <span>{r.cannotDo}</span></p>}
+                  </section>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* ---- Member detail ---- */}
+          {member && (
+            <div className="am-detail" role="dialog" aria-modal="true" aria-label={memberName(member)} data-testid="staff-detail">
+              <header className="am-detail-head">
+                <button type="button" className="am-icon-btn" aria-label="Back" onClick={() => setPhoneMemberId(null)} data-testid="staff-detail-back"><ArrowLeft size={22} /></button>
+                <h1>{memberName(member)}</h1>
+              </header>
+              <div className="am-detail-body">
+                <div className="am-identity">
+                  <span className="am-avatar am-avatar--lg" aria-hidden="true">{memberName(member)[0]?.toUpperCase()}</span>
+                  <div className="am-card-main">
+                    <h2>{memberName(member)}</h2>
+                    <span className="am-card-sub">{member.email}</span>
+                    <span className="am-badges">{roleBadge(member)}{statusBadge(member)}</span>
+                  </div>
+                </div>
+
+                <section className="am-section">
+                  <h3>Role</h3>
+                  {founder && !locked ? (
+                    <div className="am-field">
+                      <label htmlFor="arl-ph-role">Admin role</label>
+                      <select id="arl-ph-role" value={member.admin_role} disabled={busy} onChange={(e) => changeRole(member, e.target.value)} data-testid="staff-detail-role">
+                        {ADMIN_ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+                      </select>
+                      <span className="am-field-hint">{busy ? 'Saving…' : 'Changes save immediately. Custom Admin opens the feature picker.'}</span>
+                    </div>
+                  ) : (
+                    <>
+                      <span className="am-badges">{roleBadge(member)}</span>
+                      <p className="am-muted">{locked ? 'The Founder role is locked: it can’t be changed, revoked or deleted.' : 'Only the Founder can change roles.'}</p>
+                    </>
+                  )}
+                </section>
+
+                {member.admin_role === 'custom' && (
+                  <section className="am-section">
+                    <h3>Custom access</h3>
+                    <div className="am-kv"><span>Manages</span><span>{SCOPE_LABELS[member.admin_scope || 'all']}</span></div>
+                    {(member.admin_caps || []).length ? (
+                      member.admin_caps.map((c) => (
+                        <div className="am-kv" key={c}><span>{CAP_LABELS[c] || c}</span><span>{ACCESS_MODE_LABELS[member.admin_cap_modes?.[c] || 'both']}</span></div>
+                      ))
+                    ) : <p className="am-muted">No features yet</p>}
+                    {founder && (
+                      <button type="button" className="am-btn am-btn--secondary" onClick={() => openAccessEditor(member)} data-testid="staff-edit-access">Edit access</button>
+                    )}
+                  </section>
+                )}
+
+                <section className="am-section">
+                  <h3>Account</h3>
+                  {founder ? (
+                    <ul className="am-rows">
+                      <li>
+                        <button type="button" className="am-row" onClick={() => changePassword(member)} disabled={busy} data-testid="staff-change-password">
+                          <KeyRound size={20} /><span className="am-row-label">Change password</span><ChevronRight size={18} className="am-row-chevron" />
+                        </button>
+                      </li>
+                      {!locked && (
+                        <li>
+                          <button type="button" className="am-row" onClick={() => setPhoneSheet('revoke')} disabled={busy} data-testid="staff-revoke">
+                            <UserMinus size={20} /><span className="am-row-label">Revoke admin access</span><ChevronRight size={18} className="am-row-chevron" />
+                          </button>
+                        </li>
+                      )}
+                      {!locked && (
+                        <li>
+                          <button type="button" className="am-row" style={{ color: 'var(--am-bad-fg)' }} onClick={() => { setDeleteTarget(member); setDeleteConfirm(''); }} disabled={busy} data-testid="staff-delete">
+                            <Trash2 size={20} /><span className="am-row-label">Delete account</span><ChevronRight size={18} className="am-row-chevron" />
+                          </button>
+                        </li>
+                      )}
+                    </ul>
+                  ) : <p className="am-muted">Only the Founder can change passwords, revoke or delete admins.</p>}
+                  {founder && locked && <p className="am-muted">The Founder account can’t be revoked or deleted.</p>}
+                </section>
+              </div>
+            </div>
+          )}
+
+          {/* ---- Custom access editor (per-capability View / Edit) ---- */}
+          {accessMember && (
+            <div className="am-detail" role="dialog" aria-modal="true" aria-label="Custom access" data-testid="access-editor">
+              <header className="am-detail-head">
+                <button type="button" className="am-icon-btn" aria-label="Back" onClick={() => setAccessMember(null)} disabled={savingAccess}><ArrowLeft size={22} /></button>
+                <h1>Custom access - {memberName(accessMember)}</h1>
+              </header>
+              <div className="am-detail-body">
+                <p className="am-muted">Pick which side of the marketplace this admin manages and exactly which features they can use.</p>
+                <section className="am-section">{scopeField('arl-ph-access-scope', accessScope, setAccessScope)}</section>
+                <section className="am-section">
+                  <div className="am-section-head">
+                    <h3>Features</h3>
+                    <span className="am-muted">{accessCaps.length} of {ALL_CAPS.length}</span>
+                  </div>
+                  <div className="amp-btns">
+                    <button type="button" className="am-btn am-btn--secondary am-btn--sm" onClick={() => {
+                      const selecting = accessCaps.length !== ALL_CAPS.length;
+                      setAccessCaps(selecting ? [...ALL_CAPS] : []);
+                      if (selecting) setAccessCapModes(Object.fromEntries(ALL_CAPS.map((cap) => [cap, accessCapModes[cap] || 'both'])));
+                    }}>
+                      {accessCaps.length === ALL_CAPS.length ? 'Deselect all' : 'Select all'}
+                    </button>
+                    <button type="button" className="am-btn am-btn--secondary am-btn--sm" onClick={() => { setAccessCaps([]); setAccessCapModes({}); }}>Clear</button>
+                  </div>
+                  <PhoneCapList caps={accessCaps} modes={accessCapModes} onChange={(c, m) => { setAccessCaps(c); setAccessCapModes(m); }} />
+                </section>
+              </div>
+              <div className="am-actionbar">
+                <span className="am-muted">{accessCaps.length} feature{accessCaps.length === 1 ? '' : 's'} · {SCOPE_LABELS[accessScope]}</span>
+                <button type="button" className="am-btn am-btn--primary" onClick={saveAccess} disabled={savingAccess} data-testid="access-save">
+                  {savingAccess ? 'Saving…' : 'Save access'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ---- Add admin (invite) ---- */}
+          {phoneSheet === 'invite' && founder && (
+            <PhoneSheet title="Add admin" onClose={closeInvite} testId="invite-sheet" foot={(
+              <>
+                <button type="button" className="am-btn am-btn--secondary" onClick={closeInvite} disabled={adding}>Cancel</button>
+                <button type="button" className="am-btn am-btn--primary" onClick={invite} disabled={adding} data-testid="invite-submit">
+                  <UserPlus size={18} /> {adding ? 'Adding…' : 'Grant access'}
+                </button>
+              </>
+            )}>
+              <div className="am-field">
+                <label htmlFor="arl-ph-email">Email</label>
+                <input id="arl-ph-email" type="email" inputMode="email" autoComplete="off" autoCapitalize="off" value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)} placeholder="name@example.com" data-testid="invite-email" />
+                {badEmail ? <span className="am-field-error">Enter a valid email address.</span>
+                  : <span className="am-field-hint">Creates the account if it doesn&apos;t exist yet.</span>}
+              </div>
+              <div className="am-field">
+                <label htmlFor="arl-ph-pwd">Password</label>
+                <input id="arl-ph-pwd" type="text" autoComplete="new-password" autoCapitalize="off" value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)} placeholder="Min 6 characters" data-testid="invite-password" />
+                {short(newPassword) ? <span className="am-field-error">Password must be at least 6 characters.</span>
+                  : <span className="am-field-hint">They log in with this password. Nothing is auto-generated.</span>}
+              </div>
+              <div className="am-field">
+                <label htmlFor="arl-ph-newrole">Role</label>
+                <select id="arl-ph-newrole" value={newRole} onChange={(e) => setNewRole(e.target.value)} data-testid="invite-role">
+                  {ADMIN_ROLES.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+                </select>
+              </div>
+              {newRole === 'custom' && (
+                <>
+                  {scopeField('arl-ph-newscope', newScope, setNewScope)}
+                  <div className="am-field">
+                    <span className="am-field-label">Features this admin can use</span>
+                    <PhoneCapList caps={newCaps} modes={newCapModes} onChange={(c, m) => { setNewCaps(c); setNewCapModes(m); }} />
+                  </div>
+                </>
+              )}
+            </PhoneSheet>
+          )}
+
+          {/* ---- Revoke ---- */}
+          {phoneSheet === 'revoke' && member && founder && !locked && (
+            <PhoneSheet title="Revoke admin access?" onClose={() => { if (!busy) setPhoneSheet(null); }} testId="revoke-sheet" foot={(
+              <>
+                <button type="button" className="am-btn am-btn--secondary" onClick={() => setPhoneSheet(null)} disabled={busy}>Cancel</button>
+                <button type="button" className="am-btn am-btn--danger" onClick={confirmRevoke} disabled={busy} data-testid="revoke-confirm">{busy ? 'Revoking…' : 'Revoke'}</button>
+              </>
+            )}>
+              <p className="am-muted"><strong>{member.email}</strong> goes back to a normal user. Their account and data are kept.</p>
+            </PhoneSheet>
+          )}
+
+          {/* ---- Delete (type DELETE, same as desktop) ---- */}
+          {deleteTarget && (
+            <PhoneSheet title="Delete this admin?" onClose={closeDelete} testId="delete-sheet" foot={(
+              <>
+                <button type="button" className="am-btn am-btn--secondary" onClick={closeDelete}>Cancel</button>
+                <button type="button" className="am-btn am-btn--danger" onClick={confirmDeleteStaff}
+                  disabled={deleteConfirm.trim().toUpperCase() !== 'DELETE' || savingId === deleteTarget.id} data-testid="delete-confirm">
+                  {savingId === deleteTarget.id ? 'Deleting…' : 'Delete account'}
+                </button>
+              </>
+            )}>
+              <p className="amp-note amp-note--bad"><AlertTriangle size={16} /> <span><strong>{deleteTarget.email}</strong> - this permanently removes their account and all of their data. It cannot be undone.</span></p>
+              <p className="am-muted">Only want to take away their admin powers? Cancel and use <b>Revoke</b> instead - that keeps the account.</p>
+              <div className="am-field">
+                <label htmlFor="arl-ph-del">Type DELETE to confirm</label>
+                <input id="arl-ph-del" autoComplete="off" autoCapitalize="characters" value={deleteConfirm}
+                  onChange={(e) => setDeleteConfirm(e.target.value)} placeholder="DELETE" data-testid="delete-input" />
+              </div>
+            </PhoneSheet>
+          )}
+
+          {/* ---- Change password (2 steps, same endpoints) ---- */}
+          {pwdMember && (
+            <PhoneSheet title="Change password" onClose={closePwdModal} testId="pwd-sheet">
+              <p className="am-muted">{pwdMember.email}</p>
+              <div className="amp-steps">
+                <span className={pwdStep === 'current' ? 'is-on' : 'is-done'}>1. Confirm it&apos;s you</span>
+                <span className={pwdStep === 'new' ? 'is-on' : ''}>2. New password</span>
+              </div>
+              {pwdStep === 'current' ? (
+                <form className="amp-form" onSubmit={confirmCurrentPassword}>
+                  <div className="am-field">
+                    <label htmlFor="arl-ph-cur">Your current password</label>
+                    <input id="arl-ph-cur" type="password" autoComplete="current-password" value={curPwd} onChange={(e) => setCurPwd(e.target.value)} />
+                    <span className="am-field-hint">Confirm your own password before setting another admin&apos;s password yourself.</span>
+                  </div>
+                  <button type="submit" className="am-btn am-btn--primary" disabled={pwdBusy}>{pwdBusy ? 'Checking…' : 'Continue'}</button>
+                  <button type="button" className="am-btn am-btn--secondary" onClick={sendResetEmail} disabled={pwdBusy}>
+                    <Mail size={18} /> Email them a reset code instead
+                  </button>
+                  <span className="am-field-hint">Sends a 6-digit reset code to {pwdMember.email} so they set their own password.</span>
+                </form>
+              ) : (
+                <form className="amp-form" onSubmit={submitNewPassword}>
+                  <div className="am-field">
+                    <label htmlFor="arl-ph-new">New password</label>
+                    <input id="arl-ph-new" type="password" autoComplete="new-password" value={nextPwd} onChange={(e) => setNextPwd(e.target.value)} placeholder="At least 6 characters" />
+                    {short(nextPwd) && <span className="am-field-error">Password must be at least 6 characters.</span>}
+                  </div>
+                  <div className="am-field">
+                    <label htmlFor="arl-ph-new2">Confirm new password</label>
+                    <input id="arl-ph-new2" type="password" autoComplete="new-password" value={nextPwd2} onChange={(e) => setNextPwd2(e.target.value)} />
+                    {nextPwd2.trim() && nextPwd2.trim() !== nextPwd.trim() && <span className="am-field-error">Passwords do not match.</span>}
+                  </div>
+                  <div className="am-actionbar-row">
+                    <button type="button" className="am-btn am-btn--secondary" onClick={() => setPwdStep('current')} disabled={pwdBusy}>Back</button>
+                    <button type="submit" className="am-btn am-btn--primary" disabled={pwdBusy}>{pwdBusy ? 'Saving…' : 'Update password'}</button>
+                  </div>
+                </form>
+              )}
+            </PhoneSheet>
+          )}
+        </div>
+      </AdminLayout>
+    );
+  }
+
 
   return (
     <AdminLayout>

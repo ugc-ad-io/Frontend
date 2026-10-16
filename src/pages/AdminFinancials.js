@@ -1,12 +1,15 @@
 import { useLiveEffect } from '../lib/liveUpdates';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { IndianRupee, Download, CheckCircle, XCircle, Search, Wallet, Lock, Scale, X, CalendarClock, TrendingUp, PauseCircle, PlayCircle, RotateCcw, Receipt, Eye } from 'lucide-react';
+import { IndianRupee, Download, CheckCircle, XCircle, Search, Wallet, Lock, Scale, X, CalendarClock, TrendingUp, PauseCircle, PlayCircle, RotateCcw, Receipt, Eye, ArrowLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '../App';
 import { can, isFounder as roleIsFounder } from '../utils/adminRoles';
 import AdminLayout from '../components/AdminLayout';
+import useIsPhone from '../lib/useIsPhone';
+import { ConfirmSheet, WithdrawalQueuePhone, initials } from '../components/AdminFinancePhone';
+import '../styles/admin-mobile-finance.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -34,6 +37,27 @@ const REVENUE_PERIODS = [
 
 const inr = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
 
+// ---- phone view helpers ----
+const userName = (u) => u.full_name || u.business_name || u.name || u.nickname || u.email;
+const PAYOUT_BADGE = { held: 'bad', released: 'ok' };
+// Same field fallbacks the desktop payout table uses, in one place for the phone cards + detail.
+const payoutFields = (p) => {
+  const gross = Number(p.gross_amount ?? p.amount ?? 0);
+  const tds = Number(p.tds_amount ?? p.tds ?? 0);
+  const raw = p.scheduled_date || p.scheduled_at || p.payout_date;
+  return {
+    pid: p.escrow_id || p.id,
+    gross,
+    tds,
+    net: (p.net_payable ?? p.net_amount) != null ? Number(p.net_payable ?? p.net_amount) : gross - tds,
+    status: p.payout_status || p.status || 'scheduled',
+    creator: p.creator_nickname || p.creator_handle || p.creator || p.creator_id || p.user_id,
+    deal: p.campaign_title || p.deal_id || '-',
+    method: String(p.method || p.payment_method || '-').toUpperCase(),
+    scheduled: raw ? new Date(raw).toLocaleDateString() : 'Unscheduled',
+  };
+};
+
 export default function AdminFinancials() {
   const { user } = useAuth();
   // Capability gating (PRD 11). Finance is view-only; Ops Senior can adjust
@@ -60,6 +84,10 @@ export default function AdminFinancials() {
   const [walletTx, setWalletTx] = useState([]);
   const [walletTxLoading, setWalletTxLoading] = useState(false);
   const [working, setWorking] = useState(false);
+  const isPhone = useIsPhone();
+  const [phoneDetail, setPhoneDetail] = useState(null); // phone: { kind: 'payout'|'escrow', id }
+  const [confirm, setConfirm] = useState(null); // phone: the money decision sheet that is open
+  const [exporting, setExporting] = useState(''); // phone: export kind in flight
 
   useLiveEffect(() => {
     fetchAnalytics();
@@ -122,43 +150,61 @@ export default function AdminFinancials() {
       toast.error(apiErrorMessage(e, 'Export not available yet'));
     }
   };
+  const runExport = async (kind) => {
+    setExporting(kind);
+    try { await handleExport(kind); } finally { setExporting(''); }
+  };
+
+  // Action handlers resolve true on success so the phone sheets know when to close.
 
   const handleApprove = async (id) => {
-    try { await axios.post(`${API}/admin/withdrawals/${id}/approve`); toast.success('Withdrawal approved'); fetchWithdrawals(); }
-    catch (e) { toast.error(apiErrorMessage(e, 'Failed to approve')); }
+    try { await axios.post(`${API}/admin/withdrawals/${id}/approve`); toast.success('Withdrawal approved'); fetchWithdrawals(); return true; }
+    catch (e) { toast.error(apiErrorMessage(e, 'Failed to approve')); return false; }
+  };
+  const rejectWithReason = async (id, reason) => {
+    try { await axios.post(`${API}/admin/withdrawals/${id}/reject?reason=${encodeURIComponent(reason)}`); toast.success('Withdrawal rejected and refunded'); fetchWithdrawals(); return true; }
+    catch (e) { toast.error(apiErrorMessage(e, 'Failed to reject')); return false; }
   };
   const handleReject = async (id) => {
     const reason = prompt('Enter rejection reason:');
     if (!reason) return;
-    try { await axios.post(`${API}/admin/withdrawals/${id}/reject?reason=${encodeURIComponent(reason)}`); toast.success('Withdrawal rejected and refunded'); fetchWithdrawals(); }
-    catch (e) { toast.error(apiErrorMessage(e, 'Failed to reject')); }
+    rejectWithReason(id, reason);
   };
 
   // ---- Payout queue (scheduled payouts, batch release, hold) ----
   const handleBatchRelease = async (dateLabel, ids) => {
     if (!ids.length) return;
     if (!window.confirm(`Release ${ids.length} payout${ids.length > 1 ? 's' : ''} scheduled for ${dateLabel}?`)) return;
-    try { await axios.post(`${API}/admin/payouts/batch-release`, { date: dateLabel, ids }); toast.success(`Released ${ids.length} payout${ids.length > 1 ? 's' : ''}`); fetchPayouts(); }
-    catch (e) { toast.error(apiErrorMessage(e, 'Batch release not available yet')); }
+    releaseBatch(dateLabel, ids);
+  };
+  const releaseBatch = async (dateLabel, ids) => {
+    try { await axios.post(`${API}/admin/payouts/batch-release`, { date: dateLabel, ids }); toast.success(`Released ${ids.length} payout${ids.length > 1 ? 's' : ''}`); fetchPayouts(); return true; }
+    catch (e) { toast.error(apiErrorMessage(e, 'Batch release not available yet')); return false; }
   };
   const handleHoldPayout = async (id) => {
     const reason = prompt('Reason to hold this payout (for fraud review or dispute):');
     if (!reason) return;
-    try { await axios.post(`${API}/admin/payouts/${id}/hold`, { reason }); toast.success('Payout held'); fetchPayouts(); }
-    catch (e) { toast.error(apiErrorMessage(e, 'Failed to hold payout')); }
+    holdPayout(id, reason);
+  };
+  const holdPayout = async (id, reason) => {
+    try { await axios.post(`${API}/admin/payouts/${id}/hold`, { reason }); toast.success('Payout held'); fetchPayouts(); return true; }
+    catch (e) { toast.error(apiErrorMessage(e, 'Failed to hold payout')); return false; }
   };
   const handleReleasePayout = async (id) => {
-    try { await axios.post(`${API}/admin/payouts/${id}/release`); toast.success('Payout released'); fetchPayouts(); }
-    catch (e) { toast.error(apiErrorMessage(e, 'Failed to release payout')); }
+    try { await axios.post(`${API}/admin/payouts/${id}/release`); toast.success('Payout released'); fetchPayouts(); return true; }
+    catch (e) { toast.error(apiErrorMessage(e, 'Failed to release payout')); return false; }
   };
 
   // ---- Escrow release / refund (mandatory reason) ----
   const handleEscrowAction = async (e, action) => {
     const reason = prompt(`Enter a reason to ${action} these escrow funds (logged to audit):`);
     if (!reason || !reason.trim()) return;
+    escrowAction(e, action, reason);
+  };
+  const escrowAction = async (e, action, reason) => {
     const id = e.id || e.deal_id;
-    try { await axios.post(`${API}/admin/escrow/${id}/${action}`, { reason: reason.trim() }); toast.success(`Escrow ${action === 'release' ? 'released' : 'refunded'}`); fetchEscrow(); }
-    catch (err) { toast.error(apiErrorMessage(err, `Failed to ${action} escrow`)); }
+    try { await axios.post(`${API}/admin/escrow/${id}/${action}`, { reason: reason.trim() }); toast.success(`Escrow ${action === 'release' ? 'released' : 'refunded'}`); fetchEscrow(); return true; }
+    catch (err) { toast.error(apiErrorMessage(err, `Failed to ${action} escrow`)); return false; }
   };
 
   // ---- Wallet transaction history ----
@@ -174,8 +220,8 @@ export default function AdminFinancials() {
   const openAdjust = (u) => { setAdjustUser(u); setAdjustAmount(''); setAdjustReason(''); setAdjustReasonCode('correction'); };
   const handleAdjust = async () => {
     const delta = Number(adjustAmount);
-    if (!delta || Number.isNaN(delta)) { toast.error('Enter a non-zero amount (use - to debit)'); return; }
-    if (!adjustReason.trim()) { toast.error('A reason is required and will be logged'); return; }
+    if (!delta || Number.isNaN(delta)) { toast.error('Enter a non-zero amount (use - to debit)'); return false; }
+    if (!adjustReason.trim()) { toast.error('A reason is required and will be logged'); return false; }
     setWorking(true);
     try {
       try {
@@ -189,8 +235,10 @@ export default function AdminFinancials() {
       toast.success(`Wallet ${delta >= 0 ? 'credited' : 'debited'} ${inr(Math.abs(delta))}`);
       setAdjustUser(null);
       fetchUsers();
+      return true;
     } catch (e) {
       toast.error(apiErrorMessage(e, 'Adjustment failed'));
+      return false;
     } finally {
       setWorking(false);
     }
@@ -237,6 +285,412 @@ export default function AdminFinancials() {
   );
   const platformEscrow = overview?.total_escrow_held ?? overview?.total_escrow ?? null;
   const escrowMatches = platformEscrow == null || Math.abs(platformEscrow - escrowSum) < 1;
+
+  if (isPhone) {
+    const closeConfirm = () => setConfirm(null);
+    const payout = phoneDetail?.kind === 'payout' ? payouts.map(payoutFields).find((p) => p.pid === phoneDetail.id) : null;
+    const esc = phoneDetail?.kind === 'escrow' ? escrow.find((e) => (e.id || e.deal_id) === phoneDetail.id) : null;
+    const wUser = walletDetail && (users.find((u) => u.id === walletDetail.id) || walletDetail);
+    const exportBtn = (kind, label) => (
+      <button key={kind} type="button" className="am-btn am-btn--secondary" onClick={() => runExport(kind)} disabled={exporting === kind}>
+        <Download size={18} /> {exporting === kind ? 'Exporting…' : label}
+      </button>
+    );
+    return (
+      <AdminLayout>
+        <div className="am">
+          <div className="am-tiles amf-tiles">
+            {[
+              ['Platform earnings', inr(totals.earnings), 'Commission to date', TrendingUp],
+              ['Pending payouts', inr(totals.payouts), `${withdrawals.length} requests`, IndianRupee],
+              ['Wallet liabilities', inr(totals.liabilities), 'Held in user wallets', Wallet],
+              ['In escrow', inr(totals.escrow), `${escrow.length} deals`, Lock],
+            ].map(([label, value, hint, Icon]) => (
+              <div key={label} className="am-tile">
+                <span className="am-tile-top"><Icon size={16} /> {label}</span>
+                <span className="am-tile-value">{value}</span>
+                <span className="amf-hint">{hint}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="am-chips">
+            {TABS.map((t) => (
+              <button key={t.id} type="button" className={`am-chip${tab === t.id ? ' is-active' : ''}`} aria-pressed={tab === t.id} onClick={() => setTab(t.id)} data-testid={`fin-tab-${t.id}`}>
+                <t.icon size={15} /> {t.label}
+              </button>
+            ))}
+          </div>
+
+          {tab === 'withdrawals' && (
+            <WithdrawalQueuePhone withdrawals={withdrawals} loading={loading} approve={handleApprove} reject={rejectWithReason} onExport={() => handleExport('withdrawals')} />
+          )}
+
+          {tab === 'payouts' && (payouts.length === 0 ? (
+            <div className="am-empty">No scheduled payouts. Approved payouts awaiting their scheduled release date are queued here with TDS and net amounts.</div>
+          ) : payoutGroups.map(([dateLabel, list]) => {
+            const rows = list.map(payoutFields);
+            const releasable = rows.filter((p) => p.status !== 'released').map((p) => p.pid);
+            return (
+              <section key={dateLabel} className="am-list">
+                <div className="am-section-head">
+                  <div className="am-card-main">
+                    <h2 className="am-section-title">{dateLabel}</h2>
+                    <span className="am-muted">{rows.length} payout{rows.length > 1 ? 's' : ''} · {inr(rows.reduce((s, p) => s + p.net, 0))} net</span>
+                  </div>
+                  {canReleasePayouts && releasable.length > 0 && (
+                    <button type="button" className="am-btn am-btn--primary am-btn--sm" onClick={() => setConfirm({ kind: 'batch', dateLabel, ids: releasable })} data-testid={`batch-release-${dateLabel}`}>
+                      <PlayCircle size={16} /> Release ({releasable.length})
+                    </button>
+                  )}
+                </div>
+                {rows.map((p) => (
+                  <button key={p.pid} type="button" className="am-card" onClick={() => setPhoneDetail({ kind: 'payout', id: p.pid })} data-testid={`payout-card-${p.pid}`}>
+                    <div className="am-card-head">
+                      <div className="am-card-main">
+                        <span className="am-card-title">{p.creator}</span>
+                        <span className="am-card-sub">{p.deal}</span>
+                        <span className="am-badges">
+                          <span className={`am-badge am-badge--${PAYOUT_BADGE[p.status] || 'info'}`}>{p.status}</span>
+                          <span className="am-badge am-badge--neutral">{p.method}</span>
+                        </span>
+                      </div>
+                      <ChevronRight size={20} className="am-row-chevron amf-center" />
+                    </div>
+                    <div className="am-card-foot">
+                      <span className="am-card-sub">Gross {inr(p.gross)} · TDS −{inr(p.tds)}</span>
+                      <span><span className="am-amount-label">Net </span><span className="am-amount">{inr(p.net)}</span></span>
+                    </div>
+                  </button>
+                ))}
+              </section>
+            );
+          }))}
+
+          {tab === 'wallets' && (
+            <>
+              <div className="am-search">
+                <Search size={18} />
+                <input type="search" value={walletQuery} onChange={(e) => setWalletQuery(e.target.value)} placeholder="Search users by name or email" aria-label="Search wallets" data-testid="wallet-search" />
+                {walletQuery && <button type="button" className="am-search-clear" onClick={() => setWalletQuery('')} aria-label="Clear search"><X size={18} /></button>}
+              </div>
+              {wallets.length === 0 ? (
+                <div className="am-empty">No wallets to show.</div>
+              ) : (
+                <div className="am-list">
+                  {wallets.map((u) => (
+                    <button key={u.id} type="button" className="am-card" onClick={() => openWallet(u)} data-testid={`wallet-card-${u.id}`}>
+                      <div className="am-card-head">
+                        <span className="am-avatar" aria-hidden="true">{initials(userName(u))}</span>
+                        <div className="am-card-main">
+                          <span className="am-card-title">{userName(u)}</span>
+                          <span className="am-badges"><span className="am-badge am-badge--neutral">{u.role}</span></span>
+                        </div>
+                        <ChevronRight size={20} className="am-row-chevron amf-center" />
+                      </div>
+                      <div className="am-card-foot">
+                        <span className="am-card-sub">Pending {inr(u.pending_commitments ?? u.pending ?? 0)}</span>
+                        <span><span className="am-amount-label">Balance </span><span className="am-amount">{inr(u.balance)}</span></span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {tab === 'escrow' && (
+            <>
+              <section className="am-section" data-testid="escrow-recon">
+                <div className="amf-sec-head">
+                  <h3>Reconciliation</h3>
+                  {escrowMatches
+                    ? <span className="am-badge am-badge--ok"><CheckCircle size={14} /> Reconciled</span>
+                    : <span className="am-badge am-badge--bad"><XCircle size={14} /> Mismatch - investigate</span>}
+                </div>
+                <div className="am-kv"><span>Sum of individual escrows</span><span>{inr(escrowSum)}</span></div>
+                {platformEscrow != null && <div className="am-kv"><span>Platform escrow balance</span><span>{inr(platformEscrow)}</span></div>}
+              </section>
+              {escrow.length === 0 ? (
+                <div className="am-empty">No funds in escrow. Funds held against active deals are listed here with release controls.</div>
+              ) : (
+                <div className="am-list">
+                  {escrow.map((e) => {
+                    const id = e.id || e.deal_id;
+                    return (
+                      <button key={id} type="button" className="am-card" onClick={() => setPhoneDetail({ kind: 'escrow', id })} data-testid={`escrow-card-${id}`}>
+                        <div className="am-card-head">
+                          <div className="am-card-main">
+                            <span className="am-card-title">{e.campaign_title || e.deal_id}</span>
+                            <span className="am-card-sub">{e.brand || e.brand_handle || '-'} → {e.creator || e.creator_handle || '-'}</span>
+                            <span className="am-badges"><span className="am-badge am-badge--info">{e.status || 'held'}</span></span>
+                          </div>
+                          <ChevronRight size={20} className="am-row-chevron amf-center" />
+                        </div>
+                        <div className="am-card-foot">
+                          <span className="am-amount-label">Held</span>
+                          <span className="am-amount">{inr(e.amount || e.held_amount)}</span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
+
+          {tab === 'revenue' && (
+            <>
+              <div className="am-chips">
+                {REVENUE_PERIODS.map((p) => (
+                  <button key={p.value} type="button" className={`am-chip${revenuePeriod === p.value ? ' is-active' : ''}`} aria-pressed={revenuePeriod === p.value} onClick={() => setRevenuePeriod(p.value)} data-testid={`rev-period-${p.value}`}>{p.label}</button>
+                ))}
+              </div>
+              <p className="am-muted amf-flat">Revenue earned over the selected period. Figures are sourced from settled transactions server-side.</p>
+              <div className="am-tiles amf-tiles">
+                {[
+                  ['Commission earned', inr(rev.commission), 'Platform take on settled deals'],
+                  ['Listing fees collected', inr(rev.listingFees), 'Campaign listing fees'],
+                  ['Refunded listing fees', `−${inr(rev.refundedFees)}`, 'Returned to brands'],
+                  ['Penalty collections', inr(rev.penalties), 'Late-delivery penalties retained'],
+                ].map(([k, v, hint]) => (
+                  <div key={k} className="am-tile">
+                    <span className="am-tile-top">{k}</span>
+                    <span className="am-tile-value">{v}</span>
+                    <span className="amf-hint">{hint}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="am-tile am-tile--info">
+                <span className="am-tile-top">Net revenue this period</span>
+                <span className="am-tile-value">{inr(Number(rev.commission) + Number(rev.listingFees) - Number(rev.refundedFees) + Number(rev.penalties))}</span>
+              </div>
+            </>
+          )}
+
+          {tab === 'reconciliation' && (
+            <>
+              <p className="am-muted amf-flat">Period exports for accounting. TDS &amp; GST reports are generated server-side from settled transactions.</p>
+              <div className="am-tiles amf-tiles">
+                {[
+                  ['Gross volume', inr(totals.payouts + totals.earnings)],
+                  ['Platform commission', inr(totals.earnings)],
+                  ['Creator payouts', inr(totals.payouts)],
+                  ['Net in escrow', inr(totals.escrow)],
+                ].map(([k, v]) => (
+                  <div key={k} className="am-tile">
+                    <span className="am-tile-top">{k}</span>
+                    <span className="am-tile-value">{v}</span>
+                  </div>
+                ))}
+              </div>
+              <section className="am-section">
+                <h3>Exports</h3>
+                <div className="amf-btn-stack">
+                  {exportBtn('tds', 'TDS report')}
+                  {exportBtn('gst', 'GST report')}
+                  {exportBtn('pnl', 'P&L')}
+                  {exportBtn('reconciliation', 'Reconciliation')}
+                </div>
+              </section>
+            </>
+          )}
+
+          {payout && (
+            <div className="am-detail" role="dialog" aria-modal="true" aria-labelledby="amf-p-title" data-testid="payout-detail">
+              <header className="am-detail-head">
+                <button type="button" className="am-icon-btn" onClick={() => setPhoneDetail(null)} aria-label="Back to payout queue"><ArrowLeft size={22} /></button>
+                <h1 id="amf-p-title">Payout</h1>
+              </header>
+              <div className="am-detail-body">
+                <div className="am-identity">
+                  <span className="am-avatar am-avatar--lg" aria-hidden="true">{initials(payout.creator)}</span>
+                  <div className="am-card-main">
+                    <h2>{payout.creator}</h2>
+                    <span className="am-badges"><span className={`am-badge am-badge--${PAYOUT_BADGE[payout.status] || 'info'}`}>{payout.status}</span></span>
+                  </div>
+                </div>
+                <section className="am-section">
+                  <h3>Amounts</h3>
+                  <div className="am-kv"><span>Gross</span><span>{inr(payout.gross)}</span></div>
+                  <div className="am-kv"><span>TDS</span><span className="amf-bad">−{inr(payout.tds)}</span></div>
+                  <div className="am-kv am-kv--total"><span>Net payable</span><span>{inr(payout.net)}</span></div>
+                </section>
+                <section className="am-section">
+                  <h3>Details</h3>
+                  <div className="am-kv"><span>Deal</span><span>{payout.deal}</span></div>
+                  <div className="am-kv"><span>Scheduled</span><span>{payout.scheduled}</span></div>
+                  <div className="am-kv"><span>Method</span><span>{payout.method}</span></div>
+                  <div className="am-kv"><span>Status</span><span>{payout.status}</span></div>
+                </section>
+              </div>
+              {canReleasePayouts && payout.status !== 'released' && (
+                <div className="am-actionbar">
+                  <div className="am-actionbar-row">
+                    {payout.status === 'held'
+                      ? <button type="button" className="am-btn am-btn--primary" onClick={() => setConfirm({ kind: 'release', id: payout.pid, name: payout.creator, net: payout.net })} data-testid="payout-release"><PlayCircle size={18} /> Release payout</button>
+                      : <button type="button" className="am-btn am-btn--danger" onClick={() => setConfirm({ kind: 'hold', id: payout.pid, name: payout.creator, net: payout.net })} data-testid="payout-hold"><PauseCircle size={18} /> Hold payout</button>}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {esc && (
+            <div className="am-detail" role="dialog" aria-modal="true" aria-labelledby="amf-e-title" data-testid="escrow-detail">
+              <header className="am-detail-head">
+                <button type="button" className="am-icon-btn" onClick={() => setPhoneDetail(null)} aria-label="Back to escrow"><ArrowLeft size={22} /></button>
+                <h1 id="amf-e-title">Escrow</h1>
+              </header>
+              <div className="am-detail-body">
+                <section className="am-section">
+                  <h3>{esc.campaign_title || esc.deal_id}</h3>
+                  <div className="am-kv"><span>Brand</span><span>{esc.brand || esc.brand_handle || '-'}</span></div>
+                  <div className="am-kv"><span>Creator</span><span>{esc.creator || esc.creator_handle || '-'}</span></div>
+                  <div className="am-kv"><span>Status</span><span>{esc.status || 'held'}</span></div>
+                  <div className="am-kv am-kv--total"><span>Held</span><span>{inr(esc.amount || esc.held_amount)}</span></div>
+                </section>
+                {!founderOnly && <p className="am-muted amf-flat"><Lock size={14} /> Releasing or refunding escrow is founder only.</p>}
+              </div>
+              {founderOnly && (esc.status || 'held') === 'held' && (
+                <div className="am-actionbar">
+                  <div className="am-actionbar-row">
+                    <button type="button" className="am-btn am-btn--danger" onClick={() => setConfirm({ kind: 'escrow', action: 'refund', e: esc })} data-testid="escrow-refund"><RotateCcw size={18} /> Refund</button>
+                    <button type="button" className="am-btn am-btn--primary" onClick={() => setConfirm({ kind: 'escrow', action: 'release', e: esc })} data-testid="escrow-release"><PlayCircle size={18} /> Release</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {wUser && (
+            <div className="am-detail" role="dialog" aria-modal="true" aria-labelledby="amf-wl-title" data-testid="wallet-drawer">
+              <header className="am-detail-head">
+                <button type="button" className="am-icon-btn" onClick={() => setWalletDetail(null)} aria-label="Back to wallets"><ArrowLeft size={22} /></button>
+                <h1 id="amf-wl-title">Wallet</h1>
+              </header>
+              <div className="am-detail-body">
+                <div className="am-identity">
+                  <span className="am-avatar am-avatar--lg" aria-hidden="true">{initials(userName(wUser))}</span>
+                  <div className="am-card-main">
+                    <h2>{userName(wUser)}</h2>
+                    <span className="am-badges"><span className="am-badge am-badge--neutral">{wUser.role}</span></span>
+                  </div>
+                </div>
+                <div className="am-tiles amf-tiles">
+                  <div className="am-tile"><span className="am-tile-top">Balance</span><span className="am-tile-value">{inr(wUser.balance)}</span></div>
+                  <div className="am-tile"><span className="am-tile-top">Pending commitments</span><span className="am-tile-value">{inr(wUser.pending_commitments ?? wUser.pending ?? 0)}</span></div>
+                </div>
+                <h2 className="am-section-title">Transaction history</h2>
+                {walletTxLoading ? (
+                  <div className="am-empty">Loading…</div>
+                ) : walletTx.length === 0 ? (
+                  <div className="am-empty">No transactions yet. Credits, debits, payouts and adjustments will appear here.</div>
+                ) : (
+                  <div className="am-list">
+                    {walletTx.map((t, i) => {
+                      const amt = Number(t.amount || 0);
+                      return (
+                        <div key={t.id || i} className="am-card">
+                          <div className="am-card-head">
+                            <div className="am-card-main">
+                              <span className="am-card-title">{t.reason || t.description || '-'}</span>
+                              <span className="am-card-sub">{t.created_at || t.date ? new Date(t.created_at || t.date).toLocaleDateString() : '-'}</span>
+                              <span className="am-badges"><span className="am-badge am-badge--neutral">{t.type || t.reason_code || '-'}</span></span>
+                            </div>
+                            <span className={`am-amount ${amt >= 0 ? 'amf-ok' : 'amf-bad'}`}>{amt >= 0 ? '+' : '−'}{inr(Math.abs(amt))}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+              <div className="am-actionbar">
+                {canAdjustWallet ? (
+                  <div className="am-actionbar-row">
+                    <button type="button" className="am-btn am-btn--primary" onClick={() => openAdjust(wUser)} data-testid={`adjust-${wUser.id}`}>Adjust balance</button>
+                  </div>
+                ) : (
+                  <span className="am-muted"><Lock size={14} /> View only - adjusting wallets needs the adjust-wallet permission.</span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {adjustUser && (
+            <>
+              <div className="am-sheet-backdrop" onClick={() => setAdjustUser(null)} />
+              <section className="am-sheet" role="dialog" aria-modal="true" aria-label="Adjust wallet" data-testid="adjust-modal">
+                <header className="am-sheet-head">
+                  <h2>Adjust wallet</h2>
+                  <button type="button" className="am-icon-btn" onClick={() => setAdjustUser(null)} aria-label="Close"><X size={20} /></button>
+                </header>
+                <div className="am-sheet-body">
+                  <p className="am-muted amf-flat">{userName(adjustUser)} · current balance <strong>{inr(adjustUser.balance)}</strong></p>
+                  <div className="am-field">
+                    <label htmlFor="amf-adj-code">Reason code</label>
+                    <select id="amf-adj-code" value={adjustReasonCode} onChange={(e) => setAdjustReasonCode(e.target.value)} data-testid="adjust-reason-code">
+                      {REASON_CODES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+                    </select>
+                  </div>
+                  <div className="am-field">
+                    <label htmlFor="amf-adj-amount">Amount</label>
+                    <input id="amf-adj-amount" type="number" value={adjustAmount} onChange={(e) => setAdjustAmount(e.target.value)} placeholder="e.g. 500 or -250" data-testid="adjust-amount" />
+                    <span className="am-field-hint">Use a negative value to debit.</span>
+                  </div>
+                  <div className="am-field">
+                    <label htmlFor="amf-adj-reason">Reason</label>
+                    <textarea id="amf-adj-reason" value={adjustReason} onChange={(e) => setAdjustReason(e.target.value)} rows={3} placeholder="Why is this adjustment being made?" data-testid="adjust-reason" />
+                    <span className="am-field-hint">Required. Logged to the audit trail.</span>
+                  </div>
+                </div>
+                <footer className="am-sheet-foot">
+                  <button type="button" className="am-btn am-btn--secondary" onClick={() => setAdjustUser(null)}>Cancel</button>
+                  <button type="button" className="am-btn am-btn--primary" disabled={working} onClick={async () => { if (await handleAdjust() && walletDetail) openWallet(walletDetail); }} data-testid="adjust-submit">
+                    {working ? 'Applying…' : 'Apply adjustment'}
+                  </button>
+                </footer>
+              </section>
+            </>
+          )}
+
+          {confirm?.kind === 'batch' && (
+            <ConfirmSheet title="Batch release" confirmLabel={`Release ${confirm.ids.length}`} busyLabel="Releasing…" testId="batch-sheet" onClose={closeConfirm}
+              onConfirm={async () => { if (await releaseBatch(confirm.dateLabel, confirm.ids)) closeConfirm(); }}>
+              <p className="am-muted amf-flat">Release {confirm.ids.length} payout{confirm.ids.length > 1 ? 's' : ''} scheduled for <strong>{confirm.dateLabel}</strong>?</p>
+            </ConfirmSheet>
+          )}
+          {confirm?.kind === 'hold' && (
+            <ConfirmSheet title="Hold payout" reasonLabel="Reason to hold" reasonHint="Required. For fraud review or dispute." confirmLabel="Hold payout" busyLabel="Holding…" danger testId="hold-sheet" onClose={closeConfirm}
+              onConfirm={async (reason) => { if (await holdPayout(confirm.id, reason)) closeConfirm(); }}>
+              <p className="am-muted amf-flat">{inr(confirm.net)} net to <strong>{confirm.name}</strong>.</p>
+            </ConfirmSheet>
+          )}
+          {confirm?.kind === 'release' && (
+            <ConfirmSheet title="Release payout" confirmLabel={`Release ${inr(confirm.net)}`} busyLabel="Releasing…" testId="release-sheet" onClose={closeConfirm}
+              onConfirm={async () => { if (await handleReleasePayout(confirm.id)) closeConfirm(); }}>
+              <p className="am-muted amf-flat">Release the held payout of {inr(confirm.net)} to <strong>{confirm.name}</strong>?</p>
+            </ConfirmSheet>
+          )}
+          {confirm?.kind === 'escrow' && (
+            <ConfirmSheet
+              title={confirm.action === 'release' ? 'Release escrow' : 'Refund escrow'}
+              reasonLabel="Reason"
+              reasonHint="Required. Logged to the audit trail."
+              confirmLabel={confirm.action === 'release' ? 'Release funds' : 'Refund funds'}
+              danger={confirm.action === 'refund'}
+              testId="escrow-sheet"
+              onClose={closeConfirm}
+              onConfirm={async (reason) => { if (await escrowAction(confirm.e, confirm.action, reason)) closeConfirm(); }}
+            >
+              <p className="am-muted amf-flat">{inr(confirm.e.amount || confirm.e.held_amount)} held for <strong>{confirm.e.campaign_title || confirm.e.deal_id}</strong>.</p>
+            </ConfirmSheet>
+          )}
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>

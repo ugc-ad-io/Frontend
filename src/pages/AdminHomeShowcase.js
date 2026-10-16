@@ -1,11 +1,13 @@
 import { useLiveEffect } from '../lib/liveUpdates';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import axios from 'axios';
 import { uploadMedia } from '../utils/upload';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { Star, Plus, Trash2, Save, Upload, Database } from 'lucide-react';
+import { Star, Plus, Trash2, Save, Upload, Database, ArrowLeft, ChevronRight, Video } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
+import useIsPhone from '../lib/useIsPhone';
+import '../styles/admin-mobile-platform.css';
 import { CONTENT_CATEGORIES } from '../constants/contentCategories';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -34,6 +36,8 @@ export default function AdminHomeShowcase() {
   const [saving, setSaving] = useState(false);
   const [uploadingIdx, setUploadingIdx] = useState(null);
   const [pulling, setPulling] = useState(false);
+  const isPhone = useIsPhone();
+  const [phoneIdx, setPhoneIdx] = useState(null); // phone: index of the card being edited
 
   // Upload a showcase video straight from the editor and set it as this card's video.
   const uploadVideo = async (idx, file) => {
@@ -149,6 +153,146 @@ export default function AdminHomeShowcase() {
       toast.error(apiErrorMessage(e, 'Could not save'));
     } finally { setSaving(false); }
   };
+
+  // ===================== Phone (PWA) layout =====================
+  // Same list state and handlers: tap a card to edit it full-screen; Save still
+  // writes the whole list (order = list order, as on desktop).
+  if (isPhone) {
+    const it = phoneIdx === null ? null : items[phoneIdx];
+    const isCreator = it && it.source && it.source !== 'custom';
+    const catInList = it && CATEGORIES.includes(it.category);
+    const saveBtn = (label) => (
+      <button type="button" className="am-btn am-btn--primary" onClick={save} disabled={saving} data-testid="showcase-save">
+        <Save size={18} /> {saving ? 'Saving…' : label}
+      </button>
+    );
+    const numField = (key, label, mode, re, placeholder) => (
+      <div className="am-field">
+        <label htmlFor={`ahs-ph-${key}`}>{label}</label>
+        <input id={`ahs-ph-${key}`} inputMode={mode} value={it[key]} placeholder={placeholder}
+          onChange={(e) => setField(phoneIdx, key, e.target.value.replace(re, ''))} />
+      </div>
+    );
+    return (
+      <AdminLayout>
+        <div className="am amp" data-testid="showcase-phone">
+          <p className="am-muted">These cards rotate in the creator home hero. Leave the list empty to fall back to the built-in defaults.</p>
+          <div className="amp-btns">
+            <button type="button" className="am-btn am-btn--secondary" onClick={pullFromData} disabled={pulling}><Database size={18} /> {pulling ? 'Pulling…' : 'Pull top earners'}</button>
+            <button type="button" className="am-btn am-btn--secondary" onClick={() => { addRow(); setPhoneIdx(items.length); }} data-testid="showcase-add"><Plus size={18} /> Add card</button>
+          </div>
+
+          {loading ? <p className="am-empty">Loading…</p> : !items.length ? (
+            <p className="am-empty">No showcase cards yet - the hero shows the defaults. Tap <strong>Add card</strong> to curate your own.</p>
+          ) : (
+            <div className="am-list">
+              {items.map((card, idx) => (
+                <button type="button" className="am-card" key={idx} onClick={() => setPhoneIdx(idx)} data-testid={`showcase-card-${idx}`}>
+                  <span className="am-card-head">
+                    <span className="am-avatar" aria-hidden="true">{idx + 1}</span>
+                    <span className="am-card-main">
+                      <span className="am-card-title">{card.name || 'Untitled card'}</span>
+                      <span className="am-card-sub">{[card.category, card.level].filter(Boolean).join(' · ') || 'No category'}</span>
+                    </span>
+                    <ChevronRight size={18} className="am-row-chevron" />
+                  </span>
+                  <span className="am-card-foot">
+                    <span>
+                      <span className="am-amount-label">Earned</span>{' '}
+                      <span className="am-amount">₹{(Number(card.earned) || 0).toLocaleString('en-IN')}</span>
+                    </span>
+                    <span className="am-badges">
+                      <span className="am-badge am-badge--neutral">{card.deals || 0} deals</span>
+                      {card.rating ? <span className="am-badge am-badge--neutral">★ {card.rating}</span> : null}
+                      <span className={`am-badge am-badge--${card.video_url ? 'ok' : 'wait'}`}><Video size={12} /> {card.video_url ? 'Video' : 'No video'}</span>
+                      {!String(card.name || '').trim() && <span className="am-badge am-badge--bad">Needs a name</span>}
+                    </span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+          {!loading && <div className="amp-btns">{saveBtn('Save showcase')}</div>}
+          {!loading && items.some((c) => !String(c.name || '').trim()) && (
+            <p className="am-field-error">Cards without a name are dropped when you save.</p>
+          )}
+
+          {it && (
+            <div className="am-detail" role="dialog" aria-modal="true" aria-label={`Card ${phoneIdx + 1}`} data-testid="showcase-editor">
+              <header className="am-detail-head">
+                <button type="button" className="am-icon-btn" aria-label="Back" onClick={() => setPhoneIdx(null)} data-testid="showcase-back"><ArrowLeft size={22} /></button>
+                <h1>{it.name || `Card ${phoneIdx + 1}`}</h1>
+              </header>
+              <div className="am-detail-body">
+                <section className="am-section">
+                  <div className="am-field">
+                    <label htmlFor="ahs-ph-source">Creator</label>
+                    <select id="ahs-ph-source" value={isCreator ? it.source : CUSTOM} onChange={(e) => pickName(phoneIdx, e.target.value)}>
+                      <option value={CUSTOM}>Custom (type a name)</option>
+                      {creators.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                    <span className="am-field-hint">Picking a creator fills in the card from their real data.</span>
+                  </div>
+                  {!isCreator && (
+                    <div className="am-field">
+                      <label htmlFor="ahs-ph-name">Name</label>
+                      <input id="ahs-ph-name" type="text" value={it.name} onChange={(e) => setField(phoneIdx, 'name', e.target.value)} placeholder="e.g. Priya Sharma" />
+                      {!String(it.name || '').trim() && <span className="am-field-error">A name is required, or the card is dropped on save.</span>}
+                    </div>
+                  )}
+                  <div className="am-field">
+                    <label htmlFor="ahs-ph-cat">Category</label>
+                    <select id="ahs-ph-cat" value={catInList ? it.category : CUSTOM} onChange={(e) => pickCategory(phoneIdx, e.target.value)}>
+                      <option value={CUSTOM}>Custom…</option>
+                      {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  {!catInList && (
+                    <div className="am-field">
+                      <label htmlFor="ahs-ph-catc">Custom category</label>
+                      <input id="ahs-ph-catc" type="text" value={it.category} onChange={(e) => setField(phoneIdx, 'category', e.target.value)} placeholder="Category" />
+                    </div>
+                  )}
+                </section>
+                <section className="am-section">
+                  <h3>Figures</h3>
+                  {numField('earned', 'Earned (₹)', 'numeric', /[^0-9]/g, '420000')}
+                  {numField('deals', 'Deals', 'numeric', /[^0-9]/g, '128')}
+                  {numField('rating', 'Rating', 'decimal', /[^0-9.]/g, '4.9')}
+                  <div className="am-field">
+                    <label htmlFor="ahs-ph-level">Level</label>
+                    <input id="ahs-ph-level" type="text" value={it.level} onChange={(e) => setField(phoneIdx, 'level', e.target.value)} placeholder="Elite / L2 / New" />
+                  </div>
+                </section>
+                <section className="am-section">
+                  <h3>Video</h3>
+                  {it.video_url && <video className="amp-video" src={it.video_url} controls playsInline preload="metadata" />}
+                  <div className="am-field">
+                    <label htmlFor="ahs-ph-video">Video URL</label>
+                    <input id="ahs-ph-video" type="text" inputMode="url" autoCapitalize="off" value={it.video_url} onChange={(e) => setField(phoneIdx, 'video_url', e.target.value)} placeholder="/showcase-reel.mp4 or https://…" />
+                    <span className="am-field-hint">Paste a link or upload a clip (max 100MB).</span>
+                  </div>
+                  <label className={`am-btn am-btn--secondary${uploadingIdx === phoneIdx ? ' amp-busy' : ''}`}>
+                    <input type="file" accept="video/*" hidden disabled={uploadingIdx === phoneIdx}
+                      onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; uploadVideo(phoneIdx, f); }} />
+                    <Upload size={18} /> {uploadingIdx === phoneIdx ? 'Uploading…' : 'Upload video'}
+                  </label>
+                </section>
+              </div>
+              <div className="am-actionbar">
+                <div className="am-actionbar-row">
+                  <button type="button" className="am-btn am-btn--danger" onClick={() => { removeRow(phoneIdx); setPhoneIdx(null); }} data-testid="showcase-remove">
+                    <Trash2 size={18} /> Remove
+                  </button>
+                  {saveBtn('Save all')}
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>

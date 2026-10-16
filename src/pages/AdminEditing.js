@@ -1,11 +1,13 @@
 import { useLiveEffect } from '../lib/liveUpdates';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import axios from 'axios';
 import { uploadMedia } from '../utils/upload';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { Clapperboard, Upload, CheckCircle, Play } from 'lucide-react';
+import { Clapperboard, Upload, CheckCircle, Play, X, User, Clock } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
+import useIsPhone from '../lib/useIsPhone';
+import '../styles/admin-mobile-ops.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -25,6 +27,8 @@ export default function AdminEditing() {
   const [file, setFile] = useState(null);
   const [note, setNote] = useState('');
   const [working, setWorking] = useState(false);
+  const [uploadError, setUploadError] = useState(''); // phone: last attach failure, shown in the sheet
+  const isPhone = useIsPhone();
 
   const load = async () => {
     setLoading(true);
@@ -43,6 +47,7 @@ export default function AdminEditing() {
   const complete = async (workId) => {
     if (!file) { toast.error('Choose the edited video file first.'); return; }
     setWorking(true);
+    setUploadError('');
     try {
       const up = { data: await uploadMedia(file, API) };
       const url = up.data?.file_url || up.data?.url;
@@ -54,11 +59,100 @@ export default function AdminEditing() {
       setActiveId(null); setFile(null); setNote('');
       load();
     } catch (e) {
-      toast.error(apiErrorMessage(e, 'Could not attach the edited file'));
+      const msg = apiErrorMessage(e, 'Could not attach the edited file');
+      setUploadError(msg);
+      toast.error(msg);
     } finally {
       setWorking(false);
     }
   };
+
+  // ===================== Phone (PWA) layout =====================
+  if (isPhone) {
+    const active = rows.find((r) => r.work_id === activeId);
+    const openSheet = (id) => { setActiveId(id); setFile(null); setNote(''); setUploadError(''); };
+    const closeSheet = () => { if (!working) { setActiveId(null); setFile(null); setNote(''); setUploadError(''); } };
+    return (
+      <AdminLayout>
+        <div className="am" data-testid="editing-phone">
+          {!loading && rows.length > 0 && <p className="am-muted">{rows.length} {rows.length === 1 ? 'submission' : 'submissions'} waiting on an edit</p>}
+
+          {loading && !rows.length ? (
+            <div className="am-empty">Loading…</div>
+          ) : !rows.length ? (
+            <div className="am-empty">No submissions waiting on an edit. Raw footage from "Edited by UGC.ad" deals lands here.</div>
+          ) : (
+            <div className="am-list">
+              {rows.map((r) => (
+                <article key={r.work_id} className="am-card" data-testid={`edit-card-${r.work_id}`}>
+                  <div className="am-card-head">
+                    <span className="am-thumb amo-thumb" aria-hidden="true"><Clapperboard size={24} /></span>
+                    <div className="am-card-main">
+                      <span className="am-card-title">{r.campaign_title}</span>
+                      <span className="am-card-sub">Brand: {r.brand_name || '-'}</span>
+                      <span className="am-badges"><span className="am-badge am-badge--wait">Awaiting edit</span></span>
+                    </div>
+                  </div>
+                  <div className="amo-meta">
+                    <span><User size={15} /> Creator: {r.creator_name}</span>
+                    <span><Clock size={15} /> Raw received {fmtDate(r.submitted_at)}</span>
+                  </div>
+                  {r.description ? <p className="amo-clamp">Creator's note: {r.description}</p> : null}
+                  {(r.raw_files || []).length > 0 && (
+                    <div className="amo-files">
+                      {r.raw_files.map((f, i) => (
+                        <a key={i} className="am-btn am-btn--secondary am-btn--sm" href={assetUrl(f)} target="_blank" rel="noopener noreferrer">
+                          <Play size={16} /> Raw file {i + 1}
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                  <div className="am-card-foot">
+                    <button type="button" className="am-btn am-btn--primary amo-fill" onClick={() => openSheet(r.work_id)} data-testid={`edit-upload-${r.work_id}`}>
+                      <Upload size={18} /> Upload edited cut
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
+
+          {active && (
+            <>
+              <div className="am-sheet-backdrop" onClick={closeSheet} />
+              <section className="am-sheet" role="dialog" aria-modal="true" aria-labelledby="amo-edit-title" data-testid="edit-sheet">
+                <div className="am-sheet-head">
+                  <h2 id="amo-edit-title">Attach the edited cut</h2>
+                  <button type="button" className="am-icon-btn" onClick={closeSheet} disabled={working} aria-label="Close"><X size={20} /></button>
+                </div>
+                <div className="am-sheet-body">
+                  <p className="am-muted">{active.campaign_title} · {active.creator_name}. Attaching sends it to the brand for review and starts the auto-approval clock.</p>
+                  <div className="am-field">
+                    <label htmlFor="amo-edit-file">Edited video file</label>
+                    <input id="amo-edit-file" type="file" accept="video/*" disabled={working} onChange={(e) => { setFile(e.target.files?.[0] || null); setUploadError(''); }} />
+                    {file && <span className="amo-file-name">{file.name}</span>}
+                  </div>
+                  <div className="am-field">
+                    <label htmlFor="amo-edit-note">Editor's note (optional)</label>
+                    <textarea id="amo-edit-note" rows={3} value={note} disabled={working} onChange={(e) => setNote(e.target.value)} />
+                    <span className="am-field-hint">Visible in the audit log.</span>
+                  </div>
+                  {working && <div className="amo-callout amo-callout--info" role="status">Uploading the edited cut… keep this screen open.</div>}
+                  {uploadError && !working && <div className="amo-callout amo-callout--bad" role="alert">{uploadError}</div>}
+                </div>
+                <div className="am-sheet-foot">
+                  <button type="button" className="am-btn am-btn--secondary" onClick={closeSheet} disabled={working}>Cancel</button>
+                  <button type="button" className="am-btn am-btn--primary" disabled={working || !file} onClick={() => complete(active.work_id)} data-testid="edit-submit">
+                    <CheckCircle size={18} /> {working ? 'Uploading…' : 'Attach & send'}
+                  </button>
+                </div>
+              </section>
+            </>
+          )}
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>

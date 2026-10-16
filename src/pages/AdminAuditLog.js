@@ -1,14 +1,16 @@
 import { useLiveEffect } from '../lib/liveUpdates';
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import {
   ScrollText, Download, Search, ShieldAlert, Lock, ChevronRight,
-  ChevronDown, Mail, RefreshCw,
+  ChevronDown, Mail, RefreshCw, SlidersHorizontal, X, ArrowLeft,
 } from 'lucide-react';
 import { useAuth } from '../App';
 import AdminLayout from '../components/AdminLayout';
+import useIsPhone from '../lib/useIsPhone';
+import '../styles/admin-mobile-oversight.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -71,6 +73,8 @@ function DiffBlock({ before, after }) {
 export default function AdminAuditLog() {
   const { user } = useAuth();
   const isFounder = user?.role === 'admin';
+  const isPhone = useIsPhone();
+  const [filterDraft, setFilterDraft] = useState(null); // phone filter sheet; null = closed
 
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -143,6 +147,174 @@ export default function AdminAuditLog() {
       toast.error(apiErrorMessage(error, 'Export failed'));
     }
   };
+
+  // ===================== Phone (PWA) layout =====================
+  if (isPhone) {
+    const filterCount = [action, moduleFilter, sensitiveOnly, from, to].filter(Boolean).length;
+    const openFilters = () => setFilterDraft({ action, module: moduleFilter, sensitive: sensitiveOnly, from, to });
+    const applyFilters = () => {
+      setAction(filterDraft.action); setModuleFilter(filterDraft.module); setSensitiveOnly(filterDraft.sensitive);
+      setFrom(filterDraft.from); setTo(filterDraft.to);
+      setFilterDraft(null);
+    };
+    const draft = (key) => (e) => setFilterDraft((f) => ({ ...f, [key]: e.target.value }));
+    const adminName = (l) => String(l.admin_name || l.admin_nickname || 'Admin').replace(/^@+/, '');
+    const target = (l, full) => (l.target_type ? `${l.target_type}:${full ? (l.target_id || '') : String(l.target_id || '').slice(0, 8)}` : '-');
+    const open = expanded ? logs.find((l) => l.id === expanded) : null;
+
+    return (
+      <AdminLayout>
+        <div className="am amo" data-testid="audit-phone">
+          <p className="am-muted amo-flat amo-note">
+            <Lock size={14} /> Immutable (append-only), retained 7 years. Every admin action is recorded with actor, target, before/after values, reason and IP.
+          </p>
+          {!isFounder && (
+            <p className="amo-scope">
+              <ShieldAlert size={16} /> You can view your own actions and peers' routine actions. Sensitive actions by other admins are founder-only.
+            </p>
+          )}
+
+          <div className="am-toolbar">
+            <label className="am-search">
+              <Search size={18} />
+              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search admin, target, reason, IP" aria-label="Search audit log" data-testid="audit-search" />
+              {search && <button type="button" className="am-search-clear" onClick={() => setSearch('')} aria-label="Clear search"><X size={18} /></button>}
+            </label>
+            <button type="button" className="am-filter-btn" onClick={openFilters} aria-label={filterCount ? `Filters, ${filterCount} active` : 'Filters'} data-testid="audit-filter-btn">
+              <SlidersHorizontal size={20} />
+              {filterCount > 0 && <span className="am-dot">{filterCount}</span>}
+            </button>
+          </div>
+
+          <div className="am-tiles am-tiles--3">
+            <div className="am-tile"><span className="am-tile-top">Loaded</span><span className="am-tile-value">{stats.total}</span></div>
+            <button type="button" className="am-tile am-tile--wait" aria-pressed={sensitiveOnly} onClick={() => setSensitiveOnly((v) => !v)} title="Show sensitive actions only">
+              <span className="am-tile-top"><Mail size={16} /> Sensitive{sensitiveOnly ? ' ✓' : ''}</span>
+              <span className="am-tile-value">{stats.sensitive}</span>
+            </button>
+            <div className="am-tile"><span className="am-tile-top">Today</span><span className="am-tile-value">{stats.today}</span></div>
+          </div>
+
+          <div className="am-section-head">
+            <h2 className="am-section-title">{visible.length} event{visible.length !== 1 ? 's' : ''}</h2>
+            <span className="amo-head-actions">
+              <button type="button" className="am-icon-btn" onClick={load} aria-label="Refresh"><RefreshCw size={20} /></button>
+              <button type="button" className="am-btn am-btn--secondary am-btn--sm" onClick={exportCsv}><Download size={16} /> Export CSV</button>
+            </span>
+          </div>
+
+          {loading ? (
+            <div className="am-empty">Loading audit trail…</div>
+          ) : visible.length === 0 ? (
+            <div className="am-empty">No matching admin actions logged.</div>
+          ) : (
+            <div className="am-list">
+              {visible.map((l) => (
+                <button key={l.id} type="button" className={`am-card${isSensitive(l) ? ' amo-sensitive' : ''}`} onClick={() => setExpanded(l.id)} data-testid={`audit-row-${l.id}`}>
+                  <span className="am-card-main">
+                    <span className="am-card-title amo-mono">{l.action}</span>
+                    <span className="am-card-sub">{adminName(l)}{l.admin_role ? ` · ${l.admin_role}` : ''}</span>
+                  </span>
+                  <span className="am-meta">
+                    <span>Target: {target(l)}{l.module ? ` · ${l.module}` : ''}</span>
+                    {l.reason && <span className="amo-clamp">Reason: {l.reason}</span>}
+                  </span>
+                  <span className="am-card-foot">
+                    <span className="am-muted">{fmtTime(l.created_at)}</span>
+                    {isSensitive(l) ? <span className="am-badge am-badge--wait"><Mail size={12} /> Sensitive</span> : <ChevronRight size={20} className="am-row-chevron" />}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {open && (
+            <div className="am-detail" role="dialog" aria-modal="true" aria-label="Audit event" data-testid="audit-detail">
+              <header className="am-detail-head">
+                <button type="button" className="am-icon-btn" onClick={() => setExpanded(null)} aria-label="Back to audit log" data-testid="audit-detail-back"><ArrowLeft size={22} /></button>
+                <h1>Audit event</h1>
+              </header>
+              <div className="am-detail-body">
+                <section className="am-section">
+                  <h3 className="amo-mono">{open.action}</h3>
+                  {isSensitive(open) && <p className="amo-scope"><Mail size={16} /> Founder notified via email digest</p>}
+                  <div className="am-kv"><span>When</span><span>{fmtTime(open.created_at)}</span></div>
+                  <div className="am-kv"><span>Admin</span><span>{adminName(open)}</span></div>
+                  {open.admin_role && <div className="am-kv"><span>Role</span><span>{open.admin_role}</span></div>}
+                  <div className="am-kv"><span>Module</span><span>{open.module || '-'}</span></div>
+                  <div className="am-kv"><span>Target</span><span className="amo-mono">{target(open, true)}</span></div>
+                  <div className="am-kv"><span>Reason</span><span>{open.reason || '-'}</span></div>
+                  <div className="am-kv"><span>IP</span><span className="amo-mono">{open.ip || '-'}</span></div>
+                </section>
+                <section className="am-section">
+                  <h3>Record</h3>
+                  <div className="am-kv"><span>Event ID</span><span className="amo-mono">{open.id}</span></div>
+                  <div className="am-kv"><span>Full timestamp</span><span className="amo-mono">{open.created_at}</span></div>
+                  <div className="am-kv"><span>Admin ID</span><span className="amo-mono">{open.admin_id}</span></div>
+                  {open.user_agent && <div className="am-kv"><span>User agent</span><span className="amo-mono">{open.user_agent}</span></div>}
+                </section>
+                <section className="am-section">
+                  <h3>Before / after</h3>
+                  {open.before == null && open.after == null ? (
+                    <p className="am-muted">No before/after snapshot recorded for this action.</p>
+                  ) : (
+                    <>
+                      <span className="am-badge am-badge--bad amo-self-start">Before</span>
+                      <pre className="amo-pre">{stringify(open.before)}</pre>
+                      <span className="am-badge am-badge--ok amo-self-start">After</span>
+                      <pre className="amo-pre">{stringify(open.after)}</pre>
+                    </>
+                  )}
+                </section>
+              </div>
+            </div>
+          )}
+
+          {filterDraft && (
+            <>
+              <div className="am-sheet-backdrop" onClick={() => setFilterDraft(null)} />
+              <section className="am-sheet" role="dialog" aria-modal="true" aria-label="Filters" data-testid="audit-filters">
+                <header className="am-sheet-head">
+                  <h2>Filters</h2>
+                  <button type="button" className="am-icon-btn" onClick={() => setFilterDraft(null)} aria-label="Close"><X size={20} /></button>
+                </header>
+                <div className="am-sheet-body">
+                  <div className="am-field">
+                    <label htmlFor="amo-f-action">Action</label>
+                    <select id="amo-f-action" value={filterDraft.action} onChange={draft('action')}>
+                      {ACTION_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                    </select>
+                  </div>
+                  <div className="am-field">
+                    <label htmlFor="amo-f-module">Module</label>
+                    <select id="amo-f-module" value={filterDraft.module} onChange={draft('module')}>
+                      {MODULE_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                    </select>
+                  </div>
+                  <label className="amo-check">
+                    <input type="checkbox" checked={filterDraft.sensitive} onChange={(e) => setFilterDraft((f) => ({ ...f, sensitive: e.target.checked }))} />
+                    Sensitive actions only
+                  </label>
+                  <div className="am-field">
+                    <label htmlFor="amo-f-from">From date</label>
+                    <input id="amo-f-from" type="date" value={filterDraft.from} max={filterDraft.to || undefined} onChange={draft('from')} />
+                  </div>
+                  <div className="am-field">
+                    <label htmlFor="amo-f-to">To date</label>
+                    <input id="amo-f-to" type="date" value={filterDraft.to} min={filterDraft.from || undefined} onChange={draft('to')} />
+                  </div>
+                </div>
+                <footer className="am-sheet-foot">
+                  <button type="button" className="am-btn am-btn--secondary" onClick={() => setFilterDraft({ action: '', module: '', sensitive: false, from: '', to: '' })}>Reset</button>
+                  <button type="button" className="am-btn am-btn--primary" onClick={applyFilters} data-testid="audit-filters-apply">Apply</button>
+                </footer>
+              </section>
+            </>
+          )}
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>

@@ -1,0 +1,20 @@
+/* Phone-only extras for AdminFinancials, AdminWithdrawals, AdminReports, AdminAnalytics
+   (rendered only when useIsPhone() is true). */
+.am .amf-center { align-self: center; }
+.am .amf-flat { margin: 0; }
+.am .amf-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+.am .amf-hint { font-size: 12px; color: var(--am-muted); }
+/* rupee figures can be long (₹1,23,45,678) - keep them inside a half-width tile */
+.am .amf-tiles .am-tile-value { font-size: 18px; overflow-wrap: anywhere; }
+.am .amf-sec-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.am .amf-sec-head h3 { margin: 0; font-size: 16px; font-weight: 600; }
+.am .amf-ok { color: var(--am-ok-fg); font-weight: 600; }
+.am .amf-bad { color: var(--am-bad-fg); font-weight: 600; }
+.am .amf-full { width: 100%; }
+.am .amf-btn-stack { display: flex; flex-direction: column; gap: 10px; }
+.am .amf-export { display: flex; flex-direction: column; gap: 6px; }
+.am .amf-export .am-btn { justify-content: flex-start; }
+.am .amf-export em { font-style: normal; font-weight: 500; opacity: .75; }
+.am .amf-grow { flex: 1; min-width: 0; }
+.am .amf-icon-title { display: flex; align-items: center; gap: 8px; }
+.am .amf-hint.amf-ok, .am .amf-hint.amf-bad { display: inline-flex; align-items: center; gap: 4px; }

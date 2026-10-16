@@ -2,10 +2,12 @@ import { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { Download, BarChart3, IndianRupee, FileSpreadsheet, ScrollText } from 'lucide-react';
+import { Download, BarChart3, IndianRupee, FileSpreadsheet, ScrollText, CalendarRange, CheckCircle, XCircle, X } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 import { useAuth } from '../App';
 import { can } from '../utils/adminRoles';
+import useIsPhone from '../lib/useIsPhone';
+import '../styles/admin-mobile-finance.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -53,6 +55,10 @@ export default function AdminReports() {
   const { user } = useAuth();
   const [period, setPeriod] = useState('month');
   const [busy, setBusy] = useState('');
+  const isPhone = useIsPhone();
+  const [periodSheet, setPeriodSheet] = useState(false); // phone: period sheet open
+  const [periodDraft, setPeriodDraft] = useState('month'); // phone: period picked in the sheet, applied on Apply
+  const [results, setResults] = useState({}); // phone: last export outcome per kind ('ok' | 'fail')
 
   const exportCsv = async (item) => {
     setBusy(item.kind);
@@ -69,8 +75,10 @@ export default function AdminReports() {
       link.remove();
       window.URL.revokeObjectURL(url);
       toast.success(`${item.label} exported`);
+      return true;
     } catch (error) {
       toast.error(apiErrorMessage(error, `${item.label} export failed`));
+      return false;
     } finally {
       setBusy('');
     }
@@ -80,6 +88,74 @@ export default function AdminReports() {
   const groups = GROUPS
     .map((g) => ({ ...g, items: g.items.filter((i) => can(user, i.cap)) }))
     .filter((g) => g.items.length > 0);
+
+  if (isPhone) {
+    const periodLabel = PERIODS.find((p) => p.value === period)?.label;
+    const runExport = async (item) => {
+      const ok = await exportCsv(item);
+      setResults((r) => ({ ...r, [item.kind]: ok ? 'ok' : 'fail' }));
+    };
+    return (
+      <AdminLayout>
+        <div className="am">
+          <div className="am-toolbar">
+            <p className="am-muted amf-flat amf-grow">Period for dated exports: <strong>{periodLabel}</strong></p>
+            <button type="button" className="am-filter-btn" onClick={() => { setPeriodDraft(period); setPeriodSheet(true); }} aria-label={`Report period, ${periodLabel}`} data-testid="rep-period-btn">
+              <CalendarRange size={20} />
+              {period !== 'month' && <span className="am-dot">1</span>}
+            </button>
+          </div>
+
+          {groups.length === 0 ? (
+            <div className="am-empty">You don’t have access to any exports.</div>
+          ) : groups.map((g) => (
+            <section className="am-section" key={g.title}>
+              <h3 className="amf-icon-title"><g.icon size={16} /> {g.title}</h3>
+              <p className="am-muted">{g.hint}</p>
+              {g.items.map((item) => (
+                <div key={item.kind} className="amf-export">
+                  <button type="button" className="am-btn am-btn--secondary" onClick={() => runExport(item)} disabled={busy === item.kind} data-testid={`rep-export-${item.kind}`}>
+                    <Download size={18} />
+                    {busy === item.kind ? 'Exporting…' : item.label}
+                    {item.usesPeriod && <em>· {periodLabel}</em>}
+                  </button>
+                  {busy !== item.kind && results[item.kind] === 'ok' && <span className="amf-hint amf-ok"><CheckCircle size={14} /> Downloaded</span>}
+                  {busy !== item.kind && results[item.kind] === 'fail' && <span className="amf-hint amf-bad"><XCircle size={14} /> Export failed - tap to retry</span>}
+                </div>
+              ))}
+            </section>
+          ))}
+
+          <p className="am-muted amf-flat">For a record of what admins did, see the Audit Log.</p>
+
+          {periodSheet && (
+            <>
+              <div className="am-sheet-backdrop" onClick={() => setPeriodSheet(false)} />
+              <section className="am-sheet" role="dialog" aria-modal="true" aria-label="Report period" data-testid="rep-period-sheet">
+                <header className="am-sheet-head">
+                  <h2>Report period</h2>
+                  <button type="button" className="am-icon-btn" onClick={() => setPeriodSheet(false)} aria-label="Close"><X size={20} /></button>
+                </header>
+                <div className="am-sheet-body">
+                  <div className="am-field">
+                    <label htmlFor="amf-rep-period">Period</label>
+                    <select id="amf-rep-period" value={periodDraft} onChange={(e) => setPeriodDraft(e.target.value)}>
+                      {PERIODS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
+                    </select>
+                    <span className="am-field-hint">Applies to the platform digest and profit &amp; loss exports.</span>
+                  </div>
+                </div>
+                <footer className="am-sheet-foot">
+                  <button type="button" className="am-btn am-btn--secondary" onClick={() => setPeriodDraft('month')}>Reset</button>
+                  <button type="button" className="am-btn am-btn--primary" onClick={() => { setPeriod(periodDraft); setPeriodSheet(false); }}>Apply</button>
+                </footer>
+              </section>
+            </>
+          )}
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>

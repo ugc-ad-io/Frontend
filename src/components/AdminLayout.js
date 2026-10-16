@@ -39,6 +39,12 @@ function AdminLayout({ children }) {
     '/dashboard/admin/settings':      'settings',
     '/dashboard/admin/notification-templates': 'notifications',
     '/dashboard/admin/roles':         'roles',
+    '/dashboard/admin/profiles':      'profiles',
+    '/dashboard/admin/all-campaigns': 'allcampaigns',
+    '/dashboard/admin/withdrawals':   'withdrawals',
+    '/dashboard/admin/analytics':     'analytics',
+    '/dashboard/admin/assignments':   'assignments',
+    '/dashboard/admin/flagged':       'chat',
   };
 
   const activeTab = pathToTab[currentPath] || 'stats';
@@ -62,6 +68,11 @@ function AdminLayout({ children }) {
     notifications: ['Notifications', 'Edit the wording of every automatic notification and email'],
     settings:     ['Settings',       'Platform config - founder access only'],
     roles:        ['Team & Roles',   'Admin role structure and staff access - founder manages'],
+  profiles:     ['Profiles',       'Profile approvals waiting for review'],
+  allcampaigns: ['All Campaigns',  'Every campaign on the platform'],
+  withdrawals:  ['Withdrawals',    'Creator withdrawal requests'],
+  analytics:    ['Analytics',      'Platform totals and earnings'],
+  assignments:  ['Assignments',    'Assign campaigns to managers'],
   };
   const [title, subtitle] = titles[activeTab] || ['Admin Dashboard', 'Manage the platform'];
   const phoneTitle = REVIEW_TABS.some((r) => r.tab === activeTab) ? 'Reviews' : title;

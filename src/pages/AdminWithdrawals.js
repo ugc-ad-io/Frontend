@@ -1,10 +1,13 @@
 import { useLiveEffect } from '../lib/liveUpdates';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import { CheckCircle, XCircle, IndianRupee, Download } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
+import useIsPhone from '../lib/useIsPhone';
+import { WithdrawalQueuePhone } from '../components/AdminFinancePhone';
+import '../styles/admin-mobile-finance.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -12,6 +15,7 @@ const API = `${BACKEND_URL}/api`;
 export default function AdminWithdrawals() {
   const [pendingWithdrawals, setPendingWithdrawals] = useState([]);
   const [loading, setLoading] = useState(true);
+  const isPhone = useIsPhone();
 
   useLiveEffect(() => {
     fetchPendingWithdrawals();
@@ -45,27 +49,52 @@ export default function AdminWithdrawals() {
     }
   };
 
+  // Resolve true on success so the phone sheets know when to close.
   const handleApprove = async (id) => {
     try {
       await axios.post(`${API}/admin/withdrawals/${id}/approve`);
       toast.success('Withdrawal approved successfully!');
       fetchPendingWithdrawals();
+      return true;
     } catch (e) {
       toast.error(apiErrorMessage(e, 'Failed to approve withdrawal'));
+      return false;
+    }
+  };
+
+  const rejectWithReason = async (id, reason) => {
+    try {
+      await axios.post(`${API}/admin/withdrawals/${id}/reject?reason=${encodeURIComponent(reason)}`);
+      toast.success('Withdrawal rejected and amount refunded to user');
+      fetchPendingWithdrawals();
+      return true;
+    } catch (e) {
+      toast.error(apiErrorMessage(e, 'Failed to reject withdrawal'));
+      return false;
     }
   };
 
   const handleReject = async (id) => {
     const reason = prompt('Enter rejection reason:');
     if (!reason) return;
-    try {
-      await axios.post(`${API}/admin/withdrawals/${id}/reject?reason=${encodeURIComponent(reason)}`);
-      toast.success('Withdrawal rejected and amount refunded to user');
-      fetchPendingWithdrawals();
-    } catch (e) {
-      toast.error(apiErrorMessage(e, 'Failed to reject withdrawal'));
-    }
+    rejectWithReason(id, reason);
   };
+
+  if (isPhone) {
+    return (
+      <AdminLayout>
+        <div className="am">
+          <WithdrawalQueuePhone
+            withdrawals={pendingWithdrawals}
+            loading={loading}
+            approve={handleApprove}
+            reject={rejectWithReason}
+            onExport={handleExport}
+          />
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>

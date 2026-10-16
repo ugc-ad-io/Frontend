@@ -71,7 +71,7 @@ export function useBidGate(user) {
             <h2 id="bgate-fee-title">Platform fee: {pctLabel(percent)}%</h2>
             <p>
               UGC.ad keeps <strong>{pctLabel(percent)}%</strong> of your bid as its platform fee. It is deducted
-              from your payout when the brand approves your work, and TDS (where applicable) is deducted separately.
+              from your payout when the brand approves your work.
             </p>
             <p className="bgate-example">
               Example: bid {inr(1000)} → fee {inr(feeBreakdown(1000, percent)?.fee ?? 0)} → you receive {inr(feeBreakdown(1000, percent)?.net ?? 1000)}.
@@ -115,7 +115,7 @@ export function BidFeeNotice({ percent = DEFAULT_COMMISSION_PERCENT }) {
   return (
     <div className="bfee" data-testid="bid-fee-notice">
       <strong>UGC.ad platform fee: {pctLabel(percent)}%</strong>
-      <span>Deducted from your payout when the brand approves your work. TDS, if applicable, is separate.</span>
+      <span>Deducted from your payout when the brand approves your work.</span>
       <style>{`
         .bfee{display:flex;flex-direction:column;gap:4px;background:#f6f7ff;border:1px solid #e6e9ff;border-radius:12px;padding:11px 13px;font-size:.82rem;color:#4a4f73;font-weight:500}
         .bfee strong{color:#15163a;font-size:.88rem}

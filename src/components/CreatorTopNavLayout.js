@@ -78,7 +78,7 @@ export default function CreatorTopNavLayout({ children, notifications = 0 }) {
   // here to clear anyway — so that page opts out.
   const isMessages = pathname === '/messages' || pathname.startsWith('/messages/');
 
-  const handleLogout = () => { logout(); navigate('/'); };
+  const handleLogout = () => { logout(); };
 
   // KYC nudge: creators who haven't verified see a banner across every page
   // (except the KYC page itself) prompting them to finish verification.

@@ -24,7 +24,6 @@ export default function AdminTopbar({ onMenuToggle, showDashboardBack = false })
 
   const handleLogout = () => {
     logout();
-    navigate('/');
   };
 
   return (

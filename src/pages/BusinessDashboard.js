@@ -964,7 +964,6 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
   const handleLogout = () => {
     logout();
-    navigate('/');
   };
 
   const handleViewCampaign = (campaignId) => {

@@ -63,7 +63,6 @@ export default function DashboardLayout({
 
   const handleLogout = () => {
     logout();
-    navigate('/');
   };
 
   const handleShellClick = (e) => {

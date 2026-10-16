@@ -153,7 +153,6 @@ export default function BrandWelcomePage() {
 
   const handleLogout = () => {
     logout();
-    navigate('/');
   };
 
   const businessTabs = [

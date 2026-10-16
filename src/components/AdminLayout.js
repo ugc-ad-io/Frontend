@@ -29,6 +29,8 @@ function AdminLayout({ children }) {
     '/dashboard/admin/settings':      'settings',
     '/dashboard/admin/notification-templates': 'notifications',
     '/dashboard/admin/roles':         'roles',
+    '/dashboard/admin/reviews':       'reviews',
+    '/dashboard/admin/more':          'more',
   };
 
   const activeTab = pathToTab[currentPath] || 'stats';
@@ -72,6 +74,8 @@ function AdminLayout({ children }) {
               notifications: ['Notifications', 'Edit the wording of every automatic notification and email'],
               settings:     ['Settings',       'Platform config - founder access only'],
               roles:        ['Team & Roles',   'Admin role structure and staff access - founder manages'],
+              reviews:      ['Reviews',        'Approval and verification queues'],
+              more:         ['More',           'Every other admin module'],
             };
             const [title, subtitle] = titles[activeTab] || ['Admin Dashboard', 'Manage the platform'];
             return (

@@ -284,7 +284,6 @@ export default function CreatorDashboard() {
 
   const handleLogout = () => {
     logout();
-    navigate('/');
   };
 
   const displayName = creatorFirstName(user);

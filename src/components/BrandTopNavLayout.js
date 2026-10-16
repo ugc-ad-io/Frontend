@@ -98,7 +98,7 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
   const displayName = user?.profile?.business_name || brandName(user);
   const photo = user?.profile_photo || user?.brand_logo;
   const isActive = (to) => (to === '/dashboard/business' ? pathname === to : pathname === to || pathname.startsWith(`${to}/`));
-  const handleLogout = () => { logout(); navigate('/'); };
+  const handleLogout = () => { logout(); };
 
   // Approval gate — a brand whose profile is still pending review (or was
   // rejected) must not reach ANY feature page. BusinessDashboard already gates

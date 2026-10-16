@@ -7,6 +7,7 @@ import './App.css';
 import './styles/admin-theme.css';
 import Loader from './components/Loader';
 import RouteLoadingBoundary from './components/RouteLoadingBoundary';
+import AdminHub from './components/AdminHub';
 import AdminLayout from './components/AdminLayout';
 import AgreementGate from './components/AgreementGate';
 import { Toaster } from 'sonner';
@@ -259,6 +260,9 @@ function AuthProvider({ children }) {
     localStorage.removeItem('ops_admin_user');
     localStorage.removeItem('ops_brand_name');
     setUser(null);
+    // Land on the login screen. A full page load (not navigate) so the protected page
+    // never re-renders with no user, and no cached data or timers from the session survive.
+    window.location.replace('/auth');
   };
 
   if (loading && pathname !== '/' && pathname !== '/auth') {
@@ -297,7 +301,7 @@ function ProtectedRoute({ children, allowedRoles }) {
   const { user } = useAuth();
 
   if (!user) {
-    return <Navigate to="/auth" />;
+    return <Navigate to="/auth" replace />;
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
@@ -639,6 +643,19 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            {['reviews', 'more'].map((kind) => (
+              <Route
+                key={kind}
+                path={`/dashboard/admin/${kind}`}
+                element={
+                  <ProtectedRoute allowedRoles={['admin', 'campaign_manager', 'support_staff']}>
+                    <AdminLayout>
+                      <AdminHub kind={kind} />
+                    </AdminLayout>
+                  </ProtectedRoute>
+                }
+              />
+            ))}
             <Route
               path="/dashboard/admin/applications"
               element={

@@ -422,7 +422,6 @@ export default function ProfileSettings() {
       await axios.post(`${API}/profile/deactivate`);
       toast.success('Account deactivated');
       logout();
-      navigate('/');
     } catch {
       toast.error('Could not deactivate right now - please email support@ugcad.io');
     }
@@ -433,7 +432,6 @@ export default function ProfileSettings() {
       await axios.delete(`${API}/profile`);
       toast.success('Account deleted');
       logout();
-      navigate('/');
     } catch {
       toast.error('Could not delete right now - please email support@ugcad.io');
     }

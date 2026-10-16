@@ -321,7 +321,7 @@ export default function CreatorProfileSetup() {
               you within <strong>24-48 hours</strong>. You can start browsing briefs right away.
             </p>
             <div className="ps-thanks__actions">
-              <button className="ps-btn-primary ps-thanks__home" onClick={() => { logout(); navigate('/auth', { replace: true }); }}>
+              <button className="ps-btn-primary ps-thanks__home" onClick={() => { logout(); }}>
                 Back to sign in <ArrowRight size={18} />
               </button>
             </div>

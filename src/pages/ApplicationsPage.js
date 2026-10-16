@@ -1,6 +1,12 @@
 import { useLiveEffect } from '../lib/liveUpdates';
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { CheckCircle, Search, Users, Briefcase, FileText, Clock, Eye, PlayCircle, X, ShieldCheck, Globe, AlertTriangle, MessageSquarePlus, XCircle, Link2, Phone } from 'lucide-react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { CheckCircle, Search, Users, Briefcase, FileText, Clock, Eye, PlayCircle, X, ShieldCheck, Globe, AlertTriangle, MessageSquarePlus, XCircle, Link2, Phone, SlidersHorizontal, ArrowLeft, ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
+import axios from 'axios';
+import { toast } from 'sonner';
+import { useAuth } from '../App';
+import useIsPhone from '../lib/useIsPhone';
+import '../styles/ApplicationsPage.css';
+import '../styles/admin-mobile-applications.css';
 
 // Map a social-handle key/platform to its real brand logo (simpleicons slug + brand
 // colour). Falls back to a globe for unknown / custom links.
@@ -17,10 +23,6 @@ const SocialLogo = ({ platform }) => {
   if (!hit) return <Globe size={14} className="apps-social-ic" />;
   return <img src={`https://cdn.simpleicons.org/${hit[1]}/${hit[2]}`} alt="" width={14} height={14} className="apps-social-ic" />;
 };
-import axios from 'axios';
-import { toast } from 'sonner';
-import { useAuth } from '../App';
-import '../styles/ApplicationsPage.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -226,17 +228,27 @@ const MORE_INFO_ITEMS = {
 // ===========================================================================
 // Row — one application in the list (role-aware columns)
 // ===========================================================================
+// Show the applicant's REAL name for review (not their @username/id) — the
+// reviewer verifies a real person/business; the public id comes after approval.
+const appName = (a) => {
+  const p = a.profile || {};
+  const realName = isBrandRole(a.role) ? (p.business_name || p.businessName) : (p.fullName || p.full_name);
+  return (realName && String(realName).trim()) || String(a.nickname || a.username || '-').replace(/^@+/, '');
+};
+const appCategory = (a) => {
+  const p = a.profile || {};
+  return a.category || p.category || p.niche || p.industry || p.industry_category || p.business_type || '';
+};
+const appSubmitted = (a) => a.submitted_at || a.created_at || a.createdAt || (a.profile || {}).created_at;
+
 function ApplicationRow({ profile, nowMs, onOpen, onApprove, onReject }) {
   const p = profile.profile || {};
   const brand = isBrandRole(profile.role);
-  // Show the applicant's REAL name for review (not their @username/id) — the
-  // reviewer verifies a real person/business; the public id comes after approval.
-  const realName = brand ? (p.business_name || p.businessName) : (p.fullName || p.full_name);
-  const displayName = (realName && String(realName).trim()) || String(profile.nickname || profile.username || '-').replace(/^@+/, '');
+  const displayName = appName(profile);
   const email = profile.email || p.business_email || '-';
   const phone = phoneOf(profile) || '-';
-  const category = profile.category || p.category || p.niche || p.industry || p.industry_category || p.business_type || '-';
-  const submitted = profile.submitted_at || profile.created_at || profile.createdAt || p.created_at;
+  const category = appCategory(profile) || '-';
+  const submitted = appSubmitted(profile);
   const sla = slaInfo(submitted, nowMs, profile.approval_status);
   const state = STATE_META[profile.approval_status] || STATE_META.pending;
   // Already-decided applications (approved / rejected) are read-only — only
@@ -308,18 +320,21 @@ function ApplicationRow({ profile, nowMs, onOpen, onApprove, onReject }) {
 // ===========================================================================
 // Detail modal — organized sections + decision builder
 // ===========================================================================
-function ProfileDetail({ profile, onBack, onDecide }) {
+function MEDIA_OR_META(k) {
+  return ['id', '_id', 'user_id', 'userId', 'password', '__v', 'token', 'approval_status', 'role', 'email', 'username', 'nickname', 'profile_completed', 'terms_agreed', 'review', 'submitted_at', 'created_at', 'updatedAt', 'createdAt', 'show_followers', 'showFollowers',
+    // Shown as one combined number in the modal header — don't repeat the parts.
+    'phone_full', 'dial_code', 'dialCode',
+    // Internal / not useful when reviewing a profile.
+    'availability_calendar', 'curated_brand_visible', 'creator_directory_visible', 'topics', 'balance', 'deliverables_completed'].includes(k)
+    || KEY_IS_MEDIA.test(k) || KEY_IS_KYC.test(k) || KEY_IS_SOCIAL.test(k);
+}
+
+// Everything the detail view derives from one application (full profile fetch,
+// media / KYC / socials split, flags, ordered field list). Shared by the desktop
+// modal and the phone detail so both show the same data.
+function useApplicationDetail(profile) {
   const [full, setFull] = useState(profile);
   const [loadingFull, setLoadingFull] = useState(true);
-  const [mode, setMode] = useState(null);             // null | 'more_info' | 'reject'
-  // Auto-scroll the reveal panel into view when Request More Info / Reject is clicked.
-  const scrollToBuilder = useCallback((el) => {
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, []);
-  const [reasonCode, setReasonCode] = useState('');
-  const [reasonDetails, setReasonDetails] = useState('');
-  const [infoMessage, setInfoMessage] = useState('');
-  const [infoItems, setInfoItems] = useState([]);
   // Media URLs that failed to load — their tiles are hidden instead of showing an
   // empty player. Keyed on the resolved url.
   const [badMedia, setBadMedia] = useState(() => new Set());
@@ -430,17 +445,31 @@ function ProfileDetail({ profile, onBack, onDecide }) {
     // Show fields in a human order (identity → persona → commercials → rest)
     // instead of whatever arbitrary order the API returns them in.
     .sort((a, b) => fieldRank(a[0]) - fieldRank(b[0]));
-  function MEDIA_OR_META(k) {
-    return ['id', '_id', 'user_id', 'userId', 'password', '__v', 'token', 'approval_status', 'role', 'email', 'username', 'nickname', 'profile_completed', 'terms_agreed', 'review', 'submitted_at', 'created_at', 'updatedAt', 'createdAt', 'show_followers', 'showFollowers',
-      // Shown as one combined number in the modal header — don't repeat the parts.
-      'phone_full', 'dial_code', 'dialCode',
-      // Internal / not useful when reviewing a profile.
-      'availability_calendar', 'curated_brand_visible', 'creator_directory_visible', 'topics', 'balance', 'deliverables_completed'].includes(k)
-      || KEY_IS_MEDIA.test(k) || KEY_IS_KYC.test(k) || KEY_IS_SOCIAL.test(k);
-  }
+
+  const decided = ['approved', 'rejected'].includes(full?.approval_status);
+  return {
+    full, loadingFull, p, brand, roleKey, mediaKey, setBadMedia, badMedia,
+    mainPhoto, portfolioPhotos, videoList, playableVideos, kyc, socials,
+    uname, displayName, headerEmail, headerPhone, flagName, gst, flags, website, review, entries, decided,
+  };
+}
+
+function ProfileDetail({ profile, onBack, onDecide }) {
+  const {
+    full, loadingFull, brand, roleKey, mediaKey, setBadMedia, mainPhoto, portfolioPhotos, playableVideos,
+    kyc, socials, displayName, headerEmail, headerPhone, flagName, gst, flags, website, review, entries, decided,
+  } = useApplicationDetail(profile);
+  const [mode, setMode] = useState(null);             // null | 'more_info' | 'reject'
+  // Auto-scroll the reveal panel into view when Request More Info / Reject is clicked.
+  const scrollToBuilder = useCallback((el) => {
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, []);
+  const [reasonCode, setReasonCode] = useState('');
+  const [reasonDetails, setReasonDetails] = useState('');
+  const [infoMessage, setInfoMessage] = useState('');
+  const [infoItems, setInfoItems] = useState([]);
 
   const decide = (action, payload) => { onDecide(profile.id, action, payload); onBack(); };
-  const decided = ['approved', 'rejected'].includes(full?.approval_status);
   const toggleItem = (it) => setInfoItems((cur) => cur.includes(it) ? cur.filter((x) => x !== it) : [...cur, it]);
 
   return (
@@ -632,6 +661,444 @@ function ProfileDetail({ profile, onBack, onDecide }) {
 }
 
 // ===========================================================================
+// Phone (PWA) view — rendered only when useIsPhone() is true
+// ===========================================================================
+const PHONE_FILTER_DEFAULTS = { stateFilter: 'pending', categoryFilter: 'all', dateFrom: '', dateTo: '', gstFilter: 'all', flaggedOnly: false, sortOrder: 'oldest' };
+const STATUS_TONE = { pending: 'wait', more_info: 'info', approved: 'ok', rejected: 'bad' };
+const GST_TONE = { green: 'ok', yellow: 'wait', red: 'bad' };
+const ABOUT_KEY = /^(bio|about|headline|business_description|description)$/;
+const PAYMENT_KEY = /(^|_)rate|payout|payment|bank|upi|ifsc|account_?(no|number|holder)|beneficiary|billing|price/i;
+
+const capFirst = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
+const photoOf = (a) => {
+  const p = a.profile || {};
+  return collectUrls(a.profile_photo || p.profile_picture || p.profile_photo || p.logo || p.logo_url || p.avatar)[0] || '';
+};
+const roleLine = (a) => {
+  const kind = isBrandRole(a.role) ? 'brand' : 'creator';
+  const cat = appCategory(a);
+  return cat ? `${capFirst(String(cat))} ${kind}` : capFirst(kind);
+};
+// chandan@gmail.com → chand***@gmail.com
+const maskEmail = (e) => {
+  const [local, domain] = String(e || '').split('@');
+  if (!local || !domain) return '';
+  return `${local.slice(0, Math.min(5, Math.max(1, local.length - 2)))}***@${domain}`;
+};
+// +91 9406879532 → +91 ******9532 (dial code kept, last 4 digits shown)
+const maskPhone = (ph) => {
+  const s = String(ph || '').trim();
+  if (!s) return '';
+  const m = s.match(/^(\+\d{1,4}\s+)(.*)$/);
+  const [dial, num] = m ? [m[1], m[2]] : ['', s];
+  return dial + num.replace(/\d(?=(?:\D*\d){4})/g, '*');
+};
+const rupees = (v) => (Number.isFinite(Number(v)) && String(v).trim() !== '' ? `₹${Number(v).toLocaleString('en-IN')}` : String(v));
+
+function PhoneAvatar({ src, name, lg }) {
+  const [broken, setBroken] = useState(false);
+  const cls = `am-avatar${lg ? ' am-avatar--lg' : ''}`;
+  if (src && !broken) return <img className={cls} src={resolveUrl(src)} alt="" onError={() => setBroken(true)} />;
+  return <span className={cls} aria-hidden="true">{String(name || '?').replace(/^@/, '').charAt(0).toUpperCase()}</span>;
+}
+
+function Sheet({ title, onClose, children, foot }) {
+  return (
+    <>
+      <div className="am-sheet-backdrop" onClick={onClose} />
+      <div className="am-sheet" role="dialog" aria-modal="true" aria-label={title}>
+        <div className="am-sheet-head">
+          <h2>{title}</h2>
+          <button type="button" className="am-icon-btn" aria-label="Close" onClick={onClose}><X size={20} /></button>
+        </div>
+        <div className="am-sheet-body">{children}</div>
+        <div className="am-sheet-foot">{foot}</div>
+      </div>
+    </>
+  );
+}
+
+// Draft copy of the filters; only "Apply filters" commits them. Mounted per open,
+// so it always starts from the currently applied selections.
+function PhoneFilterSheet({ isBrands, categories, values, onApply, onClose }) {
+  const [draft, setDraft] = useState(values);
+  const set = (k, v) => setDraft((d) => ({ ...d, [k]: v }));
+  const chip = (k, v, label) => (
+    <button type="button" key={v} className={`am-chip${draft[k] === v ? ' is-active' : ''}`} aria-pressed={draft[k] === v} onClick={() => set(k, v)}>{label}</button>
+  );
+  return (
+    <Sheet title="Filter reviews" onClose={onClose} foot={(
+      <>
+        <button type="button" className="am-btn am-btn--secondary" onClick={() => setDraft(PHONE_FILTER_DEFAULTS)}>Reset</button>
+        <button type="button" className="am-btn am-btn--primary" onClick={() => onApply(draft)}>Apply filters</button>
+      </>
+    )}>
+      <div className="am-field">
+        <span className="am-field-label">Status</span>
+        <div className="am-chips">
+          {chip('stateFilter', 'all', 'All')}
+          {Object.entries(STATE_META).map(([k, m]) => chip('stateFilter', k, m.label))}
+        </div>
+      </div>
+      <div className="am-field">
+        <label htmlFor="ama-cat">Category</label>
+        <select id="ama-cat" value={draft.categoryFilter} onChange={(e) => set('categoryFilter', e.target.value)}>
+          <option value="all">All</option>
+          {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+      </div>
+      <div className="am-field">
+        <label htmlFor="ama-from">Submitted from</label>
+        <input id="ama-from" type="date" value={draft.dateFrom} onChange={(e) => set('dateFrom', e.target.value)} />
+      </div>
+      <div className="am-field">
+        <label htmlFor="ama-to">Submitted to</label>
+        <input id="ama-to" type="date" value={draft.dateTo} onChange={(e) => set('dateTo', e.target.value)} />
+      </div>
+      {isBrands && (
+        <>
+          <div className="am-field">
+            <label htmlFor="ama-gst">GST</label>
+            <select id="ama-gst" value={draft.gstFilter} onChange={(e) => set('gstFilter', e.target.value)}>
+              <option value="all">All</option>
+              <option value="green">Valid</option>
+              <option value="yellow">Unverified</option>
+              <option value="red">Missing</option>
+            </select>
+          </div>
+          <label className="ama-check"><input type="checkbox" checked={draft.flaggedOnly} onChange={(e) => set('flaggedOnly', e.target.checked)} /> Flagged only</label>
+        </>
+      )}
+      <div className="am-field">
+        <span className="am-field-label">Sort by</span>
+        <div className="am-chips">
+          {chip('sortOrder', 'oldest', 'Oldest first')}
+          {chip('sortOrder', 'newest', 'Newest first')}
+        </div>
+      </div>
+    </Sheet>
+  );
+}
+
+function KvList({ items }) {
+  return items.map(([k, v]) => ((v && typeof v === 'object')
+    ? <div className="ama-kv-block" key={k}><span>{prettifyKey(k)}</span><DetailValue value={v} /></div>
+    : <div className="am-kv" key={k}><span>{prettifyKey(k)}</span><span><DetailValue value={v} /></span></div>));
+}
+
+function DocRow({ label, url, isImg, failed, onFail }) {
+  return (
+    <div className="am-doc">
+      {isImg && !failed
+        ? <img className="am-thumb" src={url} alt="" onError={onFail} />
+        : <span className="am-thumb ama-doc-ic"><FileText size={22} /></span>}
+      <div className="am-doc-main">
+        {label}
+        <small>{failed ? 'Preview failed to load' : isImg ? 'Image' : 'File'}</small>
+      </div>
+      <a className="am-btn am-btn--secondary am-btn--sm" href={url} target="_blank" rel="noopener noreferrer">View</a>
+    </div>
+  );
+}
+
+function PhoneApplicationDetail({ profile, nowMs, onBack, onDecide }) {
+  const {
+    full, loadingFull, p, brand, roleKey, mediaKey, setBadMedia, badMedia, mainPhoto, portfolioPhotos, videoList,
+    kyc, socials, uname, displayName, headerEmail, headerPhone, flagName, gst, flags, website, review, entries, decided,
+  } = useApplicationDetail(profile);
+  const [tab, setTab] = useState('overview');
+  const [openRow, setOpenRow] = useState(null);         // 'payment' | 'account'
+  const [sheet, setSheet] = useState(null);             // 'reject' | 'more_info'
+  const [reasonCode, setReasonCode] = useState('');
+  const [reasonDetails, setReasonDetails] = useState('');
+  const [infoMessage, setInfoMessage] = useState('');
+  const [infoItems, setInfoItems] = useState([]);
+  const [submitting, setSubmitting] = useState(null);   // action being sent
+  const busy = useRef(false);
+
+  const submit = async (action, payload) => {
+    if (busy.current) return;                           // no double submits
+    busy.current = true;
+    setSubmitting(action);
+    const ok = await onDecide(profile.id, action, payload);
+    if (ok) { onBack(); return; }                       // list refetches with the new status
+    busy.current = false;
+    setSubmitting(null);
+  };
+  const markBad = (u) => setBadMedia((s) => new Set(s).add(mediaKey(u)));
+  const toggleItem = (it) => setInfoItems((cur) => (cur.includes(it) ? cur.filter((x) => x !== it) : [...cur, it]));
+  const closeSheet = () => { if (!submitting) setSheet(null); };
+
+  const status = full.approval_status;
+  const state = STATE_META[status] || STATE_META.pending;
+  const submitted = appSubmitted(full);
+  const sla = slaInfo(submitted, nowMs, status);
+  const category = appCategory(full);
+  const about = entries.filter(([k]) => ABOUT_KEY.test(k));
+  const rate = (p.rate_card && typeof p.rate_card === 'object' && !Array.isArray(p.rate_card))
+    ? Object.entries(p.rate_card).filter(([k, v]) => !isEmptyVal(v) && !(k === 'expected_payout' && String(v) === String(p.rate_card.raw_payout)))
+    : [];
+  const rest = entries.filter(([k]) => !ABOUT_KEY.test(k) && !(k === 'rate_card' && rate.length));
+  const payment = rest.filter(([k]) => PAYMENT_KEY.test(k));
+  const seen = new Set();
+  const account = [['email', headerEmail], ['phone', headerPhone], ['username', uname], ...rest.filter(([k]) => !PAYMENT_KEY.test(k))]
+    .filter(([k, v]) => {
+      const lbl = prettifyKey(k).toLowerCase();
+      if (isEmptyVal(v) || seen.has(lbl)) return false;
+      seen.add(lbl);
+      return true;
+    });
+  const hasMedia = videoList.length > 0 || portfolioPhotos.length > 0;
+  const tabs = [['overview', 'Overview'], ...((!brand || hasMedia) ? [['documents', 'Documents']] : []), ['activity', 'Activity']];
+  let websiteHost = website;
+  try { websiteHost = new URL(resolveUrl(website)).hostname; } catch { /* keep raw */ }
+
+  const accordion = [['payment', 'Payment details', payment], ['account', 'Account details', account]].filter(([, , items]) => items.length);
+
+  return (
+    <div className="am-detail" role="dialog" aria-modal="true" aria-label="Application">
+      <div className="am-detail-head">
+        <button type="button" className="am-icon-btn" aria-label="Back" onClick={onBack}><ArrowLeft size={22} /></button>
+        <h1>Application</h1>
+      </div>
+
+      <div className="am-detail-body">
+        <div className="am-identity">
+          <PhoneAvatar src={mainPhoto} name={displayName} lg />
+          <div className="ama-identity-meta">
+            <h2>{displayName}</h2>
+            <div className="am-badges">
+              <span className={`am-badge am-badge--${STATUS_TONE[status] || 'wait'}`}>{state.label}</span>
+              {sla.label === 'Overdue' && <span className="am-badge am-badge--overdue">Overdue</span>}
+              {flagName && <span className="am-badge am-badge--wait"><AlertTriangle size={12} /> Handle looks like a real name</span>}
+            </div>
+            <span className="am-card-sub">{roleLine(full)}</span>
+            {headerEmail && <span className="am-card-sub">{maskEmail(headerEmail) || headerEmail}</span>}
+            {headerPhone && <span className="am-card-sub">{maskPhone(headerPhone)}</span>}
+          </div>
+        </div>
+
+        <div className="am-tabs" role="tablist">
+          {tabs.map(([k, label]) => (
+            <button type="button" role="tab" key={k} aria-selected={tab === k} className={tab === k ? 'is-active' : ''} onClick={() => setTab(k)}>{label}</button>
+          ))}
+        </div>
+
+        {loadingFull && <p className="am-muted" role="status">Loading full profile…</p>}
+
+        {tab === 'overview' && (
+          <>
+            <section className="am-section">
+              <h3>About</h3>
+              {about.length > 0
+                ? about.map(([k, v]) => <p key={k}><DetailValue value={v} /></p>)
+                : <p className="am-muted">No bio provided.</p>}
+              <div className="am-kv"><span>Submitted on</span><span>{formatDateSafe(submitted)}</span></div>
+              <div className="am-kv"><span>Category</span><span>{category || '-'}</span></div>
+              <div className="am-kv"><span>Review SLA</span><span>{sla.label}</span></div>
+            </section>
+
+            {rate.length > 0 && (
+              <section className="am-section">
+                <h3>Rate card</h3>
+                <div className="am-rate-grid">
+                  {rate.map(([k, v]) => <div className="am-rate" key={k}>{prettifyKey(k)}<strong>{rupees(v)}</strong></div>)}
+                </div>
+              </section>
+            )}
+
+            {brand && (
+              <section className="am-section">
+                <h3>Business</h3>
+                {(p.business_name || p.businessName) && <div className="am-kv"><span>Business name</span><span>{p.business_name || p.businessName}</span></div>}
+                {p.country && <div className="am-kv"><span>Country</span><span>{String(p.country)}</span></div>}
+                {website ? (
+                  <div className="ama-web">
+                    <Globe size={18} />
+                    <span className="ama-web-host">{websiteHost}</span>
+                    <a className="am-btn am-btn--secondary am-btn--sm" href={resolveUrl(website)} target="_blank" rel="noopener noreferrer">Open website <ExternalLink size={14} /></a>
+                  </div>
+                ) : <div className="am-kv"><span>Website</span><span>Not provided</span></div>}
+                <div className="am-kv">
+                  <span>GST</span>
+                  <span className="am-badges"><span className={`am-badge am-badge--${GST_TONE[gst.tone]}`}>{gst.label}</span></span>
+                </div>
+                {gst.value && <code className="ama-code">{gst.value}</code>}
+                {flags.length > 0 && (
+                  <div className="am-badges" aria-label="Flags">
+                    {flags.map((f) => <span key={f} className="am-badge am-badge--bad"><AlertTriangle size={12} /> {f}</span>)}
+                  </div>
+                )}
+              </section>
+            )}
+
+            {socials.length > 0 && (
+              <section className="am-section">
+                <h3>{brand ? 'Social media' : 'Social handles'}</h3>
+                <div className="am-chips">
+                  {socials.map(([k, u], i) => (
+                    <a key={i} className="am-chip" href={isUrl(u) ? u : `https://${u}`} target="_blank" rel="noopener noreferrer"><SocialLogo platform={k} />{prettifyKey(k)}</a>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {accordion.length > 0 && (
+              <ul className="am-rows">
+                {accordion.map(([key, label, items]) => (
+                  <li key={key}>
+                    <button type="button" className="am-row" aria-expanded={openRow === key} onClick={() => setOpenRow(openRow === key ? null : key)}>
+                      <span className="am-row-label">{label}</span>
+                      {openRow === key ? <ChevronDown size={18} className="am-row-chevron" /> : <ChevronRight size={18} className="am-row-chevron" />}
+                    </button>
+                    {openRow === key && <div className="ama-panel"><KvList items={items} /></div>}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </>
+        )}
+
+        {tab === 'documents' && (
+          <>
+            {!brand && (
+              <section className="am-section">
+                <h3>KYC documents</h3>
+                {kyc.length > 0 ? kyc.map(({ k, u }, i) => (
+                  <DocRow key={i} label={prettifyKey(k)} url={resolveUrl(u)} isImg={IMAGE_EXT.test(u) || KEY_IS_IMAGE.test(k)}
+                    failed={badMedia.has(mediaKey(u))} onFail={() => markBad(u)} />
+                )) : <p className="am-muted">No KYC documents submitted.</p>}
+              </section>
+            )}
+            <section className="am-section">
+              <h3>{brand ? 'Media' : 'Portfolio & video'}</h3>
+              {!hasMedia && <p className="am-muted">No portfolio media submitted.</p>}
+              {videoList.map((u, i) => (badMedia.has(mediaKey(u))
+                ? <DocRow key={`v${i}`} label={`Video ${i + 1}`} url={signedUrl(u)} failed />
+                : <video key={`v${i}`} className="ama-video" src={signedUrl(u)} controls preload="metadata" playsInline onError={() => markBad(u)} />))}
+              {portfolioPhotos.length > 0 && (
+                <div className="ama-photos">
+                  {portfolioPhotos.map((u, i) => (badMedia.has(mediaKey(u))
+                    ? <DocRow key={`p${i}`} label={`Photo ${i + 1}`} url={signedUrl(u)} failed />
+                    : <a key={`p${i}`} href={signedUrl(u)} target="_blank" rel="noopener noreferrer" aria-label={`Open photo ${i + 1}`}><img src={signedUrl(u)} alt="" onError={() => markBad(u)} /></a>))}
+                </div>
+              )}
+            </section>
+          </>
+        )}
+
+        {tab === 'activity' && (
+          <section className="am-section">
+            <h3>Activity</h3>
+            <ol className="am-timeline">
+              <li className="am-step am-step--done">
+                <span className="am-step-dot" />
+                <span className="am-step-label">Application submitted</span>
+                <span className="am-step-date">{formatDateSafe(submitted)}</span>
+              </li>
+              {(review.requested_at || review.more_info_message || (review.more_info_items || []).length > 0) && (
+                <li className="am-step am-step--done">
+                  <span className="am-step-dot" />
+                  <div>
+                    <span className="am-step-label">More info requested</span>
+                    {review.more_info_message && <p className="ama-step-note">{review.more_info_message}</p>}
+                    {(review.more_info_items || []).length > 0 && <ul className="ama-step-list">{review.more_info_items.map((it) => <li key={it}>{it}</li>)}</ul>}
+                  </div>
+                  <span className="am-step-date">{formatDateSafe(review.requested_at)}</span>
+                </li>
+              )}
+              {review.reason_code && (
+                <li className="am-step am-step--done">
+                  <span className="am-step-dot" />
+                  <div>
+                    <span className="am-step-label">Rejected</span>
+                    <p className="ama-step-note">{review.reason_code}{review.reason_details ? ` - ${review.reason_details}` : ''}</p>
+                  </div>
+                  <span className="am-step-date">{formatDateSafe(review.decided_at)}</span>
+                </li>
+              )}
+              {status === 'approved' && (
+                <li className="am-step am-step--done">
+                  <span className="am-step-dot" />
+                  <span className="am-step-label">Approved</span>
+                  <span className="am-step-date">{formatDateSafe(review.decided_at || full.approved_at)}</span>
+                </li>
+              )}
+            </ol>
+            <p className="am-muted">Only the latest review decision is stored.</p>
+          </section>
+        )}
+      </div>
+
+      <div className="am-actionbar">
+        {decided ? (
+          <p className="ama-decided">This application is already {state.label.toLowerCase()}. No further action needed.</p>
+        ) : (
+          <>
+            <div className="am-actionbar-row">
+              <button type="button" className="am-btn am-btn--danger" disabled={!!submitting} onClick={() => setSheet('reject')}><XCircle size={18} /> Reject</button>
+              <button type="button" className="am-btn am-btn--primary" disabled={!!submitting} onClick={() => submit('approve')}>
+                <CheckCircle size={18} /> {submitting === 'approve' ? 'Approving…' : 'Approve'}
+              </button>
+            </div>
+            <button type="button" className="am-btn am-btn--link" disabled={!!submitting} onClick={() => setSheet('more_info')}><MessageSquarePlus size={18} /> Request more info</button>
+          </>
+        )}
+      </div>
+
+      {sheet === 'reject' && (
+        <Sheet title="Reject application" onClose={closeSheet} foot={(
+          <>
+            <button type="button" className="am-btn am-btn--secondary" disabled={!!submitting} onClick={closeSheet}>Cancel</button>
+            <button type="button" className="am-btn am-btn--danger" disabled={!reasonCode || !!submitting}
+              onClick={() => submit('reject', { reason_code: reasonCode, reason_details: reasonDetails })}>
+              {submitting === 'reject' ? 'Rejecting…' : 'Confirm reject'}
+            </button>
+          </>
+        )}>
+          <div className="am-field">
+            <label htmlFor="ama-reason">Reason</label>
+            <select id="ama-reason" value={reasonCode} onChange={(e) => setReasonCode(e.target.value)}>
+              <option value="">Select a reason code…</option>
+              {REJECT_REASONS[roleKey].map((r) => <option key={r} value={r}>{r}</option>)}
+            </select>
+            {!reasonCode && <span className="am-field-hint">Choose a reason to continue.</span>}
+          </div>
+          <div className="am-field">
+            <label htmlFor="ama-reason-details">Details for the applicant (optional)</label>
+            <textarea id="ama-reason-details" rows={3} value={reasonDetails} onChange={(e) => setReasonDetails(e.target.value)} />
+          </div>
+        </Sheet>
+      )}
+
+      {sheet === 'more_info' && (
+        <Sheet title="Request more info" onClose={closeSheet} foot={(
+          <>
+            <button type="button" className="am-btn am-btn--secondary" disabled={!!submitting} onClick={closeSheet}>Cancel</button>
+            <button type="button" className="am-btn am-btn--primary" disabled={(!infoMessage && infoItems.length === 0) || !!submitting}
+              onClick={() => submit('request_info', { message: infoMessage, items: infoItems })}>
+              {submitting === 'request_info' ? 'Sending…' : 'Send request'}
+            </button>
+          </>
+        )}>
+          <div className="am-field">
+            <span className="am-field-label">What's needed</span>
+            {MORE_INFO_ITEMS[roleKey].map((it) => (
+              <label key={it} className="ama-check"><input type="checkbox" checked={infoItems.includes(it)} onChange={() => toggleItem(it)} /> {it}</label>
+            ))}
+          </div>
+          <div className="am-field">
+            <label htmlFor="ama-info-msg">Message to the applicant</label>
+            <textarea id="ama-info-msg" rows={3} value={infoMessage} onChange={(e) => setInfoMessage(e.target.value)} />
+            {!infoMessage && infoItems.length === 0 && <span className="am-field-hint">Pick at least one item or write a message.</span>}
+          </div>
+        </Sheet>
+      )}
+    </div>
+  );
+}
+
+// ===========================================================================
 // Page
 // ===========================================================================
 function ApplicationsPage() {
@@ -661,6 +1128,10 @@ function ApplicationsPage() {
   const [gstFilter, setGstFilter] = useState('all');           // brand: all|green|yellow|red
   const [flaggedOnly, setFlaggedOnly] = useState(false);       // brand
   const [sortOrder, setSortOrder] = useState('oldest');        // oldest first by default
+  const isPhone = useIsPhone();
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false); // phone only
+  // Recompute "now" whenever the list reloads so SLA labels stay fresh.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const nowMs = useMemo(() => Date.now(), [applications]);
 
   useLiveEffect(() => { fetchApplications(); }, []);
@@ -685,8 +1156,10 @@ function ApplicationsPage() {
       const msg = action === 'approve' ? 'Application approved' : action === 'request_info' ? 'More info requested' : 'Application rejected';
       toast.success(msg);
       fetchApplications();
+      return true;
     } catch {
       toast.error('Action failed');
+      return false;
     }
   };
 
@@ -745,10 +1218,122 @@ function ApplicationsPage() {
   }, [roleList, stateFilter, categoryFilter, dateFrom, dateTo, gstFilter, flaggedOnly, searchQuery, sortOrder, applicationType]);
 
   // Tab counts reflect the selected STATE filter (e.g. Approved → only approved profiles); hidden when 0.
-  const matchesState = (a) => stateFilter === 'all' || a.approval_status === stateFilter;
-  const creatorCount = useMemo(() => applications.filter((a) => isCreatorRole(a.role) && matchesState(a)).length, [applications, stateFilter]);
-  const brandCount = useMemo(() => applications.filter((a) => isBrandRole(a.role) && matchesState(a)).length, [applications, stateFilter]);
+  const creatorCount = useMemo(() => applications.filter((a) => isCreatorRole(a.role) && (stateFilter === 'all' || a.approval_status === stateFilter)).length, [applications, stateFilter]);
+  const brandCount = useMemo(() => applications.filter((a) => isBrandRole(a.role) && (stateFilter === 'all' || a.approval_status === stateFilter)).length, [applications, stateFilter]);
   const isBrands = applicationType === 'brands';
+
+  if (isPhone) {
+    const filters = { stateFilter, categoryFilter, dateFrom, dateTo, gstFilter, flaggedOnly, sortOrder };
+    const applyFilters = (f) => {
+      setStateFilter(f.stateFilter); setCategoryFilter(f.categoryFilter); setDateFrom(f.dateFrom); setDateTo(f.dateTo);
+      setGstFilter(f.gstFilter); setFlaggedOnly(f.flaggedOnly); setSortOrder(f.sortOrder);
+    };
+    // Advanced (sheet-only) filters that differ from their defaults. Status has its own chips.
+    const activeFilters = [categoryFilter !== 'all', dateFrom, dateTo, isBrands && gstFilter !== 'all', isBrands && flaggedOnly, sortOrder !== 'oldest'].filter(Boolean).length;
+    const narrowed = searchQuery.trim() || activeFilters > 0;
+    const typeWord = isBrands ? 'brand' : 'creator';
+    return (
+      <div className="am ama-page">
+        <div className="am-toolbar">
+          <div className="am-search">
+            <Search size={18} />
+            <input type="search" aria-label="Search applications" placeholder="Search creators or brands..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+            {searchQuery && <button type="button" className="am-search-clear" aria-label="Clear search" onClick={() => setSearchQuery('')}><X size={18} /></button>}
+          </div>
+          <button type="button" className="am-filter-btn" aria-label={`Filters${activeFilters ? ` (${activeFilters} active)` : ''}`} onClick={() => setFilterSheetOpen(true)}>
+            <SlidersHorizontal size={20} />
+            {activeFilters > 0 && <span className="am-dot">{activeFilters}</span>}
+          </button>
+        </div>
+
+        {canSeeCreators && canSeeBrands && (
+          <div className="am-chips" role="group" aria-label="Applicant type">
+            <button type="button" className={`am-chip${!isBrands ? ' is-active' : ''}`} aria-pressed={!isBrands} onClick={() => setApplicationType('creators')}>
+              Creators <span className="am-chip-count">{creatorCount}</span>
+            </button>
+            <button type="button" className={`am-chip${isBrands ? ' is-active' : ''}`} aria-pressed={isBrands} onClick={() => setApplicationType('brands')}>
+              Brands <span className="am-chip-count">{brandCount}</span>
+            </button>
+          </div>
+        )}
+
+        <div className="am-chips" role="group" aria-label="Status">
+          {Object.entries(STATE_META).map(([key, meta]) => (
+            <button type="button" key={key} className={`am-chip${stateFilter === key ? ' is-active' : ''}`} aria-pressed={stateFilter === key}
+              onClick={() => setStateFilter(stateFilter === key ? 'all' : key)}>
+              {meta.label} <span className="am-chip-count">{counts[key] || 0}</span>
+            </button>
+          ))}
+        </div>
+
+        {loading && applications.length === 0 ? (
+          <div className="am-empty" role="status">Loading applications…</div>
+        ) : visible.length === 0 ? (
+          <div className="am-empty">
+            {narrowed ? (
+              <>
+                <p className="ama-empty-title">No applications match your search or filters.</p>
+                <button type="button" className="am-btn am-btn--link" onClick={() => {
+                  setSearchQuery('');
+                  applyFilters({ ...PHONE_FILTER_DEFAULTS, stateFilter });
+                }}>Clear search & filters</button>
+              </>
+            ) : (
+              <p className="ama-empty-title">
+                No {stateFilter === 'all' ? '' : `${STATE_META[stateFilter].label.toLowerCase()} `}{typeWord} applications right now.
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="am-list">
+            {visible.map((a) => {
+              const status = STATE_META[a.approval_status] || STATE_META.pending;
+              const overdue = slaInfo(appSubmitted(a), nowMs, a.approval_status).label === 'Overdue';
+              const name = appName(a);
+              return (
+                <article className="am-card" key={a.id}>
+                  <div className="am-card-head">
+                    <PhoneAvatar src={photoOf(a)} name={name} />
+                    <div className="am-card-main">
+                      <span className="am-card-title">{name}</span>
+                      <span className="am-card-sub">{roleLine(a)}</span>
+                      <span className="am-card-sub">Submitted {formatDateSafe(appSubmitted(a))}</span>
+                    </div>
+                  </div>
+                  <div className="am-card-foot">
+                    <div className="am-badges">
+                      <span className={`am-badge am-badge--${STATUS_TONE[a.approval_status] || 'wait'}`}>{status.label}</span>
+                      {overdue && <span className="am-badge am-badge--overdue">Overdue</span>}
+                    </div>
+                    <button type="button" className="am-btn am-btn--primary am-btn--sm" onClick={() => setSelectedProfile(a)} aria-label={`Review ${name}`}>Review</button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+
+        {filterSheetOpen && (
+          <PhoneFilterSheet
+            isBrands={isBrands}
+            categories={categories}
+            values={filters}
+            onApply={(f) => { applyFilters(f); setFilterSheetOpen(false); }}
+            onClose={() => setFilterSheetOpen(false)}
+          />
+        )}
+
+        {selectedProfile && (
+          <PhoneApplicationDetail
+            profile={selectedProfile}
+            nowMs={nowMs}
+            onBack={() => setSelectedProfile(null)}
+            onDecide={handleDecision}
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="apps-page">

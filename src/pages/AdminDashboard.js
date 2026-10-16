@@ -10,6 +10,8 @@ import { Users, Briefcase, CheckCircle, XCircle, TrendingUp, MessageSquare, Cred
 import AdminSidebar from '../components/AdminSidebar';
 import AdminTopbar from '../components/AdminTopbar';
 import { can } from '../utils/adminRoles';
+import useIsPhone from '../lib/useIsPhone';
+import AdminHomePhone from '../components/AdminHomePhone';
 import '../components/Skeleton.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -20,6 +22,15 @@ const API = `${BACKEND_URL}/api`;
 // / quick actions as this role will actually see. Same boxes, so nothing jumps when the numbers arrive.
 const GHOST = { color: 'transparent', borderRadius: 4, userSelect: 'none', verticalAlign: 'top' };
 const Ghost = ({ children }) => <span className="sk" style={GHOST} aria-hidden="true">{children}</span>;
+
+const DASH_TITLES = {
+  stats: ['Overview', 'A snapshot of the platform.'],
+  chats: ['Chat Monitoring', 'View and monitor user conversations.'],
+  payments: ['Payment Gateways', 'Manage payment providers and transactions.'],
+  notifications: ['Notifications', 'Manage notification gateways and logs.'],
+  staff: ['Staff Management', 'Invite and manage internal staff.'],
+  broadcast: ['Broadcast', 'Send in-app announcements to users.'],
+};
 
 function OverviewSkeleton({ user }) {
   const has = (cap) => can(user, cap);
@@ -83,6 +94,7 @@ function OverviewSkeleton({ user }) {
 }
 
 export default function AdminDashboard() {
+  const isPhone = useIsPhone();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { adminPage } = useParams();
@@ -754,19 +766,11 @@ export default function AdminDashboard() {
       <AdminSidebar activeTab={activeTab} onTabClick={handleAdminTabClick} user={user} />
 
       <main className="admin-main">
-      <AdminTopbar showDashboardBack={activeTab !== 'stats'} />
+      <AdminTopbar showDashboardBack={activeTab !== 'stats'} title={activeTab === 'stats' ? 'UGCad Admin' : (DASH_TITLES[activeTab] || ['Admin'])[0]} />
 
       <div className="dashboard-content">
         {(() => {
-          const titles = {
-            stats: ['Overview', 'A snapshot of the platform.'],
-            chats: ['Chat Monitoring', 'View and monitor user conversations.'],
-            payments: ['Payment Gateways', 'Manage payment providers and transactions.'],
-            notifications: ['Notifications', 'Manage notification gateways and logs.'],
-            staff: ['Staff Management', 'Invite and manage internal staff.'],
-            broadcast: ['Broadcast', 'Send in-app announcements to users.'],
-          };
-          const [title, subtitle] = titles[activeTab] || [`Welcome, ${user?.nickname || 'Admin'}`, 'Manage the platform.'];
+          const [title, subtitle] = DASH_TITLES[activeTab] || [`Welcome, ${user?.nickname || 'Admin'}`, 'Manage the platform.'];
           return (
             <div className="page-head">
               <div>
@@ -816,6 +820,14 @@ export default function AdminDashboard() {
               (can(user, 'user_management') || can(user, 'adjust_wallet')) && { icon: <IndianRupee size={16} />, label: 'Manage users & wallets', to: '/dashboard/admin/users' },
               can(user, 'user_management') && { icon: <MessageSquare size={16} />, label: 'Send announcement', to: '/dashboard/admin/broadcast' },
             ].filter(Boolean);
+
+            if (isPhone) {
+              return (
+                <AdminHomePhone user={user} stats={stats} analytics={analytics}
+                  pendingProfiles={pendingProfiles.length} pendingCampaigns={pendingCampaigns.length}
+                  pendingWithdrawals={pendingWithdrawals.length} />
+              );
+            }
 
             return (
               <div className="admin-overview fade-in">

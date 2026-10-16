@@ -5,9 +5,9 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation, useSe
 import axios from 'axios';
 import './App.css';
 import './styles/admin-theme.css';
+import './styles/admin-mobile.css';
 import Loader from './components/Loader';
 import RouteLoadingBoundary from './components/RouteLoadingBoundary';
-import AdminHub from './components/AdminHub';
 import AdminLayout from './components/AdminLayout';
 import AgreementGate from './components/AgreementGate';
 import { Toaster } from 'sonner';
@@ -643,19 +643,6 @@ function App() {
                 </ProtectedRoute>
               }
             />
-            {['reviews', 'more'].map((kind) => (
-              <Route
-                key={kind}
-                path={`/dashboard/admin/${kind}`}
-                element={
-                  <ProtectedRoute allowedRoles={['admin', 'campaign_manager', 'support_staff']}>
-                    <AdminLayout>
-                      <AdminHub kind={kind} />
-                    </AdminLayout>
-                  </ProtectedRoute>
-                }
-              />
-            ))}
             <Route
               path="/dashboard/admin/applications"
               element={

@@ -1,0 +1,50 @@
+/* Admin Deals phone view (AdminDeals.js, useIsPhone). Builds on admin-mobile.css. */
+.amd-thumb { display: grid; place-items: center; background: var(--am-selected); color: var(--am-primary); }
+.amd-id { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.amd-amount { display: flex; flex-direction: column; gap: 2px; }
+
+.amd-identity { display: flex; align-items: flex-start; gap: 14px; }
+.amd-identity h2 { margin: 0; font-size: 18px; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; }
+.amd-identity .am-badges { margin-top: 4px; }
+
+.amd-parties { display: flex; flex-wrap: wrap; gap: 8px; }
+.amd-party { max-width: 100%; min-height: 44px; padding: 0 12px 0 14px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--am-border); border-radius: 999px; background: var(--am-surface); font: inherit; font-size: 13px; color: var(--am-muted); }
+.amd-party strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 600; color: var(--am-text); }
+.amd-party svg { flex-shrink: 0; color: #98A2B3; }
+button.amd-party { cursor: pointer; }
+
+.amd-step-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding-top: 2px; }
+.amd-exception { display: flex; align-items: center; gap: 8px; color: var(--am-bad-fg); font-weight: 600; }
+.amd-sub { margin: 4px 0 0; font-size: 13px; font-weight: 600; color: var(--am-muted); }
+.amd-sub-row { align-items: center; }
+.amd-sub-row .am-btn { min-height: 44px; padding: 0 4px; }
+
+.amd-history { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.amd-history li { display: flex; flex-direction: column; gap: 2px; padding-left: 12px; border-left: 2px solid var(--am-border); font-size: 14px; overflow-wrap: anywhere; }
+.amd-history small { font-size: 12px; color: var(--am-muted); }
+
+.amd-note { padding: 10px 12px; border-radius: 10px; background: var(--am-wait-bg); }
+.amd-note small { display: block; margin-top: 4px; font-size: 12px; color: var(--am-wait-fg); }
+
+.amd-row--danger { color: var(--am-bad-fg); }
+.amd .am-row > svg:first-child { color: inherit; }
+.amd .am-row:disabled { opacity: .5; cursor: not-allowed; }
+.am-actionbar-row > .amd-more { flex: 0 0 56px; padding: 0; }
+
+.amd-brief-title { margin: 0; font-size: 16px; font-weight: 700; }
+.amd-brief { font-size: 14px; line-height: 1.55; color: var(--am-text); overflow-wrap: anywhere; }
+.amd-brief .adl-brief-h { margin: 12px 0 4px; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+.amd-brief .adl-brief-h:first-child { margin-top: 0; }
+.amd-brief .adl-brief-row { margin: 0 0 4px; }
+.amd-brief .adl-brief-gap { height: 8px; }
+.amd-kvs { display: flex; flex-direction: column; gap: 8px; }
+
+.amd-msg { padding: 10px 12px; border-radius: 12px; background: var(--am-surface); border: 1px solid var(--am-border); }
+.amd-msg.is-admin { background: var(--am-selected); border-color: #C7C8FB; }
+.amd-msg.is-system { border-style: dashed; text-align: center; }
+.amd-msg-head { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 4px; font-size: 12px; color: var(--am-muted); }
+.amd-msg-head strong { color: var(--am-text); font-size: 13px; }
+.amd-msg p { margin: 0; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.amd-compose { display: flex; gap: 8px; }
+.amd-compose input { flex: 1; min-width: 0; min-height: 48px; padding: 0 16px; font: inherit; font-size: 16px; border: 1px solid var(--am-border); border-radius: 24px; background: var(--am-bg); color: var(--am-text); }
+.amd-compose .am-btn { width: 48px; padding: 0; border-radius: 50%; }

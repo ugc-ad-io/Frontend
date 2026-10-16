@@ -1,5 +1,5 @@
 import { useLiveEffect } from '../lib/liveUpdates';
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -7,13 +7,15 @@ import { apiErrorMessage } from '../utils/apiError';
 import {
   Briefcase, Search, X, ArrowRight, MessageSquare, FileVideo, StickyNote, AlertTriangle,
   Clock3, Eye, Scale, IndianRupee, RotateCcw, Send, ExternalLink, Truck, Wallet, Users, FileText,
-  BadgeCheck
+  BadgeCheck, ArrowLeft, ChevronRight, MoreHorizontal, SlidersHorizontal, Check
 } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
 import { useAuth } from '../App';
 import CreatorProfileModal from '../components/CreatorProfileModal';
-import { SkeletonTable } from '../components/Skeleton';
+import { SkeletonTable, SkeletonList } from '../components/Skeleton';
 import BrandProfileModal from '../components/BrandProfileModal';
+import useIsPhone from '../lib/useIsPhone';
+import '../styles/admin-mobile-deals.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -160,6 +162,48 @@ const getFlags = (d) => {
   return f;
 };
 
+// State groups behind the summary counts (desktop stats) and the phone tiles/chips.
+const isException = (d) => EXCEPTION_STATES.some((s) => stateKey(s) === stateKey(getState(d)));
+const DEAL_GROUPS = {
+  active: (d) => stateKey(getState(d)) !== 'paid - complete' && !isException(d),
+  review: (d) => stateKey(getState(d)).includes('awaiting review'),
+  dispute: isException,
+  complete: (d) => stateKey(getState(d)).includes('paid') || stateKey(getState(d)).includes('complete'),
+};
+
+// ---- Phone (PWA) helpers ----
+const shortId = (d) => String(getId(d) || '').slice(0, 8);
+// Badge colours for the phone kit: progress = info, needs review = wait, done = ok, problem = bad.
+const phoneTone = (state) => {
+  const k = stateKey(state);
+  if (k.includes('disputed') || k.includes('damaged') || k.includes('cancelled')) return 'bad';
+  if (k.includes('paid') || k.includes('complete')) return 'ok';
+  if (k.includes('awaiting review') || k.includes('revision')) return 'wait';
+  if (k === 'status unavailable') return 'neutral';
+  return 'info';
+};
+const isOverdue = (d) => d?.is_overdue === true || (typeof d?.deadline_countdown_hours === 'number' && d.deadline_countdown_hours <= 0);
+// Flags not already said by the state badge / Overdue badge.
+const extraFlags = (d) => getFlags(d).filter((f) => f.label !== 'SLA' && !stateKey(getState(d)).includes(f.label.toLowerCase()));
+const EMPTY_FILTERS = { status: 'all', brand: 'all', creator: 'all', flag: 'all', from: '', to: '' };
+const PHONE_GROUPS = [['all', 'All'], ['active', 'Active'], ['review', 'In review'], ['dispute', 'In dispute'], ['complete', 'Completed']];
+
+function PhoneSheet({ title, onClose, children, foot, testId }) {
+  return (
+    <>
+      <div className="am-sheet-backdrop" onClick={onClose} />
+      <section className="am-sheet" role="dialog" aria-modal="true" aria-label={title} data-testid={testId}>
+        <header className="am-sheet-head">
+          <h2>{title}</h2>
+          <button type="button" className="am-icon-btn" onClick={onClose} aria-label="Close"><X size={20} /></button>
+        </header>
+        <div className="am-sheet-body">{children}</div>
+        {foot && <footer className="am-sheet-foot">{foot}</footer>}
+      </section>
+    </>
+  );
+}
+
 export default function AdminDeals() {
   const { startBrandSession } = useAuth();
   const [deals, setDeals] = useState([]);
@@ -188,6 +232,13 @@ export default function AdminDeals() {
   const [disputeDeal, setDisputeDeal] = useState(null);   // deal a dispute is being raised on
   const [disputeReason, setDisputeReason] = useState('');
   const [confirmBox, setConfirmBox] = useState(null);     // { title, message, confirmLabel, tone, icon, run }
+  // Phone (PWA) view state. List state above stays in this component, so closing
+  // the detail overlay returns to the same search / filters / scroll.
+  const isPhone = useIsPhone();
+  const [phoneGroup, setPhoneGroup] = useState('all');
+  const [phoneTab, setPhoneTab] = useState('overview');
+  const [phoneSheet, setPhoneSheet] = useState(null);   // filters|more|force|contact|brief|shipping
+  const [filterDraft, setFilterDraft] = useState(EMPTY_FILTERS);
   // Deep-link support: /dashboard/admin/deals?deal=<campaignId> auto-opens that
   // deal's drawer (used by the admin brand-profile Campaigns tab). Fires once.
   const [searchParams, setSearchParams] = useSearchParams();
@@ -280,6 +331,7 @@ export default function AdminDeals() {
       setTransitionReason(''); setTargetState(''); setReasonCode('');
       fetchDeals();
       setSelected((s) => (s ? { ...s, current_state: targetState } : s));
+      return true;
     } catch (e) {
       toast.error(apiErrorMessage(e, 'Failed to force transition'));
     } finally {
@@ -409,6 +461,7 @@ export default function AdminDeals() {
       await axios.post(`${API}/admin/deals/${getId(selected)}/notify`, { party: contactParty, message: contactMessage.trim() });
       toast.success(`Notification sent to ${contactParty === 'both' ? 'both parties' : contactParty}`);
       setContactMessage('');
+      return true;
     } catch (e) {
       toast.error(apiErrorMessage(e, 'Failed to send notification'));
     } finally {
@@ -488,7 +541,7 @@ export default function AdminDeals() {
     [deals]
   );
 
-  const matchesFlag = (d) => {
+  const matchesFlag = (d, flagFilter) => {
     if (flagFilter === 'all') return true;
     const k = stateKey(getState(d));
     const hrs = d?.deadline_countdown_hours;
@@ -505,7 +558,7 @@ export default function AdminDeals() {
       if (statusFilter !== 'all' && stateKey(getState(d)) !== stateKey(statusFilter)) return false;
       if (brandFilter !== 'all' && getBrand(d) !== brandFilter) return false;
       if (creatorFilter !== 'all' && getCreator(d) !== creatorFilter) return false;
-      if (!matchesFlag(d)) return false;
+      if (!matchesFlag(d, flagFilter)) return false;
       const dd = dealDate(d);
       if (dateFrom && dd && dd < dateFrom) return false;
       if (dateTo && dd && dd > dateTo) return false;
@@ -522,10 +575,10 @@ export default function AdminDeals() {
 
   const counts = useMemo(() => ({
     total: deals.length,
-    active: deals.filter((d) => !['paid - complete'].includes(stateKey(getState(d))) && !EXCEPTION_STATES.some((s) => stateKey(s) === stateKey(getState(d)))).length,
-    review: deals.filter((d) => stateKey(getState(d)).includes('awaiting review')).length,
-    dispute: deals.filter((d) => EXCEPTION_STATES.some((s) => stateKey(s) === stateKey(getState(d)))).length,
-    complete: deals.filter((d) => stateKey(getState(d)).includes('paid') || stateKey(getState(d)).includes('complete')).length
+    active: deals.filter(DEAL_GROUPS.active).length,
+    review: deals.filter(DEAL_GROUPS.review).length,
+    dispute: deals.filter(DEAL_GROUPS.dispute).length,
+    complete: deals.filter(DEAL_GROUPS.complete).length
   }), [deals]);
 
   const popupChat = chatView?.chat_summary?.messages || chatView?.chat || chatView?.messages || [];
@@ -541,6 +594,601 @@ export default function AdminDeals() {
     : []);
   const brandId = selected ? getBrandId(selected) : null;
   const creatorId = selected ? getCreatorId(selected) : null;
+
+  const profileModals = (
+    <>
+      {profileView && profileView.type === 'brand' && (
+        <BrandProfileModal id={profileView.id} fallbackName={profileView.name} onClose={() => setProfileView(null)} />
+      )}
+      {profileView && profileView.type === 'creator' && (
+        <CreatorProfileModal id={profileView.id} fallbackName={profileView.name} onClose={() => setProfileView(null)} />
+      )}
+    </>
+  );
+
+  // ===================== Phone (PWA) layout =====================
+  if (isPhone) {
+    const phoneDeals = phoneGroup === 'all' ? filtered : filtered.filter(DEAL_GROUPS[phoneGroup]);
+    const filterCount = [statusFilter !== 'all', brandFilter !== 'all', creatorFilter !== 'all', flagFilter !== 'all', !!dateFrom, !!dateTo].filter(Boolean).length;
+    const openPhoneDeal = (d) => { setPhoneTab('overview'); setPhoneSheet(null); openDeal(d); };
+    const closePhoneDeal = () => { setPhoneSheet(null); setSelected(null); };
+    const closeSheet = () => { if (!working) setPhoneSheet(null); };
+    const openFilters = () => {
+      setFilterDraft({ status: statusFilter, brand: brandFilter, creator: creatorFilter, flag: flagFilter, from: dateFrom, to: dateTo });
+      setPhoneSheet('filters');
+    };
+    const applyFilters = () => {
+      setStatusFilter(filterDraft.status); setBrandFilter(filterDraft.brand); setCreatorFilter(filterDraft.creator);
+      setFlagFilter(filterDraft.flag); setDateFrom(filterDraft.from); setDateTo(filterDraft.to);
+      setPhoneSheet(null);
+    };
+    const draft = (key) => (e) => setFilterDraft((f) => ({ ...f, [key]: e.target.value }));
+    // Real timestamp for a state, only when the transition history recorded it.
+    const stateTime = (s) => {
+      const t = [...timeline].reverse().find((x) => stateKey(x?.to_state || x?.state) === stateKey(s));
+      return t ? fmtDateTime(t.timestamp || t.created_at || t.at) : '';
+    };
+    const curIdx = selected ? DEAL_STATES.findIndex((x) => stateKey(x) === stateKey(getState(selected))) : -1;
+    const hrs = selected?.deadline_countdown_hours;
+    const briefText = brief.brief_text || brief.description || selected?.brief_text || selected?.description;
+    const actions = selected ? [
+      { key: 'chat', Icon: MessageSquare, label: 'Open deal chat', run: () => openDealChat(selected) },
+      { key: 'force', Icon: ArrowRight, label: 'Force transition', run: () => setPhoneSheet('force') },
+      { key: 'release', Icon: IndianRupee, label: 'Release payment', run: () => releasePayment(selected), lock: true },
+      { key: 'refund', Icon: RotateCcw, label: 'Refund brand', run: () => refundBrand(selected), lock: true, danger: true },
+      { key: 'dispute', Icon: Scale, label: 'Raise dispute', run: () => raiseDispute(selected), lock: true, danger: true },
+      { key: 'contact', Icon: Send, label: 'Contact parties', run: () => setPhoneSheet('contact') },
+    ] : [];
+    const actionRows = (fromSheet) => actions.map(({ key, Icon, label, run, lock, danger }) => (
+      <li key={key}>
+        <button
+          type="button"
+          className={`am-row${danger ? ' amd-row--danger' : ''}`}
+          disabled={lock && working}
+          onClick={() => { if (fromSheet) setPhoneSheet(null); run(); }}
+          data-testid={`phone-action-${key}`}
+        >
+          <Icon size={20} /><span className="am-row-label">{label}</span><ChevronRight size={18} className="am-row-chevron" />
+        </button>
+      </li>
+    ));
+    const stateBadges = (d) => (
+      <span className="am-badges">
+        <span className={`am-badge am-badge--${phoneTone(getState(d))}`}>{getState(d)}</span>
+        {isOverdue(d) && <span className="am-badge am-badge--overdue">Overdue</span>}
+        {extraFlags(d).map((f, i) => <span key={i} className={`am-badge am-badge--${f.tone === 'danger' ? 'bad' : 'wait'}`}>{f.label}</span>)}
+      </span>
+    );
+
+    return (
+      <AdminLayout>
+        <div className="am amd" data-testid="deals-phone">
+          <div className="am-toolbar">
+            <label className="am-search">
+              <Search size={18} />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search campaign, brand, creator, ID"
+                aria-label="Search deals"
+                data-testid="deals-search"
+              />
+              {query && <button type="button" className="am-search-clear" onClick={() => setQuery('')} aria-label="Clear search"><X size={18} /></button>}
+            </label>
+            <button type="button" className="am-filter-btn" onClick={openFilters} aria-label={filterCount ? `Filters, ${filterCount} active` : 'Filters'} data-testid="deals-filter-btn">
+              <SlidersHorizontal size={20} />
+              {filterCount > 0 && <span className="am-dot">{filterCount}</span>}
+            </button>
+          </div>
+
+          <div className="am-tiles am-tiles--3">
+            {[
+              ['active', 'Active', Briefcase, 'ok'],
+              ['review', 'In review', Clock3, 'wait'],
+              ['complete', 'Completed', BadgeCheck, 'info'],
+            ].map(([g, label, Icon, tone]) => (
+              <button key={g} type="button" className={`am-tile am-tile--${tone}`} aria-pressed={phoneGroup === g} onClick={() => setPhoneGroup(phoneGroup === g ? 'all' : g)}>
+                <span className="am-tile-top"><Icon size={16} /> {label}</span>
+                <span className="am-tile-value">{counts[g]}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="am-chips" role="group" aria-label="Deal state">
+            {PHONE_GROUPS.map(([g, label]) => (
+              <button key={g} type="button" className={`am-chip${phoneGroup === g ? ' is-active' : ''}`} aria-pressed={phoneGroup === g} onClick={() => setPhoneGroup(g)}>
+                {label} <span className="am-chip-count">{g === 'all' ? counts.total : counts[g]}</span>
+              </button>
+            ))}
+          </div>
+
+          {loading && deals.length === 0 ? (
+            <SkeletonList rows={5} />
+          ) : phoneDeals.length === 0 ? (
+            <div className="am-empty">
+              <p>{deals.length === 0 ? 'No deals to show yet' : 'No deals match your filters'}</p>
+              {deals.length > 0 && (
+                <button type="button" className="am-btn am-btn--link" onClick={() => { clearFilters(); setPhoneGroup('all'); }}>Clear filters</button>
+              )}
+            </div>
+          ) : (
+            <div className="am-list">
+              {phoneDeals.map((d) => (
+                <button key={getId(d)} type="button" className="am-card" onClick={() => openPhoneDeal(d)} data-testid={`deal-card-${getId(d)}`}>
+                  <span className="am-card-head">
+                    <span className="am-thumb amd-thumb" aria-hidden="true"><Briefcase size={24} /></span>
+                    <span className="am-card-main">
+                      <span className="am-card-title">{getTitle(d)}</span>
+                      <span className="am-card-sub amd-id">#{shortId(d)}</span>
+                      <span className="am-card-sub">{getBrand(d)} × {getCreator(d)}</span>
+                    </span>
+                  </span>
+                  {stateBadges(d)}
+                  <span className="am-card-foot">
+                    <span className="amd-amount">
+                      <span className="am-amount-label">Escrow amount</span>
+                      <span className="am-amount">{money(getEscrow(d))}</span>
+                    </span>
+                    <ChevronRight size={20} className="am-row-chevron" />
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {selected && (
+            <div className="am-detail" role="dialog" aria-modal="true" aria-label="Deal detail" data-testid="deal-detail">
+              <header className="am-detail-head">
+                <button type="button" className="am-icon-btn" onClick={closePhoneDeal} aria-label="Back to deals" data-testid="deal-detail-back"><ArrowLeft size={22} /></button>
+                <h1>Deal detail</h1>
+                <button type="button" className="am-icon-btn" onClick={() => setPhoneSheet('more')} aria-label="More actions"><MoreHorizontal size={22} /></button>
+              </header>
+
+              <div className="am-detail-body">
+                <div className="amd-identity">
+                  <span className="am-thumb amd-thumb" aria-hidden="true"><Briefcase size={24} /></span>
+                  <div className="am-card-main">
+                    <h2>{getTitle(selected)}</h2>
+                    <span className="am-card-sub amd-id">#{shortId(selected)}</span>
+                    {stateBadges(selected)}
+                  </div>
+                </div>
+
+                <div className="amd-parties">
+                  {[['brand', 'Brand', getBrand(selected), brandId], ['creator', 'Creator', getCreator(selected), creatorId]].map(([type, label, name, id]) => (
+                    id ? (
+                      <button key={type} type="button" className="amd-party" onClick={() => setProfileView({ type, id, name })}>
+                        {label} <strong>{name}</strong><ChevronRight size={16} />
+                      </button>
+                    ) : (
+                      <span key={type} className="amd-party">{label} <strong>{name}</strong></span>
+                    )
+                  ))}
+                </div>
+
+                <div className="am-tabs" role="tablist">
+                  {[['overview', 'Overview'], ['content', 'Content'], ['activity', 'Activity'], ['admin', 'Admin']].map(([k, label]) => (
+                    <button key={k} type="button" role="tab" aria-selected={phoneTab === k} className={phoneTab === k ? 'is-active' : ''} onClick={() => setPhoneTab(k)}>{label}</button>
+                  ))}
+                </div>
+
+                {phoneTab === 'overview' && (
+                  <>
+                    <section className="am-section">
+                      <h3>Deal progress</h3>
+                      <ol className="am-timeline">
+                        {DEAL_STATES.map((s, i) => {
+                          const when = stateTime(s);
+                          return (
+                            <li key={s} className={`am-step${i < curIdx ? ' am-step--done' : i === curIdx ? ' am-step--current' : ''}`}>
+                              <span className="am-step-dot">{i < curIdx && <Check size={14} />}</span>
+                              <span className="amd-step-text">
+                                <span className="am-step-label">{s}</span>
+                                {when && <span className="am-step-date">{when}</span>}
+                              </span>
+                            </li>
+                          );
+                        })}
+                      </ol>
+                      {isException(selected) && (
+                        <p className="amd-exception"><AlertTriangle size={16} /> Currently in exception state: {getState(selected)}</p>
+                      )}
+                    </section>
+
+                    <section className="am-section">
+                      <h3>Status</h3>
+                      <div className="am-kv"><span>Waiting on</span><span>{getActiveParty(selected)}</span></div>
+                      {selected.deadline && <div className="am-kv"><span>Deadline</span><span>{fmtDate(selected.deadline)}</span></div>}
+                      {typeof hrs === 'number' && <div className="am-kv"><span>Time left</span><span>{Math.max(0, Math.round(hrs))}h</span></div>}
+                    </section>
+
+                    <section className="am-section">
+                      <h3>Financial breakdown</h3>
+                      <div className="am-kv"><span>Escrow held</span><span>{money(getEscrow(selected))}</span></div>
+                      <div className="am-kv"><span>Platform commission ({Math.round(getCommissionRate(selected) * 100)}%)</span><span>{money(getCommission(selected))}</span></div>
+                      <div className="am-kv am-kv--total"><span>Creator payout</span><span>{money(getCreatorPayout(selected))}</span></div>
+                      <h4 className="amd-sub">Payout schedule</h4>
+                      {payoutSchedule.length === 0 ? (
+                        <p className="am-muted">No payout milestones.</p>
+                      ) : payoutSchedule.map((p, i) => (
+                        <div key={i} className="am-kv">
+                          <span>{p.label || `Milestone ${i + 1}`}{p.date ? ` · ${fmtDate(p.date)}` : ''}</span>
+                          <span>{money(p.amount)} <span className={`am-badge am-badge--${p.status === 'paid' ? 'ok' : 'neutral'}`}>{p.status || 'pending'}</span></span>
+                        </div>
+                      ))}
+                    </section>
+
+                    <ul className="am-rows">
+                      <li>
+                        <button type="button" className="am-row" onClick={() => setPhoneSheet('brief')}>
+                          <FileText size={20} /><span className="am-row-label">Brief summary</span><ChevronRight size={18} className="am-row-chevron" />
+                        </button>
+                      </li>
+                      <li>
+                        <button type="button" className="am-row" onClick={() => setPhoneSheet('shipping')}>
+                          <Truck size={20} /><span className="am-row-label">Shipping details</span><ChevronRight size={18} className="am-row-chevron" />
+                        </button>
+                      </li>
+                    </ul>
+                  </>
+                )}
+
+                {phoneTab === 'content' && (
+                  <>
+                    <section className="am-section">
+                      <h3>Content submissions ({submissions.length})</h3>
+                      {submissions.length === 0 ? (
+                        <p className="am-muted">No content submitted yet.</p>
+                      ) : submissions.map((v, i) => (
+                        <div key={i} className="am-kv amd-sub-row">
+                          <span>v{v.version || i + 1} · {v.status || 'submitted'}</span>
+                          {v.video_url ? <a className="am-btn am-btn--link am-btn--sm" href={v.video_url} target="_blank" rel="noreferrer">Open video</a> : <span />}
+                        </div>
+                      ))}
+                    </section>
+                    <section className="am-section">
+                      <h3>Act for brand</h3>
+                      <p className="am-muted">
+                        {latestSubmissionApproved
+                          ? `Content is approved for ${getBrand(selected)}. No further review action is required.`
+                          : submissions.length
+                          ? `Review creator work and decide for ${getBrand(selected)}. Every action is audited.`
+                          : 'Creator work has not been submitted yet. Brand-side review actions will unlock when content arrives.'}
+                      </p>
+                      <button type="button" className="am-btn am-btn--primary" disabled={working || !submissions.length || latestSubmissionApproved} onClick={() => approveAsBrand(selected)}>
+                        <BadgeCheck size={18} /> {latestSubmissionApproved ? 'Approved' : 'Approve as brand'}
+                      </button>
+                      {!latestSubmissionApproved && (
+                        <>
+                          <div className="am-field">
+                            <label htmlFor="amd-revision">Changes required from the creator</label>
+                            <textarea id="amd-revision" value={revisionFeedback} onChange={(e) => setRevisionFeedback(e.target.value)} rows={3} disabled={!submissions.length} />
+                          </div>
+                          <button type="button" className="am-btn am-btn--secondary" disabled={working || !submissions.length || !revisionFeedback.trim()} onClick={requestRevisionAsBrand}>
+                            Request revision as brand
+                          </button>
+                        </>
+                      )}
+                    </section>
+                  </>
+                )}
+
+                {phoneTab === 'activity' && (
+                  <>
+                    <ul className="am-rows">
+                      <li>
+                        <button type="button" className="am-row" onClick={() => openDealChat(selected)}>
+                          <MessageSquare size={20} /><span className="am-row-label">Deal chat</span><ChevronRight size={18} className="am-row-chevron" />
+                        </button>
+                      </li>
+                    </ul>
+                    <section className="am-section">
+                      <h3>Transition history</h3>
+                      {timeline.length === 0 ? (
+                        <p className="am-muted">No recorded transitions.</p>
+                      ) : (
+                        <ul className="amd-history">
+                          {timeline.map((t, i) => (
+                            <li key={i}>
+                              <span className="am-step-date">{fmtDateTime(t.timestamp || t.created_at || t.at)}</span>
+                              <strong>{normalizeDash(t.to_state || t.state || t.event || t.event_type || '-')}</strong>
+                              {(t.reason || t.note) && <span>{t.reason || t.note}</span>}
+                              <small>by {t.actor_name || t.actor || t.actor_type || 'system'}</small>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </section>
+                    <section className="am-section">
+                      <h3>Admin notes</h3>
+                      {notes.map((n, i) => (
+                        <div key={i} className="amd-note">
+                          <p>{n.note || n.text}</p>
+                          <small>{n.author || 'Admin'} · {n.created_at ? new Date(n.created_at).toLocaleString() : ''}</small>
+                        </div>
+                      ))}
+                      <div className="am-field">
+                        <label htmlFor="amd-note">Add an internal note</label>
+                        <textarea id="amd-note" value={noteDraft} onChange={(e) => setNoteDraft(e.target.value)} rows={3} />
+                      </div>
+                      <button type="button" className="am-btn am-btn--secondary" disabled={working || !noteDraft.trim()} onClick={handleSaveNote}>
+                        <StickyNote size={18} /> Save note
+                      </button>
+                    </section>
+                  </>
+                )}
+
+                {phoneTab === 'admin' && (
+                  <>
+                    <p className="am-muted">Elevated-privilege actions. Logged to the audit trail; both parties are notified.</p>
+                    <ul className="am-rows">
+                      {brandId && (
+                        <li>
+                          <button type="button" className="am-row" disabled={working} onClick={actAsBrand}>
+                            <ExternalLink size={20} /><span className="am-row-label">Open full brand workspace</span><ChevronRight size={18} className="am-row-chevron" />
+                          </button>
+                        </li>
+                      )}
+                      {actionRows(false)}
+                    </ul>
+                  </>
+                )}
+              </div>
+
+              <div className="am-actionbar">
+                <div className="am-actionbar-row">
+                  {brandId ? (
+                    <button type="button" className="am-btn am-btn--primary" disabled={working} onClick={actAsBrand}><ExternalLink size={18} /> Open workspace</button>
+                  ) : (
+                    <button type="button" className="am-btn am-btn--primary" disabled={working} onClick={() => setPhoneSheet('force')}><ArrowRight size={18} /> Force transition</button>
+                  )}
+                  <button type="button" className="am-btn am-btn--secondary amd-more" onClick={() => setPhoneSheet('more')} aria-label="More actions"><MoreHorizontal size={20} /></button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {chatView && (
+            <div className="am-detail" role="dialog" aria-modal="true" aria-label="Deal chat" data-testid="deal-chat">
+              <header className="am-detail-head">
+                <button type="button" className="am-icon-btn" onClick={() => setChatView(null)} disabled={working} aria-label="Close chat"><ArrowLeft size={22} /></button>
+                <h1>Deal chat</h1>
+              </header>
+              <div className="am-detail-body">
+                <p className="am-muted">{getBrand(chatView)} ↔ {getCreator(chatView)} · #{shortId(chatView)}</p>
+                {chatLoading ? (
+                  <p className="am-muted">Loading complete conversation...</p>
+                ) : popupChat.length === 0 ? (
+                  <div className="am-empty">No messages in this deal room.</div>
+                ) : popupChat.map((m, i) => (
+                  <div key={m.id || i} className={`amd-msg${m.admin || m.sender_type === 'admin' ? ' is-admin' : ''}${m.sender_type === 'system' ? ' is-system' : ''}`}>
+                    <div className="amd-msg-head">
+                      <strong>{m.sender_name || m.sender_nickname || m.sender || m.from || (m.sender_type === 'system' ? 'System' : 'User')}</strong>
+                      <span>{fmtDateTime(m.created_at || m.timestamp || m.sent_at)}</span>
+                    </div>
+                    <p>{m.message || m.text}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="am-actionbar">
+                <div className="amd-compose">
+                  <input
+                    value={chatDraft}
+                    onChange={(e) => setChatDraft(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && chatDraft.trim() && !working) handleIntervene(); }}
+                    placeholder="Type an admin comment..."
+                    aria-label="Admin comment"
+                  />
+                  <button type="button" className="am-btn am-btn--primary" disabled={working || !chatDraft.trim()} onClick={handleIntervene} aria-label="Send admin comment"><Send size={18} /></button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {phoneSheet === 'filters' && (
+            <PhoneSheet
+              title="Filters"
+              onClose={closeSheet}
+              testId="deals-filter-sheet"
+              foot={(
+                <>
+                  <button type="button" className="am-btn am-btn--secondary" onClick={() => setFilterDraft(EMPTY_FILTERS)}>Reset</button>
+                  <button type="button" className="am-btn am-btn--primary" onClick={applyFilters}>Apply</button>
+                </>
+              )}
+            >
+              <div className="am-field">
+                <label htmlFor="amd-f-state">State</label>
+                <select id="amd-f-state" value={filterDraft.status} onChange={draft('status')}>
+                  <option value="all">All states</option>
+                  {[...DEAL_STATES, ...EXCEPTION_STATES].map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div className="am-field">
+                <label htmlFor="amd-f-brand">Brand</label>
+                <select id="amd-f-brand" value={filterDraft.brand} onChange={draft('brand')}>
+                  <option value="all">All brands</option>
+                  {brandOptions.map((b) => <option key={b} value={b}>{b}</option>)}
+                </select>
+              </div>
+              <div className="am-field">
+                <label htmlFor="amd-f-creator">Creator</label>
+                <select id="amd-f-creator" value={filterDraft.creator} onChange={draft('creator')}>
+                  <option value="all">All creators</option>
+                  {creatorOptions.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div className="am-field">
+                <label htmlFor="amd-f-flag">Flags</label>
+                <select id="amd-f-flag" value={filterDraft.flag} onChange={draft('flag')}>
+                  <option value="all">All flags</option>
+                  <option value="flagged">Flagged</option>
+                  <option value="disputed">Disputed</option>
+                  <option value="damaged">Damaged</option>
+                  <option value="sla">SLA breached</option>
+                </select>
+              </div>
+              <div className="am-field">
+                <label htmlFor="amd-f-from">Created from</label>
+                <input id="amd-f-from" type="date" value={filterDraft.from} onChange={draft('from')} />
+              </div>
+              <div className="am-field">
+                <label htmlFor="amd-f-to">Created to</label>
+                <input id="amd-f-to" type="date" value={filterDraft.to} onChange={draft('to')} />
+              </div>
+            </PhoneSheet>
+          )}
+
+          {selected && phoneSheet === 'more' && (
+            <PhoneSheet title="Deal actions" onClose={closeSheet} testId="deal-more-sheet">
+              <ul className="am-rows">{actionRows(true)}</ul>
+            </PhoneSheet>
+          )}
+
+          {selected && phoneSheet === 'force' && (
+            <PhoneSheet
+              title="Force transition"
+              onClose={closeSheet}
+              testId="force-sheet"
+              foot={(
+                <>
+                  <button type="button" className="am-btn am-btn--secondary" disabled={working} onClick={closeSheet}>Cancel</button>
+                  <button type="button" className="am-btn am-btn--primary" disabled={working} onClick={async () => { if (await handleForceTransition()) setPhoneSheet(null); }} data-testid="force-submit">
+                    {working ? 'Applying…' : 'Apply transition'}
+                  </button>
+                </>
+              )}
+            >
+              <p className="am-field-hint">Overrides the normal flow. Requires a reason code + justification; logged as an elevated-privilege action and both parties are notified.</p>
+              <div className="am-field">
+                <label htmlFor="amd-force-target">Target state</label>
+                <select id="amd-force-target" value={targetState} onChange={(e) => setTargetState(e.target.value)} data-testid="force-target">
+                  <option value="">Select target state…</option>
+                  {[...DEAL_STATES, ...EXCEPTION_STATES].map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+              <div className="am-field">
+                <label htmlFor="amd-force-code">Reason code</label>
+                <select id="amd-force-code" value={reasonCode} onChange={(e) => setReasonCode(e.target.value)} data-testid="force-reason-code">
+                  <option value="">Select reason code…</option>
+                  {REASON_CODES.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
+                </select>
+              </div>
+              <div className="am-field">
+                <label htmlFor="amd-force-reason">Written justification</label>
+                <textarea id="amd-force-reason" value={transitionReason} onChange={(e) => setTransitionReason(e.target.value)} rows={3} data-testid="force-reason" />
+              </div>
+            </PhoneSheet>
+          )}
+
+          {selected && phoneSheet === 'contact' && (
+            <PhoneSheet
+              title="Contact parties"
+              onClose={closeSheet}
+              testId="contact-sheet"
+              foot={(
+                <>
+                  <button type="button" className="am-btn am-btn--secondary" disabled={working} onClick={closeSheet}>Cancel</button>
+                  <button type="button" className="am-btn am-btn--primary" disabled={working || !contactMessage.trim()} onClick={async () => { if (await handleContact()) setPhoneSheet(null); }} data-testid="contact-send">
+                    <Send size={18} /> Send
+                  </button>
+                </>
+              )}
+            >
+              <div className="am-field">
+                <label htmlFor="amd-contact-party">Send to</label>
+                <select id="amd-contact-party" value={contactParty} onChange={(e) => setContactParty(e.target.value)} data-testid="contact-party">
+                  <option value="both">Both parties</option>
+                  <option value="brand">Brand only</option>
+                  <option value="creator">Creator only</option>
+                </select>
+              </div>
+              <div className="am-field">
+                <label htmlFor="amd-contact-msg">Message</label>
+                <textarea id="amd-contact-msg" value={contactMessage} onChange={(e) => setContactMessage(e.target.value)} rows={3} data-testid="contact-message" />
+              </div>
+            </PhoneSheet>
+          )}
+
+          {selected && phoneSheet === 'brief' && (
+            <PhoneSheet title="Brief summary" onClose={closeSheet}>
+              <h3 className="amd-brief-title">{brief.title || getTitle(selected)}</h3>
+              <div className="amd-brief">{briefText ? renderBrief(briefText) : <p className="adl-brief-row">No brief text provided.</p>}</div>
+              {(brief.per_video_budget != null || brief.budget_max != null) && <div className="am-kv"><span>Budget</span><span>{money(brief.per_video_budget ?? brief.budget_max)}</span></div>}
+              {(brief.deliverables_count ?? brief.num_videos) != null && <div className="am-kv"><span>Deliverables</span><span>{brief.deliverables_count ?? brief.num_videos}</span></div>}
+              {brief.platform && <div className="am-kv"><span>Platform</span><span>{brief.platform}</span></div>}
+            </PhoneSheet>
+          )}
+
+          {selected && phoneSheet === 'shipping' && (
+            <PhoneSheet title="Shipping & tracking" onClose={closeSheet}>
+              {shipment ? (
+                <div className="amd-kvs">
+                  <div className="am-kv"><span>Tracking #</span><span>{shipment.tracking_number || '-'}</span></div>
+                  <div className="am-kv"><span>Courier</span><span>{shipment.courier_name || shipment.courier || '-'}</span></div>
+                  <div className="am-kv"><span>Status</span><span>{shipment.courier_status || shipment.status || '-'}</span></div>
+                  <div className="am-kv"><span>Shipped</span><span>{fmtDate(shipment.shipped_at)}</span></div>
+                  <div className="am-kv"><span>Delivered</span><span>{fmtDate(shipment.delivered_at)}</span></div>
+                  <div className="am-kv"><span>Received</span><span>{fmtDate(shipment.received_at)}</span></div>
+                  {shipment.address && <div className="am-kv"><span>Ship to</span><span>{shipment.address}</span></div>}
+                </div>
+              ) : <p className="am-muted">No shipment recorded for this deal.</p>}
+            </PhoneSheet>
+          )}
+
+          {disputeDeal && (
+            <PhoneSheet
+              title="Raise a dispute"
+              onClose={() => { if (!working) setDisputeDeal(null); }}
+              testId="dispute-modal"
+              foot={(
+                <>
+                  <button type="button" className="am-btn am-btn--secondary" disabled={working} onClick={() => setDisputeDeal(null)}>Cancel</button>
+                  <button type="button" className="am-btn am-btn--danger" disabled={working || !disputeReason.trim()} onClick={submitDispute} data-testid="dispute-submit">
+                    <Scale size={18} /> {working ? 'Opening…' : 'Open dispute'}
+                  </button>
+                </>
+              )}
+            >
+              <p className="am-muted">
+                Opening a dispute on behalf of both parties for <strong>{getBrand(disputeDeal)}</strong> ↔ <strong>{getCreator(disputeDeal)}</strong>. Describe the issue below.
+              </p>
+              <div className="am-field">
+                <label htmlFor="amd-dispute">Issue</label>
+                <textarea
+                  id="amd-dispute"
+                  value={disputeReason}
+                  onChange={(e) => setDisputeReason(e.target.value)}
+                  placeholder="e.g. product not delivered, content not as briefed"
+                  rows={4}
+                  data-testid="dispute-reason"
+                />
+              </div>
+            </PhoneSheet>
+          )}
+
+          {confirmBox && (
+            <PhoneSheet
+              title={confirmBox.title}
+              onClose={() => { if (!working) setConfirmBox(null); }}
+              testId="confirm-modal"
+              foot={(
+                <>
+                  <button type="button" className="am-btn am-btn--secondary" disabled={working} onClick={() => setConfirmBox(null)}>Cancel</button>
+                  <button type="button" className={`am-btn ${confirmBox.tone === 'danger' ? 'am-btn--danger' : 'am-btn--primary'}`} disabled={working} onClick={runConfirm} data-testid="confirm-submit">
+                    {working ? 'Working…' : confirmBox.confirmLabel}
+                  </button>
+                </>
+              )}
+            >
+              <p className="am-muted">{confirmBox.message}</p>
+            </PhoneSheet>
+          )}
+        </div>
+        {profileModals}
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
@@ -1181,20 +1829,7 @@ export default function AdminDeals() {
         }
       `}</style>
 
-      {profileView && profileView.type === 'brand' && (
-        <BrandProfileModal
-          id={profileView.id}
-          fallbackName={profileView.name}
-          onClose={() => setProfileView(null)}
-        />
-      )}
-      {profileView && profileView.type === 'creator' && (
-        <CreatorProfileModal
-          id={profileView.id}
-          fallbackName={profileView.name}
-          onClose={() => setProfileView(null)}
-        />
-      )}
+      {profileModals}
     </AdminLayout>
   );
 }

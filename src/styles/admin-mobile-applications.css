@@ -1,0 +1,23 @@
+/* Applications review — phone-only extras on top of admin-mobile.css.
+   Every selector is scoped under .am so the desktop page is untouched. */
+.am .ama-empty-title { margin: 0 0 4px; color: var(--am-text); font-weight: 600; }
+.am .ama-check { display: flex; align-items: center; gap: 12px; min-height: 44px; font-size: 15px; color: var(--am-text); cursor: pointer; }
+.am .ama-check input { width: 20px; height: 20px; min-height: 0; flex-shrink: 0; accent-color: var(--am-primary); }
+.am .ama-identity-meta { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.am .am-identity { align-items: flex-start; }
+.am .ama-kv-block { display: flex; flex-direction: column; gap: 4px; font-size: 14px; overflow-wrap: anywhere; }
+.am .ama-kv-block > span:first-child { color: var(--am-muted); }
+.am .ama-panel { padding: 0 16px 16px; display: flex; flex-direction: column; gap: 8px; }
+.am .am-kv a, .am .ama-kv-block a { color: var(--am-primary); overflow-wrap: anywhere; }
+.am .ama-web { display: flex; align-items: center; gap: 10px; color: var(--am-muted); }
+.am .ama-web-host { flex: 1; min-width: 0; font-size: 14px; color: var(--am-text); overflow-wrap: anywhere; }
+.am .ama-code { font-family: ui-monospace, Menlo, monospace; font-size: 13px; overflow-wrap: anywhere; }
+.am .ama-doc-ic { display: grid; place-items: center; color: var(--am-muted); }
+.am .ama-video { width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 10px; }
+.am .ama-photos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.am .ama-photos img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; background: #EEF0F6; }
+.am .ama-step-note { margin: 2px 0 0; font-size: 13px; color: var(--am-muted); overflow-wrap: anywhere; }
+.am .ama-step-list { margin: 4px 0 0; padding-left: 18px; font-size: 13px; color: var(--am-muted); }
+.am .ama-decided { margin: 0; padding: 8px 0; font-size: 14px; color: var(--am-muted); text-align: center; }
+.am .am-chip img { flex-shrink: 0; }
+.am a.am-chip { text-decoration: none; }

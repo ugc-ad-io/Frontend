@@ -1,0 +1,24 @@
+/* Phone-only extras for AdminKYC and AdminGST (rendered only when useIsPhone() is true). */
+.am .amk-chev { align-self: center; }
+.am .amk-mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .04em; }
+.am .amk-flat { margin: 0; }
+.am .amk-sec-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.am .amk-sec-head h3 { margin: 0; font-size: 16px; font-weight: 600; }
+.am .amk-sec-head .am-btn { min-height: 44px; padding: 0 8px; }
+.am .amk-rejected { background: var(--am-bad-bg); border-color: transparent; color: var(--am-bad-fg); }
+.am .amk-doc-icon { width: 44px; height: 44px; flex-shrink: 0; display: grid; place-items: center; border-radius: 10px; background: var(--am-selected); color: var(--am-primary); }
+
+/* collapsible section (native <details>) */
+.am .amk-collapse { display: block; }
+.am .amk-collapse > summary { display: flex; align-items: center; justify-content: space-between; min-height: 44px; margin: -8px 0; font-size: 16px; font-weight: 600; list-style: none; cursor: pointer; }
+.am .amk-collapse > summary::-webkit-details-marker { display: none; }
+.am .amk-collapse > summary svg { color: var(--am-muted); transition: transform .2s ease; }
+.am .amk-collapse[open] > summary svg { transform: rotate(180deg); }
+.am .amk-collapse[open] > p { margin-top: 12px; }
+
+/* full-screen document viewer, above the detail page */
+.am .amk-viewer { position: fixed; inset: 0; z-index: 90; display: flex; flex-direction: column; background: #0B0B14; }
+.am .amk-viewer-body { flex: 1; min-height: 0; overflow: auto; display: grid; place-items: center; padding: 16px; }
+.am .amk-viewer-body img { max-width: 100%; max-height: 100%; object-fit: contain; background: #fff; border-radius: 6px; }
+.am .amk-viewer-msg { display: flex; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
+.am .amk-viewer-msg p { margin: 0; }

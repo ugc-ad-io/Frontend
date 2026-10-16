@@ -1,10 +1,12 @@
 import { useLiveEffect } from '../lib/liveUpdates';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { BadgeCheck, ExternalLink, Hourglass, CheckCircle2, XCircle, ChevronDown } from 'lucide-react';
+import { BadgeCheck, ExternalLink, Hourglass, CheckCircle2, XCircle, ChevronDown, ChevronRight, ArrowLeft, X, Eye, EyeOff, FileText } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
+import useIsPhone from '../lib/useIsPhone';
+import '../styles/admin-mobile-kyc.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -17,6 +19,58 @@ const TABS = [
   { key: 'all', label: 'All', Icon: BadgeCheck },
 ];
 
+// ---- phone view helpers ----
+const kycName = (row) => {
+  const k = row.kyc || {};
+  return k.full_legal_name || k.name_on_pan || row.full_name || row.name || row.email || '-';
+};
+const initials = (name) => String(name).split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase() || '?';
+const last4 = (v) => String(v || '').replace(/\s/g, '').slice(-4);
+const maskAadhaar = (v) => (v ? `•••• •••• ${last4(v)}` : '-');
+const maskPan = (v) => (v ? `••••••${last4(v)}` : '-');
+const STATUS_BADGE = { pending: 'wait', verified: 'ok', rejected: 'bad' };
+const statusText = (s) => (s ? s[0].toUpperCase() + s.slice(1) : 'Unknown');
+const fmtDay = (d) => (d ? new Date(d).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '-');
+const kycDocs = (k) => [
+  ['PAN card', k.pan_doc_url],
+  ['Aadhaar front', k.aadhaar_front_url],
+  ['Aadhaar back', k.aadhaar_back_url],
+  ...(k.selfie_url ? [['Selfie', k.selfie_url]] : []),
+];
+
+// Full-screen document view for phones: image inline (with retry if it fails to
+// load), PDFs via the browser's own viewer, and always an "open in new tab".
+function DocViewer({ label, url, onClose }) {
+  const [attempt, setAttempt] = useState(0);
+  const [failed, setFailed] = useState(false);
+  const src = docUrl(url);
+  const isPdf = /\.pdf($|[?#])/i.test(url);
+  return (
+    <div className="amk-viewer" role="dialog" aria-modal="true" aria-labelledby="amk-viewer-title" data-testid="kyc-doc-viewer">
+      <header className="am-detail-head">
+        <button type="button" className="am-icon-btn" onClick={onClose} aria-label="Close document"><X size={22} /></button>
+        <h1 id="amk-viewer-title">{label}</h1>
+        <a className="am-icon-btn" href={src} target="_blank" rel="noreferrer" aria-label="Open in new tab"><ExternalLink size={20} /></a>
+      </header>
+      <div className="amk-viewer-body">
+        {isPdf ? (
+          <div className="am-empty amk-viewer-msg">
+            <p>This document is a PDF.</p>
+            <a className="am-btn am-btn--primary" href={src} target="_blank" rel="noreferrer">Open PDF <ExternalLink size={16} /></a>
+          </div>
+        ) : failed ? (
+          <div className="am-empty amk-viewer-msg">
+            <p>This document could not be loaded.</p>
+            <button type="button" className="am-btn am-btn--secondary" onClick={() => { setFailed(false); setAttempt((a) => a + 1); }}>Retry</button>
+          </div>
+        ) : (
+          <img key={attempt} src={src} alt={label} onError={() => setFailed(true)} />
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function AdminKYC() {
   const [tab, setTab] = useState('pending');
   const [rows, setRows] = useState([]);
@@ -25,6 +79,10 @@ export default function AdminKYC() {
   const [expandedId, setExpandedId] = useState(null);
   const [rejectTarget, setRejectTarget] = useState(null);
   const [rejectionReason, setRejectionReason] = useState('');
+  const isPhone = useIsPhone();
+  const [detailId, setDetailId] = useState(null); // phone: KYC review open for this row
+  const [reveal, setReveal] = useState(false); // phone: show full Aadhaar / PAN on purpose
+  const [viewDoc, setViewDoc] = useState(null); // phone: [label, url] in the full-screen viewer
 
   const load = async (status = tab) => {
     setLoading(true);
@@ -40,7 +98,7 @@ export default function AdminKYC() {
   useLiveEffect(() => { load(tab); /* eslint-disable-next-line */ }, [tab]);
 
   const review = async (row, action, reason = '') => {
-    if (action === 'reject' && !reason.trim()) return;
+    if (action === 'reject' && !reason.trim()) return false;
     setBusyId(row.id);
     try {
       await axios.post(`${API}/admin/kyc/${row.id}/review`, { action, reason });
@@ -50,10 +108,173 @@ export default function AdminKYC() {
         setRejectionReason('');
       }
       load(tab);
+      return true;
     } catch (e) {
       toast.error(apiErrorMessage(e, 'Could not save the decision'));
+      return false;
     } finally { setBusyId(null); }
   };
+
+  if (isPhone) {
+    const row = rows.find((r) => r.id === detailId);
+    const k = row?.kyc || {};
+    const closeDetail = () => { setDetailId(null); setReveal(false); };
+    const decide = async (target, action, reason) => {
+      if (await review(target, action, reason)) closeDetail();
+    };
+    const addr = k.address ? [k.address.line, k.address.city, k.address.state, k.address.pincode].filter(Boolean).join(', ') : '';
+    const bank = row?.bank_details;
+    return (
+      <AdminLayout>
+        <div className="am">
+          <div className="am-chips">
+            {TABS.map((t) => (
+              <button key={t.key} type="button" className={`am-chip${tab === t.key ? ' is-active' : ''}`} aria-pressed={tab === t.key} onClick={() => setTab(t.key)} data-testid={`kyc-tab-${t.key}`}>
+                <t.Icon size={15} /> {t.label}
+              </button>
+            ))}
+          </div>
+
+          {loading && !rows.length ? (
+            <div className="am-empty">Loading…</div>
+          ) : !rows.length ? (
+            <div className="am-empty">Nothing in “{TABS.find((t) => t.key === tab).label}”.</div>
+          ) : (
+            <div className="am-list">
+              {rows.map((r) => (
+                <button key={r.id} type="button" className="am-card" onClick={() => { setDetailId(r.id); setReveal(false); }} data-testid={`kyc-row-${r.id}`}>
+                  <div className="am-card-head">
+                    <span className="am-avatar" aria-hidden="true">{initials(kycName(r))}</span>
+                    <div className="am-card-main">
+                      <span className="am-card-title">{kycName(r)}</span>
+                      <span className="am-card-sub">Submitted {fmtDay(r.kyc?.submitted_at)}</span>
+                      <span className="am-badges"><span className={`am-badge am-badge--${STATUS_BADGE[r.kyc?.status] || 'neutral'}`}>{statusText(r.kyc?.status)}</span></span>
+                    </div>
+                    <ChevronRight size={20} className="am-row-chevron amk-chev" />
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {row && (
+            <div className="am-detail" role="dialog" aria-modal="true" aria-labelledby="amk-detail-title" data-testid="kyc-detail">
+              <header className="am-detail-head">
+                <button type="button" className="am-icon-btn" onClick={closeDetail} aria-label="Back to KYC queue"><ArrowLeft size={22} /></button>
+                <h1 id="amk-detail-title">KYC review</h1>
+              </header>
+              <div className="am-detail-body">
+                <div className="am-identity">
+                  <span className="am-avatar am-avatar--lg" aria-hidden="true">{initials(kycName(row))}</span>
+                  <div className="am-card-main">
+                    <h2>{kycName(row)}</h2>
+                    <span className="am-badges"><span className={`am-badge am-badge--${STATUS_BADGE[k.status] || 'neutral'}`}>{statusText(k.status)}</span></span>
+                    <span className="am-card-sub">Submitted {k.submitted_at ? new Date(k.submitted_at).toLocaleString() : '-'}</span>
+                    {row.email && <span className="am-card-sub">{row.email}</span>}
+                  </div>
+                </div>
+
+                {k.status === 'rejected' && k.rejection_reason && (
+                  <section className="am-section amk-rejected"><h3>Rejection reason</h3><p>{k.rejection_reason}</p></section>
+                )}
+
+                <section className="am-section">
+                  <div className="amk-sec-head">
+                    <h3>Identity information</h3>
+                    <button type="button" className="am-btn am-btn--link am-btn--sm" aria-pressed={reveal} onClick={() => setReveal((v) => !v)}>
+                      {reveal ? <EyeOff size={16} /> : <Eye size={16} />} {reveal ? 'Hide' : 'Show'}
+                    </button>
+                  </div>
+                  <div className="am-kv"><span>Aadhaar</span><span className="amk-mono">{reveal ? (k.aadhaar_number || '-') : maskAadhaar(k.aadhaar_number)}</span></div>
+                  <div className="am-kv"><span>PAN</span><span className="amk-mono">{reveal ? (k.pan_number || '-') : maskPan(k.pan_number)}</span></div>
+                  {k.name_on_pan && <div className="am-kv"><span>Name on PAN</span><span>{k.name_on_pan}</span></div>}
+                  <div className="am-kv"><span>Date of birth</span><span>{k.date_of_birth || '-'}</span></div>
+                  <div className="am-kv"><span>Gender</span><span>{(k.gender || '-').replace(/_/g, ' ')}</span></div>
+                  <div className="am-kv"><span>UPI ID</span><span>{row.upi_id || '-'}</span></div>
+                  {bank?.account_number && (
+                    <div className="am-kv"><span>Bank account</span><span className="amk-mono">••••{last4(bank.account_number)}{bank.ifsc_code ? ` · ${bank.ifsc_code}` : ''}</span></div>
+                  )}
+                </section>
+
+                <section className="am-section">
+                  <h3>Documents</h3>
+                  {kycDocs(k).map(([label, url]) => (
+                    <div key={label} className="am-doc">
+                      <span className="amk-doc-icon"><FileText size={20} /></span>
+                      <div className="am-doc-main">
+                        {label}
+                      </div>
+                      {url ? (
+                        <button type="button" className="am-btn am-btn--link am-btn--sm" onClick={() => setViewDoc([label, url])}>View</button>
+                      ) : (
+                        <span className="am-badge am-badge--bad">Missing</span>
+                      )}
+                    </div>
+                  ))}
+                </section>
+
+                <details className="am-section amk-collapse">
+                  <summary>Address details <ChevronDown size={18} /></summary>
+                  <p>{addr || '-'}</p>
+                </details>
+              </div>
+
+              {k.status === 'pending' && (
+                <div className="am-actionbar">
+                  <div className="am-actionbar-row">
+                    <button type="button" className="am-btn am-btn--danger" disabled={busyId === row.id} onClick={() => { setRejectTarget(row); setRejectionReason(''); }}>Reject</button>
+                    <button type="button" className="am-btn am-btn--primary" disabled={busyId === row.id} onClick={() => decide(row, 'approve')}>
+                      {busyId === row.id ? 'Saving…' : 'Verify identity'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {viewDoc && <DocViewer label={viewDoc[0]} url={viewDoc[1]} onClose={() => setViewDoc(null)} />}
+
+          {rejectTarget && (
+            <>
+              <div className="am-sheet-backdrop" onClick={() => setRejectTarget(null)} />
+              <section className="am-sheet" role="dialog" aria-modal="true" aria-labelledby="amk-reject-title">
+                <div className="am-sheet-head">
+                  <h2 id="amk-reject-title">Reject KYC submission</h2>
+                  <button type="button" className="am-icon-btn" onClick={() => setRejectTarget(null)} aria-label="Close"><X size={20} /></button>
+                </div>
+                <div className="am-sheet-body">
+                  <p className="am-muted amk-flat">Tell <strong>{kycName(rejectTarget)}</strong> what they need to correct before resubmitting.</p>
+                  <div className="am-field">
+                    <label htmlFor="amk-rejection-reason">Reason for rejection</label>
+                    <textarea
+                      id="amk-rejection-reason"
+                      value={rejectionReason}
+                      onChange={(e) => setRejectionReason(e.target.value)}
+                      placeholder="Example: The Aadhaar image is unclear. Please upload a readable photo showing all four corners."
+                      rows={4}
+                    />
+                    <span className="am-field-hint">Required. This message will be shown to the creator.</span>
+                  </div>
+                </div>
+                <div className="am-sheet-foot">
+                  <button type="button" className="am-btn am-btn--secondary" onClick={() => setRejectTarget(null)}>Back</button>
+                  <button
+                    type="button"
+                    className="am-btn am-btn--danger"
+                    disabled={!rejectionReason.trim() || busyId === rejectTarget.id}
+                    onClick={() => decide(rejectTarget, 'reject', rejectionReason)}
+                    data-testid="kyc-reject-confirm"
+                  >
+                    {busyId === rejectTarget.id ? 'Rejecting…' : 'Reject KYC'}
+                  </button>
+                </div>
+              </section>
+            </>
+          )}
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>

@@ -8,7 +8,7 @@ import { useAuth } from '../App';
  * Holds only the user identity + a dropdown (name/email + Sign out)
  * on the far right; the page title lives in the content `.page-head`.
  */
-export default function AdminTopbar({ onMenuToggle, showDashboardBack = false }) {
+export default function AdminTopbar({ onMenuToggle, showDashboardBack = false, title }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -31,6 +31,8 @@ export default function AdminTopbar({ onMenuToggle, showDashboardBack = false })
       <button type="button" className="admin-mobile-toggle" aria-label="Open menu" onClick={onMenuToggle}>
         <Menu size={20} />
       </button>
+      {/* Phones: the app bar carries the screen title (the page heading is hidden there). */}
+      {title && <h1 className="admin-topbar-title">{title}</h1>}
       {showDashboardBack && (
         <button type="button" className="admin-dashboard-back" onClick={() => navigate('/dashboard/admin')}>
           <ArrowLeft size={16} aria-hidden="true" /> Back to dashboard

@@ -1,10 +1,12 @@
 import { useLiveEffect } from '../lib/liveUpdates';
-import { useState, useEffect, useMemo, Fragment } from 'react';
+import { useState, useMemo, Fragment } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { Package, Upload, Truck, X, MapPin, Clock3, CheckCircle, ExternalLink, Zap, Boxes, ChevronRight, ChevronDown, Users } from 'lucide-react';
+import { Package, Upload, Truck, X, MapPin, Clock3, CheckCircle, ExternalLink, Zap, Boxes, ChevronRight, ChevronDown, Users, ArrowLeft, Calendar } from 'lucide-react';
 import AdminLayout from '../components/AdminLayout';
+import useIsPhone from '../lib/useIsPhone';
+import '../styles/admin-mobile-shipping.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -19,7 +21,7 @@ const weightDims = (r) => {
   const w = r?.weight || r?.package_weight;
   const d = r?.dimensions || r?.package_dimensions ||
     (r?.length && r?.width && r?.height ? `${r.length}×${r.width}×${r.height}` : '');
-  const parts = [w ? `${w}${String(w).match(/[a-z]/i) ? '' : ' kg'}` : '', d ? `${d} cm` : ''].filter(Boolean);
+  const parts = [w ? `${w}${String(w).match(/[a-z]/i) ? '' : ' kg'}` : '', d ? `${d}${/cm\s*$/i.test(String(d)) ? '' : ' cm'}` : ''].filter(Boolean);
   return parts.length ? parts.join(' · ') : '-';
 };
 const hoursSince = (iso) => {
@@ -32,6 +34,16 @@ const hoursBetween = (fromIso, toIso) => {
   return (new Date(toIso).getTime() - new Date(fromIso).getTime()) / 36e5;
 };
 
+// Phone view helpers. SHIPPED matches the desktop "Done" rule; anything else is actionable.
+const SHIPPED = ['shipped', 'in_transit', 'delivered'];
+const statusTone = (s) => (SHIPPED.includes(s) ? 'ok'
+  : ['pending', 'requested'].includes(s) ? 'wait'
+  : ['label_generated', 'awaiting_pickup'].includes(s) ? 'info' : 'neutral');
+const statusText = (s) => s.replace(/_/g, ' ').replace(/^./, (c) => c.toUpperCase());
+const SLA_BADGE = { ok: 'ok', warn: 'wait', danger: 'bad', muted: 'neutral' };
+const fileHref = (u) => (u.startsWith('http') ? u : `${BACKEND_URL}${u}`);
+const requestedAt = (r) => ((r.requested_at || r.created_at) ? new Date(r.requested_at || r.created_at).toLocaleString() : '-');
+
 export default function AdminShipping() {
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -41,6 +53,8 @@ export default function AdminShipping() {
   const [labelFile, setLabelFile] = useState(null);
   const [working, setWorking] = useState(false);
   const [expandedIds, setExpandedIds] = useState(() => new Set()); // campaign ids showing their per-creator rows
+  const isPhone = useIsPhone();
+  const [phoneFilter, setPhoneFilter] = useState('pending'); // phone chips: pending | shipped | all
 
   useLiveEffect(() => { fetchRequests(); }, []);
 
@@ -233,6 +247,152 @@ export default function AdminShipping() {
       total: requests.length
     };
   }, [requests]);
+
+  if (isPhone) {
+    // Every shipment is its own card (multi-creator campaigns included), so each
+    // creator's shipment stays individually reachable without the desktop grouping.
+    const shown = sortedRequests.filter((r) => phoneFilter === 'all'
+      || (phoneFilter === 'shipped') === SHIPPED.includes(r.status || 'pending'));
+    const closeAction = () => setActive(null);
+    return (
+      <AdminLayout>
+        <div className="am">
+          <p className="am-muted ams-sub">{SLA_TARGET_HOURS}-hour processing target</p>
+          <div className="am-tiles am-tiles--3">
+            {[['Pending', counts.pending, ' am-tile--wait'], ['Shipped', counts.shipped, ' am-tile--ok'], ['Total', counts.total, '']].map(([label, value, tone]) => (
+              <div key={label} className={`am-tile${tone}`}>
+                <span className="am-tile-top">{label}</span>
+                <span className="am-tile-value">{value}</span>
+              </div>
+            ))}
+          </div>
+          <div className="am-chips">
+            {[['pending', 'Pending'], ['shipped', 'Shipped'], ['all', 'All']].map(([key, label]) => (
+              <button key={key} type="button" className={`am-chip${phoneFilter === key ? ' is-active' : ''}`} aria-pressed={phoneFilter === key} onClick={() => setPhoneFilter(key)}>
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {loading && !requests.length ? (
+            <div className="am-empty">Loading shipping queue…</div>
+          ) : shown.length === 0 ? (
+            <div className="am-empty">{requests.length ? 'No shipments in this filter.' : `No label requests in the queue. Target SLA: ${SLA_TARGET_HOURS} hours.`}</div>
+          ) : (
+            <div className="am-list">
+              {shown.map((r) => {
+                const status = r.status || 'pending';
+                const sla = slaInfo(r);
+                const done = SHIPPED.includes(status);
+                const key = `${getId(r)}-${r.creator_id || ''}`;
+                return (
+                  <article key={key} className="am-card" data-testid={`shipping-card-${key}`}>
+                    <div className="am-card-main">
+                      <span className="am-card-title">{r.campaign_title || r.campaign?.title || 'Campaign'}</span>
+                      <span className="am-card-sub">#{String(dealId(r)).slice(0, 8)}</span>
+                    </div>
+                    <div className="am-badges">
+                      <span className={`am-badge am-badge--${statusTone(status)}`}>{statusText(status)}</span>
+                      {sla.label !== '-' && <span className={`am-badge am-badge--${SLA_BADGE[sla.tone]}`}><Clock3 size={12} /> {sla.label}</span>}
+                    </div>
+                    <div className="am-meta">
+                      <div><Users size={15} /> {(r.brand_handle || r.brand || '-')} → {(r.creator_handle || r.creator || '-')}</div>
+                      <div><Package size={15} /> {productSummary(r)}</div>
+                      <div><MapPin size={15} /> {r.ship_city || r.address?.city || r.shipping_city || 'Hidden until action'}</div>
+                      <div><Boxes size={15} /> {weightDims(r)}</div>
+                      <div><Calendar size={15} /> Requested {requestedAt(r)}</div>
+                      {r.tracking_number && <div><Truck size={15} /> {[r.courier, r.tracking_number].filter(Boolean).join(' · ')}</div>}
+                    </div>
+                    {!done ? (
+                      <button type="button" className="am-btn am-btn--primary" onClick={() => openAction(r)} data-testid={`action-shipping-${getId(r)}`}>
+                        Process shipment
+                      </button>
+                    ) : r.label_url ? (
+                      <a className="am-btn am-btn--secondary am-btn--sm ams-start" href={fileHref(r.label_url)} target="_blank" rel="noopener noreferrer">
+                        View label <ExternalLink size={14} />
+                      </a>
+                    ) : null}
+                  </article>
+                );
+              })}
+            </div>
+          )}
+
+          {active && (
+            <div className="am-detail" role="dialog" aria-modal="true" aria-labelledby="ams-detail-title" data-testid="shipping-modal">
+              <header className="am-detail-head">
+                <button type="button" className="am-icon-btn" onClick={closeAction} aria-label="Back to shipping queue"><ArrowLeft size={22} /></button>
+                <h1 id="ams-detail-title">Process shipment</h1>
+              </header>
+              <div className="am-detail-body">
+                <section className="am-section">
+                  <h3>{active.campaign_title || active.campaign?.title || 'Campaign'}</h3>
+                  <div className="am-kv"><span>Deal</span><span>#{dealId(active)}</span></div>
+                  <div className="am-kv"><span>Brand → Creator</span><span>{(active.brand_handle || active.brand || '-')} → {(active.creator_handle || active.creator || '-')}</span></div>
+                  <div className="am-kv"><span>Product</span><span>{productSummary(active)}</span></div>
+                  <div className="am-kv"><span>Weight / dims</span><span>{weightDims(active)}</span></div>
+                  <div className="am-kv"><span>Requested</span><span>{requestedAt(active)}</span></div>
+                  <div className="am-kv"><span>SLA target {SLA_TARGET_HOURS}h</span><span>{slaInfo(active).label}</span></div>
+                  {courier && <div className="am-kv"><span>Courier</span><span>{courier}</span></div>}
+                </section>
+
+                <section className="am-section">
+                  <h3>Addresses</h3>
+                  <span className="am-badge am-badge--wait ams-start">Internal only</span>
+                  <div className="am-field">
+                    <span className="am-field-label ams-label"><MapPin size={14} /> Brand pickup address</span>
+                    <p className="ams-pre">{active.pickup_address || active.brand_address || active.brand?.pickup_address || '-'}</p>
+                  </div>
+                  <div className="am-field">
+                    <span className="am-field-label ams-label"><MapPin size={14} /> Creator shipping address</span>
+                    <p className="ams-pre">{active.ship_address || active.address?.full || `${active.ship_city || active.shipping_city || ''}` || '-'}</p>
+                    {active.awaiting_creator_address && <span className="am-field-hint">The creator has not confirmed an address for this deal yet.</span>}
+                  </div>
+                  <button type="button" className="am-btn am-btn--secondary" disabled={working} onClick={remindAddress}>Send address reminder</button>
+                </section>
+
+                <section className="am-section">
+                  <h3>Label and tracking</h3>
+                  <ol className="ams-steps">
+                    <li>Generate the Delhivery label using the saved addresses and product details.</li>
+                    <li>The tracking number and available label PDF are saved automatically to the Deal Room.</li>
+                    <li>The brand is notified automatically once the shipment is marked shipped.</li>
+                  </ol>
+                  <button type="button" className="am-btn am-btn--primary" onClick={handleGenerateLabel} disabled={working}>
+                    <Truck size={16} /> {working ? 'Working…' : 'Generate Delhivery label'}
+                  </button>
+                  {typeof labelFile === 'string' && (
+                    <a className="am-btn am-btn--secondary" href={fileHref(labelFile)} target="_blank" rel="noopener noreferrer">Download label <ExternalLink size={14} /></a>
+                  )}
+                  <div className="am-field">
+                    <span className="am-field-label">Shipping label PDF (uploads to Deal Room)</span>
+                    <label className={`am-btn am-btn--secondary${working ? ' ams-disabled' : ''}`}>
+                      <Upload size={16} />
+                      {labelFile ? (typeof labelFile === 'string' ? 'Label uploaded - replace' : labelFile.name) : 'Upload label'}
+                      <input type="file" accept="application/pdf,image/*" hidden disabled={working} onChange={(e) => { handleLabelUpload(e.target.files?.[0]); e.target.value = ''; }} />
+                    </label>
+                  </div>
+                  <div className="am-field">
+                    <label htmlFor="ams-tracking">Tracking number</label>
+                    <input id="ams-tracking" value={tracking} onChange={(e) => setTracking(e.target.value)} placeholder="Tracking / AWB number" data-testid="ship-tracking" />
+                  </div>
+                </section>
+              </div>
+              <div className="am-actionbar">
+                {!courier.trim() && <span className="am-field-hint">Mark shipped unlocks once a generated label sets the courier.</span>}
+                <div className="am-actionbar-row">
+                  <button type="button" className="am-btn am-btn--secondary" onClick={closeAction}>Cancel</button>
+                  <button type="button" className="am-btn am-btn--primary" disabled={working || !tracking.trim() || !courier.trim()} onClick={handleMarkShipped} data-testid="ship-submit">
+                    <Truck size={16} /> Mark shipped
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>

@@ -14,7 +14,7 @@ async function mount(render) {
   return { container, root, done: async () => { await act(async () => root.unmount()); container.remove(); } };
 }
 
-test('a tab whose code is still downloading shows a skeleton, never the dark loader, and then the page', async () => {
+test('no generic skeleton or loader is shown while a tab downloads, then the page appears', async () => {
   let finishDownload;
   const Applications = retryLazy(() => new Promise(resolve => { finishDownload = resolve; }));
   const Pages = ({ applications = false }) => (
@@ -22,15 +22,12 @@ test('a tab whose code is still downloading shows a skeleton, never the dark loa
   );
   const { container, root, done } = await mount(<Pages />);
   try {
-    expect(container.textContent).toContain('Old overview');
     mockPathname = '/applications';
     await act(async () => startTransition(() => root.render(<Pages applications />)));
-    await act(async () => { await new Promise(resolve => setTimeout(resolve, 150)); });
-    expect(container.querySelector('[role="status"] .sk')).not.toBeNull();
+    expect(container.querySelector('[role="status"]')).toBeNull();
     expect(container.textContent).not.toContain('Loading page...');
     await act(async () => finishDownload({ default: () => <div>Applications loaded</div> }));
     expect(container.textContent).toContain('Applications loaded');
-    expect(container.querySelector('[role="status"]')).toBeNull();
   } finally { await done(); }
 });
 

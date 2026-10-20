@@ -1,5 +1,5 @@
 import { resolveNotifLink } from '../utils/notificationLinks';
-import { useLiveEffect } from '../lib/liveUpdates';
+import { useLiveEffect, publishLiveUpdate } from '../lib/liveUpdates';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -30,11 +30,13 @@ export default function NotificationsPage() {
 
   useLiveEffect(() => { load(); }, []);
 
+  // The top-bar bell polls every 15 s on its own; publishLiveUpdate makes it (and this
+  // list) refetch now so the badge drops as soon as something is read.
   const markRead = async (id) => {
-    try { await axios.patch(`${API}/notifications/${id}/read`); load(); } catch { /* ignore */ }
+    try { await axios.patch(`${API}/notifications/${id}/read`); load(); publishLiveUpdate(); } catch { /* ignore */ }
   };
   const markAll = async () => {
-    try { await axios.post(`${API}/notifications/mark-all-read`); load(); } catch { /* ignore */ }
+    try { await axios.post(`${API}/notifications/mark-all-read`); load(); publishLiveUpdate(); } catch { /* ignore */ }
   };
   const open = (n) => { if (!n.read) markRead(n.id); if (n.link) navigate(resolveNotifLink(n.link)); };
 

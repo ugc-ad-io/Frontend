@@ -11,7 +11,10 @@ import { apiErrorMessage } from '../utils/apiError';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
-const MIN_WITHDRAWAL = 500; // must match the backend minimum
+// Must match the backend: server.py MIN_WITHDRAWAL_AMOUNT = 2500. The server answers
+// "Minimum withdrawal amount is INR 2,500" below it, so a lower value here only
+// let people submit amounts that were guaranteed to fail.
+const DEFAULT_MIN_WITHDRAWAL = 2500;
 
 const STATUS_MAP = { completed: 'Paid', processing: 'Processing', pending: 'Pending', rejected: 'Disputed' };
 const STATUS_TONE = { Paid: 'ok', Processing: 'info', Pending: 'warn', Disputed: 'bad' };
@@ -26,6 +29,8 @@ export default function PayoutWithLayout() {
   const [earnings, setEarnings] = useState([]);
   const [tab, setTab] = useState('earnings'); // 'earnings' | 'withdrawals'
   const [overview, setOverview] = useState({});
+  // The server publishes its own minimum; the constant is only the fallback if the overview did not load.
+  const minWithdrawal = Number(overview.min_withdrawal) > 0 ? Number(overview.min_withdrawal) : DEFAULT_MIN_WITHDRAWAL;
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('All');
   const [search, setSearch] = useState('');
@@ -64,7 +69,7 @@ export default function PayoutWithLayout() {
     const amt = Number(amount);
     const balance = Number(overview.balance || 0);
     if (!amt || amt <= 0) { toast.error('Enter a valid amount'); return; }
-    if (amt < MIN_WITHDRAWAL) { toast.error(`Minimum withdrawal is ${inr(MIN_WITHDRAWAL)}`); return; }
+    if (amt < minWithdrawal) { toast.error(`Minimum withdrawal is ${inr(minWithdrawal)}`); return; }
     if (amt > balance) { toast.error('Amount exceeds your available balance'); return; }
 
     let account_details;
@@ -105,7 +110,7 @@ export default function PayoutWithLayout() {
   const stats = [
     { lbl: 'Available Balance', val: inr(overview.balance), ic: 'cmk-ic-green', Icon: Wallet, meta: 'Ready to withdraw' },
     { lbl: 'Pending Release', val: inr(overview.pending_release), ic: 'cmk-ic-orange', Icon: Clock, meta: 'In escrow' },
-    { lbl: 'Paid This Month', val: inr(overview.paid_this_month), ic: 'cmk-ic-indigo', Icon: IndianRupee, meta: `${overview.deals_paid || 0} deals paid` },
+    { lbl: 'Paid This Month', val: inr(overview.paid_this_month), ic: 'cmk-ic-indigo', Icon: IndianRupee, meta: `${overview.deals_paid_this_month ?? 0} deals paid` },
     { lbl: 'All-Time Earnings', val: inr(overview.all_time_earnings), ic: 'cmk-ic-violet', Icon: TrendingUp, meta: 'Lifetime' },
   ];
 
@@ -296,7 +301,7 @@ export default function PayoutWithLayout() {
 
             <label className="pwl-field">
               <span>Amount (₹)</span>
-              <input type="number" min={MIN_WITHDRAWAL} value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={`Minimum ${inr(MIN_WITHDRAWAL)}`} />
+              <input type="number" min={minWithdrawal} value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={`Minimum ${inr(minWithdrawal)}`} />
             </label>
 
             <div className="pwl-field">
@@ -338,7 +343,7 @@ export default function PayoutWithLayout() {
                 <Send size={16} /> {submitting ? 'Requesting…' : 'Request Withdrawal'}
               </button>
             </div>
-            <p className="pwl-note">Payouts are processed in ~7 business days. Wallet credits are non-refundable.</p>
+            <p className="pwl-note">Payouts are processed in ~7 business days. The platform fee and any TDS are already deducted from each payment, so you receive the full amount you request. Wallet credits are non-refundable.</p>
           </div>
         </div>
       )}

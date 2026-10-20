@@ -1,7 +1,7 @@
 import { createReadCache } from './lib/readCache';
 import { useState, useEffect, createContext, useContext } from 'react';
 import lazy from './lib/retryLazy';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import './App.css';
 import './styles/admin-theme.css';
@@ -58,6 +58,7 @@ const MyActiveWorkPage = lazy(() => import('./pages/MyActiveWorkPage'));
 const ReviewsPage = lazy(() => import('./pages/ReviewsPage'));
 const BrandReviewsPage = lazy(() => import('./pages/BrandReviewsPage'));
 const PortfolioPage = lazy(() => import('./pages/PortfolioPage'));
+const LegalPage = lazy(() => import('./pages/LegalPage'));
 const AdminCampaigns = lazy(() => import('./pages/AdminCampaigns'));
 const AdminWithdrawals = lazy(() => import('./pages/AdminWithdrawals'));
 const AdminDisputes = lazy(() => import('./pages/AdminDisputes'));
@@ -312,6 +313,19 @@ function ProtectedRoute({ children, allowedRoles }) {
   return children;
 }
 
+// Catch-all: an unknown URL used to render a blank page.
+function NotFound() {
+  return (
+    <main style={{ minHeight: '60vh', display: 'grid', placeItems: 'center', textAlign: 'center', padding: 24 }}>
+      <div>
+        <h1 style={{ margin: '0 0 8px' }}>Page not found</h1>
+        <p style={{ margin: '0 0 18px', color: '#585c7e' }}>The page you are looking for does not exist or has moved.</p>
+        <Link to="/" style={{ color: '#5b6bff', fontWeight: 700 }}>Go to home</Link>
+      </div>
+    </main>
+  );
+}
+
 // `/my-deals` serves two things: the "My Deals" hub (all deals + invites + bids)
 // and, when opened with ?campaign= / ?deal=, the single-deal Deal Room. Keeping
 // one path means every existing Deal Room deep link and notification keeps working.
@@ -421,6 +435,11 @@ function App() {
             <Route path="/auth" element={<Auth />} />
             <Route path="/team/accept" element={<TeamAccept />} />
             <Route path="/creator/signup" element={<CreatorSignup />} />
+            {/* Public legal pages: the mobile app links to these paths. */}
+            <Route path="/privacy-policy" element={<LegalPage docId="privacy" />} />
+            <Route path="/terms" element={<LegalPage docId="terms" />} />
+            <Route path="/community-guidelines" element={<LegalPage docId="guidelines" />} />
+            <Route path="/cookie-policy" element={<LegalPage docId="cookies" />} />
             <Route
               path="/profile-setup/creator"
               element={
@@ -920,6 +939,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route path="*" element={<NotFound />} />
           </Routes>
           </RouteLoadingBoundary>
         </AuthProvider>

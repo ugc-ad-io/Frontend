@@ -21,6 +21,8 @@ const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-GB', { day: 'nume
 const STATUS = {
   active: { badge: 'Live', cls: 'live', pct: 40 },
   in_progress: { badge: 'Live', cls: 'live', pct: 60 },
+  // Script is attached and waiting for the brand: it must not read "Live" (the confirm action is on the detail page).
+  awaiting_brand_confirmation: { badge: 'Script Ready', cls: 'pending', pct: 30 },
   work_submitted: { badge: 'In Review', cls: 'review', pct: 78 },
   completed: { badge: 'Completed', cls: 'done', pct: 100 },
   draft: { badge: 'Draft', cls: 'draft', pct: 0 },
@@ -35,7 +37,7 @@ const STATUS = {
 const TABS = [
   { key: 'all', label: 'All Campaigns', match: () => true },
   { key: 'pending', label: 'Pending', match: (s) => s === 'pending_approval' },
-  { key: 'live', label: 'Live', match: (s) => ['active', 'in_progress'].includes(s) },
+  { key: 'live', label: 'Live', match: (s) => ['active', 'in_progress', 'awaiting_brand_confirmation'].includes(s) },
   { key: 'review', label: 'In Review', match: (s) => s === 'work_submitted' },
   { key: 'completed', label: 'Completed', match: (s) => s === 'completed' },
   { key: 'hold', label: 'On Hold', match: (s) => s === 'paused' },

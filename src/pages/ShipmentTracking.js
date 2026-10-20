@@ -81,8 +81,8 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
   // Upload a real file to the backend and return its stored URL.
   const uploadFile = async (file) => {
     // Fail fast on oversized clips rather than after a full multipart upload.
-    if (file?.type?.startsWith('video/') && file.size > 100 * 1024 * 1024) {
-      throw new Error('Video is too large. Maximum 100MB.');
+    if (file?.type?.startsWith('video/') && file.size > 400 * 1024 * 1024) {
+      throw new Error('Video is too large. Maximum 400MB.');
     }
     const form = new FormData();
     form.append('file', file);

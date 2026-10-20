@@ -5,6 +5,7 @@ import CreatorProfileModal from '../components/CreatorProfileModal';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
+import { DEFAULT_NOTIF, DEFAULT_PRIVACY, mergeNotif, mergePrivacy, persistPrefs } from '../utils/creatorPrefs';
 import {
   User,
   UserX,
@@ -187,6 +188,8 @@ const BRAND_TABS = [
   { id: 'billing', label: 'Billing', icon: CreditCard },
   { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'privacy', label: 'Privacy & Security', icon: Shield },
+  // Password + 2FA panel (renderBrandPanel's fallthrough); it had no tab, so brands could not open it.
+  { id: 'security', label: 'Security', icon: Lock },
   { id: 'follow', label: 'Follow Us', icon: Heart }
 ];
 
@@ -221,7 +224,7 @@ const CREATOR_PRIVACY_ROWS = [
 
 
 // Legal / policy documents - shown in-app in a modal card when opened.
-const LEGAL_DOCS = [
+export const LEGAL_DOCS = [
   {
     id: 'privacy', name: 'Privacy Policy', desc: 'How we collect, use and protect your data', icon: Shield, updated: 'July 2026',
     sections: [
@@ -268,11 +271,6 @@ const LEGAL_DOCS = [
     ],
   },
 ];
-
-const readLS = (key, fallback) => {
-  try { const v = JSON.parse(localStorage.getItem(key)); return v && typeof v === 'object' ? { ...fallback, ...v } : fallback; }
-  catch { return fallback; }
-};
 
 const defaultBrandProfile = {
   brand_name: '',
@@ -396,26 +394,29 @@ export default function ProfileSettings() {
   // Policy strikes / account standing (applies to creators and brands alike).
   const [warnings, setWarnings] = useState(null);
 
-  // Creator preferences (persisted locally until a backend endpoint exists)
-  const [creatorNotif, setCreatorNotif] = useState(() => readLS('ugc_creator_notif', {
-    brief_matches: true, bid_updates: true, messages: true, payout_alerts: true, weekly_digest: false,
-  }));
-  const [privacy, setPrivacy] = useState(() => readLS('ugc_creator_privacy', {
-    public_profile: true, show_earnings: false, allow_messages: true,
-  }));
+  // Preferences live on the server (GET /auth/me, PUT /profile/preferences). `saved*` is the
+  // last server-confirmed copy, used to roll the toggles back when a save fails.
+  const [creatorNotif, setCreatorNotif] = useState(DEFAULT_NOTIF);
+  const [privacy, setPrivacy] = useState(DEFAULT_PRIVACY);
+  const [savedNotif, setSavedNotif] = useState(DEFAULT_NOTIF);
+  const [savedPrivacy, setSavedPrivacy] = useState(DEFAULT_PRIVACY);
+  // False until /auth/me answered: saving defaults over real server prefs must not be possible.
+  const [prefsLoaded, setPrefsLoaded] = useState(false);
 
   const [legalDoc, setLegalDoc] = useState(null);
   const [accountAction, setAccountAction] = useState(null);
-  const saveCreatorNotif = async () => {
-    localStorage.setItem('ugc_creator_notif', JSON.stringify(creatorNotif));
-    try { await axios.put(`${API}/profile/preferences`, { notification_prefs: creatorNotif }); } catch { /* cached locally */ }
-    toast.success('Notification preferences saved');
+  const putPrefs = (body) => axios.put(`${API}/profile/preferences`, body);
+  const savePrefsGroup = async (key, next, saved, setCurrent, setSaved, okMsg, failMsg) => {
+    if (!prefsLoaded) { toast.error('Your preferences have not loaded yet. Refresh the page and try again.'); return; }
+    const r = await persistPrefs(putPrefs, key, next, saved);
+    setCurrent(r.value);
+    if (r.ok) { setSaved(r.value); toast.success(okMsg); }
+    else toast.error(apiErrorMessage(r.error, failMsg));
   };
-  const savePrivacy = async () => {
-    localStorage.setItem('ugc_creator_privacy', JSON.stringify(privacy));
-    try { await axios.put(`${API}/profile/preferences`, { privacy }); } catch { /* cached locally */ }
-    toast.success('Privacy settings saved');
-  };
+  const saveCreatorNotif = () => savePrefsGroup('notification_prefs', creatorNotif, savedNotif, setCreatorNotif, setSavedNotif,
+    'Notification preferences saved', 'Could not save notification preferences');
+  const savePrivacy = () => savePrefsGroup('privacy', privacy, savedPrivacy, setPrivacy, setSavedPrivacy,
+    'Privacy settings saved', 'Could not save privacy settings');
 
   const confirmDeactivate = async () => {
     try {
@@ -775,6 +776,11 @@ export default function ProfileSettings() {
       }
       setCountry(response.data.country || '');
       setAgeRange(response.data.age_range || '');
+      const n = mergeNotif(response.data.notification_prefs);
+      const p = mergePrivacy(response.data.privacy);
+      setCreatorNotif(n); setSavedNotif(n);
+      setPrivacy(p); setSavedPrivacy(p);
+      setPrefsLoaded(true);
     } catch (error) {
       toast.error('Failed to load profile data');
     }
@@ -897,7 +903,8 @@ export default function ProfileSettings() {
 
     setLoading(true);
     try {
-      await axios.post(`${API}/profile/change-password?old_password=${encodeURIComponent(oldPassword)}&new_password=${encodeURIComponent(newPassword)}`);
+      // JSON body, not the query string: passwords in a URL end up in server and proxy logs.
+      await axios.post(`${API}/profile/change-password`, { old_password: oldPassword, new_password: newPassword });
       toast.success('Password changed successfully!');
       setOldPassword('');
       setNewPassword('');

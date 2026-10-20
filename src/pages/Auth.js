@@ -100,6 +100,9 @@ export default function Auth() {
   const googleBtnRef = useRef(null);
   const roleRef = useRef(role);
   useEffect(() => { roleRef.current = role; }, [role]);
+  // Google credential held while the 2FA step is open: Google proves identity, not the
+  // second factor, so the backend answers {requires_2fa} and we retry with ?totp_token=.
+  const googleCredRef = useRef(null);
 
   // Exchange the Google credential for our own JWT via the backend.
   const handleGoogleCredential = async (response) => {
@@ -109,6 +112,12 @@ export default function Auth() {
         credential: response.credential,
         role: roleRef.current
       });
+      if (data.requires_2fa) {
+        googleCredRef.current = response.credential;
+        setTotpCode('');
+        setView('2fa');
+        return;
+      }
       const { token, ...userData } = data;
       login(token, userData);
       toast.success('Signed in with Google');
@@ -179,6 +188,7 @@ export default function Auth() {
 
       // Login may require a second factor — Python returns {requires_2fa:true} with no token.
       if (isLogin && data.requires_2fa) {
+        googleCredRef.current = null;
         setTotpCode('');
         setView('2fa');
         return;
@@ -208,8 +218,12 @@ export default function Auth() {
     if (totpCode.length !== 6) { toast.error('Enter the 6-digit code'); return; }
     setLoading(true);
     try {
-      const { data } = await axios.post(`${API}/auth/login?totp_token=${encodeURIComponent(totpCode)}`, { email, password });
+      const q = `?totp_token=${encodeURIComponent(totpCode)}`;
+      const { data } = googleCredRef.current
+        ? await axios.post(`${API}/auth/google${q}`, { credential: googleCredRef.current, role: roleRef.current })
+        : await axios.post(`${API}/auth/login${q}`, { email, password });
       const { token, ...userData } = data;
+      googleCredRef.current = null;
       login(token, userData);
       toast.success('Welcome back!');
       routeForUser(navigate, userData.role, userData.profile_completed);
@@ -699,7 +713,7 @@ export default function Auth() {
               {loading ? <span className="ap-spinner" /> : 'Verify & sign in'}
             </button>
             <div className="ap-footer">
-              <button type="button" className="ap-toggle" onClick={() => { setView('auth'); setTotpCode(''); }}>
+              <button type="button" className="ap-toggle" onClick={() => { setView('auth'); setTotpCode(''); googleCredRef.current = null; }}>
                 Back to sign in
               </button>
             </div>

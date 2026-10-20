@@ -99,6 +99,7 @@ export default function CreatorKYC() {
   const navigate = useNavigate();
   const [kyc, setKyc] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [saving, setSaving] = useState(false);
   const [pinLookup, setPinLookup] = useState('');
   const [form, setForm] = useState({
@@ -110,12 +111,15 @@ export default function CreatorKYC() {
     pan_doc_url: '', aadhaar_front_url: '', aadhaar_back_url: '',
   });
 
-  useLiveEffect(() => {
+  const loadKyc = () => {
+    setLoadError(false);
     axios.get(`${API}/kyc/me`)
       .then((r) => setKyc(r.data))
-      .catch(() => setKyc({ status: 'not_submitted' }))
+      // A failed load must not look like "not submitted": that would show an empty form over a real submission.
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
-  }, []);
+  };
+  useLiveEffect(loadKyc, []);
 
   useEffect(() => {
     const pin = form.pincode;
@@ -235,6 +239,15 @@ export default function CreatorKYC() {
               <Skeleton width="100%" height={90} radius={12} />
             </div>
             <Skeleton width={200} height={46} radius={12} style={{ marginTop: 24 }} />
+          </div>
+        ) : loadError ? (
+          <div className="kyc-state bad" role="alert">
+            <XCircle size={20} />
+            <div>
+              <strong>Could not load your verification status</strong>
+              <p>Check your connection and try again.</p>
+              <button type="button" className="kyc-back" onClick={() => { setLoading(true); loadKyc(); }}>Retry</button>
+            </div>
           </div>
         ) : (
           <>

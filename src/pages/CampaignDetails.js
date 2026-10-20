@@ -7,6 +7,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import { firstName } from '../utils/displayName';
+import { hireUnfunded, showUnfundedHire, escrowHeldText } from '../utils/hireFunding';
 import { ArrowLeft, User, IndianRupee, Calendar, MessageSquare, Package, Target, CheckCircle, Star } from 'lucide-react';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import '../styles/creator-marketplace.css';
@@ -164,14 +165,23 @@ export default function CampaignDetails({ embedId, onClose }) {
   const handleSelectCreator = async (creatorId) => {
     try {
       const response = await axios.post(`${API}/campaigns/${id}/select-creator?creator_id=${creatorId}`);
-      const held = Number(response.data?.amount) || 0;
+      const who = firstName({ nickname: response.data.creator_nickname }, 'Creator');
+      const heldText = escrowHeldText(response.data);
+      const unfunded = hireUnfunded(response.data);
       // A multi-creator brief with slots still open: stay so the brand can keep hiring.
       if (slotsLeft(campaign) > 1) {
-        toast.success(`${firstName({ nickname: response.data.creator_nickname }, 'Creator')} hired - ₹${held.toLocaleString('en-IN')} held in escrow. You can hire ${slotsLeft(campaign) - 1} more.`);
+        if (unfunded) showUnfundedHire(toast, response.data, who, navigate);
+        else toast.success(`${who} hired - ${heldText} You can hire ${slotsLeft(campaign) - 1} more.`);
         await fetchCampaign();
         return;
       }
-      toast.success(`🎉 ${firstName({ nickname: response.data.creator_nickname }, 'Creator')} selected! Payment of ₹${held.toLocaleString('en-IN')} held in escrow. Opening chat...`);
+      // A short wallet still hires; prompt to fund and stay here instead of opening chat.
+      if (unfunded) {
+        showUnfundedHire(toast, response.data, who, navigate);
+        await fetchCampaign();
+        return;
+      }
+      toast.success(`🎉 ${who} selected! ${heldText} Opening chat...`);
 
       // Wait a moment for the toast to be visible
       await new Promise(resolve => setTimeout(resolve, 1500));

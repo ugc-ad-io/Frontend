@@ -14,7 +14,7 @@ import {
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import ChatPopup from '../components/ChatPopup';
 import RevisionRequestModal from '../components/RevisionRequestModal';
-import VideoReviewModal, { fmtTs } from '../components/VideoReviewModal';
+import VideoReviewModal from '../components/VideoReviewModal';
 import ReviewModal from '../components/ReviewModal';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
@@ -24,6 +24,8 @@ import PhotoOrInitial from '../components/PhotoOrInitial';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 const assetUrl = mediaUrl;
+// Row ids are deal ids ("<campaignId>~<creatorId>" on a multi-creator brief); the campaign page needs the real campaign id.
+const campaignOf = (it) => it.campaignId || String(it.id || '').split('~')[0];
 const isVideo = (u) => /\.(mp4|webm|mov|m4v|avi|mkv)$/i.test(String(u || '').split('?')[0]);
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
 const fmtDur = (s) => { if (!s || !isFinite(s)) return ''; const m = Math.floor(s / 60); const sec = Math.floor(s % 60); return `${m}:${String(sec).padStart(2, '0')}`; };
@@ -199,27 +201,16 @@ export default function BrandWorkReview() {
     if (!revisionFor) return;
     setRevSubmitting(true);
     try {
-      // The modal produces structured { items, notes, deadline_at }; the deal
-      // endpoint takes { feedback, requested_changes }. Flatten the items into a
-      // readable feedback string so nothing is lost.
-      // This deal endpoint only accepts a flat `feedback` string (it never receives
-      // the structured items), so a video comment's timestamp must be baked INTO
-      // the line or it's lost. Format matches _fmt_video_ts() on the server:
-      //   "[must-fix @ 0:04] Re-shoot the intro"
-      const items = payload.items || [];
-      const feedback = [
-        ...items.map((it) => {
-          const ts = Number.isFinite(it.timestamp_seconds) ? ` @ ${fmtTs(it.timestamp_seconds)}` : '';
-          return `[${it.severity || 'must-fix'}${ts}] ${it.description}${it.brief_reference ? ` (ref: ${it.brief_reference})` : ''}`;
-        }),
-        payload.notes ? `\nNotes: ${payload.notes}` : '',
-      ].filter(Boolean).join('\n');
-      // Send ONLY `feedback`. `requested_changes` used to carry the same items again
-      // (raw, without severity) and the backend appends both into one string — so the
-      // creator saw every change twice: "[must-fix] new look" AND "new look".
-      const { data } = await axios.post(`${API}/deals/${revisionFor}/request-revision`, {
-        feedback,
-      });
+      // Same endpoint and body as the app: the structured { items, notes, deadline_at }
+      // goes to /work/{work_id}/request-revision (the deal endpoint only took a flat
+      // `feedback` string and lost the deadline). A work-review row carries the deal id,
+      // so resolve this creator's latest submission first.
+      const row = items.find((i) => i.id === revisionFor);
+      const wid = row?.workId || (row?.campaignId
+        ? (await axios.get(`${API}/work/campaign/${row.campaignId}${row.creatorId ? `?creator_id=${encodeURIComponent(row.creatorId)}` : ''}`).catch(() => null))?.data?.id
+        : null);
+      if (!wid) { toast.error('Could not find the submitted work. Refresh and try again.'); return; }
+      const { data } = await axios.post(`${API}/work/${wid}/request-revision`, payload);
       // Say so when money actually moved — a bare "Revision requested" hid the debit.
       toast.success(data?.paid
         ? `Revision requested - ₹${data.fee_charged} charged. Wallet balance: ₹${Math.round(data.new_balance)}.`
@@ -367,8 +358,8 @@ export default function BrandWorkReview() {
                       className="bwr-cbox bwr-cbox-link"
                       role="button"
                       tabIndex={0}
-                      onClick={() => it.id && navigate(`/dashboard/business/campaign/${it.id}`)}
-                      onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && it.id) navigate(`/dashboard/business/campaign/${it.id}`); }}
+                      onClick={() => it.id && navigate(`/dashboard/business/campaign/${campaignOf(it)}`)}
+                      onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && it.id) navigate(`/dashboard/business/campaign/${campaignOf(it)}`); }}
                     >
                       <span className="bwr-cbox-ic"><FileText size={18} /></span>
                       <div><label>Campaign</label><strong>{it.campaign}</strong></div>
@@ -464,7 +455,7 @@ export default function BrandWorkReview() {
           submitting={revSubmitting}
           freeRemaining={trackers[String(revisionFor)]?.free_revisions_remaining}
           nextFee={trackers[String(revisionFor)]?.next_revision_fee}
-          paidFee={trackers[String(revisionFor)]?.paid_revision_fee || 500}
+          paidFee={trackers[String(revisionFor)]?.paid_revision_fee}
         />
       )}
 
@@ -478,7 +469,7 @@ export default function BrandWorkReview() {
           submitting={revSubmitting}
           freeRemaining={trackers[String(revisionFor)]?.free_revisions_remaining}
           nextFee={trackers[String(revisionFor)]?.next_revision_fee}
-          paidFee={trackers[String(revisionFor)]?.paid_revision_fee || 500}
+          paidFee={trackers[String(revisionFor)]?.paid_revision_fee}
         />
       )}
 

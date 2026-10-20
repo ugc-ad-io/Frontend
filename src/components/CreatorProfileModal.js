@@ -21,7 +21,7 @@ const asList = (...sources) => {
   return [];
 };
 import { apiErrorMessage } from '../utils/apiError';
-import { toggleSavedCreator, isCreatorSaved } from '../utils/savedCreators';
+import { toggleSavedCreator, useSavedCreatorIds } from '../utils/savedCreators';
 import { getProfilePct, getProfileMissing } from '../utils/creatorProfileCompletion';
 import { Skeleton } from './Skeleton';
 import { s3Preview } from '../utils/mediaPreview';
@@ -274,7 +274,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('videos');
-  const [saved, setSaved] = useState(() => isCreatorSaved(id));
+  const saved = useSavedCreatorIds(viewer?.role === 'business').has(String(id));
 
   // ── Own-profile editing (only when `editable`) ──────────────────────────────
   const [editing, setEditing] = useState(false);
@@ -860,14 +860,9 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
             <button
               type="button"
               className={`cpm-save ${saved ? 'is-saved' : ''}`}
-              onClick={() => {
-                const now = toggleSavedCreator({
-                  id: id || data?.id, name, public_creator_id: publicId, photo: avatar, banner,
-                  category: hlCategory, price: hlPrice, location: [city, country].filter(Boolean).join(', '),
-                  deliverables, delivery: hlDelivery,
-                });
-                setSaved(now);
-                toast.success(now ? 'Creator saved to your list' : 'Removed from saved');
+              onClick={async () => {
+                const now = await toggleSavedCreator({ id: id || data?.id });
+                if (now !== saved) toast.success(now ? 'Creator saved to your list' : 'Removed from saved');
               }}
               aria-label={saved ? 'Saved' : 'Save creator'}
               title={saved ? 'Saved' : 'Save creator'}

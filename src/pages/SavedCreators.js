@@ -8,27 +8,26 @@ import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
 import { ReelCard } from './BrandCreators';
-import { getSavedCreators, toggleSavedCreator } from '../utils/savedCreators';
+import { removeSavedCreator, useSavedCreatorIds, loadSavedCreators, isSavedCreatorsLoaded } from '../utils/savedCreators';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
 export default function SavedCreators() {
   const navigate = useNavigate();
-  const [saved, setSaved] = useState(() => getSavedCreators());
+  // The server stores only creator ids (shared by the brand team); the hook keeps
+  // them live and optimistic. Newest save first, matching the old localStorage order.
+  const savedIds = useSavedCreatorIds();
+  const saved = useMemo(() => [...savedIds].reverse(), [savedIds]);
   // Full creator directory keyed by id — gives the reel/video + all the fields the
-  // shared ReelCard needs. The saved record is only a lightweight snapshot (name,
-  // photo, category, price), so on its own it can't show a video; we look each
-  // saved creator up in the live directory and fall back to the snapshot if absent.
+  // shared ReelCard needs. We look each saved id up in the live directory and fall
+  // back to a bare card if the creator is no longer listed (so it can still be removed).
   const [dir, setDir] = useState({});
+  const [ready, setReady] = useState(false);   // saved ids + directory both answered
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const [videoCard, setVideoCard] = useState(null);   // expanded reel modal
   const [isPhone, setIsPhone] = useState(false);
-
-  useLiveEffect(() => {
-    const sync = () => setSaved(getSavedCreators());
-    window.addEventListener('ugc-saved-creators-changed', sync);
-    return () => window.removeEventListener('ugc-saved-creators-changed', sync);
-  }, []);
 
   // Track phone width so the cloned loop tail only mounts where the sideways track exists.
   useEffect(() => {
@@ -51,28 +50,19 @@ export default function SavedCreators() {
         const map = {};
         list.forEach((c) => { if (c?.id) map[c.id] = c; });
         setDir(map);
-      } catch { /* directory unavailable — fall back to the saved snapshot below */ }
+      } catch { /* directory unavailable — fall back to bare cards below */ }
+      await loadSavedCreators();
+      if (!alive) return;
+      setLoadFailed(!isSavedCreatorsLoaded());
+      setReady(true);
     })();
     return () => { alive = false; };
-  }, []);
+  }, [attempt]);
 
-  // Merge each saved snapshot with its live directory entry. Directory wins (it has
-  // the video + full data); the snapshot is the fallback so a creator who left the
-  // directory still shows, just without a reel.
-  const cards = useMemo(() => saved.map((s) => {
-    const live = dir[s.id];
-    if (live) return live;
-    return {
-      id: s.id,
-      nickname: s.name,
-      name: s.name,
-      profile_photo: s.photo,
-      category: s.category,
-      price: s.price,
-      location_region: s.location,
-      public_creator_id: s.public_creator_id,
-    };
-  }), [saved, dir]);
+  const cards = useMemo(
+    () => saved.map((id) => dir[id] || { id, nickname: 'Creator', name: 'Creator' }),
+    [saved, dir]
+  );
 
   // Phone layout is count-driven: ≤2 → a single row; 3–4 → two rows that still fit
   // one screen; >4 → two rows that overflow and auto-scroll. The cloned tail (for the
@@ -147,12 +137,11 @@ export default function SavedCreators() {
     };
   }, [cards.length, cloneTail.length]);
 
-  const unsave = (e, c) => {
+  const unsave = async (e, c) => {
     e.stopPropagation();
-    // toggleSavedCreator matches on id, so pass the id even when we're holding the
-    // merged/live object rather than the original snapshot.
-    toggleSavedCreator({ id: c.id });
-    toast.success('Removed from saved');
+    // The hook updates optimistically; on failure the util rolls back and toasts.
+    const stillSaved = await removeSavedCreator(c.id);
+    if (!stillSaved) toast.success('Removed from saved');
   };
 
   const viewProfile = (c) => {
@@ -167,7 +156,14 @@ export default function SavedCreators() {
         <p>Creators you bookmarked to revisit or invite to a campaign.</p>
       </div>
 
-      {cards.length ? (
+      {!ready ? (
+        <p className="scr-note">Loading saved creators...</p>
+      ) : loadFailed ? (
+        <div className="scr-note" role="alert">
+          Could not load your saved creators. Check your connection and try again.{' '}
+          <button type="button" onClick={() => { setReady(false); setAttempt((n) => n + 1); }}>Retry</button>
+        </div>
+      ) : cards.length ? (
         <div className={`bc-grid scr-saved${cards.length <= 2 ? ' scr-onerow' : ''}`} ref={gridRef}>
           {cards.map((c) => (
             <div key={c.id} className="scr-reel">
@@ -215,6 +211,8 @@ export default function SavedCreators() {
       <style>{`
         /* Breathing room between the page header and the reel cards. */
         .bc-grid.scr-saved { margin-top: 22px; }
+        .scr-note { margin-top: 22px; color: #6b7280; }
+        .scr-note button { color: #4452f0; font-weight: 600; background: none; border: 0; cursor: pointer; padding: 8px; }
         /* Wrapper just hosts the unsave overlay; the card itself is the shared ReelCard. */
         .scr-reel { position: relative; width: 100%; min-width: 0; }
         .scr-unsave {

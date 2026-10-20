@@ -22,6 +22,7 @@ import WorkReview from './WorkReview';
 import ShipmentTracking from './ShipmentTracking';
 import CreatorProfileModal from '../components/CreatorProfileModal';
 import { payWithRazorpay, isPaymentCancelled } from '../utils/razorpay';
+import { hireUnfunded, showUnfundedHire, escrowHeldText } from '../utils/hireFunding';
 import '../styles/creator-marketplace.css';
 import PhotoOrInitial from '../components/PhotoOrInitial';
 
@@ -977,10 +978,10 @@ export default function BusinessDashboard({ page = 'overview' }) {
     if (!creatorId) { toast.error('Could not identify the creator for this bid.'); return; }
     try {
       const res = await axios.post(`${API}/campaigns/${campaignId}/select-creator?creator_id=${creatorId}`);
-      const charged = Number(res.data?.amount_charged) || 0;
-      toast.success(
-        `🎉 ${firstName({ full_name: res.data?.creator_name, nickname: res.data?.creator_nickname }, 'Creator')} selected! ${charged ? `${formatMoney(charged)} held in escrow.` : 'Payment held in escrow.'}`
-      );
+      const who = firstName({ full_name: res.data?.creator_name, nickname: res.data?.creator_nickname }, 'Creator');
+      // Hiring never blocks on a short wallet; the escrow just isn't funded yet.
+      if (hireUnfunded(res.data)) showUnfundedHire(toast, res.data, who, navigate);
+      else toast.success(`🎉 ${who} selected! ${escrowHeldText(res.data)}`);
       fetchCampaigns();
       fetchWallet();
     } catch (error) {

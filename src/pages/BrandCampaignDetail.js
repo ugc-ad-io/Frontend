@@ -26,6 +26,7 @@ import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
 import { selectedCreators, creatorsWanted, slotsLeft, bidSplitLabel } from '../utils/campaignCreators';
 import { creatorFirstName } from '../utils/displayName';
+import { hireUnfunded, showUnfundedHire, escrowHeldText } from '../utils/hireFunding';
 import PhotoOrInitial from '../components/PhotoOrInitial';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -567,10 +568,12 @@ export default function BrandCampaignDetail() {
       const { data } = await axios.post(`${API}/campaigns/${id}/select-creator?creator_id=${encodeURIComponent(bid.creator_id)}`);
       const who = String(bid.creator_name || bid.creator_nickname || 'Creator').replace(/^@/, '').trim().split(/\s+/)[0] || 'Creator';
       const left = Number(data?.slots_left ?? 0);
-      toast.success(
+      // Hiring never blocks on a short wallet; the escrow just isn't funded yet.
+      if (hireUnfunded(data)) showUnfundedHire(toast, data, who, navigate);
+      else toast.success(
         left > 0
-          ? `${who} selected - the deal has started. ${left} slot${left === 1 ? '' : 's'} still open.`
-          : `${who} selected - the deal has started. This brief is now fully staffed.`
+          ? `${who} selected - the deal has started. ${escrowHeldText(data)} ${left} slot${left === 1 ? '' : 's'} still open.`
+          : `${who} selected - the deal has started. ${escrowHeldText(data)} This brief is now fully staffed.`
       );
       await load();
     } catch (e) {
@@ -648,7 +651,8 @@ export default function BrandCampaignDetail() {
   const hiredIds = selectedCreators(campaign);
   const wanted = creatorsWanted(campaign);
   const openSlots = slotsLeft(campaign);
-  const openBids = bids.filter((b) => !hiredIds.includes(String(b.creator_id)));
+  // A declined bid must not offer Accept again (the app hides it too).
+  const openBids = bids.filter((b) => !hiredIds.includes(String(b.creator_id)) && !['declined', 'rejected'].includes(String(b.status || '').toLowerCase()));
   const campaignDeliver = String(campaign.deliverables || '').split(/[\n;]+/).map((s) => s.trim()).filter(Boolean);
   const briefDeliver = extractDeliverables(campaign.brief_text);
   const deliverList = campaignDeliver.length ? campaignDeliver : briefDeliver;
@@ -1182,7 +1186,7 @@ export default function BrandCampaignDetail() {
           submitting={revSubmitting}
           freeRemaining={deal?.revision_tracker?.free_revisions_remaining}
           nextFee={deal?.revision_tracker?.next_revision_fee}
-          paidFee={deal?.revision_tracker?.paid_revision_fee || 500}
+          paidFee={deal?.revision_tracker?.paid_revision_fee}
         />
       )}
 

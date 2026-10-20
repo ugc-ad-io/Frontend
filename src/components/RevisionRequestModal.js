@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { X, Plus, Trash2, RefreshCw, AlertTriangle } from 'lucide-react';
+import { MAX_REVISION_ITEMS, revisionItemCount, buildRevisionPayload, revisionFeeNotice } from '../utils/revisionPayload';
 
 /**
  * Keep the deal on-platform: brands must not pass the creator phone numbers or
@@ -23,7 +24,7 @@ export function findContactInfo(text) {
  * severity + optional brief reference, optional notes, and a required timeline.
  * onSubmit({ items, notes, deadline_at }) — parent handles the API call.
  */
-export default function RevisionRequestModal({ onClose, onSubmit, submitting = false, freeRemaining, nextFee, paidFee = 500 }) {
+export default function RevisionRequestModal({ onClose, onSubmit, submitting = false, freeRemaining, nextFee, paidFee }) {
   // `severity` and `brief_reference` are no longer chosen by the brand (the
   // toggle + reference input were removed) but stay on each item as fixed
   // defaults so the submitted payload — and the "[must-fix] …" text the creator's
@@ -33,7 +34,9 @@ export default function RevisionRequestModal({ onClose, onSubmit, submitting = f
   const [timeline, setTimeline] = useState('48h');   // '24h' | '48h'
 
   const setItem = (i, patch) => setItems((arr) => arr.map((it, idx) => (idx === i ? { ...it, ...patch } : it)));
-  const addItem = () => setItems((arr) => (arr.length >= 5 ? arr : [...arr, { description: '', severity: 'must-fix', brief_reference: '' }]));
+  // A typed note is sent as an item too, so it takes one of the five slots.
+  const used = revisionItemCount(items.length, notes);
+  const addItem = () => setItems((arr) => (revisionItemCount(arr.length, notes) >= MAX_REVISION_ITEMS ? arr : [...arr, { description: '', severity: 'must-fix', brief_reference: '' }]));
   const removeItem = (i) => setItems((arr) => (arr.length <= 1 ? arr : arr.filter((_, idx) => idx !== i)));
 
   // Scan every free-text field the brand can type into for phone/email.
@@ -45,10 +48,13 @@ export default function RevisionRequestModal({ onClose, onSubmit, submitting = f
     if (contactHit) return; // hard block — server rejects it too
     const hours = timeline === '24h' ? 24 : 48;
     const deadline_at = new Date(Date.now() + hours * 3600 * 1000).toISOString();
-    onSubmit({ items: clean, notes: notes.trim().slice(0, 500), deadline_at });
+    if (revisionItemCount(clean.length, notes) > MAX_REVISION_ITEMS) return;
+    onSubmit(buildRevisionPayload(clean.map((it) => ({ description: it.description })), notes, deadline_at));
   };
 
-  const canSubmit = items.some((it) => it.description.trim()) && !contactHit;
+  const filled = items.filter((it) => it.description.trim()).length;
+  const canSubmit = filled > 0 && revisionItemCount(filled, notes) <= MAX_REVISION_ITEMS && !contactHit;
+  const feeNotice = revisionFeeNotice({ freeRemaining, nextFee, paidFee });
 
   return (
     <div className="rrm-ov" onClick={onClose}>
@@ -62,14 +68,8 @@ export default function RevisionRequestModal({ onClose, onSubmit, submitting = f
           </div>
         </div>
 
-        {typeof nextFee === 'number' && nextFee > 0 && (
-          <div className="rrm-fee">This is a paid revision - ₹{nextFee} will be charged from your wallet (₹300 of it goes to the creator). Include every change you need in this one.</div>
-        )}
-        {freeRemaining === 1 && (
-          <div className="rrm-fee">This is your SECOND revision - the last free one. Put every change you need in this request: from the third revision onward ₹{paidFee} is deducted from your wallet for each revision (₹300 of it goes to the creator).</div>
-        )}
-        {typeof freeRemaining === 'number' && freeRemaining > 1 && (
-          <div className="rrm-free">{freeRemaining} free revisions remaining.</div>
+        {feeNotice && (
+          <div className={feeNotice.kind === 'free' ? 'rrm-free' : 'rrm-fee'}>{feeNotice.text}</div>
         )}
         {contactHit && (
           <div className="rrm-warn">
@@ -79,7 +79,7 @@ export default function RevisionRequestModal({ onClose, onSubmit, submitting = f
         )}
 
         <div className="rrm-body">
-          <label className="rrm-label">Revision items <span>({items.length}/5)</span></label>
+          <label className="rrm-label">Revision items <span>({used}/{MAX_REVISION_ITEMS}{notes.trim() ? ', your note counts as one' : ''})</span></label>
           {items.map((it, i) => (
             <div className="rrm-item" key={i}>
               <div className="rrm-item-top">
@@ -94,7 +94,7 @@ export default function RevisionRequestModal({ onClose, onSubmit, submitting = f
               />
             </div>
           ))}
-          {items.length < 5 && <button type="button" className="rrm-add" onClick={addItem}><Plus size={15} /> Add another item</button>}
+          {used < MAX_REVISION_ITEMS && <button type="button" className="rrm-add" onClick={addItem}><Plus size={15} /> Add another item</button>}
 
           <label className="rrm-label">Additional notes <span>(optional)</span></label>
           <textarea

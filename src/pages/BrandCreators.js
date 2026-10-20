@@ -12,7 +12,7 @@ import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
 import { Skeleton } from '../components/Skeleton';
 import { creatorFirstName } from '../utils/displayName';
-import { toggleSavedCreator, isCreatorSaved } from '../utils/savedCreators';
+import { toggleSavedCreator, useSavedCreatorIds } from '../utils/savedCreators';
 import { toast } from 'sonner';
 import { s3Preview } from '../utils/mediaPreview';
 import PhotoOrInitial from '../components/PhotoOrInitial';
@@ -369,7 +369,7 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
   const [bigPlaying, setBigPlaying] = useState(false);
   const bigRef = useRef(null);
   const thumbsRef = useRef(null); // Recent-work row (mobile auto-scroll)
-  const [saved, setSaved] = useState(() => isCreatorSaved(c.id));
+  const saved = useSavedCreatorIds().has(String(c.id));
   // Keep the large preview idle until hover; on phones, tap a recent-work thumb.
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 560px)').matches);
   useEffect(() => {
@@ -414,15 +414,10 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
     };
   }, [thumbs.length, isMobile]);
 
-  const toggleSave = () => {
-    const now = toggleSavedCreator({
-      id: c.id, name, public_creator_id: c.public_creator_id,
-      photo: c.profile_photo, banner: c.banner,
-      category, price: priceTextOf(c),
-      location: c.city_tier || c.location_region || 'India',
-    });
-    setSaved(now);
-    toast.success(now ? 'Creator saved to your list' : 'Removed from saved');
+  const toggleSave = async () => {
+    const was = saved;
+    const now = await toggleSavedCreator({ id: c.id });
+    if (now !== was) toast.success(now ? 'Creator saved to your list' : 'Removed from saved');
   };
 
   useEffect(() => {

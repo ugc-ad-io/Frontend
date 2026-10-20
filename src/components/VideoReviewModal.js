@@ -2,6 +2,7 @@ import { mediaUrl } from '../utils/mediaUrl';
 import { useState, useRef } from 'react';
 import { X, Trash2, RefreshCw, AlertTriangle, Send, MessageSquare, Play, Pause, Maximize2 } from 'lucide-react';
 import { findContactInfo } from './RevisionRequestModal';
+import { MAX_REVISION_ITEMS, revisionItemCount, buildRevisionPayload, revisionFeeNotice } from '../utils/revisionPayload';
 
 /**
  * Frame.io-style video review. The brand scrubs the submitted video and pins each
@@ -9,10 +10,9 @@ import { findContactInfo } from './RevisionRequestModal';
  * SAME payload as RevisionRequestModal — onSubmit({ items, notes, deadline_at }) —
  * with each item carrying `timestamp_seconds`, so the backend/creator flow is shared.
  *
- * No comment limit: one revision round can carry as many notes as the brand needs.
- * (The 1–5 item cap in request_revision() only guards the structured
- * /work/{id}/request-revision path; this flow posts a flat `feedback` string via
- * the deal endpoint, which has no such limit.)
+ * At most 5 items per request (request_revision() rejects more), and a typed note
+ * is also sent as the last item, so it takes one of the five slots. The payload is
+ * built by buildRevisionPayload() and posted to /work/{id}/request-revision.
  */
 
 export const fmtTs = (s) => {
@@ -21,7 +21,7 @@ export const fmtTs = (s) => {
 };
 
 export default function VideoReviewModal({
-  src, title, onClose, onSubmit, submitting = false, freeRemaining, nextFee, watermark = true,
+  src, title, onClose, onSubmit, submitting = false, freeRemaining, nextFee, paidFee, watermark = true,
   // Read-only mode: the CREATOR opens the brand's review to see exactly where each
   // change is pinned. Comments are pre-loaded; compose/submit are hidden.
   readOnly = false, initialComments = [],
@@ -57,9 +57,13 @@ export default function VideoReviewModal({
     setDraft(value);
   };
 
+  // The note counts as an item, so the visible counter and every cap use this.
+  const itemCount = revisionItemCount(comments.length, notes);
+  const atCap = itemCount >= MAX_REVISION_ITEMS;
+
   const addComment = () => {
     const text = draft.trim();
-    if (!text) return;
+    if (!text || atCap) return;
     const ts = pinned ?? videoRef.current?.currentTime ?? 0;
     setComments((c) => [...c, {
       id: `${Date.now()}-${c.length}`,
@@ -103,6 +107,8 @@ export default function VideoReviewModal({
     (v.requestFullscreen || v.webkitRequestFullscreen || v.webkitEnterFullscreen)?.call(v);
   };
 
+  const feeNotice = revisionFeeNotice({ freeRemaining, nextFee, paidFee });
+
   const ordered = [...comments].sort((a, b) => a.timestamp_seconds - b.timestamp_seconds);
 
   // Resolve the chosen deadline to an ISO timestamp. Custom must be a valid future date.
@@ -119,21 +125,15 @@ export default function VideoReviewModal({
   const contactHit = comments.some((c) => findContactInfo(c.text)) || !!findContactInfo(notes) || !!findContactInfo(draft);
   // A custom deadline must be set and in the future before the brand can send.
   const deadlineValid = deadlineAt != null && (timeline !== 'custom' || new Date(deadlineAt).getTime() > Date.now());
-  const canSubmit = comments.length > 0 && !contactHit && !submitting && deadlineValid;
+  const canSubmit = comments.length > 0 && itemCount <= MAX_REVISION_ITEMS && !contactHit && !submitting && deadlineValid;
 
   const submit = () => {
     if (!canSubmit) return;
-    const items = ordered.map((c) => ({
-      description: c.text,
-      severity: c.severity,
-      brief_reference: '',
-      timestamp_seconds: c.timestamp_seconds,
-    }));
-    onSubmit({
-      items,
-      notes: notes.trim().slice(0, 500),
-      deadline_at: deadlineAt,
-    });
+    onSubmit(buildRevisionPayload(
+      ordered.map((c) => ({ description: c.text, timestamp_seconds: c.timestamp_seconds })),
+      notes,
+      deadlineAt,
+    ));
   };
 
   return (
@@ -204,21 +204,15 @@ export default function VideoReviewModal({
         {/* ── Right: comments ──────────────────────────────────────────── */}
         <div className="vrm-right">
           <div className="vrm-rhead">
-            <span>{readOnly ? 'Requested changes' : 'Comments'}{comments.length > 0 && <b>{comments.length}</b>}</span>
+            <span>{readOnly ? 'Requested changes' : 'Comments'}{comments.length > 0 && <b>{readOnly ? comments.length : `${comments.length}/${MAX_REVISION_ITEMS}`}</b>}</span>
             <button type="button" className="vrm-x" onClick={onClose} aria-label="Close"><X size={18} /></button>
           </div>
 
           {readOnly && (
             <div className="vrm-free">Tap a timestamp to jump to the exact moment the brand marked for a change.</div>
           )}
-          {!readOnly && typeof nextFee === 'number' && nextFee > 0 && (
-            <div className="vrm-fee">Paid revision - ₹{nextFee} will be charged from your wallet (₹300 of it goes to the creator). Include every change you need in this one.</div>
-          )}
-          {!readOnly && freeRemaining === 1 && (
-            <div className="vrm-fee">This is your last free revision - include all your changes now. Every revision after this costs ₹500 (₹300 goes to the creator).</div>
-          )}
-          {!readOnly && typeof freeRemaining === 'number' && freeRemaining > 1 && (
-            <div className="vrm-free">{freeRemaining} free revisions remaining.</div>
+          {!readOnly && feeNotice && (
+            <div className={feeNotice.kind === 'free' ? 'vrm-free' : 'vrm-fee'}>{feeNotice.text}</div>
           )}
           {!readOnly && contactHit && (
             <div className="vrm-warn">
@@ -262,6 +256,10 @@ export default function VideoReviewModal({
             </div>
           ) : (
           <div className="vrm-compose">
+            <div className="vrm-cap" data-testid="vrm-counter" style={itemCount > MAX_REVISION_ITEMS ? { color: '#ff8085' } : undefined}>
+              {itemCount}/{MAX_REVISION_ITEMS} changes{notes.trim() ? ' (your note counts as one)' : ''}
+              {itemCount > MAX_REVISION_ITEMS ? ' - remove one to send' : atCap ? ' - limit reached' : ''}
+            </div>
             <div className="vrm-input">
               <span className="vrm-at">{fmtTs(pinnedAt)}</span>
               <textarea
@@ -271,7 +269,7 @@ export default function VideoReviewModal({
                 onChange={(e) => onDraftChange(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); addComment(); } }}
               />
-              <button type="button" className="vrm-send" onClick={addComment} disabled={!draft.trim()} aria-label="Add comment">
+              <button type="button" className="vrm-send" onClick={addComment} disabled={!draft.trim() || atCap} aria-label="Add comment">
                 <Send size={16} />
               </button>
             </div>
@@ -352,6 +350,7 @@ export default function VideoReviewModal({
           .vrm-free{background:rgba(34,165,101,.15);color:#4ade80}
           .vrm-warn{display:flex;gap:8px;align-items:flex-start;background:rgba(229,72,77,.15);color:#ff8085}
           .vrm-warn svg{flex:none;margin-top:1px}
+          .vrm-cap{margin:0 0 8px;color:#9ba0c9;font-size:11.5px;font-weight:700}
           .vrm-list{flex:1;min-height:0;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
           .vrm-empty{margin:auto;text-align:center;color:#6f74a0;padding:20px}
           .vrm-empty p{display:flex;align-items:center;justify-content:center;gap:8px;margin:0 0 6px;color:#9ba0c9;font-weight:600;font-size:14px}

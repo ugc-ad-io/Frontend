@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Bookmark, X } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import '../styles/creator-marketplace.css';
+import '../styles/brand-mobile.css';
 import EmptyState from '../components/EmptyState';
 import { ReelCard } from './BrandCreators';
 import { removeSavedCreator, useSavedCreatorIds, loadSavedCreators, isSavedCreatorsLoaded } from '../utils/savedCreators';
@@ -25,6 +26,7 @@ export default function SavedCreators() {
   const [dir, setDir] = useState({});
   const [ready, setReady] = useState(false);   // saved ids + directory both answered
   const [loadFailed, setLoadFailed] = useState(false);
+  const [dirFailed, setDirFailed] = useState(false);   // creator details (video, name) did not load
   const [attempt, setAttempt] = useState(0);
   const [videoCard, setVideoCard] = useState(null);   // expanded reel modal
   const [isPhone, setIsPhone] = useState(false);
@@ -50,7 +52,12 @@ export default function SavedCreators() {
         const map = {};
         list.forEach((c) => { if (c?.id) map[c.id] = c; });
         setDir(map);
-      } catch { /* directory unavailable — fall back to bare cards below */ }
+        setDirFailed(false);
+      } catch {
+        // Directory unavailable: bare cards below still let a creator be opened or removed,
+        // but say so, otherwise every card silently reads "Creator" with no video.
+        if (alive) setDirFailed(true);
+      }
       await loadSavedCreators();
       if (!alive) return;
       setLoadFailed(!isSavedCreatorsLoaded());
@@ -164,6 +171,13 @@ export default function SavedCreators() {
           <button type="button" onClick={() => { setReady(false); setAttempt((n) => n + 1); }}>Retry</button>
         </div>
       ) : cards.length ? (
+        <>
+        {dirFailed && (
+          <div className="scr-note" role="status">
+            Creator details could not be loaded, so some cards may look blank.{' '}
+            <button type="button" onClick={() => { setReady(false); setAttempt((n) => n + 1); }}>Retry</button>
+          </div>
+        )}
         <div className={`bc-grid scr-saved${cards.length <= 2 ? ' scr-onerow' : ''}`} ref={gridRef}>
           {cards.map((c) => (
             <div key={c.id} className="scr-reel">
@@ -189,6 +203,7 @@ export default function SavedCreators() {
             </div>
           ))}
         </div>
+        </>
       ) : (
         <EmptyState
           title="No saved creators yet"
@@ -212,7 +227,7 @@ export default function SavedCreators() {
         /* Breathing room between the page header and the reel cards. */
         .bc-grid.scr-saved { margin-top: 22px; }
         .scr-note { margin-top: 22px; color: #6b7280; }
-        .scr-note button { color: #4452f0; font-weight: 600; background: none; border: 0; cursor: pointer; padding: 8px; }
+        .scr-note button { color: #4452f0; font-weight: 600; background: none; border: 0; cursor: pointer; padding: 8px; min-height: 44px; }
         /* Wrapper just hosts the unsave overlay; the card itself is the shared ReelCard. */
         .scr-reel { position: relative; width: 100%; min-width: 0; }
         .scr-unsave {

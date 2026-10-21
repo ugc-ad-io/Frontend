@@ -241,3 +241,169 @@ main,
    admin/rail classname used in the app (hsr). */
 .lp-root .hsr { display: none !important; }
 
+
+/* ── Phone / PWA foundation (QA pass) ────────────────────────────────────────
+   Spacing scale: use these tokens (4/8/12/16/24/32) instead of one-off pixel values.
+   --sa-* are the safe-area insets (notch, rounded corners, home bar). The viewport is
+   viewport-fit=cover (index.html), so a fixed header/bottom bar/sheet must add them
+   itself. Inside the native app the shell already pads, so they are 0 there. */
+:root {
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 24px;
+    --space-6: 32px;
+    --sa-top: env(safe-area-inset-top, 0px);
+    --sa-right: env(safe-area-inset-right, 0px);
+    --sa-bottom: env(safe-area-inset-bottom, 0px);
+    --sa-left: env(safe-area-inset-left, 0px);
+}
+html.in-native-app {
+    --sa-top: 0px;
+    --sa-right: 0px;
+    --sa-bottom: 0px;
+    --sa-left: 0px;
+}
+
+/* No sideways scroll anywhere. `hidden` is the fallback for browsers without `clip`
+   (App.css loads after this file and upgrades html/body to `clip`, which keeps
+   position:sticky working). */
+html {
+    overflow-x: hidden;
+    max-width: 100%;
+}
+body {
+    min-height: 100vh; /* fallback */
+    min-height: 100dvh;
+}
+img,
+video,
+canvas {
+    max-width: 100%;
+}
+/* Long words, emails and URLs wrap instead of pushing the page wider than the screen. */
+h1, h2, h3, h4, h5, h6, p, li, a, label, td, th {
+    overflow-wrap: break-word;
+}
+/* Removes the 300ms double-tap-zoom delay on every tap target. */
+a, button, [role="button"], input, select, textarea, label, summary {
+    touch-action: manipulation;
+}
+
+/* iOS Safari zooms the whole page when a focused field has a font-size under 16px, and
+   never zooms back out. 16px on every text-entry control at phone/tablet widths stops that.
+   !important because many pages set their own 13-15px size on inputs in page-level CSS. */
+@media (max-width: 768px) {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="image"]):not([type="button"]):not([type="submit"]):not([type="reset"]):not([type="hidden"]),
+    select,
+    textarea {
+        font-size: 16px !important;
+    }
+}
+
+/* Installed app: no rubber-band / pull-to-refresh while the user scrolls a list. */
+@media (display-mode: standalone) {
+    html,
+    body {
+        overscroll-behavior-y: contain;
+    }
+}
+
+/* "A new version is available" bar (created by src/index.js when a new service worker is
+   waiting). Sits above the 80px mobile bottom controls and the home-bar inset. */
+.pwa-update {
+    position: fixed;
+    left: 50%;
+    bottom: calc(var(--space-6) + 48px + var(--sa-bottom));
+    transform: translateX(-50%);
+    z-index: 2147483000;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2) var(--space-3);
+    width: max-content;
+    max-width: calc(100vw - 2 * var(--space-4));
+    padding: var(--space-3) var(--space-4);
+    border-radius: 14px;
+    background: #0a0a47;
+    color: #fff;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+    font: 600 14px/1.4 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+.pwa-update span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.pwa-update button {
+    min-height: 44px;
+    padding: 0 var(--space-4);
+    border: 0;
+    border-radius: 10px;
+    background: #fff;
+    color: #0a0a47;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+.pwa-update .pwa-update__later {
+    background: transparent;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+
+/* ── Installed-app / phone fixes for the shared creator + brand shell ────────────────
+   These sit here (not in creator-marketplace.css) so they apply to every page that uses
+   CreatorTopNavLayout / BrandTopNavLayout. `.cmk-app` in the selector beats the
+   single-class rules in that lazily-loaded stylesheet whichever loads last.
+   iOS keeps the home-indicator bar (~34px) INSIDE the viewport (viewport-fit=cover), so a
+   fixed bottom control must add --sa-bottom or it sits under the bar and can't be tapped. */
+html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+/* Full-screen status screens (offline notice, error boundary): dvh so the address bar never hides the button. */
+.app-full {
+    min-height: 100vh;
+    min-height: 100dvh;
+}
+input, select, textarea {
+    max-width: 100%;
+}
+.cmk-app .cmk-post-fab {
+    right: calc(28px + var(--sa-right));
+    bottom: calc(28px + var(--sa-bottom));
+}
+.cmk-app .cmk-dr-chat-fab {
+    right: calc(26px + var(--sa-right));
+    bottom: calc(26px + var(--sa-bottom));
+}
+@media (max-width: 600px) {
+    .cmk-app .cmk-post-fab {
+        right: calc(16px + var(--sa-right));
+        bottom: calc(16px + var(--sa-bottom));
+    }
+}
+@media (max-width: 900px) {
+    /* The slide-in menu runs to the bottom of the screen: keep its last item (Log out)
+       above the home bar. */
+    .cmk-app .cmk-mobile-menu {
+        padding-bottom: calc(24px + var(--sa-bottom));
+    }
+}
+
+/* Phones: footer links and social buttons on the public pages are text-sized; give them a 44px tap area
+   (the 10px row gap is dropped: 44px links already space the rows). */
+@media (max-width: 768px) {
+    .lp-footer__list a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 44px;
+    }
+    .lp-footer__list { gap: 0; }
+    .lp-footer__social-btn {
+        min-width: 44px;
+        min-height: 44px;
+    }
+}

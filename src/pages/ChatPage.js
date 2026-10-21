@@ -20,6 +20,8 @@ export default function ChatPage() {
   const [otherUser, setOtherUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [warnings, setWarnings] = useState({ warning_count: 0, banned: false });
+  const [loadError, setLoadError] = useState(''); // first load failed: say so instead of "No messages yet"
+  const [sending, setSending] = useState(false);
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const isUserScrolledUp = useRef(false);
@@ -75,10 +77,17 @@ export default function ChatPage() {
   const fetchChatHistory = async () => {
     try {
       const response = await axios.get(`${API}/chat/${userId}`);
-      setMessages(response.data);
-      isUserScrolledUp.current = false;
+      const next = Array.isArray(response.data) ? response.data : [];
+      setLoadError('');
+      // This runs every 3s. Keep the old array when nothing changed so the list does not
+      // re-render and re-scroll, and never reset the "user scrolled up" flag here: that
+      // dragged a reader of older messages back to the bottom on every poll.
+      setMessages((prev) => {
+        const a = prev[prev.length - 1]; const b = next[next.length - 1];
+        return prev.length === next.length && (a?.id || a?.timestamp) === (b?.id || b?.timestamp) ? prev : next;
+      });
     } catch (error) {
-      console.error('Failed to load messages');
+      setLoadError(error?.response ? 'Could not load this conversation.' : "You're offline. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -86,12 +95,13 @@ export default function ChatPage() {
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim()) return;
+    if (!newMessage.trim() || sending) return;
 
+    setSending(true);
     try {
       const response = await axios.post(`${API}/chat/send`, {
         recipient_id: userId,
-        message: newMessage
+        message: newMessage.trim()
       });
 
       if (response.data.filtered) {
@@ -111,6 +121,8 @@ export default function ChatPage() {
       setTimeout(scrollToBottom, 100);
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Failed to send message'));
+    } finally {
+      setSending(false);
     }
   };
 
@@ -118,7 +130,7 @@ export default function ChatPage() {
     <div className="chat-page">
       <div className="chat-container">
         <div className="chat-header">
-          <button className="back-btn" onClick={() => navigate(-1)} data-testid="back-btn">
+          <button type="button" className="back-btn" aria-label="Back" onClick={() => navigate(-1)} data-testid="back-btn">
             <ArrowLeft size={20} />
           </button>
           <div className="chat-user-info">
@@ -144,6 +156,11 @@ export default function ChatPage() {
         <div className="chat-messages" data-testid="chat-messages" ref={messagesContainerRef} onScroll={handleScroll}>
           {loading ? (
             <div className="loading">Loading messages...</div>
+          ) : loadError && messages.length === 0 ? (
+            <div className="empty-chat" role="alert" style={{ flexDirection: 'column', gap: 12, textAlign: 'center' }}>
+              <p>{loadError}</p>
+              <button type="button" className="send-btn" onClick={() => { setLoading(true); fetchChatHistory(); }}>Retry</button>
+            </div>
           ) : messages.length === 0 ? (
             <div className="empty-chat">
               <p>No messages yet. Start the conversation!</p>
@@ -199,8 +216,9 @@ export default function ChatPage() {
             className="chat-input"
             placeholder="Type your message..."
             data-testid="message-input"
+            aria-label="Message"
           />
-          <button type="submit" className="send-btn" data-testid="send-btn">
+          <button type="submit" className="send-btn" data-testid="send-btn" aria-label="Send" disabled={sending || !newMessage.trim()}>
             <Send size={20} />
           </button>
         </form>
@@ -209,6 +227,7 @@ export default function ChatPage() {
       <style>{`
         .chat-page {
           min-height: 100vh;
+          min-height: 100dvh;
           background: linear-gradient(135deg, #f8f9ff 0%, #e8ecff 100%);
           padding: 40px 20px;
           display: flex;
@@ -220,6 +239,8 @@ export default function ChatPage() {
           width: 100%;
           max-width: 900px;
           height: 80vh;
+          height: 80dvh;
+          min-height: 0;
           background: white;
           border-radius: 24px;
           box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
@@ -238,6 +259,10 @@ export default function ChatPage() {
         }
 
         .back-btn {
+          flex: none;
+          min-width: 44px;
+          min-height: 44px;
+          justify-content: center;
           padding: 8px;
           background: #f8f9ff;
           border: 2px solid #e2e8f0;
@@ -256,6 +281,13 @@ export default function ChatPage() {
 
         .chat-user-info {
           flex: 1;
+          min-width: 0;
+        }
+
+        .chat-user-info h2 {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         .chat-user-info h2 {
@@ -278,9 +310,12 @@ export default function ChatPage() {
           background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);
           border: 2px solid #ffc107;
           border-radius: 12px;
-          margin-bottom: 16px;
+          margin: 12px 16px 0;
+          flex: none;
           color: #856404;
         }
+
+        .warning-banner > svg { flex: none; }
 
         .warning-content {
           flex: 1;
@@ -307,6 +342,7 @@ export default function ChatPage() {
 
         .chat-messages {
           flex: 1;
+          min-height: 0;
           overflow-y: auto;
           padding: 24px;
           display: flex;
@@ -340,7 +376,9 @@ export default function ChatPage() {
           max-width: 70%;
           padding: 12px 16px;
           border-radius: 16px;
-          word-wrap: break-word;
+          min-width: 0;
+          overflow-wrap: anywhere;
+          white-space: pre-wrap;
         }
 
         .message.own .message-bubble {
@@ -421,6 +459,7 @@ export default function ChatPage() {
         .chat-input-form {
           display: flex;
           gap: 12px;
+          flex: none;
           padding: 20px 24px;
           background: white;
           border-top: 2px solid #e2e8f0;
@@ -428,6 +467,7 @@ export default function ChatPage() {
 
         .chat-input {
           flex: 1;
+          min-width: 0;
           padding: 12px 16px;
           border: 2px solid #e2e8f0;
           border-radius: 12px;
@@ -441,7 +481,12 @@ export default function ChatPage() {
           border-color: #667eea;
         }
 
+        .send-btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; box-shadow: none; }
+
         .send-btn {
+          min-width: 48px;
+          min-height: 48px;
+          justify-content: center;
           padding: 12px 20px;
           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
           color: white;
@@ -465,7 +510,35 @@ export default function ChatPage() {
 
           .chat-container {
             height: 100vh;
+            height: 100dvh;
             border-radius: 0;
+          }
+
+          .chat-header {
+            padding: 12px 12px 12px max(12px, env(safe-area-inset-left));
+          }
+
+          /* The policy text is long: keep it small so the conversation keeps the screen. */
+          .warning-banner {
+            margin: 8px 12px 0;
+            padding: 10px 12px;
+            max-height: 30vh;
+            overflow-y: auto;
+          }
+
+          .warning-content {
+            font-size: 0.78rem;
+            line-height: 1.4;
+          }
+
+          .chat-messages {
+            padding: 16px 12px;
+            gap: 12px;
+          }
+
+          .chat-input-form {
+            gap: 8px;
+            padding: 10px 12px max(10px, env(safe-area-inset-bottom));
           }
 
           .message-bubble {

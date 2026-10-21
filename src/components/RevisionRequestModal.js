@@ -152,6 +152,23 @@ export default function RevisionRequestModal({ onClose, onSubmit, submitting = f
           .rrm-cancel{border:1px solid #e6e8f3;background:#fff;color:#15163a;border-radius:30px;padding:11px 20px;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit}
           .rrm-submit{border:none;background:linear-gradient(100deg,#12124f,#07074e);color:#fff;border-radius:30px;padding:11px 22px;font-weight:800;font-size:13.5px;cursor:pointer;font-family:inherit;box-shadow:0 12px 26px -12px rgba(7,7,78,.7)}
           .rrm-submit:disabled{opacity:.5;cursor:not-allowed}
+          .rrm-ov{height:100vh;height:100dvh;overscroll-behavior:contain}
+          .rrm-head{padding-right:60px}
+          @media (max-width:768px){
+            .rrm-ov{padding:max(12px,env(safe-area-inset-top,0px)) 12px max(12px,env(safe-area-inset-bottom,0px))}
+            .rrm{display:flex;flex-direction:column;max-height:calc(100vh - 24px);max-height:calc(100dvh - 24px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
+            .rrm-body{flex:1;min-height:0;max-height:none;overflow:auto;padding:16px}
+            .rrm-head,.rrm-fee,.rrm-free,.rrm-warn,.rrm-foot{flex:none}
+            .rrm-head{padding:18px 16px 12px;padding-right:64px}
+            .rrm-fee,.rrm-free,.rrm-warn{margin-left:16px;margin-right:16px}
+            .rrm-foot{padding:12px 16px;flex-wrap:wrap}
+            .rrm-foot button{flex:1 1 140px;min-height:44px}
+            .rrm-x{width:44px;height:44px;top:10px;right:10px}
+            .rrm-del{min-width:44px;min-height:44px;display:grid;place-items:center;padding:0}
+            .rrm-add,.rrm-time button{min-height:44px}
+            .rrm-time button{padding:0 16px}
+            .rrm-item textarea,.rrm-notes{font-size:16px}
+          }
         `}</style>
       </div>
     </div>

@@ -24,6 +24,8 @@ import CreatorProfileModal from '../components/CreatorProfileModal';
 import { payWithRazorpay, isPaymentCancelled } from '../utils/razorpay';
 import { hireUnfunded, showUnfundedHire, escrowHeldText } from '../utils/hireFunding';
 import '../styles/creator-marketplace.css';
+import '../styles/brand-mobile.css';
+import { downloadWalletStatement } from '../utils/walletStatement';
 import PhotoOrInitial from '../components/PhotoOrInitial';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -532,7 +534,7 @@ function formatWalletDate(value) {
 function normalizeWalletData(data = {}) {
   return {
     available_balance: Number(data.available_balance || 0),
-    minimum_chat_balance: Number(data.minimum_chat_balance || 5000),
+    minimum_chat_balance: Number(data.minimum_chat_balance || 2500),
     chat_unlocked: Boolean(data.chat_unlocked),
     plan_name: data.plan_name || 'Brand Starter',
     recharge_bonus: data.recharge_bonus || {},
@@ -601,6 +603,11 @@ export default function BusinessDashboard({ page = 'overview' }) {
   const walletLoadedRef = useRef(false); // true once the wallet has loaded at least once
   const [walletAmount, setWalletAmount] = useState('');
   const [walletFilter, setWalletFilter] = useState('all');
+  const [walletShown, setWalletShown] = useState(8);   // history rows visible; "Show more" adds 20
+  // Last load of the campaign list failed: say so instead of showing "No pending bids" / "No shipments".
+  const [campaignsError, setCampaignsError] = useState('');
+  const [briefsError, setBriefsError] = useState('');
+  const acceptingRef = useRef(false);   // one hire request at a time (it moves money)
   const [txnDetail, setTxnDetail] = useState(null);   // wallet transaction shown in the detail modal
   const [rechargingWallet, setRechargingWallet] = useState(false);
   const [performancePeriod, setPerformancePeriod] = useState('Monthly');
@@ -683,6 +690,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
   const fetchBriefs = async () => {
     setBriefsLoading(true);
+    setBriefsError('');
     try {
       const res = await axios.get(`${API}/business/briefs?t=${Date.now()}`);
       let list = Array.isArray(res.data) ? res.data : [];
@@ -705,7 +713,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
       }
       setBriefs(list);
     } catch (error) {
-      toast.error(apiErrorMessage(error, 'Failed to load sent briefs'));
+      setBriefsError(apiErrorMessage(error, 'Failed to load sent briefs'));
     } finally {
       setBriefsLoading(false);
     }
@@ -730,6 +738,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
       setDashboardData(dashboardRes.data?.metrics ? dashboardRes.data : (dashboardRes.data || null));
       setDrafts((draftsRes.data || []).filter(c => ownsCampaign(user, c)));
+      setCampaignsError('');
 
       // Get work submissions for campaigns with work_submitted status
       const workSubmittedCampaigns = myCampaigns.filter(c => c.status === 'work_submitted');
@@ -746,6 +755,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
       setCompletedCampaigns(myCampaigns.filter(c => c.status === 'completed'));
     } catch (error) {
       console.error('Failed to load campaigns:', error);
+      setCampaignsError(apiErrorMessage(error, 'Could not load your campaigns. Check your connection and try again.'));
       setCampaigns([]);
       setDashboardData(null);
       setWorkSubmissions([]);
@@ -976,8 +986,10 @@ export default function BusinessDashboard({ page = 'overview' }) {
   // the deal's escrow until the content is approved.
   const handleAcceptBid = async (campaignId, creatorId) => {
     if (!creatorId) { toast.error('Could not identify the creator for this bid.'); return; }
+    if (acceptingRef.current) return;
+    acceptingRef.current = true;
     try {
-      const res = await axios.post(`${API}/campaigns/${campaignId}/select-creator?creator_id=${creatorId}`);
+      const res = await axios.post(`${API}/campaigns/${campaignId}/select-creator?creator_id=${encodeURIComponent(creatorId)}`);
       const who = firstName({ full_name: res.data?.creator_name, nickname: res.data?.creator_nickname }, 'Creator');
       // Hiring never blocks on a short wallet; the escrow just isn't funded yet.
       if (hireUnfunded(res.data)) showUnfundedHire(toast, res.data, who, navigate);
@@ -993,6 +1005,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
         return;
       }
       toast.error(apiErrorMessage(error, 'Failed to accept bid'));
+    } finally {
+      acceptingRef.current = false;
     }
   };
 
@@ -1026,9 +1040,14 @@ export default function BusinessDashboard({ page = 'overview' }) {
     if (shipCampaigns.length === 0) return undefined;
     let cancelled = false;
     (async () => {
-      const entries = await Promise.all(shipCampaigns.map(async (c) => {
-        try { const r = await axios.get(`${API}/shipment/${c.id}`); return [c.id, r.data]; }
-        catch { return [c.id, null]; }
+      // A multi-creator brief has one shipment PER hired creator (GET /shipment/{id}?creator_id=).
+      const jobs = shipCampaigns.flatMap((c) => {
+        const ids = selectedCreators(c);
+        return ids.length > 1 ? ids.map((cid) => [`${c.id}~${cid}`, c.id, cid]) : [[c.id, c.id, undefined]];
+      });
+      const entries = await Promise.all(jobs.map(async ([key, cid, creatorId]) => {
+        try { const r = await axios.get(`${API}/shipment/${cid}`, creatorId ? { params: { creator_id: creatorId } } : undefined); return [key, r.data]; }
+        catch { return [key, null]; }
       }));
       if (!cancelled) setShipmentsMap(Object.fromEntries(entries));
     })();
@@ -1453,7 +1472,6 @@ export default function BusinessDashboard({ page = 'overview' }) {
                     <button type="button" onClick={() => navigate('/dashboard/business/post-brief')}><FileCheck size={20} />Post a Brief</button>
                     <button type="button" onClick={() => navigate('/dashboard/business/pending-bids')}><Users size={20} />Creator Bids</button>
                     <button type="button" onClick={() => navigate('/dashboard/business/wallet')}><Wallet size={20} />Top Up Wallet</button>
-                    <button type="button"><IndianRupee size={20} />Download Report</button>
                   </div>
                 </section>
 
@@ -1798,6 +1816,13 @@ export default function BusinessDashboard({ page = 'overview' }) {
                     </div>
                   ))}
                 </div>
+              ) : briefsError && briefs.length === 0 ? (
+                <div className="all-campaigns-empty">
+                  <span><AlertCircle size={48} /></span>
+                  <h3>Couldn't load sent briefs</h3>
+                  <p>{briefsError}</p>
+                  <button className="btn-primary" onClick={() => fetchBriefs()}>Try again</button>
+                </div>
               ) : briefs.length === 0 ? (
                 <div className="all-campaigns-empty">
                   <span><Send size={48} /></span>
@@ -1817,7 +1842,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                     const meta = STATUS_META[b.status_bucket] || STATUS_META.sent;
                     const initial = (b.creator_name || 'C').trim().charAt(0).toUpperCase();
                     return (
-                      <div key={b.id} data-testid={`brief-${b.id}`} style={{
+                      <div key={b.id} data-testid={`brief-${b.id}`} className="sb-row" style={{
                         display: 'flex', gap: 14, alignItems: 'flex-start', padding: 16,
                         background: '#fff', border: '1px solid #eef0f5', borderRadius: 14,
                       }}>
@@ -1834,7 +1859,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                             />
                           )}
                         </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className="sb-main" style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 4 }}>
                             <strong style={{ fontSize: 15, color: '#07074E' }}>{String(b.creator_name || 'Creator').trim().split(/\s+/)[0]}</strong>
                             <span style={{ fontSize: 11, fontWeight: 600, color: '#5b6bff', background: '#eef0ff', padding: '2px 8px', borderRadius: 6 }}>{b.type_label}</span>
@@ -1853,7 +1878,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                             </div>
                           )}
                         </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 20, flexShrink: 0, alignItems: 'flex-end' }}>
+                        <div className="sb-side" style={{ display: 'flex', flexDirection: 'column', gap: 20, flexShrink: 0, alignItems: 'flex-end' }}>
                           {/* Status pill lives here (not in the name row) so it doesn't
                               wrap to its own line and push "Video" + the meta down. */}
                           <span style={{
@@ -1888,7 +1913,13 @@ export default function BusinessDashboard({ page = 'overview' }) {
             const current = bidCampaigns.find(c => c.id === bidCampaignId) || bidCampaigns[0];
             return (
             <div className="cb-section">
-              {bidCampaigns.length === 0 ? (
+              {bidCampaigns.length === 0 && campaignsError ? (
+                <div className="empty-state">
+                  <AlertCircle size={64} />
+                  <p>{campaignsError}</p>
+                  <button type="button" className="btn-primary" onClick={() => fetchCampaigns()}>Try again</button>
+                </div>
+              ) : bidCampaigns.length === 0 ? (
                 <div className="empty-state">
                   <Users size={64} />
                   <p>No pending bids at the moment</p>
@@ -2219,6 +2250,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                     <input
                       id="wallet-amount"
                       type="number"
+                      inputMode="numeric"
                       min={walletData.minimum_chat_balance || 2500}
                       value={walletAmount}
                       onChange={(event) => setWalletAmount(event.target.value)}
@@ -2254,7 +2286,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                         key={filter}
                         type="button"
                         className={walletFilter === filter ? 'active' : ''}
-                        onClick={() => setWalletFilter(filter)}
+                        onClick={() => { setWalletFilter(filter); setWalletShown(8); }}
                       >
                         {filter.charAt(0).toUpperCase() + filter.slice(1)}
                       </button>
@@ -2290,7 +2322,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                       <span>Amount</span>
                       <span>Status</span>
                     </div>
-                    {walletTransactions.slice(0, 8).map((transaction) => (
+                    {walletTransactions.slice(0, walletShown).map((transaction) => (
                       <div className={`wallet-row wallet-row--clickable wallet-row--${transaction.direction === 'debit' ? 'out' : 'in'}`} key={transaction.id}
                         role="button" tabIndex={0}
                         onClick={() => setTxnDetail(transaction)}
@@ -2310,6 +2342,19 @@ export default function BusinessDashboard({ page = 'overview' }) {
                         <span data-label="Status" className={`wallet-status ${transaction.status}`}>{transaction.status || 'success'}</span>
                       </div>
                     ))}
+                    {walletTransactions.length > walletShown && (
+                      <button type="button" className="wallet-more" onClick={() => setWalletShown((n) => n + 20)}>
+                        Show more ({walletTransactions.length - walletShown} older)
+                      </button>
+                    )}
+                    {/* No invoice / receipt download exists for brands (a recharge receipt is only emailed),
+                        so the statement is the one record a brand can save. Hidden inside the mobile app's
+                        WebView, which cannot save a blob download. */}
+                    {!window.ReactNativeWebView && (
+                      <button type="button" className="wallet-more wallet-export" onClick={() => downloadWalletStatement(walletTransactions)}>
+                        <Download size={15} /> Download statement (CSV)
+                      </button>
+                    )}
                   </div>
                 )}
               </section>
@@ -2329,6 +2374,9 @@ export default function BusinessDashboard({ page = 'overview' }) {
                       {txnDetail.reference && <div className="txn-r"><span>Campaign / Ref</span><strong>{txnDetail.reference}</strong></div>}
                       <div className="txn-r"><span>Transaction ID</span><strong className="txn-mono">{txnDetail.id}</strong></div>
                     </div>
+                    {txnDetail.direction === 'credit' && /recharge/i.test(String(txnDetail.type)) && (
+                      <p className="txn-note">A payment receipt for this recharge was emailed to your account email when the payment succeeded.</p>
+                    )}
                     {txnDetail.reference && /^[0-9a-f-]{8,}$/i.test(String(txnDetail.reference)) && (
                       <button type="button" className="txn-open" onClick={() => { setTxnDetail(null); setModalView({ type: 'campaign', id: txnDetail.reference }); }}>
                         View campaign
@@ -2343,9 +2391,16 @@ export default function BusinessDashboard({ page = 'overview' }) {
           {activeTab === 'shipments' && (
             <div className="shipments-section">
               {(() => {
-                const ship = campaigns.filter((c) => c.requires_shipment || c.shipment_option === 'yes');
-                const statusOf = (c) => {
-                  const raw = (shipmentsMap[c.id]?.status || '').toLowerCase();
+                const shipCampaigns = campaigns.filter((c) => c.requires_shipment || c.shipment_option === 'yes');
+                // One row per hired creator (a multi-creator brief ships to each of them).
+                const ship = shipCampaigns.flatMap((c) => {
+                  const ids = selectedCreators(c);
+                  return ids.length > 1
+                    ? ids.map((cid) => ({ c, key: `${c.id}~${cid}`, creatorId: cid }))
+                    : [{ c, key: c.id, creatorId: ids[0] }];
+                });
+                const statusOf = (r) => {
+                  const raw = (shipmentsMap[r.key]?.status || '').toLowerCase();
                   if (['delivered', 'received'].includes(raw)) return 'delivered';
                   if (['in_transit', 'shipped'].includes(raw)) return 'transit';
                   return 'pending';
@@ -2358,10 +2413,22 @@ export default function BusinessDashboard({ page = 'overview' }) {
                 const TABS = [['all', 'All Shipments'], ['transit', 'In Transit'], ['delivered', 'Delivered']];
                 const rows = ship.filter((c) => (shipTab === 'all' ? true : statusOf(c) === shipTab));
                 const cr = (id) => creatorDirectory.find((x) => x.id === id) || {};
-                const cname = (c) => { const u = cr(c.selected_creator); const nm = String(u.full_name || u.name || u.nickname || u.username || (c.selected_creator ? 'Creator' : 'Not selected')).replace(/^@+/, '').trim(); return c.selected_creator ? (nm.split(/\s+/)[0] || nm) : nm; };
-                const cinit = (c) => (cname(c).replace('@', '')[0] || 'C').toUpperCase();
-                const cphoto = (c) => cr(c.selected_creator).profile_photo;
+                // creatorDirectory holds NORMALISED items ({ handle, avatar }), not raw profiles, and the hired
+                // creator may not be in it at all - fall back to the name/photo carried on their bid.
+                const bidOf = (r) => (r.c.bids || []).find((b) => String(b.creator_id) === String(r.creatorId)) || {};
+                const cname = (r) => { const nm = String(cr(r.creatorId).handle || bidOf(r).creator_name || bidOf(r).creator_nickname || (r.creatorId ? 'Creator' : 'Not selected')).replace(/^@+/, '').trim(); return r.creatorId ? (nm.split(/\s+/)[0] || nm) : nm; };
+                const cinit = (r) => (cname(r).replace('@', '')[0] || 'C').toUpperCase();
+                const cphoto = (r) => cr(r.creatorId).avatar || bidOf(r).creator_photo || bidOf(r).profile_photo;
 
+                if (campaignsError && campaigns.length === 0) {
+                  return (
+                    <div className="empty-state">
+                      <AlertCircle size={64} />
+                      <p>{campaignsError}</p>
+                      <button type="button" className="btn-primary" onClick={() => fetchCampaigns()}>Try again</button>
+                    </div>
+                  );
+                }
                 if (ship.length === 0) {
                   return (
                     <div className="empty-state">
@@ -2389,26 +2456,27 @@ export default function BusinessDashboard({ page = 'overview' }) {
                           <tr><th>Creator</th><th>Campaign</th><th>Courier</th><th>Tracking ID</th><th>Status</th><th>Est. Delivery</th><th>Action</th></tr>
                         </thead>
                         <tbody>
-                          {rows.map((c) => {
-                            const s = shipmentsMap[c.id];
-                            const st = statusOf(c);
-                            const photo = cphoto(c);
+                          {rows.map((r) => {
+                            const c = r.c;
+                            const s = shipmentsMap[r.key];
+                            const st = statusOf(r);
+                            const photo = cphoto(r);
                             return (
-                              <tr key={c.id} data-testid={`shipment-${c.id}`}>
-                                <td>
+                              <tr key={r.key} data-testid={`shipment-${r.key}`}>
+                                <td data-label="Creator">
                                   <span className="ship-cr">
-                                    <span className="ship-ava"><PhotoOrInitial src={photo ? (photo.startsWith('http') ? photo : `${BACKEND_URL}${photo}`) : ''} initial={cinit(c)} /></span>
-                                    {cname(c)}
+                                    <span className="ship-ava"><PhotoOrInitial src={photo ? (photo.startsWith('http') ? photo : `${BACKEND_URL}${photo}`) : ''} initial={cinit(r)} /></span>
+                                    {cname(r)}
                                   </span>
                                 </td>
-                                <td className="ship-strong">{c.title}</td>
-                                <td>{s?.courier || s?.courier_name || '-'}</td>
-                                <td>{s?.tracking_number || '-'}</td>
-                                <td><span className={`ship-status ${st === 'delivered' || st === 'transit' ? st : (c.selected_creator ? 'ready' : 'awaiting')}`}>{st === 'delivered' ? 'Delivered' : st === 'transit' ? 'In Transit' : (c.selected_creator ? 'Ready to Ship' : 'Awaiting Creator')}</span></td>
-                                <td className="ship-muted">{s?.expected_delivery ? formatDate(s.expected_delivery) : '-'}</td>
+                                <td data-label="Campaign" className="ship-strong">{c.title}</td>
+                                <td data-label="Courier">{s?.courier || s?.courier_name || '-'}</td>
+                                <td data-label="Tracking ID">{s?.tracking_number || '-'}</td>
+                                <td data-label="Status"><span className={`ship-status ${st === 'delivered' || st === 'transit' ? st : (r.creatorId ? 'ready' : 'awaiting')}`}>{st === 'delivered' ? 'Delivered' : st === 'transit' ? 'In Transit' : (r.creatorId ? 'Ready to Ship' : 'Awaiting Creator')}</span></td>
+                                <td data-label="Est. Delivery" className="ship-muted">{s?.expected_delivery ? formatDate(s.expected_delivery) : '-'}</td>
                                 <td className="ship-action">
-                                  {c.selected_creator
-                                    ? <button type="button" onClick={() => setModalView({ type: 'shipment', id: c.id, ship: st !== 'delivered' && st !== 'transit' })}>{st === 'delivered' ? 'View' : st === 'transit' ? 'Track' : 'Ship'}</button>
+                                  {r.creatorId
+                                    ? <button type="button" onClick={() => setModalView({ type: 'shipment', id: c.id, creatorId: selectedCreators(c).length > 1 ? r.creatorId : undefined, ship: st !== 'delivered' && st !== 'transit' })}>{st === 'delivered' ? 'View' : st === 'transit' ? 'Track' : 'Ship'}</button>
                                     : <button type="button" onClick={() => setModalView({ type: 'campaign', id: c.id })}>Select</button>}
                                 </td>
                               </tr>
@@ -7483,7 +7551,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
              sit in ONE ROW, three across, instead of stacking full-width. */
           .wallet-tier-grid,
           .wallet-presets {
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 8px;
           }
           .wallet-tier-grid button,
@@ -7796,6 +7864,83 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .cmk-app .bd-topnav-title h1{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:32px;font-weight:800;letter-spacing:-.6px;color:#15163a}
         .cmk-app .bd-topnav-title p{color:#585c7e;font-size:15px;margin-top:6px}
         .cmk-app .dashboard-content{padding:0;width:auto;max-width:none}
+
+        /* ── Phone / tablet QA pass (brand dashboard pages: wallet, bids, sent briefs, shipments) ── */
+        .wallet-more{display:block;width:100%;margin-top:6px;padding:12px;min-height:44px;border:1px solid #e0e3f0;background:#fff;
+          color:#5b6bff;border-radius:12px;font-family:inherit;font-weight:700;font-size:14px;cursor:pointer}
+        .wallet-more:hover{background:#f7f8ff}
+        .wallet-more.wallet-export{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px}
+        .txn-note{margin:12px 0 0;padding:10px 12px;border-radius:10px;background:#f6f7ff;color:#585c7e;font-size:13px;line-height:1.5}
+        .txn-close{width:44px;height:44px}
+        @media (max-width: 1024px) {
+          .wallet-section { grid-template-columns: minmax(0, 1fr); }
+          .wallet-history-full { grid-column: auto; }
+        }
+        @media (max-width: 768px) {
+          /* 16px inputs: iOS Safari zooms the page on focus below this. */
+          .wallet-amount-input input,
+          .cb-campaign-filter select,
+          .dashboard-content input,
+          .dashboard-content select,
+          .dashboard-content textarea,
+          .modal-content input,
+          .modal-content select,
+          .modal-content textarea { font-size: 16px; }
+          .cmk-app .bd-topnav-title h1 { font-size: 26px; }
+          /* Tap targets >= 44px for the small controls. */
+          .cb-view-profile, .cb-accept, .cb-decline, .cb-view-campaign, .cb-filters, .cb-view-all, .cb-expand,
+          .wallet-filter-tabs button, .wallet-tier-grid button, .wallet-presets button, .wallet-warning button,
+          .ship-tabs button, .ship-action button, .txn-open { min-height: 44px; }
+          .cb-star { min-width: 44px; min-height: 44px; }
+          .cb-expand { width: 44px; height: 44px; }
+          /* Modals: never taller than the visible viewport (dynamic toolbar / keyboard). */
+          .modal-overlay { align-items: flex-start; overflow-y: auto; padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)); }
+          .modal-content { max-height: none; margin: auto; padding: 24px 18px; box-sizing: border-box; }
+          .txn-overlay { padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)); overflow-y: auto; }
+          .txn-modal { max-height: 100%; overflow-y: auto; box-sizing: border-box; }
+          .wallet-amount-input { height: 56px; }
+        }
+        @media (max-width: 640px) {
+          .brand-page-title { min-width: 0; max-width: 100%; }
+          .cmk-app .bd-topnav-title h1 { font-size: 24px; overflow-wrap: anywhere; }
+          .cmk-app .bd-topnav-title p { font-size: 14px; }
+          .cb-campaign-filter { flex-wrap: wrap; }
+          .cb-campaign-filter select { flex: 1 1 100%; min-width: 0; max-width: 100%; }
+          .cb-card { max-width: 100%; }
+          .cb-bid-pitch { overflow-wrap: anywhere; }
+          .wallet-hero-card h2 { font-size: 30px; }
+          .wallet-bal-line { flex-wrap: wrap; gap: 6px 12px; }
+          .wallet-bal-line small { text-align: left; }
+          .wallet-warning button { width: 100%; }
+          .wallet-filter-tabs { width: 100%; }
+          .wallet-filter-tabs button { flex: 1 1 0; }
+          /* Sent Briefs rows: avatar + text on one line, status + action drop under them. */
+          .sb-row { flex-wrap: wrap; }
+          .sb-main { flex: 1 1 calc(100% - 60px) !important; }
+          .sb-side { flex-direction: row !important; flex: 1 1 100%; width: 100%; justify-content: space-between; align-items: center !important; gap: 12px !important; }
+          .sb-side button { min-height: 44px; }
+        }
+        /* Shipments: the 7-column table becomes one card per shipment (no sideways scrolling). */
+        @media (max-width: 760px) {
+          .ship-table-card { overflow: visible; background: transparent; border: 0; box-shadow: none; }
+          .ship-table { min-width: 0 !important; display: block; }
+          .ship-table thead { display: none; }
+          .ship-table tbody { display: grid; gap: 12px; }
+          .ship-table tbody tr { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; background: #fff; border: 1px solid #e9ebf4; border-radius: 16px; padding: 6px 14px 12px; box-shadow: 0 8px 22px -16px rgba(28,30,80,.2); }
+          .ship-table tbody td { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid #f3f4fa; text-align: right; min-width: 0; overflow-wrap: anywhere; }
+          .ship-table tbody td::before { content: attr(data-label); flex: none; color: #9296ba; font-size: 11.5px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; text-align: left; }
+          .ship-table tbody td.ship-action { border-bottom: 0; padding-top: 12px; }
+          .ship-table tbody td.ship-action::before { content: none; }
+          .ship-table tbody td.ship-action button { width: 100%; }
+          .ship-tabs { gap: 18px; overflow-x: auto; max-width: 100%; scrollbar-width: none; }
+          .ship-tabs::-webkit-scrollbar { display: none; }
+          .ship-tabs button { white-space: nowrap; flex: none; }
+        }
+        @media (max-width: 360px) {
+          .wallet-hero-card h2 { font-size: 26px; }
+          .wallet-tier-grid strong { font-size: 12px; }
+          .wallet-tier-grid button, .wallet-presets button { padding-left: 2px; padding-right: 2px; }
+        }
       `}</style>
 
       {chatWith && <ChatPopup user={chatWith} onClose={() => setChatWith(null)} />}
@@ -7804,7 +7949,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
         <PageModal onClose={() => setModalView(null)} bare={modalView.type === 'campaign'} drawer={modalView.type === 'shipment'} maxWidth={modalView.type === 'campaign' ? 900 : modalView.type === 'shipment' ? 560 : 1100}>
           {modalView.type === 'campaign' && <CampaignDetails embedId={modalView.id} onClose={() => setModalView(null)} />}
           {modalView.type === 'review' && <WorkReview embedId={modalView.id} onClose={() => setModalView(null)} />}
-          {modalView.type === 'shipment' && <ShipmentTracking embedCampaignId={modalView.id} autoShip={modalView.ship} onClose={() => setModalView(null)} />}
+          {modalView.type === 'shipment' && <ShipmentTracking embedCampaignId={modalView.id} creatorId={modalView.creatorId} autoShip={modalView.ship} onClose={() => setModalView(null)} />}
         </PageModal>
       )}
 

@@ -48,6 +48,7 @@ export default function DisputeDetailPage() {
   const [dispute, setDispute] = useState(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [loadError, setLoadError] = useState('');
 
   const [message, setMessage] = useState('');
   const [evidence, setEvidence] = useState([]); // uploaded file urls
@@ -58,9 +59,10 @@ export default function DisputeDetailPage() {
     try {
       const { data } = await axios.get(`${API}/disputes/${id}`);
       setDispute(data);
+      setLoadError('');
     } catch (e) {
       if (e?.response?.status === 404) setNotFound(true);
-      else toast.error(apiErrorMessage(e, 'Could not load this dispute'));
+      else setLoadError(e?.response ? apiErrorMessage(e, 'Could not load this dispute') : "You're offline. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -109,10 +111,15 @@ export default function DisputeDetailPage() {
   return (
     <Layout notifications={0}>
       <div className="dd-wrap">
-        <button type="button" className="dd-back" onClick={() => navigate(-1)}><ArrowLeft size={16} /> Back</button>
+        <button type="button" className="dd-back" onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/my-deals'))}><ArrowLeft size={16} /> Back</button>
 
         {loading ? (
           <div className="dd-empty">Loading dispute…</div>
+        ) : loadError && !dispute ? (
+          <div className="dd-empty">
+            <p>{loadError}</p>
+            <button type="button" className="dd-submit" style={{ maxWidth: 220 }} onClick={() => { setLoading(true); load(); }}>Retry</button>
+          </div>
         ) : notFound || !dispute ? (
           <div className="dd-empty">This dispute doesn’t exist or you don’t have access to it.</div>
         ) : (
@@ -217,7 +224,19 @@ export default function DisputeDetailPage() {
       </div>
 
       <style>{`
-        .dd-wrap{max-width:760px;margin:0 auto;padding:8px 4px 40px}
+        .dd-wrap{max-width:760px;margin:0 auto;padding:8px 4px 40px;min-width:0;overflow-wrap:anywhere}
+        .dd-head>div{min-width:0}
+        .dd-kv strong{min-width:0;text-align:right}
+        .dd-back{min-height:44px}
+        .dd-file button{min-width:28px;min-height:28px}
+        .dd-upload{min-height:44px}
+        @media (max-width:560px){
+          .dd-head{flex-wrap:wrap}
+          .dd-head h1{font-size:21px}
+          .dd-req,.dd-card{padding:16px}
+          .dd-wrap .dd-textarea{font-size:16px}
+          .dd-submit{min-height:48px}
+        }
         .dd-back{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:#5b6bff;font:inherit;font-weight:600;cursor:pointer;margin-bottom:14px}
         .dd-empty{padding:60px 20px;text-align:center;color:#6b7094;font-size:14.5px}
         .dd-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:20px}

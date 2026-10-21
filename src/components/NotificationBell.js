@@ -93,7 +93,7 @@ const NotificationBell = () => {
       fetchNotifications();
       fetchUnreadCount();
     } catch (error) {
-      console.error('Failed to mark as read');
+      toast.error(error?.response ? 'Could not update that notification.' : "You're offline. Check your connection and try again.");
     }
   };
 
@@ -103,12 +103,12 @@ const NotificationBell = () => {
       fetchNotifications();
       fetchUnreadCount();
     } catch (error) {
-      console.error('Failed to mark all as read');
+      toast.error(error?.response ? 'Could not mark notifications as read.' : "You're offline. Check your connection and try again.");
     }
   };
 
   const handleNotificationClick = (notification) => {
-    handleMarkAsRead(notification.id);
+    if (!notification.read) handleMarkAsRead(notification.id);
     const target = resolveNotifLink(notification.link);
     if (target) {
       navigate(target);
@@ -137,7 +137,11 @@ const NotificationBell = () => {
   return (
     <div className="notification-bell-container" ref={dropdownRef}>
       <button
+        type="button"
         className="notification-bell-button"
+        aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
+        aria-haspopup="true"
+        aria-expanded={showDropdown}
         onClick={() => {
           setShowDropdown(!showDropdown);
           if (!showDropdown) fetchNotifications();
@@ -205,6 +209,13 @@ const NotificationBell = () => {
               ))
             )}
           </div>
+          <button
+            type="button"
+            className="notification-viewall"
+            onClick={() => { setShowDropdown(false); navigate('/notifications'); }}
+          >
+            View all notifications
+          </button>
         </div>
       )}
 
@@ -215,8 +226,8 @@ const NotificationBell = () => {
 
         .notification-bell-button {
           position: relative;
-          width: 42px;
-          height: 42px;
+          width: 44px;
+          height: 44px;
           display: grid;
           place-items: center;
           background: #fff;
@@ -281,6 +292,7 @@ const NotificationBell = () => {
           display: flex;
           align-items: center;
           gap: 4px;
+          min-height: 44px;
           background: none;
           border: none;
           color: #667eea;
@@ -295,8 +307,26 @@ const NotificationBell = () => {
         }
 
         .notification-list {
-          max-height: 500px;
+          max-height: 470px;
           overflow-y: auto;
+        }
+
+        .notification-viewall {
+          display: block;
+          width: 100%;
+          min-height: 44px;
+          border: 0;
+          border-top: 1px solid #e5e7eb;
+          background: #fff;
+          color: #667eea;
+          font: inherit;
+          font-size: 0.875rem;
+          font-weight: 600;
+          cursor: pointer;
+        }
+
+        .notification-viewall:hover {
+          background-color: #f3f4f6;
         }
 
         .no-notifications {
@@ -363,6 +393,8 @@ const NotificationBell = () => {
 
         .notification-content {
           flex: 1;
+          min-width: 0;
+          overflow-wrap: anywhere;
         }
 
         .notification-content h4 {
@@ -405,6 +437,11 @@ const NotificationBell = () => {
           background: none;
           border: none;
           cursor: pointer;
+          flex-shrink: 0;
+          align-self: flex-start;
+          min-width: 44px;
+          min-height: 44px;
+          margin: -10px -8px -10px 0;
           padding: 4px;
           color: #9ca3af;
           transition: color 0.2s;
@@ -419,16 +456,21 @@ const NotificationBell = () => {
              panel can never hang off the left edge of the screen. */
           .notification-dropdown {
             position: fixed;
-            top: 64px;
-            right: 10px;
-            left: 10px;
+            top: calc(var(--cmk-nav-height, 64px) + 4px);
+            right: max(10px, env(safe-area-inset-right));
+            left: max(10px, env(safe-area-inset-left));
             width: auto;
             margin-top: 0;
-            max-height: calc(100vh - 84px);
+            max-height: calc(100vh - var(--cmk-nav-height, 64px) - 20px);
+            max-height: calc(100dvh - var(--cmk-nav-height, 64px) - 20px);
+            display: flex;
+            flex-direction: column;
           }
 
           .notification-list {
-            max-height: calc(100vh - 148px);
+            flex: 1;
+            min-height: 0;
+            max-height: none;
           }
 
           .notification-item {

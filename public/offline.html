@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0A0A47" />
+<title>You're offline - UGCad.io</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; max-width: 100%; overflow-x: hidden; }
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px max(16px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    background: #0A0A47;
+    color: #fff;
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    text-align: center;
+    -webkit-text-size-adjust: 100%;
+  }
+  main { width: 100%; max-width: 420px; min-width: 0; }
+  img { display: block; width: 88px; height: 88px; margin: 0 auto 24px; border-radius: 20px; object-fit: cover; }
+  h1 { margin: 0 0 8px; font-size: 24px; line-height: 1.2; overflow-wrap: anywhere; }
+  p { margin: 0 0 24px; color: rgba(255, 255, 255, 0.75); overflow-wrap: anywhere; }
+  button {
+    min-height: 48px;
+    padding: 12px 32px;
+    border: 0;
+    border-radius: 999px;
+    background: #fff;
+    color: #0A0A47;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  button:focus-visible { outline: 3px solid #6c7bff; outline-offset: 3px; }
+  #state { margin-top: 16px; min-height: 24px; font-size: 14px; color: rgba(255, 255, 255, 0.65); }
+</style>
+</head>
+<body>
+<main role="main">
+  <img src="/icons/icon-192.png" alt="UGCad.io" width="88" height="88" />
+  <h1>You're offline</h1>
+  <p>UGCad.io needs an internet connection to load your campaigns, chats and earnings. Check your connection and try again.</p>
+  <button type="button" id="retry">Try again</button>
+  <div id="state" role="status" aria-live="polite"></div>
+</main>
+<script>
+  (function () {
+    var state = document.getElementById('state');
+    function go() { window.location.reload(); } // the SW serves this page at the URL that failed, so reload retries that URL
+    document.getElementById('retry').addEventListener('click', function () {
+      if (navigator.onLine === false) { state.textContent = 'Still offline. Reconnect to Wi-Fi or mobile data first.'; return; }
+      state.textContent = 'Reconnecting...';
+      go();
+    });
+    // Come back automatically the moment the connection returns.
+    window.addEventListener('online', go);
+  })();
+</script>
+</body>
+</html>

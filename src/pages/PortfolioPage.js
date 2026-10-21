@@ -23,7 +23,6 @@ import {
   Plus,
   Play,
   Pencil,
-  Bookmark as BookmarkIcon,
   Clock
 } from 'lucide-react';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
@@ -123,10 +122,9 @@ function PortfolioMedia({ url, index, thumbnail = false, demo = false }) {
 const EMPTY_ITEM = { urls: [], title: '', description: '', project_cost: '', project_duration: '' };
 
 // ── DEMO SEED (UI testing only) ──────────────────────────────────────────────
-// Sample videos so the portfolio grid / featured row can be evaluated before the
-// creator has uploaded real work. Only shown when there are < 3 real items.
-// Flip SHOW_DEMO to false (or delete) once you're done checking the UI.
-const SHOW_DEMO = true;
+// Sample videos for evaluating the grid layout. MUST stay false in production: a real
+// creator would otherwise see fake "(Demo)" work on their own portfolio.
+const SHOW_DEMO = false;
 // Vertical UGC sample clips bundled in /public — same-origin, load reliably.
 const DEMO_ITEMS = [
   { urls: ['/7690504-hd_1080_1920_30fps-sm.mp4'], title: 'Skincare Routine (Demo)', _demo: true },
@@ -314,6 +312,9 @@ export default function PortfolioPage() {
   };
 
   const handleRemovePortfolioItem = async (itemIndex) => {
+    if (itemIndex < 0) return;
+    // Removing is permanent: ask first so a stray tap on the small X does not delete work.
+    if (!window.confirm('Remove this item from your portfolio?')) return;
     try {
       const nextPortfolio = portfolio.filter((_, idx) => idx !== itemIndex);
       const saved = await axios.patch(`${API}/profile/portfolio`, nextPortfolio);
@@ -376,7 +377,6 @@ export default function PortfolioPage() {
                         <PortfolioMedia url={item.urls?.[0] || ''} index={index} thumbnail demo={Boolean(item._demo)} />
                         <span className="cmk-pf-feature-shade" />
                         {isVid(item) && <span className="cmk-pf-play"><Play size={24} fill="currentColor" /></span>}
-                        <button type="button" className="cmk-pf-save" aria-label="Save"><BookmarkIcon size={16} /></button>
                         {!item._demo && <button type="button" className="cmk-pf-remove" onClick={() => handleRemovePortfolioItem(realIndex)} aria-label="Remove"><X size={15} /></button>}
                         {item.urls?.length > 1 && <span className="cmk-pf-count">+{item.urls.length - 1}</span>}
                         {item.title && <div className="cmk-pf-feature-cap"><strong>{item.title}</strong></div>}
@@ -395,7 +395,6 @@ export default function PortfolioPage() {
                           <div className="cmk-pf-media">
                             <PortfolioMedia url={item.urls?.[0] || ''} index={index + 3} thumbnail demo={Boolean(item._demo)} />
                             {isVid(item) && <span className="cmk-pf-play"><Play size={22} fill="currentColor" /></span>}
-                            <button type="button" className="cmk-pf-save" aria-label="Save"><BookmarkIcon size={15} /></button>
                             {!item._demo && <button type="button" className="cmk-pf-remove" onClick={() => handleRemovePortfolioItem(realIndex)} aria-label="Remove"><X size={14} /></button>}
                             {item.urls?.length > 1 && <span className="cmk-pf-count">+{item.urls.length - 1}</span>}
                           </div>
@@ -669,8 +668,10 @@ export default function PortfolioPage() {
           display: flex;
           align-items: center;
           justify-content: center;
-          z-index: 1000;
+          z-index: 1400;
           padding: 20px;
+          padding-top: max(20px, env(safe-area-inset-top));
+          padding-bottom: max(20px, env(safe-area-inset-bottom));
         }
 
         .portfolio-modal {
@@ -679,6 +680,7 @@ export default function PortfolioPage() {
           width: 100%;
           max-width: 600px;
           max-height: 90vh;
+          max-height: 90dvh;
           display: flex;
           flex-direction: column;
           overflow: hidden;
@@ -705,7 +707,11 @@ export default function PortfolioPage() {
           cursor: pointer;
           color: #6b7280;
           padding: 4px;
-          border-radius: 4px;
+          border-radius: 8px;
+          min-width: 44px;
+          min-height: 44px;
+          display: grid;
+          place-items: center;
         }
         .portfolio-modal-close:hover { background: #f3f4f6; }
 
@@ -804,8 +810,8 @@ export default function PortfolioPage() {
           background: rgba(0,0,0,0.7);
           color: white;
           border: none;
-          width: 22px;
-          height: 22px;
+          width: 32px;
+          height: 32px;
           border-radius: 50%;
           cursor: pointer;
           display: flex;
@@ -868,10 +874,20 @@ export default function PortfolioPage() {
           cursor: not-allowed;
         }
 
+        /* the base rule above has the same weight as the layout's 16px phone rule and comes later */
+        @media (max-width: 768px) {
+          .portfolio-form-field textarea { font-size: 16px; }
+        }
         @media (max-width: 640px) {
           .portfolio-form-row {
             grid-template-columns: 1fr;
           }
+          .portfolio-modal-header, .portfolio-modal-body, .portfolio-modal-footer { padding-left: 16px; padding-right: 16px; }
+          .portfolio-modal-body { min-width: 0; }
+          .portfolio-form-field input, .portfolio-form-field textarea { font-size: 16px; width: 100%; box-sizing: border-box; }
+          .portfolio-modal-footer { flex-direction: column-reverse; }
+          .portfolio-btn-cancel, .portfolio-btn-save { min-height: 48px; width: 100%; }
+          .portfolio-multi-upload { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
         }
       `}</style>
     </CreatorTopNavLayout>

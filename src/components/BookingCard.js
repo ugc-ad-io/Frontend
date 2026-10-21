@@ -244,6 +244,15 @@ export default function BookingCard({ deal, role, onDone }) {
         .bkc-btn.danger-ghost:hover:not(:disabled) { background:#fef2f2; }
         .bkc-wait { display:flex; align-items:center; gap:9px; font-size:.85rem; color:#475569; line-height:1.5; }
         .bkc-wait b { color:#07074e; }
+        .bkc-wait svg { flex:none; }
+        .bkc-row { gap:12px; }
+        .bkc-row b { text-align:right; overflow-wrap:anywhere; }
+        @media (max-width:768px) {
+          .bkc { padding:16px 14px; }
+          .bkc-actions { justify-content:stretch; }
+          .bkc-btn { flex:1 1 150px; justify-content:center; min-height:44px; }
+          .bkc-form input, .bkc-form textarea { font-size:16px; }
+        }
       `}</style>
     </section>
   );

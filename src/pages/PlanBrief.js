@@ -403,7 +403,7 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
   const proceed = async () => {
     if (!briefComplete) {
       toast.error('Add the brief basics (product, description, hook, key message) first.');
-      setStage('setup');
+      setStage('basics');
       return;
     }
     setSubmitting(true);
@@ -704,6 +704,27 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
               <Field label="Hook / main idea *"><input type="text" value={brief.hook} onChange={setBriefField('hook')} placeholder="The angle that grabs attention in the first 3s" /></Field>
               <Field label="Key message *"><input type="text" value={brief.keyMessage} onChange={setBriefField('keyMessage')} placeholder="The one thing the viewer must take away" /></Field>
               <Field label="Target audience"><textarea rows={2} value={brief.targetAudience} onChange={setBriefField('targetAudience')} placeholder="Who is this for? (age, interests, region)" /></Field>
+              {/* Phone only: the left rail with these controls is hidden below 760px. */}
+              <div className="pb-mobile-delivery">
+                <div className="pb-rail-section">
+                  <p className="pb-rail-label">Delivery date</p>
+                  <div className="pb-date-row">
+                    {dateOptions.map((o) => (
+                      <button type="button" key={o.key} className={dateChoice === o.key ? 'active' : ''} onClick={() => setDateChoice(o.key)}>
+                        <span>{o.label}</span>
+                        <small>{o.sub}</small>
+                      </button>
+                    ))}
+                  </div>
+                  {dateChoice === 'custom' && (
+                    <input type="date" className="pb-date-input" value={customDate} min={isoDay(dayAfter(0))} onChange={(e) => setCustomDate(e.target.value)} />
+                  )}
+                </div>
+                <div className="pb-rail-section">
+                  <p className="pb-rail-label">Delivery slot</p>
+                  <Select value={slot} onChange={setSlot} options={SLOTS} />
+                </div>
+              </div>
             </div>
           </div>
           </>
@@ -868,7 +889,7 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
            header's search bar and Post-a-Campaign button stayed sharp and clickable on
            top of an open modal while everything else behind it was dimmed. */
         .pb-overlay { position: fixed; inset: 0; background: rgba(18,20,46,0.55); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1400; padding: 18px; }
-        .pb-modal { width: min(840px, calc(100% - 32px)); height: min(560px, 88vh); background: #fff; border-radius: 18px; display: grid; grid-template-columns: 250px 1fr; overflow: hidden; box-shadow: 0 30px 70px rgba(15,23,42,0.35); font-family: inherit; }
+        .pb-modal { width: min(840px, calc(100% - 32px)); height: min(560px, 88vh); height: min(560px, 88dvh); background: #fff; border-radius: 18px; display: grid; grid-template-columns: 250px 1fr; overflow: hidden; box-shadow: 0 30px 70px rgba(15,23,42,0.35); font-family: inherit; }
         @media (max-width: 760px) { .pb-modal { width: 100%; } }
         .pb-rail { background: #fafbfd; border-right: 1px solid #eef0f6; padding: 16px; display: flex; flex-direction: column; gap: 14px; overflow: auto; }
         .pb-tabs { display: flex; gap: 18px; border-bottom: 1px solid #eef0f6; }
@@ -1053,7 +1074,38 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
         .pb-summary-total { border-top: 1px solid #f1f5f9; padding-top: 8px; color: #0f172a; font-size: 1.05rem; }
         .pb-summary-total strong { color: #0f172a; }
         @media (max-width: 760px) { .pb-pay-body { grid-template-columns: 1fr; } }
-        @media (max-width: 760px) { .pb-modal { grid-template-columns: 1fr; height: 94vh; } .pb-rail { display: none; } .pb-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 760px) { .pb-modal { grid-template-columns: 1fr; height: 94vh; height: 94dvh; } .pb-rail { display: none; } .pb-grid { grid-template-columns: 1fr; } }
+        .pb-mobile-delivery { display: none; }
+        @media (max-width: 760px) {
+          .pb-mobile-delivery { display: flex; flex-direction: column; gap: 14px; }
+          .pb-overlay { padding: max(10px, env(safe-area-inset-top, 0px)) 10px max(10px, env(safe-area-inset-bottom, 0px)); }
+          .pb-modal { width: 100%; max-width: 100%; border-radius: 16px; }
+          .pb-head { padding: 18px 16px 12px; padding-right: 56px; }
+          .pb-head h2 { font-size: 1.15rem; }
+          .pb-scroll { padding: 16px; }
+          .pb-stepper { padding: 14px 16px 0; padding-right: 56px; gap: 6px; }
+          .pb-stepper-item { padding: 6px 10px 6px 6px; min-height: 36px; }
+          .pb-close { width: 44px; height: 44px; top: 8px; right: 8px; }
+          .pb-footer { padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px)); flex-wrap: wrap; }
+          .pb-footer > button { flex: 1 1 140px; min-height: 44px; padding-left: 16px; padding-right: 16px; }
+          .pb-counter button { width: 40px; height: 40px; }
+          .pb-counter-row { gap: 12px; flex-wrap: wrap; }
+          .pb-video-tabs button, .pb-addon, .pb-rename, .pb-msel__opt { min-height: 44px; }
+          .pb-pay-actions { gap: 12px; flex-wrap: wrap; }
+          .pb-summary { position: static; }
+          .pb-date-row button { min-height: 44px; }
+          .pb-topup-back { padding: 10px; }
+          .pb-topup-x { min-width: 44px; min-height: 44px; display: grid; place-items: center; }
+          .pb-topup-chips button, .pb-topup-go, .pb-topup-alt, .pb-proceed, .pb-goback { min-height: 44px; }
+          .pb-msel__btn, .pb-select select, .pb-field > select, .pb-date-input { min-height: 44px; }
+          .pb-check { min-height: 44px; }
+          .pb-topup-back { padding-bottom: max(10px, env(safe-area-inset-bottom, 0px)); }
+        }
+        /* 16px stops the iOS focus-zoom (tablet widths too). */
+        @media (max-width: 768px) {
+          .pb-field input, .pb-field textarea, .pb-field > select, .pb-select select, .pb-msel__btn,
+          .pb-date-input, .pb-topup-field input { font-size: 16px; }
+        }
       `}</style>
     </BriefOverlay>
   );

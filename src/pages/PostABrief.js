@@ -584,10 +584,6 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
       .then(res => {
         const mapped = mapCampaignToForm(res.data);
         const n = Object.keys(mapped).length;
-        // Diagnostic: how many fields actually carried over. If this is ~1–3, the
-        // source campaign was saved WITHOUT the structured brief (backend wasn't
-        // running the strict:false Campaign model when it was created).
-        console.log('[Duplicate] fields copied:', n, mapped, '\nraw campaign:', res.data);
         // Brand name stays the profile's, never the copied campaign's.
         setForm(current => ({ ...current, ...mapped, brandName: brandFromProfile.current || mapped.brandName || current.brandName }));
         toast.success(`Copied brief loaded - ${n} field${n === 1 ? '' : 's'} carried over. Edit and publish.`);
@@ -1142,8 +1138,12 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
         await axios.post(`${API}/campaigns`, { ...payload, status: 'pending_approval' });
       }
       clearDraftStorage();
-      toast.success('Brief published - creators can see it now');
-      navigate(publishMode === 'invite' ? '/dashboard/business/pending-bids' : '/dashboard/business');
+      // It lands as pending_approval: creators only see it once the team approves it.
+      toast.success('Brief submitted for review - creators can see it once our team approves it');
+      // Close whatever modal hosted the wizard, then land on the campaigns list where the new
+      // brief shows as Pending (/dashboard/business just redirects to Browse Creators).
+      if (onPublished) onPublished();
+      navigate(publishMode === 'invite' ? '/dashboard/business/pending-bids' : '/dashboard/business/all-campaigns');
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Failed to publish brief'));
     } finally {
@@ -1216,7 +1216,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
         <button
           type="button"
           className="btn-secondary"
-          onClick={() => (onClose ? onClose() : navigate(-1))}
+          onClick={() => (onClose ? onClose() : (window.history.state?.idx > 0 ? navigate(-1) : navigate('/dashboard/business/all-campaigns', { replace: true })))}
           style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
         >
           <ChevronLeft size={18} /> Back
@@ -1245,7 +1245,7 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
               type="button"
               className="pab-mobile-back"
               aria-label="Back"
-              onClick={() => (onClose ? onClose() : navigate(-1))}
+              onClick={() => (onClose ? onClose() : (window.history.state?.idx > 0 ? navigate(-1) : navigate('/dashboard/business/all-campaigns', { replace: true })))}
             >
               <ChevronLeft size={21} />
             </button>
@@ -2631,11 +2631,39 @@ const PostABrief = forwardRef(function PostABrief({ embeddedCreatorId = null, on
 
           .brief-panel .pab-tabs-row .pab-tab {
             min-width: 0;
-            padding: 11px 0;
-            font-size: 10.5px;
-            letter-spacing: -0.15px;
-            white-space: nowrap;
+            min-height: 44px;
+            padding: 8px 4px;
+            font-size: 12px;
+            line-height: 1.15;
+            letter-spacing: 0;
+            /* long labels ("Product Description") wrap to two lines instead of shrinking to 10px */
+            white-space: normal;
+            overflow-wrap: anywhere;
           }
+        }
+
+        /* Phones and tablets: 16px fields stop the iOS focus-zoom while filling the wizard. */
+        @media (max-width: 768px) {
+          .input-field,
+          .textarea-field,
+          select.input-field,
+          .brief-list-inputs input { font-size: 16px; }
+          .pab-footer-actions button { min-height: 44px; }
+        }
+
+        /* Confirm-publish dialog: scrolls on short screens (landscape / keyboard) and clears the notch + home bar. */
+        .brief-modal-backdrop {
+          display: flex;
+          overflow-y: auto;
+          padding: max(20px, env(safe-area-inset-top, 0px)) 20px max(20px, env(safe-area-inset-bottom, 0px));
+          box-sizing: border-box;
+        }
+        .brief-modal { margin: auto; box-sizing: border-box; }
+        @media (max-height: 640px) { .brief-modal { transform: none; } }
+        @media (max-width: 480px) {
+          .brief-modal { padding: 22px 18px; }
+          .brief-modal div { flex-wrap: wrap; }
+          .brief-modal div .btn-primary, .brief-modal div .btn-secondary { flex: 1 1 140px; }
         }
       `}</style>
     </div>

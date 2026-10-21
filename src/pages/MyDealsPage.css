@@ -1323,7 +1323,7 @@
 
 .deal-right-tabs {
   display: grid;
-  grid-template-columns: repeat(, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 4px;
   padding: 5px;
   border: 1px solid rgba(226, 232, 240, 0.74);
@@ -1513,7 +1513,7 @@
   z-index: 5;
   width: 188px;
   display: grid;
-  grid-template-columns: repeat(, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 6px;
   padding: 8px;
   border: 1px solid rgba(226, 232, 240, 0.9);
@@ -1773,7 +1773,7 @@
     top: 0;
     z-index: 4;
     display: grid;
-    grid-template-columns: repeat(, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 6px;
     margin-bottom: 14px;
     padding: 6px;

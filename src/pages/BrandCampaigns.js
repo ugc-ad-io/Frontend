@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
+import { toast } from 'sonner';
 import { SlidersHorizontal, Megaphone, Plus, X, Trash2, FileText } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import PostABrief from './PostABrief';
@@ -11,11 +12,12 @@ import { summarizeDeliverables } from '../utils/normalizeBrief';
 import { ownsCampaign } from '../utils/brandWorkspace';
 import { selectedCreators } from '../utils/campaignCreators';
 import { apiErrorMessage } from '../utils/apiError';
+import { budgetLabel } from '../utils/budgetLabel';
 import '../styles/creator-marketplace.css';
+import '../styles/brand-mobile.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
-const inr = (n) => `Rs. ${Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
 
 const STATUS = {
@@ -47,13 +49,16 @@ const TABS = [
 
 function subLine(c) {
   // Hired creators once anyone is hired; before that, how many have bid.
-  const creators = selectedCreators(c).length || (c.bids || []).length;
+  const hired = selectedCreators(c).length;
+  const bidCount = (c.bids || []).length;
+  const creators = hired || bidCount;
   if (c.status === 'draft') return `Draft · Created ${fmtDate(c.createdAt || c.created_at)}`;
   if (c.status === 'completed') return `${creators} creators · Completed`;
   if (c.status === 'work_submitted') return `${creators} creators · Submitted`;
   if (c.status === 'pending_approval') return 'Awaiting approval';
   if (c.status === 'paused') return 'On hold by UGC.ad - contact support for details';
-  return `${creators} ${creators === 1 ? 'creator' : 'creators'} · ${creators ? `${creators} bids` : 'No bids yet'}`;
+  // Bids are counted on their own: once someone is hired, "1 creator · 1 bids" reused the hired count as the bid count.
+  return `${creators} ${creators === 1 ? 'creator' : 'creators'} · ${bidCount ? `${bidCount} ${bidCount === 1 ? 'bid' : 'bids'}` : 'No bids yet'}`;
 }
 
 export default function BrandCampaigns() {
@@ -112,8 +117,8 @@ export default function BrandCampaigns() {
       // Drop it locally so the card disappears immediately, then resync.
       setCampaigns((prev) => prev.filter((x) => (x.id || x._id) !== cid));
       loadCampaigns();
-    } catch {
-      window.alert('Could not delete the draft. Please try again.');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Could not delete the draft. Please try again.'));
     } finally {
       setDeletingId(null);
     }
@@ -303,8 +308,6 @@ export default function BrandCampaigns() {
             // falling back to the brand's profile logo — no more banner cover.
             const coverRaw = c.image_url || c.brand_logo_url || c.logo || '';
             const cover = coverRaw ? (coverRaw.startsWith('http') ? coverRaw : `${BACKEND_URL}${coverRaw}`) : '';
-            const spent = c.escrow_amount || c.budget_min || 0;
-            const total = c.budget_max || c.budget_min || 0;
             const deliv = summarizeDeliverables(c);
             return (
               <article key={c.id || c._id} className="bcam-card" onClick={() => openCampaign(c)}>
@@ -338,7 +341,7 @@ export default function BrandCampaigns() {
                 )}
                 <div className="bcam-divider" />
                 <div className="bcam-foot">
-                  <span className="bcam-budget">{inr(spent)} <small>/ {inr(total)}</small></span>
+                  <span className="bcam-budget" title="Budget per video">{budgetLabel(c.budget_min, c.budget_max)}</span>
                   <button type="button" className="bcam-view" onClick={(e) => { e.stopPropagation(); openCampaign(c); }}>
                     {c.status === 'draft' ? 'Edit' : 'View'}
                   </button>
@@ -406,6 +409,11 @@ export default function BrandCampaigns() {
         .bcam-confirm-ok{padding:9px 16px;border:1px solid #dc2626;background:#dc2626;color:#fff;
           font-size:13px;font-weight:700;border-radius:10px;cursor:pointer;font-family:inherit}
         .bcam-confirm-ok:hover{background:#c11f1f}
+        @media (max-width:768px){
+          .bcam-confirm-overlay{padding-top:max(20px,env(safe-area-inset-top,0px));padding-bottom:max(20px,env(safe-area-inset-bottom,0px))}
+          .bcam-confirm-actions{flex-wrap:wrap}
+          .bcam-confirm-cancel,.bcam-confirm-ok{flex:1 1 130px;min-height:44px;font-size:14px}
+        }
       `}</style>
     </BrandTopNavLayout>
   );

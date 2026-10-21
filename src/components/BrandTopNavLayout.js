@@ -129,8 +129,8 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
           <button type="button" className="brl-gate-btn" onClick={handleLogout}>Back to Home</button>
         </div>
         <style>{`
-          .brl-gate{min-height:100vh;display:grid;place-items:center;padding:24px;background:linear-gradient(160deg,#05050f 0%,#0d0b26 100%)}
-          .brl-gate-card{width:min(560px,100%);padding:48px 40px;border-radius:24px;background:#141420;color:#f4f4f8;text-align:center;border:1px solid rgba(255,255,255,.08);box-shadow:0 24px 60px rgba(0,0,0,.5)}
+          .brl-gate{min-height:100vh;min-height:100dvh;display:grid;place-items:center;padding:max(24px,env(safe-area-inset-top)) max(24px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(24px,env(safe-area-inset-left));background:linear-gradient(160deg,#05050f 0%,#0d0b26 100%)}
+          .brl-gate-card{width:min(560px,100%);padding:48px 40px;box-sizing:border-box;border-radius:24px;background:#141420;color:#f4f4f8;text-align:center;border:1px solid rgba(255,255,255,.08);box-shadow:0 24px 60px rgba(0,0,0,.5)}
           .brl-gate-ic{font-size:44px;line-height:1}
           .brl-gate-eyebrow{margin:16px 0 4px;color:#8b8fb5;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
           .brl-gate-card h1{margin:0 0 12px;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:26px;color:#fff}
@@ -156,7 +156,7 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
       />
       <header ref={headerRef} className={`cmk-nav${mobileOpen ? ' cmk-nav--open' : ''}`}>
         <div className="cmk-wrap cmk-nav-inner">
-          <button type="button" className="cmk-hamburger" aria-label="Menu" onClick={() => setMobileOpen((v) => !v)}>
+          <button type="button" className="cmk-hamburger" aria-label="Menu" aria-expanded={mobileOpen} onClick={() => setMobileOpen((v) => !v)}>
             {mobileOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
           <button type="button" className="cmk-brand" onClick={() => navigate('/dashboard/business/browse-creator')} aria-label="Go to Creators">
@@ -200,7 +200,7 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
 
             <NotificationBell />
 
-            <button type="button" className="cmk-avatar-btn" onClick={() => setMenuOpen((v) => !v)} aria-label="Account menu">
+            <button type="button" className="cmk-avatar-btn" onClick={() => setMenuOpen((v) => !v)} aria-label="Account menu" aria-expanded={menuOpen}>
               <span className="cmk-avatar">
                 {photo ? <img src={photo.startsWith('http') ? photo : `${BACKEND_URL}${photo}`} alt={displayName} /> : getInitial(displayName)}
               </span>

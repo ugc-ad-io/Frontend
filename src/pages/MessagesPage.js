@@ -164,7 +164,8 @@ const avatarColor = (name) => avatarColors[name?.charCodeAt ? (name.charCodeAt(0
 const timeAgo = (timestamp) => {
   if (!timestamp) return '';
   const diff = Date.now() - new Date(timestamp);
-  const mins = Math.floor(diff / 60000);
+  const mins = Math.max(0, Math.floor(diff / 60000));
+  if (mins < 1) return 'now';
   if (mins < 60) return `${mins}m`;
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h`;
@@ -200,6 +201,8 @@ export default function MessagesPage() {
   const [declineReason, setDeclineReason] = useState('');
   const [declineNote, setDeclineNote] = useState('');
   const [loading, setLoading] = useState(true);
+  const [listError, setListError] = useState(''); // conversations could not be loaded (never shown as "No conversations")
+  const [msgError, setMsgError] = useState('');   // the open thread could not be loaded
   const [sending, setSending] = useState(false);
   const [briefTarget, setBriefTarget] = useState(null); // creatorId when the brief wizard is open
   const [headerMenuOpen, setHeaderMenuOpen] = useState(false);
@@ -279,6 +282,7 @@ export default function MessagesPage() {
     // the bottom, and any "user scrolled up" state from the previous chat resets.
     justOpenedRef.current = true;
     userScrolledUpRef.current = false;
+    setMsgError('');
     fetchMessages(selectedId);
     fetchTyping(selectedId);
     const interval = setInterval(() => fetchMessages(selectedId), 3000);
@@ -332,7 +336,7 @@ export default function MessagesPage() {
       const next = new Set(prev);
       if (next.has(selectedId)) next.delete(selectedId); else next.add(selectedId);
       try { localStorage.setItem('ugcad-muted-convs', JSON.stringify([...next])); } catch { /* ignore */ }
-      toast.success(next.has(selectedId) ? 'Notifications muted for this chat' : 'Notifications unmuted');
+      toast.success(next.has(selectedId) ? 'Chat muted on this device' : 'Chat unmuted');
       return next;
     });
     setHeaderMenuOpen(false);
@@ -361,10 +365,11 @@ export default function MessagesPage() {
   const fetchConversations = async () => {
     try {
       const res = await axios.get(`${API}/chat/conversations`);
-      setConversations(res.data);
+      setConversations(Array.isArray(res.data) ? res.data : []);
+      setListError('');
       setLoading(false);
     } catch (err) {
-      console.error('Failed to load conversations');
+      setListError(err?.response ? 'Could not load your conversations.' : "You're offline. Check your connection and try again.");
       setLoading(false);
     }
   };
@@ -372,9 +377,10 @@ export default function MessagesPage() {
   const fetchMessages = async (otherId) => {
     try {
       const res = await axios.get(`${API}/chat/${otherId}`);
-      setMessages(res.data);
+      setMessages(Array.isArray(res.data) ? res.data : []);
+      setMsgError('');
     } catch (err) {
-      console.error('Failed to load messages');
+      setMsgError(err?.response ? 'Could not load this conversation.' : "You're offline. Check your connection and try again.");
     }
   };
 
@@ -897,7 +903,8 @@ export default function MessagesPage() {
           <div className="msg-search">
             <Search size={16} />
             <input
-              type="text"
+              type="search"
+              aria-label="Search messages"
               placeholder="Search messages..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -908,6 +915,7 @@ export default function MessagesPage() {
             {CHAT_FILTERS.map((f) => (
               <button
                 key={f.value}
+                type="button"
                 className={filter === f.value ? 'is-active' : ''}
                 onClick={() => setFilter(f.value)}
               >
@@ -919,36 +927,46 @@ export default function MessagesPage() {
           <div className="msg-conv-list">
             {loading ? (
               <SkeletonList rows={7} />
+            ) : listError && conversations.length === 0 ? (
+              <div role="alert" style={{ padding: '20px', textAlign: 'center', color: '#585c7e' }}>
+                <p style={{ margin: '0 0 12px' }}>{listError}</p>
+                <button type="button" className="msg-action-chip" onClick={() => { setLoading(true); fetchConversations(); }}>Retry</button>
+              </div>
             ) : filteredConversations.length === 0 ? (
-              <div style={{ padding: '20px', textAlign: 'center', color: '#999' }}>No conversations</div>
+              <div style={{ padding: '20px', textAlign: 'center', color: '#999' }}>
+                {conversations.length === 0 ? 'No conversations yet. Messages from brands and creators you work with will appear here.' : 'No conversations match your search or filter.'}
+              </div>
             ) : (
               filteredConversations.map((conv) => (
                 <div
                   key={conv.user_id}
+                  role="button"
+                  tabIndex={0}
                   className={`msg-conv-item ${selectedId === conv.user_id ? 'is-active' : ''}`}
                   onClick={() => setSelectedId(conv.user_id)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedId(conv.user_id); } }}
                 >
                   <div className="msg-avatar-wrap">
                     <div className="msg-avatar" style={{ background: avatarColor(peerLabel(conv)) }}>
                       {getInitial(peerLabel(conv))}
                     </div>
-                    <span className="msg-online-dot" />
                   </div>
                   <div className="msg-conv-body">
                     <div className="msg-conv-top">
                       <strong>{peerLabel(conv)}</strong>
+                      {mutedIds.has(conv.user_id) && <BellOff size={13} aria-label="Muted" style={{ flex: 'none', color: '#9296ba' }} />}
                       <span className="msg-time-ago">{timeAgo(conv.timestamp || conv.last_message?.timestamp)}</span>
                     </div>
                     <p className="msg-preview">
                       {getDisplayMessage(conv.last_message || {})
-                        ? `${getDisplayMessage(conv.last_message).slice(0, 50)}...`
+                        ? (getDisplayMessage(conv.last_message).length > 50 ? `${getDisplayMessage(conv.last_message).slice(0, 50)}...` : getDisplayMessage(conv.last_message))
                         : getMessageAttachments(conv.last_message || {}).length
                           ? 'File attachment'
                           : ''}
                     </p>
                     {conv.associated_deal_status ? <small className="msg-deal-status">{conv.associated_deal_status}</small> : null}
                   </div>
-                  {conv.unread_count > 0 && <span className="msg-badge">{conv.unread_count}</span>}
+                  {conv.unread_count > 0 && !mutedIds.has(conv.user_id) && <span className="msg-badge">{conv.unread_count}</span>}
                 </div>
               ))
             )}
@@ -963,6 +981,7 @@ export default function MessagesPage() {
               <button
                 type="button"
                 className="msg-back-btn"
+                aria-label="Back to conversations"
                 title="Back to conversations"
                 onClick={() => setSelectedId(null)}
               >
@@ -972,16 +991,16 @@ export default function MessagesPage() {
                 <div className="msg-avatar" style={{ background: avatarColor(peerLabel(selectedConv)) }}>
                   {getInitial(peerLabel(selectedConv))}
                 </div>
-                <span className="msg-online-dot"></span>
               </div>
               <div className="msg-header-info">
                 <div>
                   <strong>{peerLabel(selectedConv)}</strong>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ width: '8px', height: '8px', background: '#48bb78', borderRadius: '50%', display: 'inline-block' }}></span>
-                  <small className="msg-online">Online</small>
-                </div>
+                {(selectedConv?.associated_deal_status || isMuted) ? (
+                  <small className="msg-online" style={{ color: '#585c7e' }}>
+                    {[selectedConv?.associated_deal_status, isMuted ? 'Muted' : ''].filter(Boolean).join(' · ')}
+                  </small>
+                ) : null}
               </div>
               <div className="msg-chat-actions">
                 {/* Brand → creator: quick "Send a Brief" that opens the brief wizard for
@@ -1010,7 +1029,12 @@ export default function MessagesPage() {
 
             {/* Messages */}
             <div className="msg-messages" ref={messageContainerRef} onScroll={handleMessagesScroll}>
-              {messages.length === 0 ? (
+              {msgError && messages.length === 0 ? (
+                <div role="alert" style={{ textAlign: 'center', color: '#585c7e', marginTop: '40px' }}>
+                  <p style={{ margin: '0 0 12px' }}>{msgError}</p>
+                  <button type="button" className="msg-action-chip" onClick={() => fetchMessages(selectedId)}>Retry</button>
+                </div>
+              ) : messages.length === 0 ? (
                 <div style={{ textAlign: 'center', color: '#999', marginTop: '40px' }}>No messages yet</div>
               ) : (
                 messages.map((msg, idx) => {

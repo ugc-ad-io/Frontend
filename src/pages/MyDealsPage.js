@@ -53,6 +53,7 @@ import ReviewModal from '../components/ReviewModal';
 import VideoReviewModal from '../components/VideoReviewModal';
 import ShippingDetailsCard from '../components/ShippingDetailsCard';
 import { Skeleton } from '../components/Skeleton';
+import EmptyState from '../components/EmptyState';
 import './CreatorDashboard.css';
 import './MyDealsPage.css';
 import '../styles/creator-marketplace.css';
@@ -425,6 +426,7 @@ export default function MyDealsPage() {
   const [brandReviewFor, setBrandReviewFor] = useState(null); // completed deal awaiting a brand rating
   const reviewPromptedRef = useRef({});                       // campaignId -> already asked this session
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null); // { message, notFound } when the deal list/detail could not load
   const [briefOpen, setBriefOpen] = useState(false);
   const [fullBrief, setFullBrief] = useState(null);
   const [briefLoading, setBriefLoading] = useState(false);
@@ -554,8 +556,20 @@ export default function MyDealsPage() {
       if (sequence !== dealFetchSequence.current) return;
       setDeals(list);
       setSelectedDeal(detail);
+      setLoadError(null);
     } catch (error) {
-      if (sequence === dealFetchSequence.current) toast.error('Failed to load deals');
+      if (sequence === dealFetchSequence.current) {
+        const status = error?.response?.status;
+        // The 10s poll stays silent (the last good deal keeps showing); a failed first load or
+        // a deal the user picked is explained on screen, with Retry / a way back.
+        setLoadError({
+          notFound: status === 404 || status === 403,
+          message: !error?.response
+            ? "You're offline. Check your connection and try again."
+            : (status === 404 || status === 403) ? 'This deal could not be found, or it is no longer available to you.' : 'Could not load your deals.',
+        });
+        if (requestedId) toast.error('Failed to load that deal');
+      }
     } finally {
       if (sequence === dealFetchSequence.current) {
         fetchingDeals.current = false;
@@ -907,7 +921,17 @@ export default function MyDealsPage() {
   if (!deals.length) {
     return (
       <CreatorTopNavLayout notifications={0}>
-        <div className="deal-page"><EmptyPanel text="No active deals yet. Browse briefs and submit bids to get started." /></div>
+        <div className="deal-page">
+          {loadError ? (
+            <EmptyState
+              title={loadError.notFound ? 'Deal not found' : 'Could not load deals'}
+              message={loadError.message}
+              action={loadError.notFound
+                ? { label: 'Back to My Deals', onClick: () => navigate('/my-deals') }
+                : { label: 'Retry', onClick: () => { setLoading(true); fetchDeals(); } }}
+            />
+          ) : <EmptyPanel text="No active deals yet. Browse briefs and submit bids to get started." />}
+        </div>
       </CreatorTopNavLayout>
     );
   }

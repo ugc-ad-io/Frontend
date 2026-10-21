@@ -20,7 +20,8 @@ export default function CreatorProfilePage() {
       <CreatorProfileModal
         id={id}
         asPage
-        onClose={() => navigate(-1)}
+        // Opened straight from a link (new tab, notification) there is nothing to go back to: land on Browse Creators.
+        onClose={() => (window.history.state?.idx > 0 ? navigate(-1) : navigate('/dashboard/business/browse-creator', { replace: true }))}
         onMessage={() => setChatWith({ id })}
         onBegin={() => setBriefOpen(true)}
       />

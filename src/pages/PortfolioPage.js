@@ -296,11 +296,11 @@ export default function PortfolioPage() {
     setSaving(true);
     try {
       const nextPortfolio = [...portfolio, newItem];
-      await axios.patch(`${API}/profile/portfolio`, nextPortfolio);
+      const saved = await axios.patch(`${API}/profile/portfolio`, nextPortfolio);
       setPortfolio(nextPortfolio);
-      // Also update user context so other pages see the update
+      // Also update user context so other pages see the update (and a "more info" request that this answered)
       if (setUser && user) {
-        setUser({ ...user, portfolio: nextPortfolio });
+        setUser({ ...user, portfolio: nextPortfolio, ...(saved.data?.approval_status ? { approval_status: saved.data.approval_status } : {}) });
       }
       toast.success('Portfolio item added');
       setShowModal(false);
@@ -316,10 +316,10 @@ export default function PortfolioPage() {
   const handleRemovePortfolioItem = async (itemIndex) => {
     try {
       const nextPortfolio = portfolio.filter((_, idx) => idx !== itemIndex);
-      await axios.patch(`${API}/profile/portfolio`, nextPortfolio);
+      const saved = await axios.patch(`${API}/profile/portfolio`, nextPortfolio);
       setPortfolio(nextPortfolio);
       if (setUser && user) {
-        setUser({ ...user, portfolio: nextPortfolio });
+        setUser({ ...user, portfolio: nextPortfolio, ...(saved.data?.approval_status ? { approval_status: saved.data.approval_status } : {}) });
       }
       toast.success('Portfolio item removed');
     } catch (error) {

@@ -353,7 +353,7 @@ export default function CreatorDashboard() {
               {items.map((it, i) => <li key={i}><strong style={{ color: '#6d7bff' }}>Note:</strong> {typeof it === 'string' ? it : (it.label || it.name || it.field || '')}</li>)}
             </ul>
           )}
-          <button type="button" onClick={() => navigate('/settings?tab=profile')}>Update my profile</button>
+          <button type="button" onClick={() => navigate('/profile-setup/creator')}>Update my profile</button>
         </section>
       </div>
     );

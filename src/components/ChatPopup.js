@@ -117,7 +117,17 @@ export default function ChatPopup({ user, onClose, dealId = null, title = '' }) 
     return () => { active = false; clearInterval(t); };
   }, [user.id, dealId]);
 
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+  // The thread is re-fetched every 4s; only scroll when the newest message changed, so a user
+  // reading older messages is not pulled back down on every poll.
+  const lastKeyRef = useRef('');
+  useEffect(() => {
+    const last = messages[messages.length - 1];
+    const key = last ? `${messages.length}:${last.id || last.created_at || last.timestamp || ''}` : '';
+    if (key === lastKeyRef.current) return;
+    const first = lastKeyRef.current === '';
+    lastKeyRef.current = key;
+    endRef.current?.scrollIntoView({ behavior: first ? 'auto' : 'smooth' });
+  }, [messages]);
 
   const send = async (e) => {
     e.preventDefault();
@@ -166,7 +176,7 @@ export default function ChatPopup({ user, onClose, dealId = null, title = '' }) 
           <strong>{title || peerName}</strong>
           {title
             ? <small>with {peerName}</small>
-            : <small><i className="cpop-dot" /> Responds in ~30 min</small>}
+            : <small>Direct message</small>}
         </div>
         <button type="button" className="cpop-x" aria-label="Close" onClick={onClose}><X size={18} /></button>
       </div>
@@ -235,7 +245,7 @@ export default function ChatPopup({ user, onClose, dealId = null, title = '' }) 
 
       <style>{`
         .cpop-tools{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 14px;border-bottom:1px solid #eef0f6}
-        .cpop-tool{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid #e9ebf4;background:#fff;color:#15163a;border-radius:10px;padding:9px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;transition:.15s}
+        .cpop-tool{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;border:1px solid #e9ebf4;background:#fff;color:#15163a;border-radius:10px;padding:9px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;transition:.15s}
         .cpop-tool.primary{background:linear-gradient(100deg,#12124f,#07074e);border-color:transparent;color:#fff;box-shadow:0 12px 26px -12px rgba(7,7,78,.7)}
         .cpop-tool:hover{border-color:#cdd2f3}
         .cpop-tool.primary:hover{filter:brightness(1.06)}
@@ -250,20 +260,26 @@ export default function ChatPopup({ user, onClose, dealId = null, title = '' }) 
         .cpop-prof-body p{margin:0;color:#585c7e;font-size:13.5px;text-transform:capitalize}
         .cpop-prof-bio{display:block;margin-top:10px;color:#585c7e;font-size:13px;line-height:1.5}
 
-        .cpop{position:fixed;right:24px;bottom:24px;width:400px;max-width:calc(100vw - 32px);height:560px;max-height:calc(100vh - 48px);
+        .cpop{position:fixed;right:calc(24px + env(safe-area-inset-right,0px));bottom:calc(24px + env(safe-area-inset-bottom,0px));width:400px;max-width:calc(100vw - 32px);height:560px;max-height:calc(100vh - 48px);max-height:calc(100dvh - 48px);
           background:#fff;border:1px solid #e9ebf4;border-radius:18px;box-shadow:0 28px 64px rgba(15,22,58,.32);
           display:flex;flex-direction:column;overflow:hidden;z-index:1200;animation:cpop-in .22s cubic-bezier(.2,.7,.2,1)}
         .cpop.is-behind{z-index:900}
+        /* Phones: a full-width sheet pinned to the bottom (above the home bar), never wider than the screen. */
+        @media (max-width:640px){
+          .cpop{left:max(8px,env(safe-area-inset-left));right:max(8px,env(safe-area-inset-right));bottom:max(8px,env(safe-area-inset-bottom));width:auto;max-width:none;
+            max-height:calc(100dvh - 16px - env(safe-area-inset-top,0px))}
+        }
         @keyframes cpop-in{from{transform:translateY(20px);opacity:.5}to{transform:none;opacity:1}}
         .cpop-head{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid #eef0f6}
         .cpop-ava{width:38px;height:38px;border-radius:50%;flex:none;overflow:hidden;display:grid;place-items:center;
           background:linear-gradient(135deg,#5b6bff,#23236a);color:#fff;font-weight:800}
         .cpop-ava img{width:100%;height:100%;object-fit:cover}
-        .cpop-head-id strong{display:block;font-size:14.5px;color:#15163a;line-height:1.2}
+        .cpop-head-id{min-width:0}
+        .cpop-head-id strong{display:block;font-size:14.5px;color:#15163a;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
         .cpop-head-id small{color:#9296ba;font-size:12px;display:flex;align-items:center;gap:5px}
         .cpop-dot{width:7px;height:7px;border-radius:50%;background:#22c55e;display:inline-block}
         .cpop-note{background:#eef0ff;border:1px solid #dfe2ff;color:#4452f0;font-size:11.5px;line-height:1.4;padding:8px 11px;border-radius:10px}
-        .cpop-x{margin-left:auto;border:none;background:#f1f3fa;color:#15163a;width:32px;height:32px;border-radius:9px;cursor:pointer;display:grid;place-items:center}
+        .cpop-x{margin-left:auto;border:none;background:#f1f3fa;color:#15163a;width:40px;height:40px;border-radius:9px;cursor:pointer;display:grid;place-items:center}
         .cpop-body{flex:1;min-width:0;overflow-y:auto;overflow-x:hidden;padding:16px;display:flex;flex-direction:column;gap:10px;background:#fafbff}
         .cpop-empty{margin:auto;color:#9296ba;font-size:13.5px;text-align:center}
         /* System notices are two very different things sharing one style: one-liners like
@@ -302,12 +318,13 @@ export default function ChatPopup({ user, onClose, dealId = null, title = '' }) 
         .cpop-card-row span{color:#1a202c;font-weight:600;text-align:right;word-break:break-word}
         .cpop-row{display:flex}
         .cpop-row.own{justify-content:flex-end}
-        .cpop-bub{max-width:78%;padding:9px 13px;border-radius:14px;font-size:13.5px;line-height:1.45;background:#fff;border:1px solid #eef0f6;color:#15163a}
+        .cpop-bub{max-width:78%;min-width:0;overflow-wrap:anywhere;white-space:pre-wrap;padding:9px 13px;border-radius:14px;font-size:13.5px;line-height:1.45;background:#fff;border:1px solid #eef0f6;color:#15163a}
         .cpop-row.own .cpop-bub{background:linear-gradient(100deg,#5b6bff,#4452f0);color:#fff;border-color:transparent}
-        .cpop-input{display:flex;gap:8px;padding:12px;border-top:1px solid #eef0f6}
+        .cpop-input{display:flex;gap:8px;padding:12px 12px max(12px,env(safe-area-inset-bottom));border-top:1px solid #eef0f6}
+        .cpop-input input{min-width:0}
         .cpop-input input{flex:1;border:1px solid #e9ebf4;border-radius:30px;padding:10px 16px;font-family:inherit;font-size:14px;outline:none;color:#15163a}
         .cpop-input input:focus{border-color:#c3cbff}
-        .cpop-input button{width:42px;height:42px;flex:none;border:none;border-radius:50%;background:linear-gradient(100deg,#12124f,#07074e);color:#fff;cursor:pointer;display:grid;place-items:center}
+        .cpop-input button{width:44px;height:44px;flex:none;border:none;border-radius:50%;background:linear-gradient(100deg,#12124f,#07074e);color:#fff;cursor:pointer;display:grid;place-items:center}
         .cpop-input button:disabled{opacity:.5;cursor:not-allowed}
       `}</style>
     </>

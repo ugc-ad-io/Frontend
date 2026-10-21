@@ -7,6 +7,7 @@ import { ownsCampaign } from '../utils/brandWorkspace';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
+import { uploadMedia } from '../utils/upload';
 import { ArrowLeft, Package, Truck, AlertTriangle, ClipboardList } from 'lucide-react';
 import { Skeleton } from '../components/Skeleton';
 import { isSelectedCreator } from '../utils/campaignCreators';
@@ -32,8 +33,9 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
   const [searchParams] = useSearchParams();
   const campaignId = embedCampaignId || searchParams.get('campaign');
   const navigate = useNavigate();
-  const goBack = () => (onClose ? onClose() : navigate(-1));
   const { user } = useAuth();
+  // A deep link opened in a fresh tab has no history: navigate(-1) would do nothing.
+  const goBack = () => (onClose ? onClose() : window.history.length > 1 ? navigate(-1) : navigate(user?.role === 'business' ? '/dashboard/business' : '/my-active-work'));
   const [campaign, setCampaign] = useState(null);
   const [shipment, setShipment] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -79,23 +81,17 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
   };
 
   // Upload a real file to the backend and return its stored URL.
-  const uploadFile = async (file) => {
-    // Fail fast on oversized clips rather than after a full multipart upload.
-    if (file?.type?.startsWith('video/') && file.size > 400 * 1024 * 1024) {
-      throw new Error('Video is too large. Maximum 400MB.');
-    }
-    const form = new FormData();
-    form.append('file', file);
-    const res = await axios.post(`${API}/upload/file`, form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-    return res.data.file_url;
-  };
+  // uploadMedia sends a big phone video straight to S3 (the server front refuses >= 50 MB,
+  // which showed up here as a bare "Network Error") and enforces the 400 MB cap itself.
+  const uploadFile = async (file) => (await uploadMedia(file, API)).file_url;
 
   useLiveEffect(() => {
     if (campaignId) {
       fetchCampaign();
       fetchShipment();
+    } else {
+      // Opened without ?campaign=: show "not found" instead of a skeleton forever.
+      setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [campaignId, creatorId]);
@@ -124,7 +120,7 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
       const response = await axios.get(`${API}/campaigns/${campaignId}`);
       setCampaign(response.data);
     } catch (error) {
-      toast.error('Failed to load campaign');
+      toast.error(error?.response ? apiErrorMessage(error, 'Failed to load campaign') : "You're offline. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -136,8 +132,7 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
       const response = await axios.get(`${API}/shipment/${campaignId}${qs}`);
       setShipment(response.data);
     } catch (error) {
-      // Shipment might not exist yet
-      console.log('No shipment found yet');
+      // Shipment might not exist yet: the page then shows its "no shipment" state.
     } finally {
       setShipmentLoaded(true);
     }
@@ -307,7 +302,17 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
       </div>
     </div>
   );
-  if (!campaign) return <div className="error-page">Campaign not found</div>;
+  if (!campaign) return (
+    <div className="error-page" style={{ flexDirection: 'column', gap: 12, padding: 16, textAlign: 'center', minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#718096' }}>
+      <span>Campaign not found</span>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+        <button type="button" className="back-btn" style={{ minHeight: 44, padding: '10px 20px', borderRadius: 12, border: '2px solid #e2e8f0', background: '#fff', fontWeight: 600, cursor: 'pointer' }} onClick={goBack}>Back</button>
+        {campaignId && (
+          <button type="button" style={{ minHeight: 44, padding: '10px 20px', borderRadius: 12, border: 0, background: '#07074e', color: '#fff', fontWeight: 600, cursor: 'pointer' }} onClick={() => { setLoading(true); fetchCampaign(); fetchShipment(); }}>Retry</button>
+        )}
+      </div>
+    </div>
+  );
 
   const isBusiness = user?.role === 'business' && ownsCampaign(user, campaign);
   const isCreator = user?.role === 'creator' && isSelectedCreator(campaign, user.id);
@@ -552,7 +557,7 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
             )}
 
             <div className="action-buttons">
-              {isCreator && shipment.status === 'shipped' && (
+              {isCreator && ['shipped', 'in_transit', 'delivered'].includes(String(shipment.status || '').toLowerCase()) && (
                 <button
                   className="btn-primary"
                   onClick={() => setShowReceiveModal(true)}
@@ -758,7 +763,7 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
             <h2>Mark Shipment as Received</h2>
             <form onSubmit={handleReceiveShipment} className="receive-form">
               <div className="form-group">
-                <label htmlFor="unboxing-file">Unboxing Video (max 100 MB, up to 30s)</label>
+                <label htmlFor="unboxing-file">Unboxing Video (up to 400 MB)</label>
                 <input
                   id="unboxing-file"
                   type="file"
@@ -830,13 +835,20 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
       <style>{`
         .shipment-page {
           min-height: 100vh;
+          min-height: 100dvh;
           background: linear-gradient(135deg, #f8f9ff 0%, #e8ecff 100%);
           padding: 40px 8%;
+          padding-bottom: max(40px, env(safe-area-inset-bottom));
+          padding-left: max(8%, env(safe-area-inset-left));
+          padding-right: max(8%, env(safe-area-inset-right));
+          box-sizing: border-box;
+          overflow-x: hidden;
         }
 
         .loading-page,
         .error-page {
           min-height: 100vh;
+          min-height: 100dvh;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1177,7 +1189,10 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
           max-width: 600px;
           width: 100%;
           max-height: 94vh;
+          max-height: 94dvh;
           overflow-y: auto;
+          overscroll-behavior: contain;
+          box-sizing: border-box;
         }
 
         .modal-content h2 {
@@ -1199,8 +1214,8 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
         }
         .video-modal-head h2 { margin: 0; }
         .video-modal-close {
-          width: 34px;
-          height: 34px;
+          width: 44px;
+          height: 44px;
           border-radius: 10px;
           border: none;
           background: #f1f2fb;
@@ -1213,6 +1228,7 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
         .video-modal-el {
           width: 100%;
           max-height: 70vh;
+          max-height: 70dvh;
           border-radius: 14px;
           background: #000;
           display: block;
@@ -1293,6 +1309,10 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
         @media (max-width: 600px) {
           .ship-row, .ship-row--3 { grid-template-columns: 1fr; }
         }
+        .modal-overlay { padding-top: max(20px, env(safe-area-inset-top)); padding-bottom: max(20px, env(safe-area-inset-bottom)); }
+        .ship-row > *, .ship-dims > * { min-width: 0; }
+        .modal-content .input-field { width: 100%; box-sizing: border-box; }
+        .modal-content { overflow-wrap: anywhere; }
 
         .checkbox-label {
           display: flex;
@@ -1349,6 +1369,8 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
         }
 
         @media (max-width: 768px) {
+          .modal-content .input-field, .modal-content .textarea-field { font-size: 16px; min-height: 44px; }
+          .modal-actions button, .back-btn, .btn-primary { min-height: 44px; }
           .shipment-container {
             padding: 32px 24px;
           }
@@ -1364,6 +1386,16 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
           .action-buttons {
             flex-direction: column;
           }
+        }
+        @media (max-width: 480px) {
+          .shipment-page:not(.is-embed) { padding: 16px 12px; padding-bottom: max(24px, env(safe-area-inset-bottom)); }
+          .shipment-container { padding: 20px 16px; border-radius: 16px; }
+          .detail-item { flex-wrap: wrap; gap: 4px 12px; }
+          .detail-item .value { min-width: 0; overflow-wrap: anywhere; text-align: right; }
+          .st-head-text { min-width: 0; overflow-wrap: anywhere; }
+          .status-value { overflow-wrap: anywhere; }
+          .modal-content { padding: 20px 16px; border-radius: 16px; }
+          .modal-actions { flex-direction: column-reverse; }
         }
       `}</style>
     </div>

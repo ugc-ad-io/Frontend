@@ -396,6 +396,7 @@ function ThemeStyles() {
         .bp-page {
           position: relative;
           min-height: 100vh;
+          min-height: 100dvh;
           display: flex;
           flex-direction: column;
           justify-content: flex-start;
@@ -685,8 +686,20 @@ function ThemeStyles() {
         .bp-sub--center { margin-bottom: 26px; }
         .bp-card--thanks .bp-title { margin-bottom: 10px; }
 
+        @media (max-width: 768px) {
+          /* 16px stops the iOS focus-zoom on every field; 44px tap targets on the dial button / submit. */
+          .bp-input, .bp-dial-code { font-size: 16px; }
+          .bp-dial-btn { min-height: 44px; }
+          .bp-page { padding-bottom: max(32px, calc(16px + env(safe-area-inset-bottom, 0px))); }
+        }
         @media (max-width: 520px) {
           .bp-card { padding: 24px 20px 26px; }
+        }
+        @media (max-width: 400px) {
+          .bp-page { padding-left: 16px; padding-right: 16px; }
+          .bp-topbar { padding-left: 16px; padding-right: 16px; }
+          .bp-topbar__tag { font-size: 0.74rem; padding: 5px 10px; white-space: nowrap; }
+          .bp-card { padding: 20px 16px 22px; }
         }
       `}</style>
   );

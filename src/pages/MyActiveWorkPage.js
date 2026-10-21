@@ -3,7 +3,6 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { toast } from 'sonner';
 import { Zap, AlertTriangle, Hourglass, CheckCircle2, XCircle, ArrowRight, RefreshCw, Inbox, IndianRupee, ChevronDown } from 'lucide-react';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import '../styles/creator-marketplace.css';
@@ -93,6 +92,7 @@ export default function MyActiveWorkPage() {
   const navigate = useNavigate();
   const [campaigns, setCampaigns] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [tab, setTab] = useState('active');
   const [expandedProgress, setExpandedProgress] = useState(() => new Set());
   // Land on the Requests tab once if there's a booking waiting on the creator — the
@@ -101,7 +101,7 @@ export default function MyActiveWorkPage() {
   const autoTabbed = useRef(false);
 
   useLiveEffect(() => {
-    if (user?.approval_status && user.approval_status !== 'approved') return undefined;
+    if (user?.approval_status && user.approval_status !== 'approved') { setLoading(false); return undefined; }
     fetchData();
     const interval = setInterval(fetchData, 10000);
     return () => clearInterval(interval);
@@ -111,8 +111,10 @@ export default function MyActiveWorkPage() {
     try {
       const res = await axios.get(`${API}/campaigns?t=${Date.now()}`);
       setCampaigns(res.data.filter((c) => isSelectedCreator(c, user.id)));
-    } catch {
-      toast.error('Failed to load active work');
+      setLoadError('');
+    } catch (err) {
+      // This runs every 10s: keep the last good list on screen and only flag an error banner.
+      setLoadError(err?.response ? 'Could not load your active work.' : "You're offline. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -144,6 +146,10 @@ export default function MyActiveWorkPage() {
         <p>Manage and track all your ongoing campaigns.</p>
       </div>
 
+      {loadError && campaigns.length > 0 && (
+        <p role="alert" style={{ margin: '10px 0', fontSize: 13.5, color: '#b45309' }}>{loadError} Showing the last loaded list.</p>
+      )}
+
       <div className="cmk-tabs-row">
         <div className="cmk-tabs">
           {TABS.map((t) => (
@@ -154,7 +160,9 @@ export default function MyActiveWorkPage() {
         </div>
       </div>
 
-      {loading ? (
+      {loadError && !campaigns.length && !loading ? (
+        <EmptyState title="Could not load active work" message={loadError} action={{ label: 'Retry', onClick: () => { setLoading(true); fetchData(); } }} />
+      ) : loading ? (
         <div className="cmk-awc-grid">
           {Array.from({ length: 4 }).map((_, i) => (
             <article className="cmk-awc" key={i} aria-hidden="true">
@@ -188,6 +196,7 @@ export default function MyActiveWorkPage() {
                 onClick={() => navigate(`/my-deals?campaign=${c.id}`)}
                 role="button"
                 tabIndex={0}
+                onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); navigate(`/my-deals?campaign=${c.id}`); } }}
               >
                 <span className="cmk-awc-ava">
                   {c.brand_logo ? <img src={c.brand_logo.startsWith('http') ? c.brand_logo : `${BACKEND_URL}${c.brand_logo}`} alt="" /> : getInitial(brand)}
@@ -208,7 +217,7 @@ export default function MyActiveWorkPage() {
                     <button
                       type="button"
                       className="cmk-awc-revision"
-                      onClick={(e) => { e.stopPropagation(); navigate(`/work/submit?campaign=${c.id}`); }}
+                      onClick={(e) => { e.stopPropagation(); navigate(`/my-deals?campaign=${c.id}&tab=deliverables`); }}
                       data-testid={`see-revision-${c.id}`}
                     >
                       <RefreshCw size={13} /> See what they asked for

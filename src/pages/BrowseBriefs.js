@@ -16,6 +16,7 @@ import SplitBidFields, { EMPTY_SPLIT, splitPayload } from '../components/SplitBi
 import { useBidGate, BidFeeNotice } from '../components/BidGate';
 import { toggleSavedBrief, getSavedIds } from '../utils/savedBriefs';
 import { maxCampaignBid, bidOverBudgetMessage } from '../utils/bidBudget';
+import { apiErrorMessage } from '../utils/apiError';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -32,6 +33,7 @@ export default function BrowseBriefs() {
   const [availableCampaigns, setAvailableCampaigns] = useState([]);
   const [myBids, setMyBids] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [search, setSearch] = useState(searchParams.get('q') || '');
   const [category, setCategory] = useState('All Categories');
   const [sortBy, setSortBy] = useState('recommended');
@@ -77,8 +79,7 @@ export default function BrowseBriefs() {
       setOpenBrief(null);
       fetchData();
     } catch (error) {
-      const msg = error?.response?.data?.detail || 'Failed to submit bid';
-      toast.error(typeof msg === 'string' ? msg : 'Failed to submit bid');
+      toast.error(error?.response ? apiErrorMessage(error, 'Failed to submit bid') : "You're offline. Check your connection and try again.");
     } finally {
       setSubmittingBid(false);
     }
@@ -112,8 +113,10 @@ export default function BrowseBriefs() {
       // ...but not to a creator already hired on it (same rule as the creator dashboard).
       setAvailableCampaigns(all.filter((c) => isOpenForBids(c) && !isSelectedCreator(c, user?.id)));
       setMyBids(all.filter((c) => c.bids?.some((b) => b.creator_id === user?.id)));
-    } catch {
-      toast.error('Failed to load campaigns');
+      setLoadError('');
+    } catch (err) {
+      // Polled every 60s: keep the last good list, only show the error when there is nothing to show.
+      setLoadError(err?.response ? 'Could not load campaigns.' : "You're offline. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -303,6 +306,8 @@ export default function BrowseBriefs() {
             </article>
           ))}
         </div>
+      ) : loadError ? (
+        <EmptyState title="Could not load campaigns" message={loadError} action={{ label: 'Retry', onClick: () => { setLoading(true); fetchData(); } }} />
       ) : (
         <EmptyState title="No campaigns found" message="No campaigns match your search or filters right now. Try a different category or check back soon." />
       )}
@@ -363,11 +368,11 @@ export default function BrowseBriefs() {
             </div>
             <style>{`
               .bb-viewbid-overlay{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(18,21,46,.52);backdrop-filter:blur(3px)}
-              .bb-viewbid-card{width:min(680px,100%);max-height:calc(100vh - 40px);overflow:auto;background:#fff;border-radius:22px;padding:24px;box-shadow:0 28px 70px rgba(7,7,78,.26)}
+              .bb-viewbid-card{width:min(680px,100%);max-height:calc(100vh - 40px);max-height:calc(100dvh - 40px);overflow:auto;background:#fff;border-radius:22px;padding:24px;box-shadow:0 28px 70px rgba(7,7,78,.26)}
               .bb-viewbid-head{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:18px}
               .bb-viewbid-head small{display:block;color:#8b91b2;font-size:.82rem;margin-bottom:4px}
               .bb-viewbid-head h2{margin:0;color:#090a48;font-size:1.35rem}
-              .bb-viewbid-head button{width:36px;height:36px;display:grid;place-items:center;border:1px solid #e5e7f2;border-radius:10px;background:#fff;color:#14163d;cursor:pointer}
+              .bb-viewbid-head button{flex:none;width:44px;height:44px;display:grid;place-items:center;border:1px solid #e5e7f2;border-radius:10px;background:#fff;color:#14163d;cursor:pointer}
               .bb-viewbid-banner{padding:20px;border:1px solid #daddff;border-radius:18px;background:#f1f1ff}
               .bb-viewbid-title{display:flex;align-items:center;gap:9px;color:#11145c;font-size:1.12rem;margin-bottom:16px}
               .bb-viewbid-title svg{color:#6072ff}
@@ -379,7 +384,7 @@ export default function BrowseBriefs() {
               .bb-viewbid-proposal{margin-top:10px}
               .bb-viewbid-proposal p{margin:0;color:#333858;line-height:1.55;overflow-wrap:anywhere}
               .bb-viewbid-close{display:block;width:150px;margin:18px 0 0 auto;padding:11px 16px;border:0;border-radius:11px;background:#080854;color:#fff;font-weight:700;cursor:pointer}
-              @media(max-width:620px){.bb-viewbid-card{padding:16px;border-radius:0;max-height:100vh;height:100%;width:100%}.bb-viewbid-overlay{padding:0}.bb-viewbid-stats{grid-template-columns:1fr}.bb-viewbid-close{width:100%}}
+              @media(max-width:620px){.bb-viewbid-card{padding:16px;padding-bottom:max(16px,env(safe-area-inset-bottom));border-radius:0;max-height:100vh;max-height:100dvh;height:100%;width:100%;box-sizing:border-box}.bb-viewbid-head h2{overflow-wrap:anywhere}.bb-viewbid-overlay{padding:0}.bb-viewbid-stats{grid-template-columns:1fr}.bb-viewbid-close{width:100%}}
             `}</style>
           </div>
         );
@@ -398,12 +403,12 @@ export default function BrowseBriefs() {
                 <SplitBidFields value={split} max={maxCampaignBid(bidBrief)} onChange={(v, total) => { setSplit(v); setBidAmount(String(total)); }} />
               ) : (
               <label>Bid Amount (₹)
-                <input type="number" min="1" max={maxCampaignBid(bidBrief) || undefined} required value={bidAmount} onChange={(e) => setBidAmount(e.target.value)} placeholder="Enter your bid amount" />
+                <input type="number" inputMode="numeric" min="1" max={maxCampaignBid(bidBrief) || undefined} required value={bidAmount} onChange={(e) => setBidAmount(e.target.value)} placeholder="Enter your bid amount" />
               </label>
               )}
               <BidFeeNotice amount={bidAmount} percent={bidGate.percent} />
               <label>Estimated Delivery (days)
-                <input type="number" min="1" required value={deliveryDays} onChange={(e) => setDeliveryDays(e.target.value)} placeholder="How many days to complete?" />
+                <input type="number" inputMode="numeric" step="1" min="1" required value={deliveryDays} onChange={(e) => setDeliveryDays(e.target.value)} placeholder="How many days to complete?" />
               </label>
               <label>Your Proposal
                 <textarea rows={4} required value={proposal} onChange={(e) => setProposal(e.target.value)} placeholder="Describe your approach, experience, and why you're the right fit..." />
@@ -417,20 +422,23 @@ export default function BrowseBriefs() {
             </form>
           </div>
           <style>{`
-            .bb-bid-overlay { position: fixed; inset: 0; background: rgba(15,18,40,.5); backdrop-filter: blur(2px); display: flex; align-items: center; justify-content: center; z-index: 10000; padding: 20px; }
-            .bb-bid-modal { width: 100%; max-width: 460px; background: #fff; border-radius: 18px; box-shadow: 0 24px 60px rgba(7,7,78,.28); padding: 22px; }
+            .bb-bid-overlay { position: fixed; inset: 0; background: rgba(15,18,40,.5); backdrop-filter: blur(2px); display: flex; align-items: center; justify-content: center; z-index: 10000; padding: 20px; padding-top: max(20px, env(safe-area-inset-top)); padding-bottom: max(20px, env(safe-area-inset-bottom)); }
+            .bb-bid-modal { width: 100%; max-width: 460px; background: #fff; border-radius: 18px; box-shadow: 0 24px 60px rgba(7,7,78,.28); padding: 22px; max-height: 100%; overflow-y: auto; overscroll-behavior: contain; box-sizing: border-box; }
+            .bb-bid-sub { overflow-wrap: anywhere; }
             .bb-bid-head { display: flex; align-items: center; justify-content: space-between; }
             .bb-bid-head h2 { margin: 0; font-size: 1.15rem; color: #0f1132; }
-            .bb-bid-x { border: 0; background: #f3f4f8; color: #5b6573; width: 32px; height: 32px; border-radius: 9px; display: grid; place-items: center; cursor: pointer; }
+            .bb-bid-x { border: 0; background: #f3f4f8; color: #5b6573; width: 44px; height: 44px; border-radius: 10px; display: grid; place-items: center; cursor: pointer; flex: none; }
             .bb-bid-x:hover { background: #e8eaf1; }
             .bb-bid-sub { margin: 4px 0 16px; font-size: .86rem; color: #8a8fb5; }
             .bb-bid-form { display: flex; flex-direction: column; gap: 14px; }
             .bb-bid-form label { display: flex; flex-direction: column; gap: 6px; font-size: .84rem; font-weight: 600; color: #3a3f63; }
-            .bb-bid-form input, .bb-bid-form textarea { border: 1px solid #e6e8f2; border-radius: 11px; padding: 11px 13px; font-size: .92rem; font-family: inherit; color: #15163a; outline: 0; font-weight: 400; }
+            .bb-bid-form input, .bb-bid-form textarea { border: 1px solid #e6e8f2; border-radius: 11px; padding: 11px 13px; font-size: 16px; min-height: 44px; width: 100%; box-sizing: border-box; font-family: inherit; color: #15163a; outline: 0; font-weight: 400; }
             .bb-bid-form input:focus, .bb-bid-form textarea:focus { border-color: #5b6bff; box-shadow: 0 0 0 3px rgba(91,107,255,.14); }
             .bb-bid-form textarea { resize: vertical; }
             .bb-bid-fee-note { margin: -6px 0 0; font-size: .78rem; font-weight: 500; color: #8a8fb5; }
             .bb-bid-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px; }
+            .bb-bid-actions button { min-height: 44px; }
+            @media (max-width: 480px) { .bb-bid-modal { padding: 18px 16px; } .bb-bid-actions { flex-direction: column-reverse; } .bb-bid-actions button { width: 100%; justify-content: center; } }
           `}</style>
         </div>
       )}

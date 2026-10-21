@@ -70,10 +70,13 @@ export default function WorkReview({ embedId, onClose }) {
     }
 
     try {
-      await axios.post(`${API}/work/${workId}/request-revision`, { feedback: revisionFeedback });
-      toast.success('Revision requested');
+      const { data } = await axios.post(`${API}/work/${workId}/request-revision`, { feedback: revisionFeedback });
+      // Say so when money actually moved - a bare "Revision requested" hid the wallet debit.
+      toast.success(data?.paid
+        ? `Revision requested - ₹${data.fee_charged} charged. Wallet balance: ₹${Math.round(data.new_balance)}.`
+        : 'Revision requested');
       setShowRevisionModal(false);
-      navigate('/dashboard/business');
+      goBack();
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Failed to request revision'));
     }
@@ -89,14 +92,20 @@ export default function WorkReview({ embedId, onClose }) {
         review
       });
       toast.success('Review submitted!');
-      navigate('/dashboard/business');
+      setShowReviewModal(false);
+      goBack();
     } catch (error) {
-      toast.error('Failed to submit review');
+      toast.error(apiErrorMessage(error, 'Failed to submit review'));
     }
   };
 
   if (loading) return <div className="loading-page">Loading...</div>;
-  if (!work) return <div className="error-page">Work not found</div>;
+  if (!work) return (
+    <div className="error-page" style={{ flexDirection: 'column', gap: 16, padding: 16, textAlign: 'center' }}>
+      <span>Couldn't load this submission. It may have been removed, or the connection dropped.</span>
+      <button type="button" className="back-btn" onClick={goBack}><ArrowLeft size={20} /> Back</button>
+    </div>
+  );
 
   return (
     <div className="work-review-page">
@@ -263,6 +272,7 @@ export default function WorkReview({ embedId, onClose }) {
       <style>{`
         .work-review-page {
           min-height: 100vh;
+          min-height: 100dvh;
           background: linear-gradient(135deg, #f8f9ff 0%, #e8ecff 100%);
           padding: 40px 8%;
         }
@@ -270,6 +280,7 @@ export default function WorkReview({ embedId, onClose }) {
         .loading-page,
         .error-page {
           min-height: 100vh;
+          min-height: 100dvh;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -357,7 +368,7 @@ export default function WorkReview({ embedId, onClose }) {
 
         .files-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+          grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr));
           gap: 16px;
         }
 
@@ -549,6 +560,7 @@ export default function WorkReview({ embedId, onClose }) {
           justify-content: center;
           z-index: 1000;
           padding: 20px;
+          overflow-y: auto;
         }
 
         .modal-content {
@@ -557,6 +569,9 @@ export default function WorkReview({ embedId, onClose }) {
           border-radius: 24px;
           max-width: 600px;
           width: 100%;
+          box-sizing: border-box;
+          max-height: 100%;
+          overflow-y: auto;
         }
 
         .modal-content h2 {
@@ -611,6 +626,46 @@ export default function WorkReview({ embedId, onClose }) {
 
           .action-buttons {
             grid-template-columns: 1fr;
+          }
+
+          /* 16px stops the iOS focus-zoom on the revision / review textareas. */
+          .work-review-page textarea,
+          .work-review-page input {
+            font-size: 16px;
+          }
+          .back-btn,
+          .view-link {
+            min-height: 44px;
+            box-sizing: border-box;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .work-review-page {
+            padding: 16px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+          }
+          .review-container {
+            padding: 24px 16px;
+            border-radius: 18px;
+          }
+          .review-header h1 {
+            font-size: 1.5rem;
+          }
+          .work-description {
+            padding: 14px;
+          }
+          .file-preview {
+            padding: 14px;
+          }
+          .modal-content {
+            padding: 24px 16px;
+            border-radius: 18px;
+          }
+          .modal-actions {
+            flex-direction: column-reverse;
+          }
+          .star-rating {
+            flex-wrap: wrap;
           }
         }
       `}</style>

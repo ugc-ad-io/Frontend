@@ -273,6 +273,10 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  // A failed profile request (offline / 404) used to render an empty "Creator" profile with
+  // live Send-a-Brief / Message buttons. Track it so we can show a real error + Retry.
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const [tab, setTab] = useState('videos');
   const saved = useSavedCreatorIds(viewer?.role === 'business').has(String(id));
 
@@ -327,10 +331,10 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
 
   useLiveEffect(() => {
     let a = true;
-    axios.get(`${API}/profile/${id}`).then((r) => { if (a) setData(r.data); }).catch(() => {}).finally(() => { if (a) setLoading(false); });
+    axios.get(`${API}/profile/${id}`).then((r) => { if (a) { setData(r.data); setLoadFailed(false); } }).catch(() => { if (a) setLoadFailed(true); }).finally(() => { if (a) setLoading(false); });
     axios.get(`${API}/reviews/creator/${id}`).then((r) => { if (a) setReviews(Array.isArray(r.data) ? r.data : []); }).catch(() => {});
     return () => { a = false; };
-  }, [id]);
+  }, [id, attempt]);
 
   // While the profile is open, mark the body so the app's floating message FAB can
   // be hidden on mobile (it would otherwise overlap the bottom Send Message bar).
@@ -1276,6 +1280,8 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
            just shrink the text so ₹50,000 etc. still fit. */
         @media (max-width:520px){.cpm-highlights{grid-template-columns:auto auto auto;justify-content:space-between;gap:10px}
           .cpm-hl label{font-size:10px}.cpm-hl strong{font-size:14px}}
+        /* "Send a Brief" sits beside the stats line on a narrow phone: let the stats wrap instead of sliding under it. */
+        @media (max-width:400px){.cpm-phead:not(.is-editable) .cpm-stats{max-width:calc(100% - 150px);column-gap:16px}}
 
         .cpm-complete{box-sizing:border-box;display:flex;flex-direction:column;gap:7px;width:calc(100% - 56px);max-width:calc(100% - 56px);margin:14px 28px 0;padding:12px 16px;
           border-radius:14px;background:#fbfbff;border:1px solid #ebedfb;cursor:pointer;font:inherit;text-align:left;transition:.15s}
@@ -1382,7 +1388,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-clip-ov{position:fixed;inset:0;z-index:2500;background:rgba(8,10,30,.78);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:24px}
         .cpm-clip-box{position:relative;width:min(900px,96vw)}
         .cpm-clip-frame{position:relative;border-radius:16px;overflow:hidden;background:#000;box-shadow:0 30px 80px -20px rgba(0,0,0,.6)}
-        .cpm-clip-vid{display:block;width:100%;max-height:82vh;background:#000}
+        .cpm-clip-vid{display:block;width:100%;max-height:82vh;max-height:82dvh;background:#000}
         .cpm-clip-x{position:absolute;top:-46px;right:0;width:38px;height:38px;border-radius:50%;border:none;background:#fff;color:#15163a;cursor:pointer;display:grid;place-items:center;z-index:2}
         .cpm-clip-wm{position:absolute;top:12px;right:14px;z-index:3;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:3px}
         .cpm-clip-wm img{width:46px;height:46px;object-fit:contain;border-radius:10px;opacity:.92;filter:drop-shadow(0 2px 6px rgba(0,0,0,.5))}
@@ -1546,10 +1552,41 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
             background:#fff;border-top:1px solid #eef0f6;box-shadow:0 -6px 20px rgba(15,22,58,.12)}
           /* Room so the bar never covers the last content. */
           .cpm-tab-body{padding-bottom:84px}
+          /* Tap targets >= 44px, and the fixed bits clear the notch / home bar. */
+          .cpm-x,.cpm-banner-back{width:44px;height:44px;top:calc(12px + env(safe-area-inset-top,0px))}
+          .cpm-save{width:44px;height:44px;top:54px}
+          .cpm-brief-btn,.cpm-sh-cta,.cpm-mobilebar .cpm-msg{min-height:44px}
+          .cpm-clip-x{width:44px;height:44px}
+          .cpm-pick button,.cpm-aw-change{min-height:44px}
+          .cpm-fixedhead{padding-top:calc(10px + env(safe-area-inset-top,0px))}
+          .cpm-ov > .cpm{min-height:100dvh}
+          .cpm-clip-ov{padding:max(24px,env(safe-area-inset-top,0px)) 16px max(24px,env(safe-area-inset-bottom,0px))}
         }
       `}</style>
       </div>
   );
+
+  // Self-contained (inline styles): the .cpm-* stylesheet lives inside `content`, which is not rendered here.
+  if (loadFailed && !data && !loading) {
+    const btn = { minHeight: 44, padding: '0 22px', borderRadius: 30, border: '1px solid #15163a', background: '#15163a', color: '#fff', fontWeight: 700, fontSize: 15, cursor: 'pointer', fontFamily: 'inherit' };
+    return (
+      <div
+        onClick={asPage ? undefined : handleClose}
+        style={asPage
+          ? { padding: '56px 16px', textAlign: 'center' }
+          : { position: 'fixed', inset: 0, zIndex: 1500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, background: 'rgba(15,22,58,.55)' }}
+      >
+        <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 420, boxSizing: 'border-box', padding: '32px 20px', textAlign: 'center', background: '#fff', borderRadius: 20 }}>
+          <h2 style={{ margin: 0, fontSize: 20, color: '#15163a' }}>Couldn't load this profile</h2>
+          <p style={{ margin: '10px 0 22px', color: '#585c7e', fontSize: 15, lineHeight: 1.5 }}>Check your connection and try again. If it keeps failing, the creator may no longer be available.</p>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+            <button type="button" style={btn} onClick={() => { setLoading(true); setAttempt((n) => n + 1); }}>Try again</button>
+            <button type="button" style={{ ...btn, background: '#fff', color: '#15163a', border: '1px solid #dfe2f0' }} onClick={handleClose}>Go back</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (asPage) return <div className="cpm-page">{content}</div>;
   return <div className="cpm-ov" onClick={handleClose}>{content}</div>;

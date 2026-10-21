@@ -3,6 +3,7 @@ import { useLiveEffect, publishLiveUpdate } from '../lib/liveUpdates';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { Bell, Check } from 'lucide-react';
 import { useAuth } from '../App';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
@@ -20,23 +21,29 @@ export default function NotificationsPage() {
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  // Set when the list could not be loaded, so a failed request is never shown as "No notifications yet".
+  const [error, setError] = useState('');
 
   const load = async () => {
     try {
       const r = await axios.get(`${API}/notifications/my-notifications`);
       setItems(Array.isArray(r.data) ? r.data : []);
-    } catch { /* ignore */ } finally { setLoading(false); }
+      setError('');
+    } catch (e) {
+      setError(e?.response ? 'Could not load your notifications.' : "You're offline. Check your connection and try again.");
+    } finally { setLoading(false); }
   };
 
   useLiveEffect(() => { load(); }, []);
 
   // The top-bar bell polls every 15 s on its own; publishLiveUpdate makes it (and this
   // list) refetch now so the badge drops as soon as something is read.
+  const failMsg = (e) => (e?.response ? 'Could not update your notifications.' : "You're offline. Check your connection and try again.");
   const markRead = async (id) => {
-    try { await axios.patch(`${API}/notifications/${id}/read`); load(); publishLiveUpdate(); } catch { /* ignore */ }
+    try { await axios.patch(`${API}/notifications/${id}/read`); load(); publishLiveUpdate(); } catch (e) { toast.error(failMsg(e)); }
   };
   const markAll = async () => {
-    try { await axios.post(`${API}/notifications/mark-all-read`); load(); publishLiveUpdate(); } catch { /* ignore */ }
+    try { await axios.post(`${API}/notifications/mark-all-read`); load(); publishLiveUpdate(); } catch (e) { toast.error(failMsg(e)); }
   };
   const open = (n) => { if (!n.read) markRead(n.id); if (n.link) navigate(resolveNotifLink(n.link)); };
 
@@ -72,8 +79,14 @@ export default function NotificationsPage() {
               </div>
             ))}
           </div>
+        ) : error && items.length === 0 ? (
+          <div className="cmk-empty" role="alert">
+            <Bell size={40} />
+            <p>{error}</p>
+            <button type="button" className="np-allread" onClick={() => { setLoading(true); load(); }}>Retry</button>
+          </div>
         ) : items.length === 0 ? (
-          <div className="cmk-empty"><Bell size={40} /><p>No notifications yet</p></div>
+          <div className="cmk-empty"><Bell size={40} /><p>No notifications yet</p><p style={{ fontSize: 13.5 }}>Updates about your campaigns, deals and messages will show up here.</p></div>
         ) : (
           <div className="np-list">
             {items.map((n) => (
@@ -102,8 +115,8 @@ export default function NotificationsPage() {
            screen and the empty right-hand gap shrinks. Other pages are untouched. */
         .cmk-wrap:has(.np-wrap){max-width:1600px}
         .np-wrap{max-width:none;width:100%;margin-top:6px}
-        .np-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;color:var(--muted);font-size:14px;font-weight:600}
-        .np-allread{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;color:var(--indigo);border-radius:10px;padding:8px 12px;font-weight:700;font-size:13.5px;cursor:pointer}
+        .np-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;color:var(--muted);font-size:14px;font-weight:600}
+        .np-allread{display:inline-flex;align-items:center;gap:6px;min-height:44px;border:1px solid var(--line);background:#fff;color:var(--indigo);border-radius:10px;padding:8px 12px;font-weight:700;font-size:13.5px;cursor:pointer}
         .np-allread:hover{border-color:#cdd2f3}
         .np-list{display:flex;flex-direction:column;gap:10px}
         .np-item{display:flex;align-items:flex-start;gap:14px;width:100%;text-align:left;background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px 18px;cursor:pointer;transition:.15s;font-family:inherit;box-shadow:var(--shadow-soft)}
@@ -114,10 +127,10 @@ export default function NotificationsPage() {
         .np-ic.warning{background:#fff4e0;color:#d98a16}
         .np-ic.error{background:#fdeaea;color:#e11d48}
         .np-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
-        .np-body strong{font-size:15px;color:var(--ink);font-weight:700;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+        .np-body strong{overflow-wrap:anywhere;font-size:15px;color:var(--ink);font-weight:700;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
         .np-admin-chip{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#4338ca;background:#eef2ff;border:1px solid #dfe4ff;border-radius:999px;padding:2px 8px}
-        .np-msg{font-size:13.5px;color:var(--ink-2);line-height:1.45}
-        .np-body small{font-size:12px;color:var(--muted);margin-top:2px}
+        .np-msg{font-size:14px;color:var(--ink-2);line-height:1.45;overflow-wrap:anywhere}
+        .np-body small{font-size:12px;overflow-wrap:anywhere;color:var(--muted);margin-top:2px}
         .np-dot{flex:none;width:9px;height:9px;border-radius:50%;background:#5b6bff;margin-top:6px}
       `}</style>
     </Layout>

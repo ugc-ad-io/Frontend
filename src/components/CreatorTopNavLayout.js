@@ -105,7 +105,7 @@ export default function CreatorTopNavLayout({ children, notifications = 0 }) {
       />
       <header ref={headerRef} className={`cmk-nav${mobileOpen ? ' cmk-nav--open' : ''}`}>
         <div className="cmk-wrap cmk-nav-inner">
-          <button type="button" className="cmk-hamburger" aria-label="Menu" onClick={() => setMobileOpen((v) => !v)}>
+          <button type="button" className="cmk-hamburger" aria-label="Menu" aria-expanded={mobileOpen} onClick={() => setMobileOpen((v) => !v)}>
             {mobileOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
           <button type="button" className="cmk-brand" onClick={() => navigate('/dashboard/creator')} aria-label="Go to Dashboard">
@@ -142,7 +142,7 @@ export default function CreatorTopNavLayout({ children, notifications = 0 }) {
 
           <div className="cmk-nav-right" ref={menuRef}>
             <NotificationBell />
-            <button type="button" className="cmk-avatar-btn" onClick={() => setMenuOpen((v) => !v)} aria-label="Account menu">
+            <button type="button" className="cmk-avatar-btn" onClick={() => setMenuOpen((v) => !v)} aria-label="Account menu" aria-expanded={menuOpen}>
               <span className="cmk-avatar">
                 {photo ? <img src={photo.startsWith('http') ? photo : `${BACKEND_URL}${photo}`} alt={displayName} /> : getInitial(displayName)}
               </span>
@@ -232,6 +232,7 @@ export default function CreatorTopNavLayout({ children, notifications = 0 }) {
             className="cmk-btn-primary-sm cmk-post-fab"
             onClick={() => setMsgOpen((v) => !v)}
             title="Messages"
+            aria-label="Messages"
           >
             <MessageSquare size={18} /><span className="cmk-btn-label">Message</span>
           </button>

@@ -153,6 +153,7 @@
   border: 1px solid #e5e7ff;
   flex: 1;
   height: clamp(560px, calc(100vh - 150px), 720px);
+  height: clamp(560px, calc(100dvh - 150px), 720px);
   min-height: 0;
   overflow: hidden;
 }
@@ -522,6 +523,7 @@
 
 .msg-header-info {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -530,6 +532,10 @@
 
 .msg-header-info strong {
   display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 1.05rem;
   font-weight: 400;
   color: #1a202c;
@@ -1522,17 +1528,17 @@
     border-left: none;
   }
 
-  .msg-back-btn { display: flex; width: 28px; height: 34px; margin-right: -2px; }
+  .msg-back-btn { display: flex; width: 40px; height: 40px; margin-right: -2px; }
 
   /* Tighter chrome so more of the screen is content. */
   .msg-search { margin: 12px 12px 4px; }
   .msg-filters { padding: 10px 12px 12px; overflow-x: auto; }
   .msg-chat-header { padding: 10px 6px; gap: 6px; }
   .msg-chat-actions { gap: 4px; }
-  .msg-chat-actions button { width: 34px; height: 34px; }
+  .msg-chat-actions button { width: 40px; height: 40px; }
   /* Keep the labelled pill labelled on mobile (the blanket 34px rule above would
      squash it into an unreadable sliver). */
-  .msg-chat-actions button.msg-send-brief { width: auto; height: 34px; padding: 0 12px; }
+  .msg-chat-actions button.msg-send-brief { width: auto; height: 40px; padding: 0 12px; }
 
   .msg-messages { width: 100%; padding: 16px 14px 14px; overflow-x: hidden; }
   .msg-messages > *,
@@ -1604,7 +1610,7 @@
   .msg-policy-banner { padding: 10px 14px; }
   .msg-quick-actions { padding: 10px 14px 12px; }
 
-  .msg-input-row { width: 100%; min-width: 0; padding: 12px 14px 16px; gap: 8px; }
+  .msg-input-row { width: 100%; min-width: 0; padding: 12px 14px calc(16px + env(safe-area-inset-bottom, 0px)); gap: 8px; }
   .msg-input { flex: 1 1 auto; min-width: 0; width: 0; padding: 11px 16px; }
   .msg-input-icon,.msg-send,.msg-emoji-wrap { flex: 0 0 auto; }
 }
@@ -1614,6 +1620,10 @@
   .msg-layout { height: calc(100dvh - var(--cmk-nav-height, 62px)); border-radius: 0; }
   .msg-bubble { max-width: 88%; }
   .msg-avatar, .msg-avatar-wrap { width: 40px; height: 40px; min-width: 40px; }
+  /* 320-360px: the labelled "Send a Brief" pill would squeeze the name to nothing. */
+  .msg-chat-actions button.msg-send-brief { padding: 0 10px; font-size: 12px; white-space: nowrap; }
+  .msg-chat-header { min-width: 0; }
+  .msg-chat-actions { flex: none; }
   /* Icon-only header actions can crowd; keep the essentials, drop the
      redundant flag/profile buttons in favour of the More (…) menu. */
   .msg-chat-actions button[title="View profile"],

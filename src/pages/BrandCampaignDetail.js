@@ -19,11 +19,14 @@ import PostABrief from './PostABrief';
 import ChatPopup from '../components/ChatPopup';
 import CreatorProfileModal from '../components/CreatorProfileModal';
 import VideoReviewModal from '../components/VideoReviewModal';
+import RevisionRequestModal from '../components/RevisionRequestModal';
 import ReviewModal from '../components/ReviewModal';
 import CampaignDetails from './CampaignDetails';
 import BookingCard from '../components/BookingCard';
 import '../styles/creator-marketplace.css';
+import '../styles/brand-mobile.css';
 import EmptyState from '../components/EmptyState';
+import { budgetLabel } from '../utils/budgetLabel';
 import { selectedCreators, creatorsWanted, slotsLeft, bidSplitLabel } from '../utils/campaignCreators';
 import { creatorFirstName } from '../utils/displayName';
 import { hireUnfunded, showUnfundedHire, escrowHeldText } from '../utils/hireFunding';
@@ -192,23 +195,6 @@ function revisionItems(rev) {
   });
   return out;
 }
-const FALLBACK_WORK = ['/creator/video_01.mp4', '/creator/video_08.mp4', '/creator/video_27.mp4', '/creator/video_28.mp4'];
-const pfUrlOf = (it) => (typeof it === 'string' ? it : (it?.videoUrl || it?.url || (Array.isArray(it?.urls) && it.urls[0]) || it?.original_url || it?.video || ''));
-
-// Small playable portfolio thumbnail for the creator card.
-function WorkTile({ url }) {
-  const ref = useRef(null);
-  const [playing, setPlaying] = useState(false);
-  const src = assetUrl(url);
-  const toggle = () => { const v = ref.current; if (!v) return; if (v.paused) { v.play().then(() => setPlaying(true)).catch(() => {}); } else { v.pause(); setPlaying(false); } };
-  return (
-    <div className="bcd-work-tile" onClick={toggle}>
-      {isVideo(src) ? <video ref={ref} src={`${src}#t=0.5`} muted loop playsInline preload="metadata" /> : <img src={src} alt="" />}
-      {!playing && <span className="bcd-work-play"><Play size={13} fill="currentColor" /></span>}
-    </div>
-  );
-}
-
 // Some profile fields (e.g. followers) are objects — never render those directly.
 const safeText = (v, fb = '-') => {
   if (v == null || v === '') return fb;
@@ -370,6 +356,8 @@ export default function BrandCampaignDetail() {
   const [creators, setCreators] = useState([]);    // every creator hired on this brief
   const [activeCreatorId, setActiveCreatorId] = useState(null); // which creator's room is open
   const [loading, setLoading] = useState(true);
+  // 'notfound' (404) vs 'network': a dropped connection must not read as "Campaign not found".
+  const [loadError, setLoadError] = useState('');
   const [tab, setTab] = useState('overview');
   const [chatOpen, setChatOpen] = useState(false);
   const [profOpen, setProfOpen] = useState(false);
@@ -406,6 +394,7 @@ export default function BrandCampaignDetail() {
     try {
       const cRes = await axios.get(`${API}/campaigns/${id}`);
       setCampaign(cRes.data);
+      setLoadError('');
       // Brands must read /deals/business — /deals/my is the creator's list and
       // returns 403/[] here, which left `deal` permanently null on this page.
       const dRes = await axios.get(`${API}/deals/business`).catch(() => ({ data: [] }));
@@ -428,7 +417,10 @@ export default function BrandCampaignDetail() {
         setCreators([]);
         setActiveCreatorId(null);
       }
-    } catch { /* ignore */ }
+    } catch (err) {
+      // Only matters while nothing is on screen yet (a failed live refresh keeps the last good data).
+      setLoadError(err?.response?.status === 404 || err?.response?.status === 403 ? 'notfound' : 'network');
+    }
     finally { setLoading(false); }
   };
 
@@ -529,7 +521,15 @@ export default function BrandCampaignDetail() {
       </div>
     </BrandTopNavLayout>
   );
-  if (!campaign) return <BrandTopNavLayout><div className="cmk-empty">Campaign not found.</div></BrandTopNavLayout>;
+  if (!campaign) return (
+    <BrandTopNavLayout>
+      {loadError === 'network' ? (
+        <EmptyState title="Couldn't load this campaign" message="Check your connection and try again." action={{ label: 'Try again', onClick: () => { setLoading(true); load(); } }} />
+      ) : (
+        <EmptyState title="Campaign not found" message="It may have been removed, or it belongs to a different brand account." action={{ label: 'Back to campaigns', onClick: () => navigate('/dashboard/business/all-campaigns') }} />
+      )}
+    </BrandTopNavLayout>
+  );
 
   const refresh = async () => {
     try { const r = await axios.get(`${API}/campaigns/${id}`); setCampaign(r.data); } catch { /* ignore */ }
@@ -633,8 +633,6 @@ export default function BrandCampaignDetail() {
     }
   };
 
-  const spent = campaign.escrow_amount || campaign.budget_min || 0;
-  const total = campaign.budget_max || campaign.budget_min || 0;
   const handle = creator ? creatorFirstName(creator) : null;
   const cp = creator?.profile || {};
   const ship = deal?.shipment || {};
@@ -745,8 +743,8 @@ export default function BrandCampaignDetail() {
             <span className="bcd-sub">Campaign ID: CMP-{String(campaign.id || campaign._id || '').slice(-6).toUpperCase()} · Launched on {fmtDate(campaign.createdAt || campaign.created_at)}</span>
           </div>
           <div className="bcd-budget">
-            <label>Total Budget</label>
-            <strong>{inr(spent)} <small>/ {inr(total)}</small></strong>
+            <label>Budget</label>
+            <strong>{budgetLabel(campaign.budget_min, campaign.budget_max)}</strong>
           </div>
           <div className="bcd-actions">
             <button className="cmk-btn-ghost-sm" onClick={duplicateBrief}><Copy size={16} /> Duplicate</button>
@@ -1176,19 +1174,33 @@ export default function BrandCampaignDetail() {
       )}
       {/* Feed the modal the live fee/allowance so a ₹500 debit is never a surprise —
           these props existed but were never passed, so the warning banner never showed. */}
-      {revisionOpen && (
-        <VideoReviewModal
-          src={assetUrl(wsFiles.find((x) => isVideo(x)) || wsFirst)}
-          title={campaign.title}
-          watermark={wsStatus !== 'approved'}
-          onClose={() => setRevisionOpen(false)}
-          onSubmit={submitRevision}
-          submitting={revSubmitting}
-          freeRemaining={deal?.revision_tracker?.free_revisions_remaining}
-          nextFee={deal?.revision_tracker?.next_revision_fee}
-          paidFee={deal?.revision_tracker?.paid_revision_fee}
-        />
-      )}
+      {revisionOpen && (() => {
+        const fees = {
+          freeRemaining: deal?.revision_tracker?.free_revisions_remaining,
+          nextFee: deal?.revision_tracker?.next_revision_fee,
+          paidFee: deal?.revision_tracker?.paid_revision_fee,
+        };
+        // A photo / PDF deliverable has nothing to scrub: the timestamped video player would just
+        // show "video could not load", so those get the plain text revision form (same as Work Review).
+        return wsFiles.some((x) => isVideo(x)) ? (
+          <VideoReviewModal
+            src={assetUrl(wsFiles.find((x) => isVideo(x)))}
+            title={campaign.title}
+            watermark={wsStatus !== 'approved'}
+            onClose={() => setRevisionOpen(false)}
+            onSubmit={submitRevision}
+            submitting={revSubmitting}
+            {...fees}
+          />
+        ) : (
+          <RevisionRequestModal
+            onClose={() => setRevisionOpen(false)}
+            onSubmit={submitRevision}
+            submitting={revSubmitting}
+            {...fees}
+          />
+        );
+      })()}
 
       {reviewOpen && (
         <ReviewModal
@@ -1262,9 +1274,10 @@ export default function BrandCampaignDetail() {
         .bcd-drawer-close:hover{background:#e7eaf6}
         .bcd-drawer-body{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;padding:22px 24px}
         @media (max-width:600px){.bcd-drawer{width:100%}.bcd-action-details{display:none!important;}}
-        .bcd-bc{display:flex;align-items:center;gap:8px;margin-bottom:16px}
-        .bcd-bc button{display:inline-flex;align-items:center;gap:6px;color:#5b6bff;font-weight:600;background:none;border:none;cursor:pointer;font-family:inherit;font-size:14px}
-        .bcd-bc strong{color:#15163a;font-weight:700;font-size:14px}
+        .bcd-bc{display:flex;align-items:center;gap:8px;margin-bottom:16px;min-width:0}
+        .bcd-bc button{flex:none;display:inline-flex;align-items:center;gap:6px;color:#5b6bff;font-weight:600;background:none;border:none;cursor:pointer;font-family:inherit;font-size:14px;min-height:44px}
+        .bcd-bc svg{flex:none}
+        .bcd-bc strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#15163a;font-weight:700;font-size:14px}
         .bcd-top{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap;padding-bottom:18px;border-bottom:1px solid #eef0f6}
         .bcd-title-wrap{display:flex;flex-direction:column;gap:6px;flex:1;min-width:240px}
         .bcd-badge{align-self:flex-start;font-size:11px;font-weight:800;padding:4px 12px;border-radius:20px;text-transform:uppercase}
@@ -1431,7 +1444,9 @@ export default function BrandCampaignDetail() {
         .bcd-kv label{color:#9296ba;font-size:12px;font-weight:600}
         .bcd-kv strong{color:#15163a;font-size:15px}
         /* creator detail fields side by side */
-        .bcd-kv-row{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:14px;padding:14px 0 0 14px;border-top:1px solid #eef0f6}
+        .bcd-kv{min-width:0}
+        .bcd-kv strong{overflow-wrap:anywhere}
+        .bcd-kv-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:14px;padding:14px 0 0 14px;border-top:1px solid #eef0f6}
         .bcd-kv-row + .bcd-kv-row{border-top:none;padding-top:0;margin-top:16px}
         .bcd-kv-row .bcd-kv{margin-top:0}
         .bcd-cre-bio{margin:18px 0 0;color:#585c7e;font-size:13.5px;line-height:1.55}
@@ -1444,7 +1459,7 @@ export default function BrandCampaignDetail() {
         .bcd-reviewed,.bwr-reviewed{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#15803d;padding:6px 2px}
         .bcd-cre-actions{display:flex;gap:8px;margin-top:18px;flex-wrap:nowrap}
         .bcd-cre-actions .bcd-cta{margin-top:0;flex:1 1 0;min-width:0;width:auto;padding:8px 10px;font-size:12.5px;gap:6px}
-        @media (max-width:520px){.bcd-kv-row{grid-template-columns:1fr 1fr}.bcd-cre-actions{flex-direction:column}}
+        @media (max-width:520px){.bcd-kv-row{grid-template-columns:repeat(2,minmax(0,1fr))}.bcd-cre-actions{flex-direction:column}}
         .bcd-cta{width:100%;margin-top:14px;display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid #e9ebf4;background:#fff;color:#5b6bff;border-radius:12px;padding:10px;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit;white-space:nowrap}
         .bcd-cta:hover{border-color:#cdd2f3}
         .bcd-cta.primary{background:#07074e;border-color:#07074e;color:#fff}
@@ -1463,8 +1478,8 @@ export default function BrandCampaignDetail() {
         .bcd-bid-amt{font-size:15px;color:#07074e;white-space:nowrap}
         .bcd-bid-msg{margin:8px 0 0;font-size:13px;color:#5c608a;line-height:1.5;
           display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-        .bcd-bid-actions{display:flex;gap:8px;margin-top:10px}
-        .bcd-bid-actions .bcd-cta{flex:1;justify-content:center;padding:8px 10px;font-size:13px}
+        .bcd-bid-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+        .bcd-bid-actions .bcd-cta{flex:1 1 130px;min-width:0;margin-top:0;justify-content:center;padding:8px 10px;font-size:13px}
         .bcd-cre-ava.sm{width:34px;height:34px;font-size:13px;flex:none}
         .bcd-creator{display:flex;align-items:center;gap:12px;margin-bottom:6px}
         .bcd-cre-ava{width:48px;height:48px;border-radius:50%;flex:none;overflow:hidden;display:grid;place-items:center;background:linear-gradient(135deg,#5b6bff,#23236a);color:#fff;font-weight:800;font-size:18px}
@@ -1502,10 +1517,24 @@ export default function BrandCampaignDetail() {
           .bcd-actions{flex:none;margin-left:auto;gap:8px}
           .bcd-actions button{flex:none;justify-content:center;min-width:120px}
           /* Spread the three tabs evenly across the row on mobile. */
-          .bcd-tabs{gap:18px;overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;justify-content:flex-start;padding-left:16px}
+          .bcd-tabs{gap:18px;overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;justify-content:flex-start;scrollbar-width:none}
+          .bcd-tabs::-webkit-scrollbar{display:none}
+          .bcd-tabs button{flex:none}
           .bcd-tabs .bcd-tab-right{margin-left:0}
           .bcd-revcard-foot{gap:16px}
         }
+        /* Phones and tablets: 16px inputs stop the iOS focus-zoom; 44px targets for the small action buttons. */
+        @media (max-width:768px){
+          .bcd input,.bcd textarea,.bcd select{font-size:16px!important}
+          .bcd-cta,.bcd-finish-hiring,.bcd-ship-btn,.bcd-pill-btn,.bcd-cre-tab{min-height:44px}
+          .bcd-drawer-close{width:44px;height:44px}
+          .bcd-dchat-input button{width:44px;min-height:44px}
+          .bcd-bc button,.bcd-tabs button,.bcd-actions button{min-height:44px}
+          .bcd-progress-mini{min-height:44px}
+          .bcd-drawer-body{padding-bottom:calc(22px + env(safe-area-inset-bottom,0px))}
+          .bcd-drawer-head{padding-top:calc(18px + env(safe-area-inset-top,0px))}
+        }
+        .bcd-drawer-overlay{height:100vh;height:100dvh}
       `}</style>
 
       {dupOpen && (

@@ -528,6 +528,7 @@ export default function CreatorProfileSetup() {
         .ps-root {
           --ps-purple: #6d7bff;
           min-height: 100vh;
+          min-height: 100dvh;
           background: #0a0a16;
           color: #6d7bff;
           font-family: var(--font-body);
@@ -705,6 +706,19 @@ export default function CreatorProfileSetup() {
 
         @media (max-width: 560px) {
           .ps-card { padding: 26px 22px; }
+        }
+        /* Phone QA: 16px fields stop the iOS focus-zoom; 44px targets; notch / home-bar padding. */
+        @media (max-width: 768px) {
+          .ps-input, .ps-msel__btn, .ps-pf-field input { font-size: 16px; min-height: 44px; }
+          .ps-btn-primary { min-height: 48px; }
+          .ps-topbar { padding-top: max(20px, env(safe-area-inset-top)); }
+          .ps-main { padding-bottom: max(80px, calc(40px + env(safe-area-inset-bottom))); }
+          .ps-topbar__tag { white-space: nowrap; }
+        }
+        @media (max-width: 400px) {
+          .ps-card { padding: 20px 16px; }
+          .ps-thanks { padding: 32px 16px; }
+          .ps-topbar { padding-left: 16px; padding-right: 16px; }
         }
       `}</style>
     </div>

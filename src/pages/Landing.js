@@ -30,8 +30,6 @@ import {
   Check,
   X,
   Linkedin,
-  Youtube,
-  Twitter,
   SkipForward,
   BellOff,
   Repeat,
@@ -3752,8 +3750,6 @@ export default function Landing() {
               <div className="lp-footer__socials">
                 <a href="https://www.instagram.com/ugcad.app/" target="_blank" rel="noreferrer" aria-label="Instagram" className="lp-footer__social-btn"><Instagram size={16} /></a>
                 <a href="https://www.linkedin.com/company/ugcad-io/" target="_blank" rel="noreferrer" aria-label="LinkedIn" className="lp-footer__social-btn"><Linkedin size={16} /></a>
-                <a href="#" aria-label="X" className="lp-footer__social-btn"><Twitter size={16} /></a>
-                <a href="#" aria-label="YouTube" className="lp-footer__social-btn"><Youtube size={16} /></a>
               </div>
             </div>
 
@@ -3761,26 +3757,24 @@ export default function Landing() {
               <div className="lp-footer__col">
                 <h4 className="lp-footer__heading">Platform</h4>
                 <ul className="lp-footer__list">
-                  <li><a href="#">How It Works</a></li>
-                  <li><a href="#">Creators</a></li>
-                  <li><a href="#">Pricing</a></li>
-                  <li><a href="#">Case Studies</a></li>
+                  <li><a href="#services">How It Works</a></li>
+                  <li><a href="/creator" onClick={(e) => { e.preventDefault(); navigate('/creator'); }}>For Creators</a></li>
+                  <li><a href="/auth?mode=signup&role=business" onClick={(e) => { e.preventDefault(); navigate('/auth?mode=signup&role=business'); }}>For Brands</a></li>
                 </ul>
               </div>
               <div className="lp-footer__col">
                 <h4 className="lp-footer__heading">Company</h4>
                 <ul className="lp-footer__list">
-                  <li><a href="#">About</a></li>
-                  <li><a href="#">Manifesto</a></li>
-                  <li><a href="#">Contact</a></li>
+                  <li><a href="mailto:support@ugcad.io">Contact</a></li>
                 </ul>
               </div>
               <div className="lp-footer__col">
                 <h4 className="lp-footer__heading">Legal</h4>
                 <ul className="lp-footer__list">
-                  <li><a href="#">Terms</a></li>
-                  <li><a href="#">Privacy</a></li>
-                  <li><a href="#">Usage Rights</a></li>
+                  <li><a href="/terms" onClick={(e) => { e.preventDefault(); navigate('/terms'); }}>Terms</a></li>
+                  <li><a href="/privacy-policy" onClick={(e) => { e.preventDefault(); navigate('/privacy-policy'); }}>Privacy</a></li>
+                  <li><a href="/community-guidelines" onClick={(e) => { e.preventDefault(); navigate('/community-guidelines'); }}>Community Guidelines</a></li>
+                  <li><a href="/cookie-policy" onClick={(e) => { e.preventDefault(); navigate('/cookie-policy'); }}>Cookies</a></li>
                 </ul>
               </div>
             </div>
@@ -3894,6 +3888,7 @@ export default function Landing() {
              semantics: width: min(92vw, var(--lp-maxw)). */
           --lp-maxw: clamp(1320px, 86vw, 1720px);
           min-height: 100vh;
+          min-height: 100dvh;
           font-family: var(--font-body);
           background: var(--lp-page-bg);
           color: var(--lp-text);

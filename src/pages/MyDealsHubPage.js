@@ -3,7 +3,6 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { toast } from 'sonner';
 import { ArrowRight, Clock, Lock } from 'lucide-react';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import EmptyState from '../components/EmptyState';
@@ -98,6 +97,7 @@ export default function MyDealsHubPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [deals, setDeals] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   // Deep-link a tab via ?tab=requested (booking-request notifications land here).
   const tabParam = searchParams.get('tab');
@@ -124,8 +124,10 @@ export default function MyDealsHubPage() {
     try {
       const res = await axios.get(`${API}/deals/my?summary=true`);
       setDeals(res.data || []);
-    } catch {
-      toast.error('Failed to load deals');
+      setLoadError('');
+    } catch (err) {
+      // Polled every 10s: keep the last list on screen; only show the error when nothing loaded yet.
+      setLoadError(err?.response ? 'Could not load your deals.' : "You're offline. Check your connection and try again.");
     } finally {
       fetchingDeals.current = false;
       setLoading(false);
@@ -136,6 +138,13 @@ export default function MyDealsHubPage() {
   const active = useMemo(() => deals.filter((d) => !isRequested(d) && !isDead(d)), [deals]);
 
   const openDeal = (d) => navigate(`/my-deals?campaign=${d?.campaign?.id || dealId(d)}`);
+  // Cards are role="button": Enter/Space must open them too (only when the card itself has focus).
+  const cardKey = (d) => (e) => {
+    if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openDeal(d); }
+  };
+  const errorBlock = (
+    <EmptyState title="Could not load deals" message={loadError} action={{ label: 'Retry', onClick: () => { setLoading(true); fetchDeals(); } }} />
+  );
 
   return (
     <CreatorTopNavLayout notifications={0}>
@@ -160,13 +169,13 @@ export default function MyDealsHubPage() {
       {tab === 'active' && (
         loading ? (
           <DealsSkeleton />
-        ) : active.length ? (
+        ) : loadError && !deals.length ? errorBlock : active.length ? (
           <div className="mdh-grid">
             {active.map((d) => {
               const meta = activeMeta(d);
               const priv = d?.campaign?.direct_booking;
               return (
-                <article key={dealId(d)} className="mdh-card cmk-rise" style={{ '--mdh': meta.color }} onClick={() => openDeal(d)} role="button" tabIndex={0}>
+                <article key={dealId(d)} className="mdh-card cmk-rise" style={{ '--mdh': meta.color }} onClick={() => openDeal(d)} onKeyDown={cardKey(d)} role="button" tabIndex={0}>
                   <span className="mdh-ava">
                     {dealLogo(d) ? <img src={assetUrl(dealLogo(d))} alt="" /> : getInitial(dealBrand(d))}
                   </span>
@@ -199,12 +208,12 @@ export default function MyDealsHubPage() {
       {tab === 'requested' && (
         loading ? (
           <DealsSkeleton />
-        ) : requested.length ? (
+        ) : loadError && !deals.length ? errorBlock : requested.length ? (
           <div className="mdh-grid">
             {requested.map((d) => {
               const price = bookingStatus(d) === 'price_revision';
               return (
-                <article key={dealId(d)} className="mdh-card cmk-rise is-req" onClick={() => openDeal(d)} role="button" tabIndex={0}>
+                <article key={dealId(d)} className="mdh-card cmk-rise is-req" onClick={() => openDeal(d)} onKeyDown={cardKey(d)} role="button" tabIndex={0}>
                   <span className="mdh-ava">
                     {dealLogo(d) ? <img src={assetUrl(dealLogo(d))} alt="" /> : getInitial(dealBrand(d))}
                   </span>
@@ -244,7 +253,7 @@ export default function MyDealsHubPage() {
         /* auto-fit + 1fr: cards STRETCH to fill the full row width instead of
            being capped at 480px with empty tracks to the right. One deal spans
            the whole width; several deals fill the row with no dead space. */
-        .mdh-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 16px; }
+        .mdh-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr)); gap: 16px; }
         .mdh-card { position: relative; display: grid; grid-template-columns: 48px minmax(0,1fr) auto; align-items: center;
           column-gap: 14px; row-gap: 12px;
           background: #fff; border: 1px solid #eef0f6; border-left: 4px solid var(--mdh, #4452f0); border-radius: 16px;
@@ -278,7 +287,10 @@ export default function MyDealsHubPage() {
           background: linear-gradient(100deg,#12124f,#07074e); color: #fff; box-shadow: 0 12px 26px -12px rgba(7,7,78,.7); }
         .mdh-card.is-req { padding-right: 16px; }
         @media (max-width: 560px) {
-          .mdh-grid { grid-template-columns: 1fr; gap: 0; }
+          .mdh-grid { grid-template-columns: minmax(0, 1fr); gap: 0; }
+          .mdh-card { column-gap: 12px; padding-left: 12px; }
+          .mdh-amt strong { font-size: 14px; }
+          .mdh-review { min-height: 44px; }
           .mdh-card { border-top: 0; border-right: 0; border-bottom: 1px solid #eef0f6; border-radius: 0; box-shadow: none; }
           .mdh-card:hover { box-shadow: none; transform: none; }
           .mdh-card:not(.is-req) { padding-right: 16px; }

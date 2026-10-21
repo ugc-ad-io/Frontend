@@ -7,8 +7,6 @@ import {
   X,
   Linkedin,
   Instagram,
-  Twitter,
-  Youtube,
   ChevronDown,
   Heart,
   Plus,
@@ -941,8 +939,6 @@ export default function CreatorLanding() {
               <div className="lp-footer__socials">
                 <a href="https://www.instagram.com/ugcad.app/" target="_blank" rel="noreferrer" aria-label="Instagram" className="lp-footer__social-btn"><Instagram size={16} /></a>
                 <a href="https://www.linkedin.com/company/ugcad-io/" target="_blank" rel="noreferrer" aria-label="LinkedIn" className="lp-footer__social-btn"><Linkedin size={16} /></a>
-                <a href="#" aria-label="X" className="lp-footer__social-btn"><Twitter size={16} /></a>
-                <a href="#" aria-label="YouTube" className="lp-footer__social-btn"><Youtube size={16} /></a>
               </div>
             </div>
 
@@ -950,26 +946,24 @@ export default function CreatorLanding() {
               <div className="lp-footer__col">
                 <h4 className="lp-footer__heading">Platform</h4>
                 <ul className="lp-footer__list">
-                  <li><a href="#">How It Works</a></li>
-                  <li><a href="#">Creators</a></li>
-                  <li><a href="#">Pricing</a></li>
-                  <li><a href="#">Case Studies</a></li>
+                  <li><a href="#how">How It Works</a></li>
+                  <li><a href="#faq">FAQ</a></li>
+                  <li><a href="/" onClick={(e) => { e.preventDefault(); navigate('/'); }}>For Brands</a></li>
                 </ul>
               </div>
               <div className="lp-footer__col">
                 <h4 className="lp-footer__heading">Company</h4>
                 <ul className="lp-footer__list">
-                  <li><a href="#">About</a></li>
-                  <li><a href="#">Manifesto</a></li>
-                  <li><a href="#">Contact</a></li>
+                  <li><a href="mailto:support@ugcad.io">Contact</a></li>
                 </ul>
               </div>
               <div className="lp-footer__col">
                 <h4 className="lp-footer__heading">Legal</h4>
                 <ul className="lp-footer__list">
-                  <li><a href="#">Terms</a></li>
-                  <li><a href="#">Privacy</a></li>
-                  <li><a href="#">Usage Rights</a></li>
+                  <li><a href="/terms" onClick={(e) => { e.preventDefault(); navigate('/terms'); }}>Terms</a></li>
+                  <li><a href="/privacy-policy" onClick={(e) => { e.preventDefault(); navigate('/privacy-policy'); }}>Privacy</a></li>
+                  <li><a href="/community-guidelines" onClick={(e) => { e.preventDefault(); navigate('/community-guidelines'); }}>Community Guidelines</a></li>
+                  <li><a href="/cookie-policy" onClick={(e) => { e.preventDefault(); navigate('/cookie-policy'); }}>Cookies</a></li>
                 </ul>
               </div>
             </div>
@@ -1219,6 +1213,7 @@ export default function CreatorLanding() {
           --cl-blob: linear-gradient(135deg, #d8d0ff 0%, #c3b8ff 100%);
           --cl-blob-op: 0.5;
           min-height: 100vh;
+          min-height: 100dvh;
           background: var(--cl-bg);
           color: var(--cl-text);
           font-family: var(--cl-font-body);
@@ -1427,7 +1422,7 @@ export default function CreatorLanding() {
           /* min-height (not a hard height) so on shorter web screens the hero grows to fit the
              tall video gallery instead of overflowing - which kept the below-fold category pills
              from overlapping the videos. Phones (≤480px) override this to height:auto below. */
-          min-height: 100vh; display: flex; flex-direction: column; justify-content: flex-start;
+          min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column; justify-content: flex-start;
           /* The fixed top bar is back, so the hero needs clearance again - but only for the
              bar itself (56px row + 2x18px padding = 92px), NOT the old clamp(120px, 16vh,
              180px) that was also making room for a 184px overhanging logo. The logo is

@@ -6,6 +6,8 @@ import PayoutWithLayout from './PayoutWithLayout';
 jest.mock('axios', () => ({ get: jest.fn(), post: jest.fn() }));
 jest.mock('sonner', () => ({ toast: { error: jest.fn(), success: jest.fn() } }));
 jest.mock('../components/CreatorTopNavLayout', () => ({ children }) => <div>{children}</div>);
+const mockNavigate = jest.fn();
+jest.mock('react-router-dom', () => ({ useNavigate: () => mockNavigate }));
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 test('mobile earnings separate the platform fee from the late penalty', async () => {
@@ -28,7 +30,7 @@ test('mobile earnings separate the platform fee from the late penalty', async ()
 // The backend rejects anything under 2,500 (server.py MIN_WITHDRAWAL_AMOUNT), so the
 // form must stop it first with the same figure instead of letting 500 through.
 async function openForm(host, root) {
-  axios.get.mockImplementation(url => Promise.resolve({ data: url.includes('/overview') ? { balance: 10000 } : [] }));
+  axios.get.mockImplementation(url => Promise.resolve({ data: url.includes('/overview') ? { balance: 10000, kyc_status: 'verified' } : [] }));
   await act(async () => root.render(<PayoutWithLayout />));
   await act(async () => host.querySelector('.pwl-req-btn').click());
 }
@@ -60,5 +62,30 @@ test('2,500 is accepted and sent with the chosen method', async () => {
     await act(async () => host.querySelector('.pwl-submit').click());
     expect(axios.post).toHaveBeenCalledWith(expect.stringContaining('/withdrawal/request'),
       { amount: 2500, payment_method: 'upi', account_details: { upi_id: 'me@upi' } });
+  } finally { await act(async () => root.unmount()); host.remove(); }
+});
+
+test('unverified KYC shows the banner and Withdraw sends the creator to /kyc instead of the modal', async () => {
+  jest.clearAllMocks();
+  axios.get.mockImplementation(url => Promise.resolve({ data: url.includes('/overview') ? { balance: 10000, kyc_status: 'not_submitted' } : [] }));
+  const host = document.createElement('div'); document.body.appendChild(host); const root = createRoot(host);
+  try {
+    await act(async () => root.render(<PayoutWithLayout />));
+    expect(host.querySelector('[data-testid="kyc-banner"]')).not.toBeNull();
+    await act(async () => host.querySelector('.pwl-req-btn').click());
+    expect(mockNavigate).toHaveBeenCalledWith('/kyc');
+    expect(host.querySelector('.pwl-modal')).toBeNull();
+  } finally { await act(async () => root.unmount()); host.remove(); }
+});
+
+test('a failed load shows an offline message with Retry, not zeros', async () => {
+  jest.clearAllMocks();
+  axios.get.mockRejectedValue(new Error('Network Error'));
+  const host = document.createElement('div'); document.body.appendChild(host); const root = createRoot(host);
+  try {
+    await act(async () => root.render(<PayoutWithLayout />));
+    expect(host.textContent).toContain("You're offline");
+    expect(host.querySelector('.cmk-emptystate-btn').textContent).toContain('Retry');
+    expect(host.querySelector('.pwl-stats')).toBeNull();
   } finally { await act(async () => root.unmount()); host.remove(); }
 });

@@ -83,6 +83,15 @@ export default function ReviewModal({ title = 'Rate this creator', subtitle, onS
         .rvm-submit{background:#12124f;color:#fff}
         .rvm-submit:hover:not(:disabled){background:#07074e}
         .rvm-submit:disabled,.rvm-ghost:disabled{opacity:.55;cursor:not-allowed}
+        @media (max-width:768px){
+          .rvm-overlay{padding:max(12px,env(safe-area-inset-top,0px)) 12px max(12px,env(safe-area-inset-bottom,0px))}
+          .rvm-card{padding:22px 18px 18px;max-height:calc(100vh - 24px);max-height:calc(100dvh - 24px)}
+          .rvm-card h3{padding-right:48px}
+          .rvm-x{width:44px;height:44px;top:8px;right:8px}
+          .rvm-stars{gap:0}
+          .rvm-star{padding:7px}
+          .rvm-text{font-size:16px}
+        }
       `}</style>
     </div>
   );

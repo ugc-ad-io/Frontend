@@ -55,6 +55,8 @@ export default function MessagesPopup({ onClose }) {
   const { user } = useAuth();
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false); // the list could not be loaded (offline / server down)
+  const [retryTick, setRetryTick] = useState(0);
   const [q, setQ] = useState('');
   const [active, setActive] = useState(null); // { id, name, photo, dealId?, title? }
   const [deals, setDeals] = useState([]);        // one chat per campaign/deal
@@ -73,8 +75,8 @@ export default function MessagesPopup({ onClose }) {
     const load = async () => {
       try {
         const r = await axios.get(`${API}/chat/conversations`);
-        if (alive) setConversations(Array.isArray(r.data) ? r.data : []);
-      } catch { /* thread list may be empty / offline */ }
+        if (alive) { setConversations(Array.isArray(r.data) ? r.data : []); setFailed(false); }
+      } catch { if (alive) setFailed(true); }
       finally { if (alive) setLoading(false); }
     };
     // Each campaign gets its own chat; the 1:1 thread merged every campaign together.
@@ -90,7 +92,7 @@ export default function MessagesPopup({ onClose }) {
     // Deals are heavier to build server-side, so they refresh far less often.
     const td = setInterval(loadDeals, 20000);
     return () => { alive = false; clearInterval(t); clearInterval(td); };
-  }, [user?.role]);
+  }, [user?.role, retryTick]);
 
   // When a conversation is picked, reuse ChatPopup for the thread view. Its
   // close returns to the list rather than closing the whole launcher.
@@ -160,6 +162,12 @@ export default function MessagesPopup({ onClose }) {
               </span>
             </div>
           ))
+        ) : failed && conversations.length === 0 && deals.length === 0 ? (
+          <div className="mpop-empty" role="alert">
+            {typeof navigator !== 'undefined' && navigator.onLine === false ? "You're offline. Check your connection." : 'Could not load your messages.'}
+            <br />
+            <button type="button" className="mpop-retry" onClick={() => { setLoading(true); setRetryTick((t) => t + 1); }}>Retry</button>
+          </div>
         ) : filtered.length === 0 && campaignRows.length === 0 ? (
           <div className="mpop-empty">{conversations.length || deals.length ? 'No matches' : 'No conversations yet'}</div>
         ) : (
@@ -221,13 +229,18 @@ export default function MessagesPopup({ onClose }) {
       <style>{`
         .mpop-backdrop{position:fixed;inset:0;z-index:1199;background:transparent}
         @media (max-width:640px){ .mpop-backdrop{background:rgba(15,22,58,.35)} }
-        .mpop{position:fixed;right:24px;bottom:24px;width:360px;max-width:calc(100vw - 32px);height:520px;max-height:calc(100vh - 48px);
+        .mpop{position:fixed;right:calc(24px + env(safe-area-inset-right,0px));bottom:calc(24px + env(safe-area-inset-bottom,0px));width:360px;max-width:calc(100vw - 32px);height:520px;max-height:calc(100vh - 48px);max-height:calc(100dvh - 48px);
           background:#fff;border:1px solid #e9ebf4;border-radius:18px;box-shadow:0 28px 64px rgba(15,22,58,.32);
           display:flex;flex-direction:column;overflow:hidden;z-index:1200;animation:mpop-in .22s cubic-bezier(.2,.7,.2,1)}
         @keyframes mpop-in{from{transform:translateY(20px);opacity:.5}to{transform:none;opacity:1}}
+        @media (max-width:640px){
+          .mpop{left:max(8px,env(safe-area-inset-left));right:max(8px,env(safe-area-inset-right));bottom:max(8px,env(safe-area-inset-bottom));width:auto;max-width:none;
+            max-height:calc(100dvh - 16px - env(safe-area-inset-top,0px))}
+        }
+        .mpop-retry{margin-top:10px;min-height:44px;padding:0 18px;border:1px solid #e9ebf4;border-radius:10px;background:#fff;color:#4452f0;font:inherit;font-weight:700;cursor:pointer}
         .mpop-head{display:flex;align-items:center;padding:14px 16px;border-bottom:1px solid #eef0f6}
         .mpop-head strong{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:16px;color:#15163a}
-        .mpop-x{margin-left:auto;border:none;background:#f1f3fa;color:#15163a;width:32px;height:32px;border-radius:9px;cursor:pointer;display:grid;place-items:center}
+        .mpop-x{margin-left:auto;border:none;background:#f1f3fa;color:#15163a;width:40px;height:40px;border-radius:9px;cursor:pointer;display:grid;place-items:center}
         .mpop-x:hover{background:#e7eaf5}
         .mpop-search{display:flex;align-items:center;gap:8px;margin:12px;padding:0 12px;height:40px;flex:none;
           background:#f5f6fc;border:1px solid #eef0f6;border-radius:12px;color:#9296ba}

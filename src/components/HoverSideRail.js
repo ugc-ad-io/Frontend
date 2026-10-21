@@ -222,14 +222,15 @@ export default function HoverSideRail({ brandMark = 'U', onLogoClick, primary = 
 
         <style>{`
           .hsr-help-overlay{position:fixed;inset:0;z-index:1400;background:rgba(15,22,58,.5);backdrop-filter:blur(4px);
-            display:flex;align-items:center;justify-content:center;padding:20px}
-          .hsr-help-card{position:relative;width:min(420px,100%);background:#fff;border-radius:20px;padding:24px;
+            display:flex;align-items:center;justify-content:center;
+            padding:max(20px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) max(20px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left))}
+          .hsr-help-card{position:relative;width:min(420px,100%);max-height:100%;overflow-y:auto;background:#fff;border-radius:20px;padding:24px;
             box-shadow:0 30px 70px -20px rgba(15,22,58,.5);animation:hsrHelpIn .2s ease}
           @keyframes hsrHelpIn{from{transform:translateY(8px);opacity:.6}to{transform:none;opacity:1}}
-          .hsr-help-x{position:absolute;top:14px;right:14px;width:34px;height:34px;border:none;background:#f1f3fa;color:#15163a;
+          .hsr-help-x{position:absolute;top:10px;right:10px;width:44px;height:44px;border:none;background:#f1f3fa;color:#15163a;
             border-radius:10px;cursor:pointer;display:grid;place-items:center}
           .hsr-help-x:hover{background:#e7eaf5}
-          .hsr-help-head{display:flex;align-items:center;gap:13px;margin-bottom:18px}
+          .hsr-help-head{display:flex;align-items:center;gap:13px;margin-bottom:18px;padding-right:44px}
           .hsr-help-badge{width:46px;height:46px;flex:none;border-radius:14px;display:grid;place-items:center;color:#fff;
             background:linear-gradient(135deg,#5b6bff,#6d7bff)}
           .hsr-help-head strong{display:block;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:18px;color:#15163a}
@@ -239,7 +240,8 @@ export default function HoverSideRail({ brandMark = 'U', onLogoClick, primary = 
           .hsr-help-row:hover{border-color:#cdd4ff;background:#f7f8ff}
           .hsr-help-ic{width:38px;height:38px;flex:none;border-radius:11px;display:grid;place-items:center;background:#eef0ff;color:#5b6bff}
           .hsr-help-row label{display:block;color:#9296ba;font-size:12px;font-weight:600}
-          .hsr-help-row span{color:#15163a;font-size:14.5px;font-weight:700}
+          .hsr-help-row span{color:#15163a;font-size:14.5px;font-weight:700;overflow-wrap:anywhere}
+          .hsr-help-row div{min-width:0}
           .hsr-help-note{margin:14px 0 0;color:#9296ba;font-size:12.5px;text-align:center}
         `}</style>
       </div>

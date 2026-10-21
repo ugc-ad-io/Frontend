@@ -1,8 +1,9 @@
 import { useLiveEffect } from '../lib/liveUpdates';
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Search, Wallet, Clock, TrendingUp, IndianRupee, ChevronDown, ArrowUpRight, X, Send } from 'lucide-react';
+import { Search, Wallet, Clock, TrendingUp, IndianRupee, ChevronDown, ArrowUpRight, X, Send, Shield } from 'lucide-react';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
@@ -22,6 +23,8 @@ const STATUS_TONE = { Paid: 'ok', Processing: 'info', Pending: 'warn', Disputed:
 const inr = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
 
 export default function PayoutWithLayout() {
+  const navigate = useNavigate();
+  const [loadError, setLoadError] = useState('');
   const [withdrawals, setWithdrawals] = useState([]);
   // Money IN — what brands actually paid this creator. The page used to show only
   // withdrawals (money OUT), so a creator who had been paid but never withdrawn saw
@@ -49,23 +52,44 @@ export default function PayoutWithLayout() {
 
   const fetchData = async () => {
     try {
+      // A failed call must not show as "Rs 0 / no payments": show an error with Retry instead.
       const [hist, ov, rec] = await Promise.all([
-        axios.get(`${API}/withdrawal/history`).catch(() => ({ data: [] })),
-        axios.get(`${API}/payout/overview`).catch(() => ({ data: {} })),
-        axios.get(`${API}/payouts/receipts`).catch(() => ({ data: [] })),
+        axios.get(`${API}/withdrawal/history`),
+        axios.get(`${API}/payout/overview`),
+        axios.get(`${API}/payouts/receipts`),
       ]);
       setWithdrawals(hist.data || []);
       setOverview(ov.data || {});
       // Receipts cover both directions; the earnings table only wants money in.
       setEarnings((rec.data || []).filter((r) => r.type === 'earning'));
+      setLoadError('');
+      // Prefill the saved payout account (same source the backend publishes on /payout/overview).
+      setUpiId((cur) => cur || ov.data?.upi_id || '');
+      const bd = ov.data?.bank_details || {};
+      setBank((cur) => (cur.account_number || cur.ifsc_code ? cur : {
+        account_holder_name: bd.account_holder_name || '',
+        account_number: bd.account_number || '',
+        ifsc_code: bd.ifsc_code || '',
+      }));
     } catch (error) {
-      toast.error('Failed to load earnings');
+      setLoadError(error?.response
+        ? apiErrorMessage(error, 'Could not load your earnings.')
+        : "You're offline. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
   };
 
+  // Withdrawing needs verified KYC (backend: 403 otherwise). Send the creator to /kyc instead of a dead modal.
+  const kycStatus = overview.kyc_status || 'not_submitted';
+  const kycBlocked = !loading && !loadError && kycStatus !== 'verified';
+  const openRequest = () => {
+    if (kycBlocked) { toast.error('Verify your KYC before withdrawing.'); navigate('/kyc'); return; }
+    setShowRequest(true);
+  };
+
   const submitWithdrawal = async () => {
+    if (submitting) return;
     const amt = Number(amount);
     const balance = Number(overview.balance || 0);
     if (!amt || amt <= 0) { toast.error('Enter a valid amount'); return; }
@@ -121,7 +145,7 @@ export default function PayoutWithLayout() {
           <h1>Earnings</h1>
           <p>See what each brand paid you, what's still in escrow, and your withdrawals.</p>
         </div>
-        <button type="button" className="pwl-req-btn" onClick={() => setShowRequest(true)}>
+        <button type="button" className="pwl-req-btn" onClick={openRequest} disabled={loading || !!loadError} data-testid="withdraw-btn">
           <ArrowUpRight size={17} />
           <span className="pwl-req-full">Request Withdrawal</span>
           <span className="pwl-req-short">Withdraw</span>
@@ -133,10 +157,33 @@ export default function PayoutWithLayout() {
         <p>UGC.ad charges a <strong>20% platform fee</strong> on every campaign/brief.</p>
       </div>
 
+      {loadError && (
+        <div className="cmk-table-card" style={{ marginTop: 14 }}>
+          <EmptyState title="Could not load earnings" message={loadError} action={{ label: 'Retry', onClick: () => { setLoading(true); setLoadError(''); fetchData(); } }} />
+        </div>
+      )}
+
+      {kycBlocked && (
+        <div className="pwl-kyc" data-testid="kyc-banner">
+          <Shield strokeWidth={1.8} size={20} />
+          <div>
+            <strong>{kycStatus === 'pending' ? 'KYC under review' : kycStatus === 'rejected' ? 'KYC not approved' : 'Verify your identity to withdraw'}</strong>
+            <p>{kycStatus === 'pending'
+              ? 'We are checking your documents, usually within 24-48 hours. Withdrawals unlock once it is verified.'
+              : kycStatus === 'rejected'
+                ? (overview.kyc_rejection_reason || 'Your documents could not be verified. Please submit them again.')
+                : 'We need your Aadhaar and PAN before we can pay out your earnings.'}</p>
+          </div>
+          <button type="button" onClick={() => navigate('/kyc')}>
+            {kycStatus === 'pending' ? 'View status' : kycStatus === 'rejected' ? 'Fix and resubmit' : 'Start verification'}
+          </button>
+        </div>
+      )}
+
       {/* No inline gridTemplateColumns here: .cmk-stats-2l already defaults to 4 columns,
           and an inline style outranks stylesheet media queries — it silently defeated the
           1080px (→2 col) and 540px (→1 col) rules, so phones got four ~80px cards. */}
-      <div className="cmk-stats cmk-stats-2l pwl-stats">
+      {!loadError && <div className="cmk-stats cmk-stats-2l pwl-stats">
         {stats.map((s) => (
           <div key={s.lbl} className="cmk-stat cmk-rise">
             <div className="cmk-stat-head">
@@ -149,12 +196,12 @@ export default function PayoutWithLayout() {
             </div>
           </div>
         ))}
-      </div>
+      </div>}
 
       {/* Money in vs money out. They answer different questions — "who paid me?" and
           "where did my withdrawals get to?" — and lumping them together is what left
           a paid creator staring at an empty table. */}
-      <div className="pwl-tabs">
+      <div className="pwl-tabs" style={loadError ? { display: "none" } : undefined}>
         <button type="button" className={tab === 'earnings' ? 'on' : ''} onClick={() => setTab('earnings')}>
           Money in {earnings.length > 0 && <span className="pwl-count">{earnings.length}</span>}
         </button>
@@ -186,7 +233,7 @@ export default function PayoutWithLayout() {
         </div>
       )}
 
-      <div className="cmk-table-card cmk-rise">
+      <div className="cmk-table-card cmk-rise" style={loadError ? { display: "none" } : undefined}>
         {loading ? (
           <SkeletonTable rows={6} cols={tab === 'earnings' ? 6 : 5} />
         ) : tab === 'earnings' ? (
@@ -266,7 +313,7 @@ export default function PayoutWithLayout() {
         ) : filtered.length === 0 ? (
           <EmptyState title="No withdrawals yet" message="Money you move to your bank or UPI will appear here." />
         ) : (
-          <table className="cmk-table">
+          <table className="cmk-table cmk-table--cards">
             <thead>
               <tr>
                 <th>TXN ID</th><th>Amount</th><th>Status</th><th>Date</th><th>Method</th>
@@ -277,11 +324,11 @@ export default function PayoutWithLayout() {
                 const status = STATUS_MAP[row.status] || row.status;
                 return (
                   <tr key={row.id}>
-                    <td><span className="cmk-pill info">TXN-{String(row.id || '').slice(-4).toUpperCase()}</span></td>
-                    <td className="cmk-td-strong">{inr(row.amount)}</td>
-                    <td><span className={`cmk-pill ${STATUS_TONE[status] || 'warn'}`}>{status}</span></td>
-                    <td className="cmk-td-muted">{row.requested_at ? new Date(row.requested_at).toLocaleDateString('en-IN') : '-'}</td>
-                    <td>{row.payment_method === 'upi' ? 'UPI' : 'Bank Transfer'}</td>
+                    <td data-label="TXN ID"><span className="cmk-pill info">TXN-{String(row.id || '').slice(-4).toUpperCase()}</span></td>
+                    <td className="cmk-td-strong" data-label="Amount">{inr(row.amount)}</td>
+                    <td data-label="Status"><span className={`cmk-pill ${STATUS_TONE[status] || 'warn'}`}>{status}</span></td>
+                    <td className="cmk-td-muted" data-label="Date">{row.requested_at ? new Date(row.requested_at).toLocaleDateString('en-IN') : '-'}</td>
+                    <td data-label="Method">{row.payment_method === 'upi' ? 'UPI' : 'Bank Transfer'}</td>
                   </tr>
                 );
               })}
@@ -295,13 +342,13 @@ export default function PayoutWithLayout() {
           <div className="pwl-modal" onClick={(e) => e.stopPropagation()}>
             <div className="pwl-modal-head">
               <h2>Request Withdrawal</h2>
-              <button type="button" onClick={() => setShowRequest(false)} aria-label="Close"><X size={18} /></button>
+              <button type="button" onClick={() => !submitting && setShowRequest(false)} aria-label="Close"><X size={18} /></button>
             </div>
             <p className="pwl-avail">Available balance: <strong>{inr(overview.balance)}</strong></p>
 
             <label className="pwl-field">
               <span>Amount (₹)</span>
-              <input type="number" min={minWithdrawal} value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={`Minimum ${inr(minWithdrawal)}`} />
+              <input type="number" inputMode="decimal" min={minWithdrawal} value={amount} onChange={(e) => setAmount(e.target.value)} placeholder={`Minimum ${inr(minWithdrawal)}`} />
             </label>
 
             <div className="pwl-field">
@@ -355,32 +402,51 @@ export default function PayoutWithLayout() {
         .pwl-fee-note p strong { font-weight: 600; color: #07074e; }
         .pwl-req-short { display: none; }
         .pwl-req-btn:hover { background: #12124f; }
+        .pwl-req-btn:disabled { opacity: .6; cursor: default; }
+        .pwl-kyc { display: flex; align-items: center; gap: 12px; margin-top: 14px; padding: 14px 16px; border-radius: 14px; background: #FFF8ED; border: 1px solid #FCD9A4; color: #93370D; }
+        .pwl-kyc > div { flex: 1; min-width: 0; }
+        .pwl-kyc svg { flex: none; }
+        .pwl-kyc strong { display: block; font-size: 14px; }
+        .pwl-kyc p { margin: 2px 0 0; font-size: 13px; opacity: .9; overflow-wrap: anywhere; }
+        .pwl-kyc button { flex: none; min-height: 44px; padding: 0 16px; border-radius: 10px; border: 1px solid rgba(147,55,13,.25); background: #fff; color: #93370D; font-weight: 600; font-size: 13px; cursor: pointer; }
+        .pwl-page-head p { overflow-wrap: anywhere; }
+        .pwl-fee-note p { min-width: 0; }
+        .pwl-fee-note svg { flex: none; }
         .pwl-tabs { display: flex; gap: 6px; margin: 18px 0 12px; border-bottom: 1.5px solid #eef2f9; }
         .pwl-tabs button { display: inline-flex; align-items: center; gap: 7px; background: none; border: none; border-bottom: 2px solid transparent; margin-bottom: -1.5px; padding: 10px 14px; font-size: 0.9rem; font-weight: 700; color: #94a3b8; cursor: pointer; }
         .pwl-tabs button:hover { color: #475569; }
         .pwl-tabs button.on { color: #07074e; border-bottom-color: #07074e; }
         .pwl-count { background: #eef2ff; color: #4338ca; border-radius: 999px; padding: 1px 8px; font-size: 0.72rem; font-weight: 700; }
         .pwl-mobile-earnings { display: none; }
-        .pwl-modal-ov { position: fixed; inset: 0; background: rgba(15,18,40,0.5); backdrop-filter: blur(3px); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
-        .pwl-modal { background: #fff; width: 100%; max-width: 460px; border-radius: 18px; padding: 24px; box-shadow: 0 30px 70px rgba(7,7,78,0.3); max-height: 90vh; overflow-y: auto; }
+        .pwl-modal-ov { position: fixed; inset: 0; background: rgba(15,18,40,0.5); backdrop-filter: blur(3px); display: flex; align-items: center; justify-content: center; z-index: 1400; padding: 20px; padding-top: max(20px, env(safe-area-inset-top)); padding-bottom: max(20px, env(safe-area-inset-bottom)); }
+        .pwl-modal { background: #fff; width: 100%; max-width: 460px; border-radius: 18px; padding: 24px; box-shadow: 0 30px 70px rgba(7,7,78,0.3); max-height: 90vh; max-height: 90dvh; overflow-y: auto; overscroll-behavior: contain; box-sizing: border-box; }
         .pwl-modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
         .pwl-modal-head h2 { margin: 0; font-size: 1.25rem; color: #07074e; }
-        .pwl-modal-head button { border: none; background: #f3f4f8; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; display: grid; place-items: center; color: #5b6573; }
+        .pwl-modal-head button { border: none; background: #f3f4f8; width: 44px; height: 44px; border-radius: 10px; cursor: pointer; display: grid; place-items: center; color: #5b6573; }
         .pwl-avail { color: #7777b7; font-size: 0.86rem; margin: 0 0 16px; }
         .pwl-avail strong { color: #07074e; }
         .pwl-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
         .pwl-field > span { font-size: 0.8rem; font-weight: 600; color: #4a4f74; }
-        .pwl-field input { border: 1.5px solid #e2e4f0; border-radius: 10px; padding: 11px 13px; font-size: 0.92rem; color: #0f172a; outline: none; }
+        .pwl-field input { border: 1.5px solid #e2e4f0; border-radius: 10px; padding: 11px 13px; font-size: 16px; min-height: 44px; width: 100%; box-sizing: border-box; color: #0f172a; outline: none; }
         .pwl-field input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
         .pwl-methods { display: flex; gap: 10px; }
-        .pwl-methods button { flex: 1; border: 1.5px solid #e2e4f0; background: #fff; border-radius: 10px; padding: 10px; font-weight: 600; font-size: 0.88rem; color: #7777b7; cursor: pointer; }
+        .pwl-methods button { flex: 1; border: 1.5px solid #e2e4f0; background: #fff; border-radius: 10px; padding: 10px; min-height: 44px; font-weight: 600; font-size: 0.88rem; color: #7777b7; cursor: pointer; }
         .pwl-methods button.on { border-color: #6366f1; background: #eef0ff; color: #3730a3; }
         .pwl-modal-actions { display: flex; gap: 10px; margin-top: 6px; }
         .pwl-cancel { flex: 1; border: 1px solid #e2e4f0; background: #fff; color: #7777b7; border-radius: 11px; padding: 12px; font-weight: 600; cursor: pointer; }
         .pwl-submit { flex: 2; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: none; background: #07074e; color: #fff; border-radius: 11px; padding: 12px; font-weight: 600; cursor: pointer; }
         .pwl-submit:disabled, .pwl-cancel:disabled { opacity: 0.6; cursor: default; }
         .pwl-note { font-size: 0.74rem; color: #9296ba; text-align: center; margin: 14px 0 0; }
+        .pwl-tabs button { min-height: 44px; }
+        .pwl-tabs { overflow-x: auto; }
         @media (max-width: 540px) {
+          .pwl-kyc { flex-wrap: wrap; }
+          .pwl-kyc button { width: 100%; }
+          .pwl-modal { padding: 20px 16px; }
+          .pwl-modal-actions { flex-direction: column-reverse; }
+          .pwl-cancel, .pwl-submit { flex: none; min-height: 48px; }
+          .cmk-search-inp { min-width: 0; flex: 1 1 100%; }
+          .cmk-search-inp input { font-size: 16px; }
           .pwl-page-head { flex-wrap: nowrap !important; gap: 10px !important; }
           .pwl-page-head > div { flex: 1; min-width: 0; }
           .pwl-page-head .pwl-req-btn { flex: none; min-height: 34px; padding: 7px 12px; font-size: 0.8rem; }

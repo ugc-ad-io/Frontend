@@ -16,7 +16,8 @@ export default function TeamAccept() {
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  const [state, setState] = useState('loading'); // loading | ok | invalid
+  const [state, setState] = useState('loading'); // loading | ok | invalid | offline
+  const [tick, setTick] = useState(0);
   const [invite, setInvite] = useState(null);
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
@@ -27,11 +28,14 @@ export default function TeamAccept() {
     if (!token) { setState('invalid'); return; }
     axios.get(`${API}/team/invite/${token}`)
       .then((r) => { setInvite(r.data); setState('ok'); })
-      .catch(() => setState('invalid'));
-  }, [token]);
+      // A 404 means the link is bad or expired; no response at all means we are offline / the
+      // server is down, and the link may well still be good, so offer Retry instead of "invalid".
+      .catch((err) => setState(err?.response && err.response.status < 500 ? 'invalid' : 'offline'));
+  }, [token, tick]);
 
   const submit = async (e) => {
     e.preventDefault();
+    if (busy) return;
     if (password.length < 6) return toast.error('Password must be at least 6 characters.');
     if (password !== password2) return toast.error('Passwords do not match.');
     setBusy(true);
@@ -53,6 +57,14 @@ export default function TeamAccept() {
 
         {state === 'loading' && <p className="ta-loading"><Loader2 size={18} className="ta-spin" /> Checking your invitation…</p>}
 
+        {state === 'offline' && (
+          <>
+            <h1>Can&apos;t reach UGCad.io</h1>
+            <p className="ta-sub">You&apos;re offline or our servers are not responding. Check your connection and try again. Your invitation link is still saved in this page&apos;s address.</p>
+            <button type="button" className="ta-btn" onClick={() => { setState('loading'); setTick((t) => t + 1); }}>Try again</button>
+          </>
+        )}
+
         {state === 'invalid' && (
           <>
             <h1>Invitation not valid</h1>
@@ -68,9 +80,9 @@ export default function TeamAccept() {
             <p className="ta-sub">You’re joining as a <strong>{invite.role}</strong>. Set a password for <strong>{invite.email}</strong> to access the workspace.</p>
 
             <form onSubmit={submit} className="ta-form">
-              <label>Your name<input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Meet Rathod" /></label>
-              <label>Password<input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 6 characters" /></label>
-              <label>Confirm password<input type="password" value={password2} onChange={(e) => setPassword2(e.target.value)} placeholder="Re-enter password" /></label>
+              <label>Your name<input autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Meet Rathod" /></label>
+              <label>Password<input type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 6 characters" /></label>
+              <label>Confirm password<input type="password" autoComplete="new-password" value={password2} onChange={(e) => setPassword2(e.target.value)} placeholder="Re-enter password" /></label>
               <button type="submit" className="ta-btn" disabled={busy}>
                 {busy ? 'Setting up…' : 'Accept & continue'}
               </button>
@@ -80,8 +92,8 @@ export default function TeamAccept() {
       </div>
 
       <style>{`
-        .ta-wrap{min-height:100vh;display:grid;place-items:center;padding:24px;background:linear-gradient(160deg,#05050f,#0d0b26)}
-        .ta-card{width:min(440px,100%);background:#141420;border:1px solid rgba(255,255,255,.08);border-radius:22px;padding:36px 32px;color:#f4f4f8;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+        .ta-wrap{min-height:100vh;min-height:100dvh;display:grid;place-items:center;padding:max(24px,env(safe-area-inset-top)) max(24px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(24px,env(safe-area-inset-left));background:linear-gradient(160deg,#05050f,#0d0b26)}
+        .ta-card{width:min(440px,100%);min-width:0;overflow-wrap:anywhere;background:#141420;border:1px solid rgba(255,255,255,.08);border-radius:22px;padding:36px 32px;color:#f4f4f8;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.5)}
         .ta-ic{display:inline-grid;place-items:center;width:48px;height:48px;border-radius:14px;background:rgba(91,107,255,.16);color:#a8b0ff;margin-bottom:16px}
         .ta-eyebrow{margin:0 0 4px;color:#8b8fb5;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
         .ta-card h1{margin:0 0 10px;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:24px;color:#fff}
@@ -91,9 +103,9 @@ export default function TeamAccept() {
         @keyframes taspin{to{transform:rotate(360deg)}}
         .ta-form{display:flex;flex-direction:column;gap:14px;text-align:left}
         .ta-form label{display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:#b8bcd8}
-        .ta-form input{border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);border-radius:10px;padding:11px 13px;font:inherit;font-size:14px;color:#fff}
+        .ta-form input{min-width:0;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.04);border-radius:10px;padding:11px 13px;font:inherit;font-size:14px;color:#fff}
         .ta-form input:focus{outline:none;border-color:#5b6bff}
-        .ta-btn{margin-top:8px;border:0;border-radius:11px;padding:12px;background:#5b6bff;color:#fff;font:inherit;font-weight:700;font-size:14.5px;cursor:pointer}
+        .ta-btn{margin-top:8px;min-height:48px;border:0;border-radius:11px;padding:12px;background:#5b6bff;color:#fff;font:inherit;font-weight:700;font-size:14.5px;cursor:pointer}
         .ta-btn:hover{background:#4452f0}
         .ta-btn:disabled{opacity:.6;cursor:not-allowed}
       `}</style>

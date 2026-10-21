@@ -1,5 +1,5 @@
 import { useLiveEffect } from '../lib/liveUpdates';
-import { useState, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
@@ -8,6 +8,7 @@ import { Star, Trophy, MessagesSquare, TrendingUp, Users, ArrowRight } from 'luc
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import { creatorFirstName } from '../utils/displayName';
 import '../styles/creator-marketplace.css';
+import '../styles/brand-mobile.css';
 import EmptyState from '../components/EmptyState';
 import { Skeleton } from '../components/Skeleton';
 import PhotoOrInitial from '../components/PhotoOrInitial';
@@ -49,12 +50,14 @@ export default function BrandReviewsPage() {
   const [campaigns, setCampaigns] = useState({});
   const [reviewers, setReviewers] = useState({});
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  const lookups = useRef({ campaigns: {}, reviewers: {} });
 
   useLiveEffect(() => {
     if (user?.approval_status !== 'approved') { setLoading(false); return; }
     fetchData();
-    const interval = setInterval(fetchData, 15000);
+    const interval = setInterval(() => { if (!document.hidden) fetchData(); }, 15000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
@@ -66,20 +69,23 @@ export default function BrandReviewsPage() {
       const campaignIds = [...new Set(reviewsList.map((r) => r.campaign_id).filter(Boolean))];
       const reviewerIds = [...new Set(reviewsList.map((r) => r.reviewer_id).filter(Boolean))];
 
-      const campaignsData = {};
-      await Promise.all(campaignIds.map(async (id) => {
-        try { campaignsData[id] = (await axios.get(`${API}/campaigns/${id}`)).data; } catch { /* skip */ }
+      // The page re-polls every 15s: only look up campaigns / reviewers not seen yet, so a quiet
+      // page costs one request per tick instead of one per review twice over (mobile data).
+      const known = lookups.current;
+      await Promise.all(campaignIds.filter((id) => !known.campaigns[id]).map(async (id) => {
+        try { known.campaigns[id] = (await axios.get(`${API}/campaigns/${id}`)).data; } catch { /* skip */ }
       }));
-      const reviewersData = {};
-      await Promise.all(reviewerIds.map(async (id) => {
-        try { reviewersData[id] = (await axios.get(`${API}/profile/${id}`)).data; } catch { /* skip */ }
+      await Promise.all(reviewerIds.filter((id) => !known.reviewers[id]).map(async (id) => {
+        try { known.reviewers[id] = (await axios.get(`${API}/profile/${id}`)).data; } catch { /* skip */ }
       }));
 
-      setCampaigns(campaignsData);
-      setReviewers(reviewersData);
+      setCampaigns({ ...known.campaigns });
+      setReviewers({ ...known.reviewers });
       setReviews(reviewsList);
+      setFailed(false);
     } catch (error) {
-      toast.error('Failed to load reviews');
+      // The page re-polls every 15s: say it once (inline), not as a toast every tick.
+      setFailed(true);
     } finally {
       setLoading(false);
     }
@@ -213,7 +219,9 @@ export default function BrandReviewsPage() {
               )}
             </div>
 
-            {count === 0 ? (
+            {count === 0 && failed ? (
+              <EmptyState icon={Star} title="Couldn't load reviews" message="Check your connection and try again." action={{ label: 'Try again', onClick: () => { setLoading(true); fetchData(); } }} />
+            ) : count === 0 ? (
               <EmptyState icon={Star} title="No reviews yet" message="Once creators complete campaigns with you, their reviews will appear here." />
             ) : (
               <div className="cmk-rr-list">

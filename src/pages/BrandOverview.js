@@ -4,6 +4,7 @@ import axios from 'axios';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import ChatPopup from '../components/ChatPopup';
 import '../styles/creator-marketplace.css';
+import '../styles/brand-mobile.css';
 import EmptyState from '../components/EmptyState';
 import { firstName } from '../utils/displayName';
 import PhotoOrInitial from '../components/PhotoOrInitial';
@@ -98,6 +99,8 @@ function CreatorCard({ c, onMessage }) {
 export default function BrandOverview() {
   const [creators, setCreators] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const [chatWith, setChatWith] = useState(null);
 
   useLiveEffect(() => {
@@ -106,12 +109,12 @@ export default function BrandOverview() {
       try {
         const res = await axios.get(`${API}/business/creator-directory`);
         const list = Array.isArray(res.data) ? res.data : (res.data?.creators || []);
-        if (active) setCreators(list);
-      } catch { if (active) setCreators([]); }
+        if (active) { setCreators(list); setFailed(false); }
+      } catch { if (active) setFailed(true); }
       finally { if (active) setLoading(false); }
     })();
     return () => { active = false; };
-  }, []);
+  }, [attempt]);
 
   const messageCreator = (c) => setChatWith({ id: c.id, name: creatorName(c).replace('@', ''), photo: c.profile_photo });
   // Showcase only creators who have their OWN uploaded reel — no stock/sample videos.
@@ -126,6 +129,8 @@ export default function BrandOverview() {
     <BrandTopNavLayout>
       {loading ? (
         <div className="cmk-empty">Loading creators…</div>
+      ) : failed && creators.length === 0 ? (
+        <EmptyState title="Couldn't load creators" message="Check your connection and try again." action={{ label: 'Try again', onClick: () => { setLoading(true); setAttempt((n) => n + 1); } }} />
       ) : shown.length === 0 ? (
         <EmptyState title="No creators yet" message="Approved creators will appear here. Check back soon to start collaborating." />
       ) : (

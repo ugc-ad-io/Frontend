@@ -17,6 +17,8 @@ import RevisionRequestModal from '../components/RevisionRequestModal';
 import VideoReviewModal from '../components/VideoReviewModal';
 import ReviewModal from '../components/ReviewModal';
 import '../styles/creator-marketplace.css';
+import '../styles/brand-mobile.css';
+import { pageWindow } from '../utils/pageWindow';
 import EmptyState from '../components/EmptyState';
 import { Skeleton } from '../components/Skeleton';
 import PhotoOrInitial from '../components/PhotoOrInitial';
@@ -76,6 +78,8 @@ export default function BrandWorkReview() {
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  // Set when the list request FAILED, so a broken request is not shown as "nothing to review".
+  const [loadError, setLoadError] = useState('');
   const [tab, setTab] = useState('all');
   const [filterOpen, setFilterOpen] = useState(false); // mobile status-filter menu
   const [filterExpanded, setFilterExpanded] = useState(false); // desktop: click PINS the options open
@@ -104,8 +108,9 @@ export default function BrandWorkReview() {
       // One row per (campaign, creator) — campaign.work_submission (the old source
       // here) is a single field overwritten on every submit, so a second hired
       // creator's work silently replaced the first's and never showed up.
-      const review = await axios.get(`${API}/business/work-review?t=${Date.now()}`).catch(() => ({ data: [] }));
+      const review = await axios.get(`${API}/business/work-review?t=${Date.now()}`);
       const rows = Array.isArray(review.data) ? review.data : [];
+      setLoadError('');
       setItems(rows);
       setTrackers(Object.fromEntries(rows.map(row => [String(row.id), {
         free_revisions_remaining: row.freeRevisionsRemaining,
@@ -113,7 +118,8 @@ export default function BrandWorkReview() {
         paid_revision_fee: row.paidRevisionFee,
       }])));
     } catch (e) {
-      setItems([]);
+      // Keep the rows we already have on a failed live refresh; only a first load shows the error state.
+      setLoadError(apiErrorMessage(e, 'Could not load submissions. Check your connection and try again.'));
     } finally { setLoading(false); }
   };
 
@@ -171,7 +177,7 @@ export default function BrandWorkReview() {
       // were never asked to review the creator.
       if (it?.creatorId && data?.payout_status === 'released' && it?.stage !== 'raw') setReviewFor(it);
     }
-    catch { toast.error('Failed to approve'); }
+    catch (err) { toast.error(apiErrorMessage(err, 'Failed to approve')); }
     finally { busy.current = false; }
   };
 
@@ -322,6 +328,8 @@ export default function BrandWorkReview() {
             </article>
           ))}
         </div>
+      ) : loadError && items.length === 0 ? (
+        <EmptyState title="Couldn't load submissions" message={loadError} action={{ label: 'Try again', onClick: () => { setLoading(true); load(); } }} />
       ) : total === 0 ? (
         <EmptyState title={`Nothing in “${TABS.find((t) => t.key === tab).label}”`} message="Submitted creator content will show up here for you to review and approve." />
       ) : (
@@ -422,9 +430,9 @@ export default function BrandWorkReview() {
             <span className="bwr-foot-count">Showing {total === 0 ? 0 : start + 1}–{Math.min(start + perPage, total)} of {total} results</span>
             <div className="bwr-pager">
               <button type="button" disabled={safePage <= 1} onClick={() => setPage(safePage - 1)} aria-label="Previous page"><ChevronLeft size={18} /></button>
-              {Array.from({ length: pageCount }, (_, i) => i + 1).map((n) => (
-                <button key={n} type="button" className={n === safePage ? 'on' : ''} onClick={() => setPage(n)}>{n}</button>
-              ))}
+              {pageWindow(safePage, pageCount).map((n, i) => (n === '…'
+                ? <span key={`gap-${i}`} className="bwr-pager-gap" aria-hidden="true">…</span>
+                : <button key={n} type="button" className={n === safePage ? 'on' : ''} onClick={() => setPage(n)} aria-label={`Page ${n}`} aria-current={n === safePage ? 'page' : undefined}>{n}</button>))}
               <button type="button" disabled={safePage >= pageCount} onClick={() => setPage(safePage + 1)} aria-label="Next page"><ChevronRight size={18} /></button>
             </div>
             <div className="bwr-perpage">

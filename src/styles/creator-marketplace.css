@@ -2016,3 +2016,49 @@
 .bc-approved-link{background:var(--indigo,#07074e);color:#fff;padding:12px 18px;border-radius:12px;font-weight:700;box-shadow:0 4px 12px #07074e24;text-align:left}
 .bc-approved-link__check{color:#fff}
 .bc-approved-link:hover{background:#20206b;text-decoration:none}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   PHONE QA (creator pages) — appended block, keep last.
+   - 100dvh with a vh fallback so the iOS/Android URL bar never hides the page bottom.
+   - Inputs/selects/textareas at 16px on phones/tablets so iOS Safari does not zoom on focus.
+   - Safe-area padding so the home bar never covers the last row; 44px tap targets.
+   ════════════════════════════════════════════════════════════════════════════ */
+.cmk-app{min-height:100vh;min-height:100dvh}
+.cmk-app img,.cmk-app video{max-width:100%}
+.pm-drawer .pm-modal{height:100dvh;max-height:100dvh}
+.cmk-dr-chat-pop{height:min(640px,calc(100dvh - 150px))}
+@media (max-width:768px){
+  .cmk-app input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]),
+  .cmk-app select,
+  .cmk-app textarea{font-size:16px}
+  .cmk-tabs button,.cmk-dr-tabs button{min-height:44px}
+}
+@media (max-width:640px){
+  .cmk-page{padding-bottom:calc(96px + env(safe-area-inset-bottom))}
+  .cmk-wrap{padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}
+}
+@media (max-width:560px){
+  .cmk-dr-chat-pop{height:min(72vh,calc(100dvh - 130px));bottom:calc(92px + env(safe-area-inset-bottom))}
+}
+
+/* Phone: a wide data table becomes one card per row (td[data-label] supplies the field name),
+   instead of a 600px table scrolling sideways inside its card. Opt in with .cmk-table--cards. */
+@media (max-width:640px){
+  .cmk-table.cmk-table--cards{min-width:0}
+  .cmk-table--cards thead{display:none}
+  .cmk-table--cards tbody,.cmk-table--cards tr{display:block;width:100%}
+  .cmk-table--cards tbody tr{padding:12px 16px;border-bottom:1px solid var(--line-soft,#f1f2f9)}
+  .cmk-table--cards tbody tr:last-child{border-bottom:none}
+  .cmk-table--cards tbody td{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 0;border:0;text-align:right;min-width:0;overflow-wrap:anywhere}
+  .cmk-table--cards tbody td::before{content:attr(data-label);flex:none;color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;text-align:left}
+  .cmk-table--cards tbody td[data-label=""]{justify-content:flex-end;flex-wrap:wrap}
+  .cmk-table--cards tbody td[data-label=""]::before{display:none}
+  .cmk-table--cards tbody td .cmk-link-btn{min-height:44px;min-width:44px}
+}
+
+/* Portfolio remove (X): it was hover-only, and only for the grid cards - never reachable on a
+   phone (no hover) or on the 3 featured tiles. Show it on featured hover and always on touch. */
+.cmk-pf-feature:hover .cmk-pf-remove{display:grid}
+@media (hover:none){
+  .cmk-pf-remove{display:grid;width:44px;height:44px;top:8px;left:8px}
+}

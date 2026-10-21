@@ -345,6 +345,7 @@ export default function ProfileSettings() {
   const [creatorDetailOpen, setCreatorDetailOpen] = useState(() => new URLSearchParams(window.location.search).get('tab') === 'profile');
   const [loading, setLoading] = useState(false);
   const [brandLoading, setBrandLoading] = useState(false);
+  const [brandLoadError, setBrandLoadError] = useState(''); // brand settings could not be read: show Retry, not blank forms
   const [brandProfile, setBrandProfile] = useState(defaultBrandProfile);
 
   const closeCreatorSettingsDetail = () => {
@@ -479,15 +480,15 @@ export default function ProfileSettings() {
           </div>
         </section>
         <style>{`
-          .account-confirm-overlay{position:fixed;inset:0;z-index:1600;display:grid;place-items:center;padding:20px;background:rgba(15,22,58,.55);backdrop-filter:blur(5px)}
-          .account-confirm-card{width:min(460px,100%);padding:30px;background:#fff;border:1px solid #eef0f6;border-radius:22px;box-shadow:0 30px 80px rgba(15,22,58,.3);text-align:center;animation:accountConfirmIn .18s ease}
+          .account-confirm-overlay{position:fixed;inset:0;z-index:1600;display:grid;place-items:center;overflow-y:auto;padding:max(20px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) max(20px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left));background:rgba(15,22,58,.55);backdrop-filter:blur(5px)}
+          .account-confirm-card{width:min(460px,100%);max-height:calc(100dvh - 40px);overflow-y:auto;padding:30px;background:#fff;border:1px solid #eef0f6;border-radius:22px;box-shadow:0 30px 80px rgba(15,22,58,.3);text-align:center;animation:accountConfirmIn .18s ease}
           @keyframes accountConfirmIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
           .account-confirm-icon{width:56px;height:56px;margin:0 auto 17px;display:grid;place-items:center;border-radius:16px;background:#fff4e5;color:#c56a08}
           .account-confirm-icon.is-delete{background:#fff0f3;color:#e11d48}
           .account-confirm-card h2{margin:0 0 9px;color:#15163a;font-size:21px;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif)}
           .account-confirm-card p{margin:0 auto;color:#6f7494;font-size:14px;line-height:1.6;max-width:390px}
           .account-confirm-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:25px}
-          .account-confirm-actions button{min-height:42px;padding:10px 17px;border-radius:11px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer}
+          .account-confirm-actions button{min-height:44px;padding:10px 17px;border-radius:11px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer}
           .account-confirm-actions button:disabled{opacity:.6;cursor:not-allowed}
           .account-confirm-cancel{border:1px solid #dfe2ee;background:#fff;color:#4b506d}
           .account-confirm-submit{border:1px solid #e5a544;background:#fff7e8;color:#a85705}
@@ -600,6 +601,7 @@ export default function ProfileSettings() {
 
   const fetchBrandSettings = async () => {
     setBrandLoading(true);
+    setBrandLoadError('');
     try {
       const [profileRes, companyRes, teamRes, billingRes, notificationsRes, summaryRes] = await Promise.all([
         axios.get(`${API}/business/settings/profile`),
@@ -616,7 +618,7 @@ export default function ProfileSettings() {
       setNotificationPrefs({ ...defaultNotifications, ...(notificationsRes.data || {}) });
       setSummary({ ...defaultSummary, ...(summaryRes.data || {}) });
     } catch (error) {
-      toast.error(apiErrorMessage(error, 'Failed to load brand settings'));
+      setBrandLoadError(error?.response ? apiErrorMessage(error, 'Failed to load brand settings') : "You're offline. Check your connection and try again.");
     } finally {
       setBrandLoading(false);
     }
@@ -782,7 +784,7 @@ export default function ProfileSettings() {
       setPrivacy(p); setSavedPrivacy(p);
       setPrefsLoaded(true);
     } catch (error) {
-      toast.error('Failed to load profile data');
+      toast.error(error?.response ? 'Failed to load profile data' : "You're offline. Check your connection and try again.");
     }
   };
 
@@ -862,22 +864,10 @@ export default function ProfileSettings() {
       params.set('age_range', ageRange || '');
       // Send each language as a separate `language` query param so backend can collect as List[str]
       (languages || []).forEach((l) => params.append('language', l));
-      console.log('[ProfileSave] Sending to', `${API}/profile/update-info?${params.toString()}`);
-      console.log('[ProfileSave] Payload:', { bio, description, gender, languages, country, age_range: ageRange });
-      const res = await axios.put(`${API}/profile/update-info?${params.toString()}`);
-      console.log('[ProfileSave] Response:', res.status, res.data);
-      // Verify by fetching /auth/me after save
-      const verify = await axios.get(`${API}/auth/me`);
-      console.log('[ProfileSave] After-save /auth/me:', {
-        gender: verify.data?.gender,
-        language: verify.data?.language,
-        country: verify.data?.country,
-        age_range: verify.data?.age_range
-      });
-      setUser({ ...user, bio, description, gender, language: languages, country, age_range: ageRange });
+      const saved = await axios.put(`${API}/profile/update-info?${params.toString()}`);
+      setUser({ ...user, bio, description, gender, language: languages, country, age_range: ageRange, ...(saved.data?.approval_status ? { approval_status: saved.data.approval_status } : {}) });
       toast.success('Profile updated successfully!');
     } catch (error) {
-      console.error('[ProfileSave] FAILED:', error?.response?.status, error?.response?.data, error);
       toast.error(apiErrorMessage(error, 'Failed to update profile'));
     } finally {
       setLoading(false);
@@ -1043,6 +1033,15 @@ export default function ProfileSettings() {
       return <div className="bs-card bs-loading"><RefreshCw size={20} /> Loading settings...</div>;
     }
 
+    if (brandLoadError) {
+      return (
+        <section className="bs-card bs-loading" role="alert" style={{ flexDirection: 'column', gap: 12 }}>
+          <span>{brandLoadError}</span>
+          <button type="button" className="bs-primary" onClick={fetchBrandSettings}>Retry</button>
+        </section>
+      );
+    }
+
     if (brandTab === 'profile') {
       return (
         <section className="bs-card">
@@ -1085,7 +1084,7 @@ export default function ProfileSettings() {
             </div>
           </div>
           <div className="bs-card-actions">
-            <button type="button" className="bs-ghost">Cancel</button>
+            <button type="button" className="bs-ghost" onClick={fetchBrandSettings} disabled={loading}>Cancel</button>
             <button type="button" className="bs-primary" onClick={saveBrandProfile} disabled={loading}>{loading ? 'Saving...' : 'Save Changes'}</button>
           </div>
         </section>
@@ -1348,9 +1347,9 @@ export default function ProfileSettings() {
         <div className="bs-security-grid">
           <form onSubmit={handleChangePassword} className="bs-security-box">
             <h3>Change Password</h3>
-            <input type="password" value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} placeholder="Current password" required />
-            <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="New password" required />
-            <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Confirm password" required />
+            <input type="password" autoComplete="current-password" value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} placeholder="Current password" required />
+            <input type="password" autoComplete="new-password" minLength={8} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="New password (min 8 characters)" required />
+            <input type="password" autoComplete="new-password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="Confirm password" required />
             <button type="submit" className="bs-primary" disabled={loading}>{loading ? 'Saving...' : 'Update Password'}</button>
           </form>
           <div className="bs-security-box">
@@ -1432,14 +1431,14 @@ export default function ProfileSettings() {
               </div>
             </div>
             <style>{`
-              .ps-legal-overlay{position:fixed;inset:0;z-index:1400;background:rgba(15,22,58,.5);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px}
-              .ps-legal-modal{width:min(560px,100%);max-height:86vh;display:flex;flex-direction:column;background:#fff;border-radius:20px;box-shadow:0 30px 70px -20px rgba(15,22,58,.5);animation:psLegalIn .2s ease}
+              .ps-legal-overlay{position:fixed;inset:0;z-index:1400;background:rgba(15,22,58,.5);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:max(20px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) max(20px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left))}
+              .ps-legal-modal{width:min(560px,100%);max-height:86vh;max-height:calc(100dvh - 40px);display:flex;flex-direction:column;background:#fff;border-radius:20px;box-shadow:0 30px 70px -20px rgba(15,22,58,.5);animation:psLegalIn .2s ease}
               .ps-legal-modal-head{display:flex;align-items:center;gap:13px;padding:18px 20px;border-bottom:1px solid #eef0f6}
               .ps-legal-modal-ic{width:44px;height:44px;flex:none;border-radius:13px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#5b6bff,#6d7bff)}
               .ps-legal-modal-title{flex:1;min-width:0}
               .ps-legal-modal-title h3{margin:0;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:18px;color:#15163a}
               .ps-legal-modal-title small{color:#9296ba;font-size:12.5px}
-              .ps-legal-modal-x{flex:none;width:34px;height:34px;border:none;background:#f1f3fa;color:#15163a;border-radius:10px;cursor:pointer;font-size:15px}
+              .ps-legal-modal-x{flex:none;width:44px;height:44px;border:none;background:#f1f3fa;color:#15163a;border-radius:10px;cursor:pointer;font-size:15px}
               .ps-legal-modal-x:hover{background:#e7eaf5}
               .ps-legal-modal-body{padding:20px;overflow-y:auto}
               .ps-legal-modal-sec{margin-bottom:16px}
@@ -1722,6 +1721,7 @@ export default function ProfileSettings() {
                       <label>Current Password</label>
                       <input
                         type="password"
+                        autoComplete="current-password"
                         value={oldPassword}
                         onChange={(e) => setOldPassword(e.target.value)}
                         placeholder="Enter current password"
@@ -1733,6 +1733,7 @@ export default function ProfileSettings() {
                       <label>New Password</label>
                       <input
                         type="password"
+                        autoComplete="new-password"
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         placeholder="Enter new password (min 8 characters)"
@@ -1744,6 +1745,7 @@ export default function ProfileSettings() {
                       <label>Confirm New Password</label>
                       <input
                         type="password"
+                        autoComplete="new-password"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         placeholder="Confirm new password"
@@ -2012,7 +2014,7 @@ export default function ProfileSettings() {
           .ps-form-group input[type="password"],
           .ps-form-group input[type="file"],
           .ps-form-group textarea,
-          .ps-form-group select{padding:10px 12px;border-width:1.5px;border-radius:10px;font-size:14px;letter-spacing:normal}
+          .ps-form-group select{padding:10px 12px;border-width:1.5px;border-radius:10px;font-size:16px;letter-spacing:normal}
           .ps-form-group input::placeholder,
           .ps-form-group textarea::placeholder{font-size:13px;letter-spacing:normal}
           .ps-btn-primary,.ps-btn-danger{padding:10px 18px;border-radius:10px;font-size:13.5px}
@@ -2057,15 +2059,15 @@ export default function ProfileSettings() {
             </div>
           </div>
           <style>{`
-            .ps-legal-overlay{position:fixed;inset:0;z-index:1400;background:rgba(15,22,58,.5);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:20px}
-            .ps-legal-modal{width:min(560px,100%);max-height:86vh;display:flex;flex-direction:column;background:#fff;border-radius:20px;box-shadow:0 30px 70px -20px rgba(15,22,58,.5);animation:psLegalIn .2s ease}
+            .ps-legal-overlay{position:fixed;inset:0;z-index:1400;background:rgba(15,22,58,.5);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:max(20px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) max(20px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left))}
+            .ps-legal-modal{width:min(560px,100%);max-height:86vh;max-height:calc(100dvh - 40px);display:flex;flex-direction:column;background:#fff;border-radius:20px;box-shadow:0 30px 70px -20px rgba(15,22,58,.5);animation:psLegalIn .2s ease}
             @keyframes psLegalIn{from{transform:translateY(8px);opacity:.6}to{transform:none;opacity:1}}
             .ps-legal-modal-head{display:flex;align-items:center;gap:13px;padding:18px 20px;border-bottom:1px solid #eef0f6}
             .ps-legal-modal-ic{width:44px;height:44px;flex:none;border-radius:13px;display:grid;place-items:center;color:#fff;background:linear-gradient(135deg,#5b6bff,#6d7bff)}
             .ps-legal-modal-title{flex:1;min-width:0}
             .ps-legal-modal-title h3{margin:0;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:18px;color:#15163a}
             .ps-legal-modal-title small{color:#9296ba;font-size:12.5px}
-            .ps-legal-modal-x{flex:none;width:34px;height:34px;border:none;background:#f1f3fa;color:#15163a;border-radius:10px;cursor:pointer;font-size:15px}
+            .ps-legal-modal-x{flex:none;width:44px;height:44px;border:none;background:#f1f3fa;color:#15163a;border-radius:10px;cursor:pointer;font-size:15px}
             .ps-legal-modal-x:hover{background:#e7eaf5}
             .ps-legal-modal-body{padding:20px;overflow-y:auto}
             .ps-legal-modal-sec{margin-bottom:16px}

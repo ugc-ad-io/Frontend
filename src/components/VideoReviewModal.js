@@ -314,7 +314,7 @@ export default function VideoReviewModal({
 
         <style>{`
           .vrm-ov{position:fixed;inset:0;background:rgba(8,10,26,.72);backdrop-filter:blur(4px);z-index:1600;display:flex;align-items:center;justify-content:center;padding:20px}
-          .vrm{display:flex;width:min(1180px,100%);height:min(760px,92vh);background:#0f1120;border-radius:18px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.55)}
+          .vrm{display:flex;width:min(1180px,100%);height:min(760px,92vh);height:min(760px,92dvh);background:#0f1120;border-radius:18px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.55)}
           .vrm-left{flex:1;min-width:0;display:flex;flex-direction:column;background:#0b0d18}
           .vrm-lhead{display:flex;align-items:center;gap:9px;padding:14px 18px;color:#e8eaf6;font-size:13.5px;border-bottom:1px solid rgba(255,255,255,.07)}
           .vrm-lhead strong{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -385,9 +385,24 @@ export default function VideoReviewModal({
           .vrm-submit:hover:not(:disabled){background:#4452f0}
           .vrm-submit:disabled{opacity:.45;cursor:not-allowed}
           @media (max-width:900px){
-            .vrm{flex-direction:column;height:94vh}
-            .vrm-right{width:auto;border-left:none;border-top:1px solid rgba(255,255,255,.07);max-height:52%}
-            .vrm-left{max-height:48%}
+            .vrm{flex-direction:column;height:94vh;height:94dvh}
+            /* The right panel is a scroll container on small screens, otherwise the compose form
+               (deadline + Send Changes) was clipped under the video on short phones. */
+            .vrm-right{width:auto;border-left:none;border-top:1px solid rgba(255,255,255,.07);max-height:58%;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
+            .vrm-list{flex:0 0 auto;max-height:150px;min-height:60px}
+            .vrm-compose{flex:none}
+            .vrm-left{max-height:42%;flex:1 1 0}
+          }
+          @media (max-width:768px){
+            .vrm-ov{padding:max(10px,env(safe-area-inset-top,0px)) 10px max(10px,env(safe-area-inset-bottom,0px))}
+            .vrm-input textarea,.vrm-notes,.vrm-deadline-input{font-size:16px}
+            .vrm-x,.vrm-play,.vrm-full,.vrm-send{width:44px;height:44px}
+            .vrm-time button{min-height:44px;padding:0 14px}
+            .vrm-submit{min-height:48px}
+            .vrm-more summary{padding:10px 0}
+            .vrm-marker{width:26px;height:26px;font-size:11px}
+            button.vrm-c-ts{min-width:56px;min-height:44px}
+            .vrm-c-del{min-width:44px;min-height:44px;display:grid;place-items:center;padding:0}
           }
         `}</style>
       </div>

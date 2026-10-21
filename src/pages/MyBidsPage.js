@@ -3,7 +3,6 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { toast } from 'sonner';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import '../styles/creator-marketplace.css';
 import EmptyState from '../components/EmptyState';
@@ -38,12 +37,12 @@ const renderBrief = (text) => {
 
 // "Won" bids (brand picked this creator) — green pill + a Deal Room shortcut.
 const WON_STATUSES = ['selected', 'accepted', 'approved'];
-const STATUS_TONE = { shortlisted: 'info', accepted: 'ok', approved: 'ok', selected: 'ok', rejected: 'bad', pending: 'warn', submitted: 'warn', bid_submitted: 'warn' };
+const STATUS_TONE = { accepted: 'ok', approved: 'ok', selected: 'ok', rejected: 'bad', pending: 'warn', submitted: 'warn', bid_submitted: 'warn' };
 const STATUS_LABEL = { bid_submitted: 'Pending', submitted: 'Pending' };
 
 const TABS = [
   { key: 'all', label: 'All', match: () => true },
-  { key: 'shortlisted', label: 'Shortlisted', match: (s) => s === 'shortlisted' },
+  // No "Shortlisted" tab: the backend (/bids/my) only ever returns pending / approved / rejected, so it could never show a bid.
   { key: 'accepted', label: 'Accepted', match: (s) => WON_STATUSES.includes(s) },
   { key: 'rejected', label: 'Rejected', match: (s) => s === 'rejected' },
 ];
@@ -68,6 +67,7 @@ export function MyBidsContent() {
   const navigate = useNavigate();
   const [bids, setBids] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [tab, setTab] = useState('all');
   const [selected, setSelected] = useState(null); // the bid item being viewed
   const [detail, setDetail] = useState(null); // full campaign fetched on open
@@ -97,8 +97,10 @@ export function MyBidsContent() {
     try {
       const res = await axios.get(`${API}/bids/my?t=${Date.now()}`);
       setBids(res.data || []);
-    } catch {
-      toast.error('Failed to load bids');
+      setLoadError('');
+    } catch (err) {
+      // Polled every 10s: keep the last list, never toast-spam; show Retry when there is nothing to show.
+      setLoadError(err?.response ? 'Could not load your bids.' : "You're offline. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -129,9 +131,11 @@ export function MyBidsContent() {
 
       {loading ? (
         <div className="cmk-table-card"><SkeletonTable rows={6} cols={6} /></div>
+      ) : loadError && !bids.length ? (
+        <EmptyState title="Could not load bids" message={loadError} action={{ label: 'Retry', onClick: () => { setLoading(true); fetchData(); } }} />
       ) : rows.length ? (
         <div className="cmk-table-card">
-          <table className="cmk-table">
+          <table className="cmk-table cmk-table--cards">
             <thead>
               <tr><th>Brief</th><th>Brand</th><th>Budget</th><th>Status</th><th>Submitted On</th><th aria-label="action" /></tr>
             </thead>
@@ -143,8 +147,8 @@ export function MyBidsContent() {
                 const brand = String(c.brand_name || c.business_name || c.company_name || c.business_nickname || c.brand_handle || '').replace(/^@+/, '').trim() || 'Brand';
                 return (
                   <tr key={bid.id || c.id} className="cmk-row-clickable" onClick={() => openView(item)} title="View bid details">
-                    <td className="cmk-td-strong">{c.title || 'Campaign'}</td>
-                    <td>
+                    <td className="cmk-td-strong" data-label="Brief">{c.title || 'Campaign'}</td>
+                    <td data-label="Brand">
                       <span className="cmk-td-brand">
                         <span className="cmk-td-logo">
                           {c.brand_logo ? <img src={c.brand_logo.startsWith('http') ? c.brand_logo : `${BACKEND_URL}${c.brand_logo}`} alt="" /> : getInitial(brand)}
@@ -152,10 +156,10 @@ export function MyBidsContent() {
                         {brand}
                       </span>
                     </td>
-                    <td>{formatMoney(bid.amount || c.budget_max || c.budget)}</td>
-                    <td><span className={`cmk-pill ${STATUS_TONE[status] || 'warn'}`}>{STATUS_LABEL[status] || (status.charAt(0).toUpperCase() + status.slice(1))}</span></td>
-                    <td className="cmk-td-muted">{fmtDate(item.submitted_at || bid.submitted_at)}</td>
-                    <td className="cmk-td-right" style={WON_STATUSES.includes(status) ? undefined : { textAlign: 'center' }}>
+                    <td data-label="Budget">{formatMoney(bid.amount || c.budget_max || c.budget)}</td>
+                    <td data-label="Status"><span className={`cmk-pill ${STATUS_TONE[status] || 'warn'}`}>{STATUS_LABEL[status] || (status.charAt(0).toUpperCase() + status.slice(1))}</span></td>
+                    <td className="cmk-td-muted" data-label="Submitted On">{fmtDate(item.submitted_at || bid.submitted_at)}</td>
+                    <td className="cmk-td-right" data-label="" style={WON_STATUSES.includes(status) ? undefined : { textAlign: 'center' }}>
                       {WON_STATUSES.includes(status) && (
                         <button
                           type="button"
@@ -241,14 +245,14 @@ export function MyBidsContent() {
             </aside>
 
             <style>{`
-              .mb-overlay{position:fixed;inset:0;background:rgba(15,22,58,.45);backdrop-filter:blur(2px);z-index:1000;display:flex;justify-content:flex-end}
-              .mb-drawer{width:min(460px,100%);height:100%;background:#fff;display:flex;flex-direction:column;box-shadow:-20px 0 50px rgba(15,22,58,.25);animation:mb-slide .28s cubic-bezier(.2,.7,.2,1)}
+              .mb-overlay{position:fixed;inset:0;background:rgba(15,22,58,.45);backdrop-filter:blur(2px);z-index:1400;display:flex;justify-content:flex-end}
+              .mb-drawer{width:min(460px,100%);height:100%;height:100dvh;max-width:100vw;background:#fff;display:flex;flex-direction:column;box-shadow:-20px 0 50px rgba(15,22,58,.25);animation:mb-slide .28s cubic-bezier(.2,.7,.2,1)}
               @keyframes mb-slide{from{transform:translateX(40px);opacity:.6}to{transform:none;opacity:1}}
               .mb-drawer-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:20px 22px;border-bottom:1px solid #e9ebf4}
               .mb-drawer-brand{display:flex;align-items:center;gap:12px;min-width:0}
               .mb-drawer-brand strong{display:block;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:16px;color:#15163a;line-height:1.25}
               .mb-drawer-brand small{color:#9296ba;font-size:13px}
-              .mb-close{border:0;background:#f1f3fa;color:#15163a;width:34px;height:34px;border-radius:10px;cursor:pointer;font-size:14px;flex:none}
+              .mb-close{border:0;background:#f1f3fa;color:#15163a;width:34px;height:34px;border-radius:10px;cursor:pointer;font-size:14px;flex:none;min-width:44px;min-height:44px}
               .mb-drawer-body{flex:1;overflow-y:auto;overflow-x:hidden;padding:20px 22px;display:flex;flex-direction:column;gap:20px}
               .mb-meta-row{display:flex;gap:8px;flex-wrap:wrap}
               .mb-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
@@ -265,8 +269,12 @@ export function MyBidsContent() {
               .mb-muted{margin:0;color:#9296ba;font-size:14px}
               .mb-chips{display:flex;flex-wrap:wrap;gap:7px}
               .mb-chips span{background:#eef0ff;color:#5b6bff;font-size:12px;font-weight:600;padding:4px 11px;border-radius:20px}
-              .mb-drawer-foot{display:flex;gap:10px;padding:16px 22px;border-top:1px solid #e9ebf4}
-              .mb-drawer-foot button{flex:1;justify-content:center}
+              .mb-drawer-foot{display:flex;gap:10px;padding:16px 22px;padding-bottom:max(16px,env(safe-area-inset-bottom));border-top:1px solid #e9ebf4}
+              .mb-drawer-foot button{flex:1;justify-content:center;min-height:44px}
+              .mb-drawer-brand>div{min-width:0}
+              .mb-drawer-brand strong{overflow-wrap:anywhere}
+              .mb-stat{min-width:0}.mb-stat strong{overflow-wrap:anywhere}
+              @media(max-width:420px){.mb-drawer-head,.mb-drawer-body,.mb-drawer-foot{padding-left:16px;padding-right:16px}.mb-grid{grid-template-columns:minmax(0,1fr)}}
             `}</style>
           </div>
         );

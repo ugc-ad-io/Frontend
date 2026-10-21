@@ -6,9 +6,9 @@ import { createPortal } from 'react-dom';
 import { Play, VolumeX, Volume2, Maximize2, X, Star, VideoOff, BadgeCheck, SlidersHorizontal, Bookmark, MessageSquare, ArrowLeft, ArrowRight } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import ChatPopup from '../components/ChatPopup';
-import PlanBrief from './PlanBrief';
 import { matchesCreatorSearch } from '../utils/creatorSearch';
 import '../styles/creator-marketplace.css';
+import '../styles/brand-mobile.css';
 import EmptyState from '../components/EmptyState';
 import { Skeleton } from '../components/Skeleton';
 import { creatorFirstName } from '../utils/displayName';
@@ -547,7 +547,6 @@ export default function BrandCreators() {
   const [filterOpen, setFilterOpen] = useState(false); // mobile category-filter menu
   const filterRef = useRef(null);
   const [chatWith, setChatWith] = useState(null);
-  const [briefFor, setBriefFor] = useState(null);
   const [videoCard, setVideoCard] = useState(null);
   const [preview, setPreview] = useState(null);   // quick-preview card
   const viewProfile = (c) => setPreview(c);
@@ -847,15 +846,6 @@ export default function BrandCreators() {
           onMessage={() => { setPreview(null); openChat(preview); }}
           onFull={() => navigate(`/dashboard/business/creator/${preview.id}`)}
           onExpand={setVideoCard}
-        />
-      )}
-
-      {briefFor && (
-        <PlanBrief
-          creatorId={briefFor.id}
-          creatorName={nameOf(briefFor).replace('@', '')}
-          onClose={() => setBriefFor(null)}
-          onPublished={() => setBriefFor(null)}
         />
       )}
 

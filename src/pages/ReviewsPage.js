@@ -2,7 +2,6 @@ import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { toast } from 'sonner';
 import { Star, Trophy, MessagesSquare, TrendingUp, Briefcase, ArrowRight } from 'lucide-react';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import '../styles/creator-marketplace.css';
@@ -40,6 +39,7 @@ export default function ReviewsPage() {
   const [campaigns, setCampaigns] = useState({});
   const [reviewers, setReviewers] = useState({});
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [showAll, setShowAll] = useState(false);
 
   useLiveEffect(() => {
@@ -69,8 +69,10 @@ export default function ReviewsPage() {
       setCampaigns(campaignsData);
       setReviewers(reviewersData);
       setReviews(reviewsList);
+      setLoadError('');
     } catch (error) {
-      toast.error('Failed to load reviews');
+      // Polled every 15s: keep the last reviews on screen; only show the error when nothing loaded yet.
+      setLoadError(error?.response ? 'Could not load your reviews.' : "You're offline. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -137,6 +139,8 @@ export default function ReviewsPage() {
             </div>
           </section>
         </>
+      ) : loadError && !reviews.length ? (
+        <EmptyState title="Could not load reviews" message={loadError} action={{ label: 'Retry', onClick: () => { setLoading(true); fetchData(); } }} />
       ) : (
       <>
       <div className="cmk-rev-top">

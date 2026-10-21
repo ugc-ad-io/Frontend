@@ -147,6 +147,10 @@ export default function CreatorDashboard() {
   const [portfolio, setPortfolio] = useState([]);
   const [uploadingPortfolio, setUploadingPortfolio] = useState(false);
   const [completedWorks, setCompletedWorks] = useState(0);
+  const [loadError, setLoadError] = useState('');
+  const [bidSubmitting, setBidSubmitting] = useState(false);
+  // Lifetime earnings released to this creator (backend /payout/overview), not a guess from bids.
+  const [lifetimeEarned, setLifetimeEarned] = useState(null);
   // "Later" on the complete-your-profile pop-up hides it for this browser session only.
   const [nudgeLater, setNudgeLater] = useState(() => {
     try { return sessionStorage.getItem('profileNudgeLater') === '1'; } catch { return false; }
@@ -179,11 +183,14 @@ export default function CreatorDashboard() {
 
   const fetchAllData = async () => {
     try {
-      const [campaignsRes, reviewsRes, worksRes] = await Promise.all([
+      const [campaignsRes, reviewsRes, worksRes, payoutRes] = await Promise.all([
         axios.get(`${API}/campaigns?t=${Date.now()}`),
         axios.get(`${API}/reviews/creator/${user.id}`),
-        axios.get(`${API}/campaigns?status=completed&creator_id=${user.id}`)
+        axios.get(`${API}/campaigns?status=completed&creator_id=${user.id}`),
+        axios.get(`${API}/payout/overview`).catch(() => null) // optional: hero falls back to the wallet balance
       ]);
+      setLifetimeEarned(payoutRes?.data?.all_time_earnings ?? null);
+      setLoadError('');
 
       const allCampaigns = campaignsRes.data;
       // "Deals closed" = only genuinely COMPLETED deals this creator was selected
@@ -215,7 +222,10 @@ export default function CreatorDashboard() {
       setPortfolio(user?.portfolio || []);
       setCompletedWorks(completedCampaigns.length);
     } catch (error) {
-      toast.error('Failed to load data');
+      // Keep whatever is already on screen; show a banner with Retry instead of silent zeros.
+      setLoadError(error?.response
+        ? 'Some of your dashboard data could not be loaded.'
+        : "You're offline. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -223,11 +233,13 @@ export default function CreatorDashboard() {
 
   const handleBidSubmit = async (event) => {
     event.preventDefault();
+    if (bidSubmitting) return;
     const maximum = maxCampaignBid(selectedCampaign);
     if (maximum && Number(bidAmount) > maximum) {
       toast.error(bidOverBudgetMessage(maximum));
       return;
     }
+    setBidSubmitting(true);
     try {
       await axios.post(`${API}/campaigns/${selectedCampaign.id}/bid`, {
         campaign_id: selectedCampaign.id,
@@ -245,6 +257,8 @@ export default function CreatorDashboard() {
       fetchAllData();
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Failed to submit bid'));
+    } finally {
+      setBidSubmitting(false);
     }
   };
 
@@ -288,10 +302,8 @@ export default function CreatorDashboard() {
 
   const displayName = creatorFirstName(user);
   const rating = Number(user?.average_rating || 0);
-  const totalEarned = useMemo(() => {
-    const bidsTotal = myBids.reduce((sum, campaign) => sum + Number(campaign.myBid?.amount || 0), 0);
-    return Math.max(Number(user?.balance || 0), bidsTotal);
-  }, [myBids, user?.balance]);
+  // Bids that were never accepted are not earnings: use the released total, else the wallet balance.
+  const totalEarned = lifetimeEarned ?? Number(user?.balance || 0);
 
   const levelInfo = getLevelInfo(completedWorks);
   const progressPercentage = levelInfo.nextWorks
@@ -405,13 +417,19 @@ export default function CreatorDashboard() {
 
   return (
     <CreatorTopNavLayout notifications={0}>
+          {loadError && (
+            <div className="pcd-load-error" role="alert">
+              <span>{loadError}</span>
+              <button type="button" onClick={() => { setLoading(true); fetchAllData(); }}>Retry</button>
+            </div>
+          )}
           <CreatorHero
             name={heroName}
             photo={user?.profile_photo}
             category={heroCategory}
             rating={rating}
             completedDeals={completedWorks}
-            level={levelInfo.title}
+            level={levelInfo.badge}
             activeDeals={activeCampaigns.length}
             newBriefs={availableCampaigns.length}
             totalEarned={Number(totalEarned || 0)}
@@ -465,7 +483,7 @@ export default function CreatorDashboard() {
             </label>
             <div>
               <button type="button" onClick={() => setSelectedCampaign(null)}>Cancel</button>
-              <button type="submit" className="pcd-primary">Submit Bid</button>
+              <button type="submit" className="pcd-primary" disabled={bidSubmitting}>{bidSubmitting ? 'Submitting...' : 'Submit Bid'}</button>
             </div>
           </form>
         </div>

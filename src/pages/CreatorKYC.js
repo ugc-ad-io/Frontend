@@ -212,7 +212,7 @@ export default function CreatorKYC() {
   return (
     <CreatorTopNavLayout>
       <div className="kyc-page">
-        <button type="button" className="kyc-back" onClick={() => navigate(-1)}><ArrowLeft size={16} /> Back</button>
+        <button type="button" className="kyc-back" onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/dashboard/creator'))}><ArrowLeft size={16} /> Back</button>
 
         <header className="kyc-head">
           <span className="kyc-head-ic"><ShieldCheck size={22} /></span>
@@ -225,7 +225,7 @@ export default function CreatorKYC() {
         {loading ? (
           <div className="kyc-card" aria-hidden="true">
             <Skeleton width={180} height={20} style={{ marginBottom: 20 }} />
-            <div className="kyc-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
+            <div className="kyc-grid">
               {Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <Skeleton width="45%" height={12} />
@@ -234,7 +234,7 @@ export default function CreatorKYC() {
               ))}
             </div>
             <Skeleton width={150} height={20} style={{ margin: '24px 0 16px' }} />
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
+            <div className="kyc-grid">
               <Skeleton width="100%" height={90} radius={12} />
               <Skeleton width="100%" height={90} radius={12} />
             </div>
@@ -453,7 +453,7 @@ export default function CreatorKYC() {
                 <h2>On file</h2>
                 <div className="kyc-kv"><span>Legal name</span><strong>{kyc.full_legal_name || kyc.name_on_pan || '-'}</strong></div>
                 <div className="kyc-kv"><span>PAN</span><strong className="mono">{kyc.pan_number || '-'}</strong></div>
-                {kyc.aadhaar_number ? <div className="kyc-kv"><span>Aadhaar</span><strong className="mono">{kyc.aadhaar_number}</strong></div> : null}
+                {kyc.aadhaar_number ? <div className="kyc-kv"><span>Aadhaar</span><strong className="mono">{/* masked on screen: only the last 4 digits */}XXXX XXXX {String(kyc.aadhaar_number).replace(/\D/g, '').slice(-4)}</strong></div> : null}
                 <div className="kyc-kv"><span>Payout</span><strong>{kyc.payout_method === 'bank' ? 'Bank account' : kyc.payout_method === 'upi' ? 'UPI' : '-'}</strong></div>
                 <div className="kyc-kv"><span>Submitted</span><strong>{kyc.submitted_at ? new Date(kyc.submitted_at).toLocaleDateString() : '-'}</strong></div>
               </div>
@@ -463,7 +463,10 @@ export default function CreatorKYC() {
       </div>
 
       <style>{`
-        .kyc-page{max-width:760px;margin:0 auto;padding:8px 0 60px}
+        .kyc-page{max-width:760px;margin:0 auto;padding:8px 0 60px;min-width:0;overflow-wrap:anywhere}
+        .kyc-grid>*{min-width:0}
+        .kyc-head>div{min-width:0}
+        .kyc-state>div{min-width:0}
         .kyc-back{display:inline-flex;align-items:center;gap:6px;border:1px solid #e6e8f5;background:#fff;color:#5b6073;font:inherit;font-size:13px;font-weight:600;padding:7px 13px;border-radius:9px;cursor:pointer;margin-bottom:18px}
         .kyc-back:hover{border-color:#c9cffb;color:#4452f0}
         .kyc-head{display:flex;gap:14px;align-items:flex-start;margin-bottom:20px}
@@ -487,8 +490,12 @@ export default function CreatorKYC() {
           .kyc-state button{margin-left:0;width:100%;padding:11px 14px}
           .kyc-page .kyc-card{padding:18px 0;border:0;border-radius:0;box-shadow:none}
           .kyc-page .kyc-onfile{border-top:1px solid #e9ebf5}
-          .kyc-back{padding:10px 14px}
-          .kyc-toggle button{padding:11px 18px}
+          .kyc-back{padding:10px 14px;min-height:44px}
+          .kyc-toggle{display:flex;width:100%}
+          .kyc-toggle button{flex:1;padding:11px 18px;min-height:44px}
+          .kyc-page .kyc-input{font-size:16px;min-height:44px}
+          .kyc-head h1{font-size:21px;overflow-wrap:anywhere}
+          .kyc-submit{min-height:48px}
         }
 
         .kyc-card{background:#fff;border:1px solid #e9ebf5;border-radius:18px;padding:24px 26px;box-shadow:0 4px 24px rgba(7,7,78,.05)}
@@ -520,8 +527,8 @@ export default function CreatorKYC() {
 
         .kyc-onfile .kyc-kv{display:flex;justify-content:space-between;gap:16px;padding:11px 0;border-bottom:1px solid #f1f3f9;font-size:14px}
         .kyc-onfile .kyc-kv:last-child{border-bottom:0}
-        .kyc-onfile .kyc-kv span{color:#6a6f8a}
-        .kyc-onfile .kyc-kv strong{color:#15163a}
+        .kyc-onfile .kyc-kv span{color:#6a6f8a;flex:none}
+        .kyc-onfile .kyc-kv strong{color:#15163a;min-width:0;text-align:right;overflow-wrap:anywhere}
       `}</style>
     </CreatorTopNavLayout>
   );

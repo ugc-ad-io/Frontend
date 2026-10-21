@@ -170,6 +170,20 @@ axios.interceptors.response.use(
     const config = error?.config || {};
     const method = (config.method || 'get').toLowerCase();
     const status = error?.response?.status;
+
+    // A saved login the server no longer accepts (expired / account removed): every call would keep
+    // failing, so leave the dead session and return to sign-in once, remembering where the user was.
+    // Only the backend's auth-dependency messages count (a wrong password at /auth/login is also a 401
+    // and must stay on the form); /auth/me is handled by AuthProvider itself.
+    if (status === 401 && localStorage.getItem('token') && !window.__ugcadSessionEnded
+      && !String(config.url || '').includes('/auth/me')
+      && /^(Token expired|Invalid token|User not found)$/.test(String(error.response.data?.detail || ''))) {
+      window.__ugcadSessionEnded = true;
+      localStorage.removeItem('token');
+      if (!PUBLIC_PATHS.includes(window.location.pathname)) {
+        window.location.replace(`/auth?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+      }
+    }
     const isTransient = !error.response /* network error / timeout / ERR_FAILED */
       || [502, 503, 504].includes(status);
 
@@ -198,10 +212,67 @@ axios.interceptors.response.use(
   }
 );
 
+// Pages anyone can open without a session; they never wait on, or are replaced by, the auth check.
+const PUBLIC_PATHS = ['/', '/auth', '/creator', '/creator/signup', '/team/accept', '/privacy-policy', '/terms', '/community-guidelines', '/cookie-policy'];
+
+// Where each role lands after sign-in (mirrors routeForUser in pages/Auth.js).
+export function homeForUser(user) {
+  const role = user?.role;
+  if (role === 'creator') return '/dashboard/creator';
+  if (role === 'business') return '/dashboard/business/browse-creator';
+  if (['admin', 'campaign_manager', 'support_staff'].includes(role)) return '/dashboard/admin';
+  return '/';
+}
+
+// True when launched from the home screen (Android/desktop PWA or iOS "Add to Home Screen").
+const isStandalone = () =>
+  !!(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+
+function OfflineNotice({ onRetry, onSignOut }) {
+  return (
+    <main
+      role="alert"
+      className="app-full"
+      style={{
+        display: 'grid', placeItems: 'center', boxSizing: 'border-box',
+        padding: '24px max(16px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left))',
+        background: '#0A0A47', color: '#fff', textAlign: 'center',
+      }}
+    >
+      <div style={{ width: '100%', maxWidth: 420, minWidth: 0 }}>
+        <h1 style={{ margin: '0 0 8px', fontSize: 24, color: '#fff' }}>Can&apos;t reach UGCad.io</h1>
+        <p style={{ margin: '0 0 24px', color: 'rgba(255,255,255,0.75)', fontSize: 16, lineHeight: 1.5 }}>
+          You&apos;re offline or our servers are not responding. You are still signed in. Check your connection and try again.
+        </p>
+        <button
+          type="button"
+          onClick={onRetry}
+          style={{ minHeight: 48, padding: '12px 32px', border: 0, borderRadius: 999, background: '#fff', color: '#0A0A47', font: 'inherit', fontWeight: 700, cursor: 'pointer' }}
+        >
+          Try again
+        </button>
+        <div style={{ marginTop: 16 }}>
+          <button
+            type="button"
+            onClick={onSignOut}
+            style={{ minHeight: 44, padding: '8px 16px', border: 0, background: 'none', color: 'rgba(255,255,255,0.75)', font: 'inherit', textDecoration: 'underline', cursor: 'pointer' }}
+          >
+            Sign out instead
+          </button>
+        </div>
+      </div>
+    </main>
+  );
+}
+
 function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   useLiveUpdates(user ? localStorage.getItem('token') : null, () => GET_CACHE.clear());
   const [loading, setLoading] = useState(true);
+  // True when a saved login could not be checked (offline / server down), as opposed to
+  // being rejected (401). Without it an offline reload dropped a signed-in user on /auth.
+  const [authError, setAuthError] = useState(false);
+  const [retryTick, setRetryTick] = useState(0);
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
@@ -211,15 +282,17 @@ function AuthProvider({ children }) {
       axios.get(`${API}/auth/me`, { timeout: 15000 })
         .then(res => {
           setUser(res.data);
+          setAuthError(false);
         })
         .catch(error => {
-          if (error?.response?.status === 401) { localStorage.removeItem('token'); setUser(null); }
+          if (error?.response?.status === 401) { localStorage.removeItem('token'); setUser(null); setAuthError(false); }
+          else setAuthError(true);
         })
         .finally(() => setLoading(false));
     } else {
       setLoading(false);
     }
-  }, []);
+  }, [retryTick]);
 
   const login = (token, userData) => {
     localStorage.setItem('token', token);
@@ -267,12 +340,23 @@ function AuthProvider({ children }) {
     window.location.replace('/auth');
   };
 
-  if (loading && pathname !== '/' && pathname !== '/auth') {
+  if (loading && !PUBLIC_PATHS.includes(pathname)) {
     return <Loader />;
   }
 
+  // Saved login, but the server could not be reached: say so and offer Retry, instead of
+  // bouncing the user to the sign-in screen (their session is still valid).
+  if (authError && !user && !PUBLIC_PATHS.includes(pathname) && localStorage.getItem('token')) {
+    return (
+      <OfflineNotice
+        onRetry={() => { setLoading(true); setAuthError(false); setRetryTick((t) => t + 1); }}
+        onSignOut={() => { localStorage.removeItem('token'); window.location.replace('/auth'); }}
+      />
+    );
+  }
+
   return (
-    <AuthContext.Provider value={{ user, setUser, login, logout, startBrandSession, stopBrandSession }}>
+    <AuthContext.Provider value={{ user, setUser, loading, login, logout, startBrandSession, stopBrandSession }}>
       {localStorage.getItem('ops_admin_token') && (
         <div className="ops-session-banner" role="status">
           <span>Operations mode: acting as <strong>{localStorage.getItem('ops_brand_name') || 'brand'}</strong></span>
@@ -301,26 +385,53 @@ function AuthProvider({ children }) {
 
 function ProtectedRoute({ children, allowedRoles }) {
   const { user } = useAuth();
+  const { pathname, search } = useLocation();
 
   if (!user) {
-    return <Navigate to="/auth" replace />;
+    // Remember where they were going so sign-in can return them there (deep links,
+    // notification taps, installed-app shortcuts).
+    const next = `${pathname}${search}`;
+    return <Navigate to={`/auth?next=${encodeURIComponent(next)}`} replace />;
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/" />;
+    // Wrong role for this page (e.g. a creator opening a brand URL): send them to their own home.
+    return <Navigate to={homeForUser(user)} replace />;
   }
 
   return children;
 }
 
+// "/" is the marketing landing in a browser. Launched as the installed app it is an app
+// start: signed-in users go straight to their dashboard, everyone else to sign-in. Only the
+// first "/" of an app session is redirected, so the Back-to-home links still reach the landing.
+function HomeRoute() {
+  const { user, loading } = useAuth();
+  const [launch] = useState(() => {
+    try {
+      if (window.ReactNativeWebView || !isStandalone() || sessionStorage.getItem('ugcad_launch_done')) return false;
+      sessionStorage.setItem('ugcad_launch_done', '1');
+      return true;
+    } catch { return false; }
+  });
+  if (!launch) return <Landing />;
+  if (user) return <Navigate to={homeForUser(user)} replace />;
+  if (loading && localStorage.getItem('token')) return <Loader />;
+  return <Navigate to="/auth" replace />;
+}
+
 // Catch-all: an unknown URL used to render a blank page.
 function NotFound() {
+  const { user } = useAuth();
+  const home = user ? homeForUser(user) : '/';
   return (
     <main style={{ minHeight: '60vh', display: 'grid', placeItems: 'center', textAlign: 'center', padding: 24 }}>
-      <div>
-        <h1 style={{ margin: '0 0 8px' }}>Page not found</h1>
-        <p style={{ margin: '0 0 18px', color: '#585c7e' }}>The page you are looking for does not exist or has moved.</p>
-        <Link to="/" style={{ color: '#5b6bff', fontWeight: 700 }}>Go to home</Link>
+      <div style={{ minWidth: 0 }}>
+        <h1 style={{ margin: '0 0 8px', overflowWrap: 'anywhere' }}>Page not found</h1>
+        <p style={{ margin: '0 0 18px', color: '#585c7e', fontSize: 16 }}>The page you are looking for does not exist or has moved.</p>
+        <Link to={home} style={{ display: 'inline-block', padding: '12px 16px', color: '#5b6bff', fontWeight: 700 }}>
+          {user ? 'Go to my dashboard' : 'Go to home'}
+        </Link>
       </div>
     </main>
   );
@@ -427,10 +538,10 @@ function App() {
         <AuthProvider>
           <ScrollToTop />
           <OverlayBack />
-          <Toaster position="top-right" richColors closeButton />
+          <Toaster position="top-right" richColors closeButton mobileOffset={{ top: "calc(env(safe-area-inset-top, 0px) + 8px)", left: 16, right: 16 }} />
           <RouteLoadingBoundary>
           <Routes>
-            <Route path="/" element={<Landing />} />
+            <Route path="/" element={<HomeRoute />} />
             <Route path="/creator" element={<CreatorLanding />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/team/accept" element={<TeamAccept />} />

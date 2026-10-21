@@ -66,6 +66,16 @@ function UploadZone({ id, title, hint, files, onUpload, onRemove, testIdPrefix, 
   );
 }
 
+// This quick form only knows "upload files + note". The backend (POST /work/submit) also runs a
+// raw -> edited stage flow and rejects a brief that needs a caption/script or thumbnail with
+// "Missing required assets" - the Deal Room handles those, so send the creator there instead.
+export const needsDealRoom = (c) => {
+  if (!c) return false;
+  const rules = c.content_requirements || c.shipment_checklist || {};
+  return (c.deliverable_items || []).some((d) => d && d.edited_required)
+    || !!(rules.caption_script || rules.caption || c.caption_required || rules.thumbnail || c.thumbnail_required);
+};
+
 export default function WorkSubmission() {
   const [searchParams] = useSearchParams();
   const campaignId = searchParams.get('campaign');
@@ -80,6 +90,9 @@ export default function WorkSubmission() {
   // always did, through the single generic zone.
   const [editedFiles, setEditedFiles] = useState([]);
   const [rawFiles, setRawFiles] = useState([]);
+  // Blocks double taps while a request (upload or submit) is running.
+  const [submitting, setSubmitting] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   // Does this brief ask for a finished cut on top of the raw footage? Any ONE
   // deliverable row asking for it is enough - the creator then owes both and gets the
@@ -87,10 +100,17 @@ export default function WorkSubmission() {
   // resolves, and an older brief saved before the field existed simply reads false, so
   // nothing about its submission changes.
   const needsEdited = (campaign?.deliverable_items || []).some((d) => d && d.edited_required);
+  const dealRoom = needsDealRoom(campaign);
+  useEffect(() => {
+    if (dealRoom) navigate(`/my-deals?campaign=${encodeURIComponent(campaignId)}&tab=deliverables`, { replace: true });
+  }, [dealRoom, campaignId, navigate]);
 
   useLiveEffect(() => {
     if (campaignId) {
       fetchCampaign();
+    } else {
+      // No ?campaign= in the link: show "not found" instead of loading forever.
+      setLoading(false);
     }
   }, [campaignId]);
 
@@ -111,6 +131,7 @@ export default function WorkSubmission() {
     const selectedFiles = Array.from(e.target.files || []);
     if (!selectedFiles.length) return;
 
+    setUploading(true);
     try {
       const uploadedUrls = await Promise.all(selectedFiles.map(async (file) => {
         // uploadMedia refuses a video over 400 MB with a readable message and sends
@@ -123,6 +144,8 @@ export default function WorkSubmission() {
       toast.success(`${uploadedUrls.length} file(s) uploaded successfully!`);
     } catch (error) {
       toast.error(error.message || 'Failed to upload files');
+    } finally {
+      setUploading(false);
     }
     e.target.value = '';
   };
@@ -133,6 +156,7 @@ export default function WorkSubmission() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitting || uploading) return;
 
     // Edited cut first: the backend treats work_files[0] as the primary video (it is
     // what gets watermarked and what the brand's review screen plays), so the finished
@@ -153,6 +177,7 @@ export default function WorkSubmission() {
       return;
     }
 
+    setSubmitting(true);
     try {
       await axios.post(`${API}/work/submit`, {
         campaign_id: campaignId,
@@ -168,11 +193,18 @@ export default function WorkSubmission() {
       }, 1000);
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Failed to submit work'));
+      setSubmitting(false);
     }
   };
 
-  if (loading) return <div className="loading-page">Loading...</div>;
-  if (!campaign) return <div className="error-page">Campaign not found</div>;
+  if (loading || dealRoom) return <div className="loading-page">Loading...</div>;
+  if (!campaign) return (
+    <div className="error-page" style={{ flexDirection: 'column', gap: 12, padding: 16, textAlign: 'center' }}>
+      <span>Campaign not found</span>
+      <button type="button" className="back-btn" onClick={() => navigate('/my-active-work')}>Back to Active Work</button>
+      <style>{`.error-page{min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;color:#718096}.back-btn{display:flex;align-items:center;gap:8px;padding:12px 24px;min-height:44px;background:#fff;border:2px solid #e2e8f0;border-radius:12px;color:#4a5568;font-weight:600;cursor:pointer}`}</style>
+    </div>
+  );
 
   // What the brand asked for. The creator had no way to see this — the feedback
   // was written to the campaign's work_submission and never rendered anywhere on
@@ -185,7 +217,7 @@ export default function WorkSubmission() {
   return (
     <div className="work-submission-page">
       <div className="page-header">
-        <button className="back-btn" onClick={() => navigate(-1)} data-testid="back-btn">
+        <button className="back-btn" onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/my-active-work'))} data-testid="back-btn">
           <ArrowLeft size={20} /> Back
         </button>
       </div>
@@ -276,8 +308,8 @@ export default function WorkSubmission() {
             />
           </div>
 
-          <button type="submit" className="btn-primary" data-testid="submit-work-btn">
-            {revisionRequested ? 'Submit Revision for Review' : 'Submit Work for Review'}
+          <button type="submit" className="btn-primary" data-testid="submit-work-btn" disabled={submitting || uploading}>
+            {submitting ? 'Submitting...' : uploading ? 'Uploading files...' : revisionRequested ? 'Submit Revision for Review' : 'Submit Work for Review'}
           </button>
         </form>
       </div>
@@ -304,13 +336,20 @@ export default function WorkSubmission() {
 
         .work-submission-page {
           min-height: 100vh;
+          min-height: 100dvh;
           background: linear-gradient(135deg, #f8f9ff 0%, #e8ecff 100%);
           padding: 40px 8%;
+          padding-bottom: max(40px, env(safe-area-inset-bottom));
+          padding-left: max(8%, env(safe-area-inset-left));
+          padding-right: max(8%, env(safe-area-inset-right));
+          box-sizing: border-box;
+          overflow-x: hidden;
         }
 
         .loading-page,
         .error-page {
           min-height: 100vh;
+          min-height: 100dvh;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -447,11 +486,17 @@ export default function WorkSubmission() {
           align-items: center;
           gap: 12px;
           color: #4a5568;
+          min-width: 0;
         }
+        .file-info span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .file-item { gap: 8px; }
+        .upload-btn:disabled, .btn-primary:disabled { opacity: .6; cursor: not-allowed; }
+        .textarea-field { width: 100%; box-sizing: border-box; min-height: 120px; }
 
         .remove-btn {
-          width: 32px;
-          height: 32px;
+          flex: none;
+          width: 44px;
+          height: 44px;
           background: #f8d7da;
           color: #721c24;
           border: none;
@@ -478,9 +523,22 @@ export default function WorkSubmission() {
         }
 
         @media (max-width: 640px) {
+          .work-submission-page { padding: 16px 12px; padding-bottom: max(24px, env(safe-area-inset-bottom)); }
           .submission-container {
-            padding: 32px 24px;
+            padding: 24px 16px;
+            border-radius: 16px;
           }
+          .submission-header { margin-bottom: 24px; }
+          .submission-header h1 { font-size: 1.5rem; overflow-wrap: anywhere; }
+          .submission-header p { font-size: 1rem; overflow-wrap: anywhere; }
+          .revision-callout { padding: 16px; }
+          .upload-btn { padding: 28px 16px; }
+          .upload-section h3 { font-size: 1.1rem; }
+          .back-btn { min-height: 44px; }
+          .btn-primary { min-height: 48px; width: 100%; }
+        }
+        @media (max-width: 768px) {
+          .submission-form textarea, .submission-form input { font-size: 16px; }
         }
       `}</style>
     </div>

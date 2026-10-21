@@ -55,16 +55,27 @@ function loadGoogleScript() {
 }
 
 // Route a freshly-authenticated user by role + onboarding state.
-function routeForUser(navigate, role, profileCompleted) {
+// `?next=/some/page` (set by ProtectedRoute) returns the user to the page they were opening.
+// Only an in-app absolute path is honoured, so it can never be used as an open redirect.
+const safeNext = (raw) => (typeof raw === 'string' && /^\/(?![/\\])/.test(raw) && !raw.startsWith('/auth') ? raw : null);
+
+function routeForUser(navigate, role, profileCompleted, next) {
   if (!profileCompleted) {
     if (role === 'creator') return navigate('/profile-setup/creator');
     if (role === 'business') return navigate('/profile-setup/business');
   }
+  if (next) return navigate(next, { replace: true });
   if (role === 'creator') return navigate('/dashboard/creator');
   if (role === 'business') return navigate('/dashboard/business/browse-creator');
-  if (role === 'admin') return navigate('/dashboard/admin');
+  // campaign managers and support staff use the admin dashboard too (same list as homeForUser in App.js)
+  if (['admin', 'campaign_manager', 'support_staff'].includes(role)) return navigate('/dashboard/admin');
   return navigate('/');
 }
+
+// A request that never got an answer (offline, server down) says so, instead of axios' bare "Network Error".
+const authError = (error, fallback) => (error?.response
+  ? apiErrorMessage(error, fallback)
+  : "You're offline or the server is not responding. Check your connection and try again.");
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
@@ -80,7 +91,19 @@ export default function Auth() {
   const [dialCode, setDialCode] = useState('+91');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, user } = useAuth();
+  const nextPath = safeNext(searchParams.get('next'));
+
+  // Opening /auth while a valid session already exists (installed app, bookmarked sign-in
+  // link) goes straight to the user's home. Only when a token was present on arrival, so it
+  // never races the sign-in/sign-up submit below, which routes by itself.
+  const hadTokenOnArrival = useRef(!!localStorage.getItem('token'));
+  useEffect(() => {
+    if (hadTokenOnArrival.current && user && !searchParams.get('view')) {
+      routeForUser(navigate, user.role, user.profile_completed, nextPath);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   // Password-reset flow: 'auth' (sign in / sign up) → 'forgot' (request a code)
   // → 'reset' (enter the emailed code + a new password). ?view=reset (from the
@@ -121,9 +144,9 @@ export default function Auth() {
       const { token, ...userData } = data;
       login(token, userData);
       toast.success('Signed in with Google');
-      routeForUser(navigate, userData.role, userData.profile_completed);
+      routeForUser(navigate, userData.role, userData.profile_completed, nextPath);
     } catch (error) {
-      toast.error(apiErrorMessage(error, 'Google sign-in failed'));
+      toast.error(authError(error, 'Google sign-in failed'));
     } finally {
       setLoading(false);
     }
@@ -163,6 +186,7 @@ export default function Auth() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (loading) return;
 
     // Signup requires a valid mobile number. `required` on the input only catches
     // an empty field — a half-typed number would still submit without this.
@@ -203,10 +227,10 @@ export default function Auth() {
         // New signups always go straight to onboarding for their role.
         navigate(role === 'creator' ? '/profile-setup/creator' : '/profile-setup/business');
       } else {
-        routeForUser(navigate, userData.role, userData.profile_completed);
+        routeForUser(navigate, userData.role, userData.profile_completed, nextPath);
       }
     } catch (error) {
-      toast.error(apiErrorMessage(error, 'Authentication failed'));
+      toast.error(authError(error, 'Authentication failed'));
     } finally {
       setLoading(false);
     }
@@ -215,6 +239,7 @@ export default function Auth() {
   // Second-factor step: resend the login with the TOTP code (backend reads it as a query param).
   const handle2FASubmit = async (e) => {
     e.preventDefault();
+    if (loading) return;
     if (totpCode.length !== 6) { toast.error('Enter the 6-digit code'); return; }
     setLoading(true);
     try {
@@ -226,9 +251,9 @@ export default function Auth() {
       googleCredRef.current = null;
       login(token, userData);
       toast.success('Welcome back!');
-      routeForUser(navigate, userData.role, userData.profile_completed);
+      routeForUser(navigate, userData.role, userData.profile_completed, nextPath);
     } catch (error) {
-      toast.error(apiErrorMessage(error, 'Invalid 2FA code'));
+      toast.error(authError(error, 'Invalid 2FA code'));
     } finally {
       setLoading(false);
     }
@@ -251,13 +276,14 @@ export default function Auth() {
   // Step 1 — request a reset code for the entered email.
   const handleForgotSubmit = async (e) => {
     e.preventDefault();
+    if (loading) return;
     setLoading(true);
     try {
       await axios.post(`${API}/auth/forgot-password`, { email });
       toast.success('Code sent');
       setView('reset');
     } catch (error) {
-      toast.error(apiErrorMessage(error, 'Could not send reset code'));
+      toast.error(authError(error, 'Could not send reset code'));
     } finally {
       setLoading(false);
     }
@@ -275,7 +301,7 @@ export default function Auth() {
       await axios.post(`${API}/auth/verify-reset-code`, { email, code: resetCode });
       setView('newpass');
     } catch (error) {
-      toast.error(apiErrorMessage(error, 'Invalid or expired reset code'));
+      toast.error(authError(error, 'Invalid or expired reset code'));
     } finally {
       setLoading(false);
     }
@@ -309,7 +335,7 @@ export default function Auth() {
       setView('auth');
       toast.success('Password reset - please sign in with your new password.');
     } catch (error) {
-      toast.error(apiErrorMessage(error, 'Could not reset password'));
+      toast.error(authError(error, 'Could not reset password'));
     } finally {
       setLoading(false);
     }
@@ -442,6 +468,8 @@ export default function Auth() {
             </label>
             <input
               id="email"
+              autoComplete="email"
+              autoCapitalize="none"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -515,6 +543,7 @@ export default function Auth() {
             <div className="ap-input-wrap">
               <input
                 id="password"
+                autoComplete={isLogin ? "current-password" : "new-password"}
                 type={showPass.login ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -589,6 +618,14 @@ export default function Auth() {
             {isLogin ? 'Sign Up' : 'Sign In'}
           </button>
         </motion.div>
+        {!isLogin && (
+          <p className="ap-legal">
+            By creating an account you agree to our{' '}
+            <a href="/terms" target="_blank" rel="noreferrer">Terms</a>,{' '}
+            <a href="/privacy-policy" target="_blank" rel="noreferrer">Privacy Policy</a> and{' '}
+            <a href="/community-guidelines" target="_blank" rel="noreferrer">Community Guidelines</a>.
+          </p>
+        )}
         </>
         )}
 
@@ -607,6 +644,8 @@ export default function Auth() {
               </label>
               <input
                 id="forgot-email"
+                autoComplete="email"
+                autoCapitalize="none"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -651,6 +690,7 @@ export default function Auth() {
               </label>
               <input
                 id="reset-code"
+                autoComplete="one-time-code"
                 type="text"
                 inputMode="numeric"
                 maxLength={6}
@@ -698,6 +738,7 @@ export default function Auth() {
               <label className="ap-label" htmlFor="totp-code">Two-factor code</label>
               <input
                 id="totp-code"
+                autoComplete="one-time-code"
                 type="text"
                 inputMode="numeric"
                 maxLength={6}
@@ -736,6 +777,7 @@ export default function Auth() {
               <div className="ap-input-wrap">
                 <input
                   id="new-password"
+                  autoComplete="new-password"
                   type={showPass.newPass ? 'text' : 'password'}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
@@ -758,6 +800,7 @@ export default function Auth() {
               <div className="ap-input-wrap">
                 <input
                   id="confirm-password"
+                  autoComplete="new-password"
                   type={showPass.confirm ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
@@ -1206,6 +1249,16 @@ export default function Auth() {
         }
 
 
+        .ap-legal {
+          margin: 14px 0 0;
+          text-align: center;
+          color: #64748B;
+          font-size: 0.76rem;
+          line-height: 1.5;
+          overflow-wrap: anywhere;
+        }
+        .ap-legal a { color: #0F172A; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+
         /* ── Footer ──────────────────────────────────────────────── */
         .ap-footer {
           margin-top: 24px;
@@ -1562,6 +1615,26 @@ export default function Auth() {
         @media (max-width:860px) {
           .ap-root { padding:80px 16px 24px; justify-content:flex-start; }
           .ap-shell .ap-left { grid-column:1; grid-row:1; min-width:0; width:100%; transform:none!important; transition:none; }
+        }
+        /* Phone pass: 44px touch targets, notch / home-bar safe areas (viewport-fit=cover),
+           long emails and the dial-code select never push the card wider than the screen. */
+        @media (max-width:860px) {
+          .ap-root {
+            padding-top: calc(80px + var(--sa-top));
+            padding-left: max(16px, var(--sa-left));
+            padding-right: max(16px, var(--sa-right));
+            padding-bottom: max(24px, var(--sa-bottom));
+          }
+          .ap-page-logo { top: calc(24px + var(--sa-top)); left: max(26px, var(--sa-left)); }
+          .ap-back, .ap-shell.is-signup .ap-back { width: 44px; height: 44px; }
+          .ap-eye { width: 40px; height: 40px; right: 4px; }
+          .ap-input-wrap .ap-input.input-field { padding-right: 48px; }
+          .ap-forgot-link { min-height: 44px; padding: 0 0 0 12px; }
+          .ap-toggle { min-height: 44px; padding: 0 6px; }
+          .ap-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; }
+          .ap-card, .ap-field, .ap-phone-row { min-width: 0; }
+          .ap-input.input-field, .ap-dial { min-width: 0; max-width: 100%; }
+          .ap-subtitle { overflow-wrap: anywhere; }
         }
       `}</style>
     </div>

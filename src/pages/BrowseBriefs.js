@@ -36,7 +36,7 @@ export default function BrowseBriefs() {
   const [loadError, setLoadError] = useState('');
   const [search, setSearch] = useState(searchParams.get('q') || '');
   const [category, setCategory] = useState('All Categories');
-  const [sortBy, setSortBy] = useState('recommended');
+  const [sortBy, setSortBy] = useState('newest');
   const [budgetFilter, setBudgetFilter] = useState('any');
   const [deliveryFilter, setDeliveryFilter] = useState('any');
   const [visible, setVisible] = useState(8);

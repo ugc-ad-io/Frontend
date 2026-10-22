@@ -609,7 +609,7 @@ function normalizeBrief(campaign, index, myBids) {
 function BrowseBriefsPanel({ campaigns, myBids, loading, onView, onPitch }) {
   const [viewMode, setViewMode] = useState('grid');
   const [query, setQuery] = useState('');
-  const [sortBy, setSortBy] = useState('recommended');
+  const [sortBy, setSortBy] = useState('newest');
   const [category, setCategory] = useState('all');
   const [budgetRange, setBudgetRange] = useState('any');
   const [minMatch, setMinMatch] = useState(0);

@@ -5307,6 +5307,8 @@ export default function Landing() {
                to the deck's - so the arrow lands ~80% down the card, level with the
                stacked cards peeking out below the front one. */
             top: 48%; bottom: 12%;
+            /* Small gap so the origin dot no longer touches the last line of the statement. */
+            transform: translateY(16px);
           }
           .lp-svc-path svg { width: 100%; height: 100%; display: block; overflow: visible; }
           .lp-svc-path__dot { transition: fill .5s cubic-bezier(.22, 1, .36, 1); }

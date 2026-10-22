@@ -81,14 +81,14 @@ const TESTIMONIALS = [
   // read as that person's actual stats — so they are deliberately NOT carried over. Supply
   // real handles/counts and they will render; leave them out and the card just shows the
   // icons. `name` is taken from the filename the videos arrived under.
-  { name: 'Muskan',   handle: '', likes: '', comments: '', av: ['#fb7185', '#f43f5e'], src: '/creator/review_04.mp4', photo: '/creator/review_04.jpg' },
-  { name: 'Anshika',  handle: '', likes: '', comments: '', av: ['#818cf8', '#4338ca'], src: '/creator/review_05.mp4', photo: '/creator/review_05.jpg' },
-  { name: 'Shashank', handle: '', likes: '', comments: '', av: ['#7dd3fc', '#1d4ed8'], src: '/creator/review_06.mp4', photo: '/creator/review_06.jpg' },
+  { name: 'Muskan',   time: '9:41', handle: '', likes: '', comments: '', av: ['#fb7185', '#f43f5e'], src: '/creator/review_04.mp4', photo: '/creator/review_04.jpg' },
+  { name: 'Anshika',  time: '10:12', handle: '', likes: '', comments: '', av: ['#818cf8', '#4338ca'], src: '/creator/review_05.mp4', photo: '/creator/review_05.jpg' },
+  { name: 'Shashank', time: '11:27', handle: '', likes: '', comments: '', av: ['#7dd3fc', '#1d4ed8'], src: '/creator/review_06.mp4', photo: '/creator/review_06.jpg' },
   // These two arrived as 1st.mp4 / 2nd.mp4 with no name in the filename, so there is
   // nothing to label them with. Fill in `name` when you know who they are.
-  { name: '', handle: '', likes: '', comments: '', av: ['#a5b4fc', '#4c1d95'], src: '/creator/review_01.mp4', photo: '/creator/review_01.jpg' },
-  { name: '', handle: '', likes: '', comments: '', av: ['#34d399', '#14b8a6'], src: '/creator/review_02.mp4', photo: '/creator/review_02.jpg' },
-  { name: 'Girishh',  handle: '', likes: '', comments: '', av: ['#7387FF', '#5b21b6'], src: '/creator/review_03.mp4', photo: '/creator/review_03.jpg' },
+  { name: '', time: '12:05', handle: '', likes: '', comments: '', av: ['#a5b4fc', '#4c1d95'], src: '/creator/review_01.mp4', photo: '/creator/review_01.jpg' },
+  { name: '', time: '1:48', handle: '', likes: '', comments: '', av: ['#34d399', '#14b8a6'], src: '/creator/review_02.mp4', photo: '/creator/review_02.jpg' },
+  { name: 'Girishh',  time: '3:16', handle: '', likes: '', comments: '', av: ['#7387FF', '#5b21b6'], src: '/creator/review_03.mp4', photo: '/creator/review_03.jpg' },
 ];
 
 const FAQS = [
@@ -274,7 +274,7 @@ let _tcardMuteActive = null;
 // card is on screen (so the wall shows real video, not just its gradient) and a click toggles
 // sound. Rendered inside an auto-scrolling marquee, so no scroll-triggered fade (off-screen
 // copies must stay visible).
-function TestimonialCard({ name, handle, likes, comments, av, src, photo, poster, hidden }) {
+function TestimonialCard({ name, time = '9:41', handle, likes, comments, av, src, photo, poster, hidden }) {
   const ref = useRef(null);
   const [soundOn, setSoundOn] = useState(false);
 
@@ -402,7 +402,7 @@ function TestimonialCard({ name, handle, likes, comments, av, src, photo, poster
 
       {/* Phone status bar */}
       <div className="cl-tcard__status">
-        <span className="cl-tcard__time">9:41</span>
+        <span className="cl-tcard__time">{time}</span>
         <span className="cl-tcard__statusicons">
           <SignalHigh size={13} /><Wifi size={13} /><BatteryFull size={17} />
         </span>

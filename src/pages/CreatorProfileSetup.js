@@ -134,8 +134,13 @@ export default function CreatorProfileSetup() {
             videoUrl: it.videoUrl || it.url || '',
           }))
         : d.portfolio,
-      links: { ...d.links, ...(pr.social_links || {}) },
+      // Only the platforms the form has a rule for: a saved custom link (link_1, ...)
+      // used to land here, and linkError() then threw on it, blanking the whole form
+      // for exactly the creator who was asked for more info.
+      links: { ...d.links, ...Object.fromEntries(Object.entries(pr.social_links || {}).filter(([k]) => k in LINK_RE)) },
     }));
+    // Custom links were saved as link_1, link_2... and belong in the extra rows.
+    setExtraLinks(Object.entries(pr.social_links || {}).filter(([k, v]) => /^link_\d+$/.test(k) && v).map(([, v], i) => ({ id: i + 1, url: String(v) })));
     if (Array.isArray(pr.portfolio_items)) pfIdRef.current = pr.portfolio_items.length + 1;
   }, [user?.id, user?.profile]);
 

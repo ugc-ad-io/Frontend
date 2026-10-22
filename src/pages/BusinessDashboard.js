@@ -2450,6 +2450,10 @@ export default function BusinessDashboard({ page = 'overview' }) {
                         ))}
                       </div>
                     </div>
+                    {/* A tab with no rows used to leave a header-only table (desktop) or a blank gap (phone). */}
+                    {rows.length === 0 ? (
+                      <div className="empty-state-small">Nothing in “{TABS.find(([k]) => k === shipTab)[1]}” yet.</div>
+                    ) : (
                     <div className="ship-table-card">
                       <table className="ship-table">
                         <thead>
@@ -2485,6 +2489,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                         </tbody>
                       </table>
                     </div>
+                    )}
                   </>
                 );
               })()}
@@ -7864,6 +7869,14 @@ export default function BusinessDashboard({ page = 'overview' }) {
         .cmk-app .bd-topnav-title h1{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:32px;font-weight:800;letter-spacing:-.6px;color:#15163a}
         .cmk-app .bd-topnav-title p{color:#585c7e;font-size:15px;margin-top:6px}
         .cmk-app .dashboard-content{padding:0;width:auto;max-width:none}
+        /* Blank band on Sent Briefs (and doubled gaps on Creator Bids / Shipments): these
+           containers already space their children with a flex gap, but each child also kept
+           its own margin on top. Sent Briefs' actions row only holds the phone-only Filter,
+           so above 620px it was an EMPTY flex item that still cost margin 16 + 2 gaps of 24. */
+        @media (min-width: 621px) { .sent-briefs-actions-row { display: none !important; } }
+        .all-campaigns-section > .cf-filter-row,
+        .shipments-section > .ship-toolbar,
+        .cb-section > .cb-campaign-filter { margin-top: 0; margin-bottom: 0; }
 
         /* ── Phone / tablet QA pass (brand dashboard pages: wallet, bids, sent briefs, shipments) ── */
         .wallet-more{display:block;width:100%;margin-top:6px;padding:12px;min-height:44px;border:1px solid #e0e3f0;background:#fff;

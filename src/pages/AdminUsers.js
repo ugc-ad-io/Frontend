@@ -146,7 +146,7 @@ function UserBadges({ u }) {
       <span className="am-badge am-badge--neutral">{typeLabel(u)}</span>
       {isAdmin(u) && u.admin_role && <span className="am-badge am-badge--info">{ROLE_LABELS[normalizeRole(u.admin_role)] || 'Admin'}</span>}
       {isCreator(u) && <span className="am-badge am-badge--info">{levelLabelOf(u.level_key ?? u.level)}</span>}
-      {isCreator(u) && u.ugcad_approved && <span className="am-badge am-badge--ok amu-verified"><BadgeCheck size={14} /> UGCAD approved</span>}
+      {isCreator(u) && u.ugcad_approved && <span className="am-badge am-badge--ok amu-verified"><BadgeCheck size={14} /> UGCAD preferred</span>}
       {verify && (
         <span className={`am-badge am-badge--${verify[0]}${verify[0] === 'ok' ? ' amu-verified' : ''}`}>
           {verify[0] === 'ok' && <ShieldCheck size={14} />} {verify[1]}
@@ -341,13 +341,13 @@ export default function AdminUsers({
   };
 
   // One click from the table row: pick or un-pick a creator for the brand side
-  // "Meet Creators Approved by Our UGCAD Team" collection. Shows at once and undoes itself on failure.
+  // "Preferred Creators by the UGCAD Team" collection. Shows at once and undoes itself on failure.
   const toggleUgcadApproved = async (u) => {
     const next = !u.ugcad_approved;
     const setFlag = (value) => setAllUsers((prev) => prev.map((x) => (x.id === u.id ? { ...x, ugcad_approved: value } : x)));
     setFlag(next);
     const ok = await adminPost('/admin/user/ugcad-approved', { user_id: u.id, approved: next },
-      next ? 'Marked as UGCAD approved' : 'Removed from UGCAD approved');
+      next ? 'Marked as UGCAD preferred' : 'Removed from UGCAD preferred');
     if (!ok) setFlag(!next);
   };
 
@@ -474,7 +474,7 @@ export default function AdminUsers({
       caps.ban && { key: 'ban', Icon: Ban, label: isInactive(du) ? 'Unban' : 'Ban', danger: !isInactive(du), run: () => openBan(du) },
       isBrand(du) && caps.financialPolicy && { key: 'commission', Icon: Percent, label: 'Adjust commission', run: () => setAction({ type: 'commission', user: du }) },
       isBrand(du) && caps.wallet && { key: 'wallet', Icon: Wallet, label: 'Adjust wallet', run: () => setAction({ type: 'wallet', user: du }) },
-      isCreator(du) && caps.userMgmt && { key: 'ugcad', Icon: BadgeCheck, label: du.ugcad_approved ? 'Remove UGCAD approved' : 'Mark UGCAD approved', run: () => setAction({ type: du.ugcad_approved ? 'ugcadUnapprove' : 'ugcadApprove', user: du }) },
+      isCreator(du) && caps.userMgmt && { key: 'ugcad', Icon: BadgeCheck, label: du.ugcad_approved ? 'Remove UGCAD preferred' : 'Mark UGCAD preferred', run: () => setAction({ type: du.ugcad_approved ? 'ugcadUnapprove' : 'ugcadApprove', user: du }) },
       isCreator(du) && caps.userMgmt && { key: 'promote', Icon: ArrowUpCircle, label: 'Promote level', run: () => setAction({ type: 'promote', user: du }) },
       isCreator(du) && caps.userMgmt && { key: 'demote', Icon: ArrowDownCircle, label: 'Demote level', run: () => setAction({ type: 'demote', user: du }) },
       isCreator(du) && caps.userMgmt && { key: 'payout', Icon: CalendarClock, label: 'Payout schedule', run: () => setAction({ type: 'payout', user: du }) },
@@ -918,7 +918,7 @@ export default function AdminUsers({
                           </span>
                         )}
                         {isCreator(u) && u.ugcad_approved && (
-                          <span className="au-badge au-badge-ugcad" title="Shown in the UGCAD Approved collection">UGCAD approved</span>
+                          <span className="au-badge au-badge-ugcad" title="Shown in the UGCAD Preferred collection">UGCAD preferred</span>
                         )}
                         {isAdmin(u) && u.admin_role && (
                           <span className="au-badge au-badge-admin" title="Admin role">
@@ -935,7 +935,7 @@ export default function AdminUsers({
                               className={`au-btn au-btn-ugcad${u.ugcad_approved ? ' on' : ''}`}
                               onClick={() => toggleUgcadApproved(u)}
                               aria-pressed={!!u.ugcad_approved}
-                              title={u.ugcad_approved ? 'UGCAD approved: click to remove' : 'Mark UGCAD approved'}
+                              title={u.ugcad_approved ? 'UGCAD preferred: click to remove' : 'Mark UGCAD preferred'}
                             ><BadgeCheck size={14} /></button>
                           )}
                           <button className="au-btn au-btn-edit" onClick={() => handleEdit(u)}>Edit</button>
@@ -1420,7 +1420,7 @@ function ProfileDetail({ u, onClose, tab, setTab, revealBank, setRevealBank, dea
               {brand && caps.wallet && <button className="aud-action-btn" onClick={() => onAction('wallet')}><Wallet size={14} /> Adjust Wallet</button>}
               {isCreator(u) && caps.userMgmt && (
                 <button className="aud-action-btn" onClick={() => onAction(u.ugcad_approved ? 'ugcadUnapprove' : 'ugcadApprove')}>
-                  <BadgeCheck size={14} /> {u.ugcad_approved ? 'Remove UGCAD Approved' : 'Mark UGCAD Approved'}
+                  <BadgeCheck size={14} /> {u.ugcad_approved ? 'Remove UGCAD Preferred' : 'Mark UGCAD Preferred'}
                 </button>
               )}
               {isCreator(u) && caps.userMgmt && <button className="aud-action-btn" onClick={() => onAction('promote')}><ArrowUpCircle size={14} /> Promote</button>}
@@ -1684,8 +1684,8 @@ const ACTION_META = {
   payout: { title: 'Adjust Payout Schedule', kind: 'payout', btn: 'Save', icon: CalendarClock },
   promote: { title: 'Promote Level', kind: 'confirm', btn: 'Promote', icon: ArrowUpCircle, msg: 'Promote this creator one level? (New → Verified → L1 → L2 → Elite. Shown on their public profile.)' },
   demote: { title: 'Demote Level', kind: 'confirm', btn: 'Demote', icon: ArrowDownCircle, msg: 'Demote this creator one level?' },
-  ugcadApprove: { title: 'Mark UGCAD Approved', kind: 'confirm', btn: 'Mark approved', icon: BadgeCheck, msg: 'Add this creator to "Meet Creators Approved by Our UGCAD Team"? Brands will see them in that collection on Browse Creators.' },
-  ugcadUnapprove: { title: 'Remove UGCAD Approved', kind: 'confirm', btn: 'Remove', icon: BadgeCheck, msg: 'Remove this creator from the UGCAD Approved collection that brands see?' },
+  ugcadApprove: { title: 'Mark UGCAD Preferred', kind: 'confirm', btn: 'Mark preferred', icon: BadgeCheck, msg: 'Add this creator to "Preferred Creators by the UGCAD Team"? Brands will see them in that collection on Browse Creators.' },
+  ugcadUnapprove: { title: 'Remove UGCAD Preferred', kind: 'confirm', btn: 'Remove', icon: BadgeCheck, msg: 'Remove this creator from the UGCAD Preferred collection that brands see?' },
   announce: { title: 'Send Announcement', label: 'Announcement', kind: 'text', btn: 'Send to selected', icon: Send },
   delete: { title: 'Delete User', kind: 'confirm', btn: 'Delete Permanently', icon: Trash2, msg: 'This permanently deletes the user and all their data. This cannot be undone.' },
   unsuspend: { title: 'Lift Suspension', kind: 'confirm', btn: 'Unsuspend', icon: ShieldCheck, msg: 'Lift this user’s suspension and restore their account access?' },
@@ -1862,7 +1862,7 @@ function ActionModal({ action, onClose, onDone, adminPost, phone }) {
       case 'ugcadApprove':
       case 'ugcadUnapprove':
         ok = await adminPost('/admin/user/ugcad-approved', { user_id: u.id, approved: action.type === 'ugcadApprove' },
-          action.type === 'ugcadApprove' ? 'Marked as UGCAD approved' : 'Removed from UGCAD approved');
+          action.type === 'ugcadApprove' ? 'Marked as UGCAD preferred' : 'Removed from UGCAD preferred');
         break;
       case 'promote':
       case 'demote':

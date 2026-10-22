@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
+import LegalSections from '../components/LegalSections';
+import { LEGAL_CONTENT } from '../data/legalContent';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import CreatorProfileModal from '../components/CreatorProfileModal';
@@ -224,42 +226,7 @@ const CREATOR_PRIVACY_ROWS = [
 
 
 // Legal / policy documents - shown in-app in a modal card when opened.
-export const LEGAL_DOCS = [
-  {
-    id: 'privacy', name: 'Privacy Policy', desc: 'How we collect, use and protect your data', icon: Shield, updated: 'July 2026',
-    sections: [
-      { h: 'Information we collect', p: 'We collect the details you provide when you create an account and build your profile - name, contact details, payment information, portfolio content and the campaigns you take part in. We also collect basic usage data such as device, browser and pages visited.' },
-      { h: 'How we use your information', p: 'Your information is used to match you with relevant brand campaigns, process payments and payouts, personalise your dashboard, keep the platform secure, and send important updates about your account and deals.' },
-      { h: 'Sharing your information', p: 'We share only what is needed to complete a deal - for example, your profile and submitted content with the brand you are working with. We never sell your personal data. Trusted service providers (payments, hosting, analytics) process data on our behalf under strict agreements.' },
-      { h: 'Data security', p: 'We use encryption, access controls and secure infrastructure to protect your data. Payments are handled by PCI-compliant partners and funds are held in escrow until work is approved.' },
-      { h: 'Your rights', p: 'You can access, update or delete your information at any time from Settings. You may deactivate or permanently delete your account, and request a copy of your data by contacting us.' },
-      { h: 'Contact', p: 'Questions about your privacy? Email us at privacy@ugcad.io.' },
-    ],
-  },
-  {
-    id: 'terms', name: 'Terms and Conditions', desc: 'The rules for using the UGCad.io platform', icon: ScrollText, updated: 'July 2026',
-    sections: [
-      { h: 'Acceptance of terms', p: 'By creating an account or using UGCad.io you agree to these Terms. If you do not agree, please do not use the platform.' },
-      { h: 'Eligibility', p: 'You must be at least 18 years old (or the age of majority in your region) and able to enter into a binding contract to use UGCad.io.' },
-      { h: 'Your account', p: 'You are responsible for the accuracy of your profile, keeping your login secure, and all activity under your account. You may not operate multiple accounts to abuse the platform.' },
-      { h: 'Payments and escrow', p: 'Brand payments are held in escrow and released to creators once work is approved or auto-approved per the deal timeline. Platform commission and applicable taxes (such as TDS) are deducted as shown at checkout.' },
-      { h: 'Content and licensing', p: 'You retain ownership of the content you create. By delivering approved content you grant the brand the usage rights agreed in the brief. You confirm your content is original and does not infringe third-party rights.' },
-      { h: 'Prohibited conduct', p: 'No fraud, fake engagement, harassment, off-platform payment circumvention, or uploading unlawful or infringing material. Violations may lead to suspension or removal.' },
-      { h: 'Termination', p: 'You may close your account anytime. We may suspend or terminate accounts that breach these Terms, with pending payouts settled per policy.' },
-      { h: 'Limitation of liability', p: 'The platform is provided on an as-available basis. To the extent permitted by law, we are not liable for indirect or consequential losses arising from use of the platform.' },
-    ],
-  },
-  {
-    id: 'guidelines', name: 'Community Guidelines', desc: 'Standards for creators and brands', icon: BookOpen, updated: 'July 2026',
-    sections: [
-      { h: 'Be authentic', p: 'Represent yourself honestly. Use real profile details and only showcase work you actually created.' },
-      { h: 'Deliver quality, on time', p: 'Follow the brief, meet deadlines, and communicate early if something changes. Great delivery builds your level and reputation.' },
-      { h: 'Respect everyone', p: 'Keep messages professional. Harassment, hate speech, or discrimination of any kind is not tolerated.' },
-      { h: 'No spam or fraud', p: 'No fake reviews, bots, inflated metrics, or attempts to move deals and payments off-platform.' },
-      { h: 'Keep it safe and legal', p: 'Do not post content that is unlawful, infringing, sexually explicit, or harmful. Follow all applicable advertising and disclosure rules.' },
-      { h: 'Reporting', p: 'See something that breaks these guidelines? Report it in-app or email trust@ugcad.io. We review every report.' },
-    ],
-  },
+const COOKIE_AND_OTHER_DOCS = [
   {
     id: 'cookies', name: 'Cookie Policy', desc: 'How cookies and tracking are used', icon: Cookie, updated: 'July 2026',
     sections: [
@@ -270,6 +237,16 @@ export const LEGAL_DOCS = [
       { h: 'Managing cookies', p: 'You can control or delete cookies through your browser settings. Blocking essential cookies may affect how UGCad.io works.' },
     ],
   },
+];
+
+// The full documents come from the owner's legal Google Doc (src/data/legalContent.js). The cookie
+// policy was not part of that doc, so it keeps its own short copy.
+export const LEGAL_DOCS = [
+  { ...LEGAL_CONTENT.privacy, icon: Shield, full: true },
+  { ...LEGAL_CONTENT.terms, icon: ScrollText, full: true },
+  { ...LEGAL_CONTENT.agreement, icon: FileText, full: true },
+  { ...LEGAL_CONTENT.guidelines, icon: BookOpen, full: true },
+  ...COOKIE_AND_OTHER_DOCS,
 ];
 
 const defaultBrandProfile = {
@@ -1263,7 +1240,8 @@ export default function ProfileSettings() {
           </div>
           {renderAccountStanding()}
           <div className="bs-toggle-list">
-            {CREATOR_PRIVACY_ROWS.map(([key, title, desc, Icon]) => (
+            {/* Earnings are a creator thing; a brand has nothing to show. */}
+            {CREATOR_PRIVACY_ROWS.filter(([key]) => key !== 'show_earnings').map(([key, title, desc, Icon]) => (
               <div className="bs-toggle-row" key={key}>
                 <span><Icon size={20} /></span>
                 <div><strong>{title}</strong><p>{desc}</p></div>
@@ -1421,13 +1399,8 @@ export default function ProfileSettings() {
                 <button type="button" className="ps-legal-modal-x" onClick={() => setLegalDoc(null)} aria-label="Close">✕</button>
               </div>
               <div className="ps-legal-modal-body">
-                {legalDoc.sections.map((sec, i) => (
-                  <div className="ps-legal-modal-sec" key={i}>
-                    <h4>{sec.h}</h4>
-                    <p>{sec.p}</p>
-                  </div>
-                ))}
-                <p className="ps-legal-modal-foot">This summary is provided for your convenience and may be updated from time to time.</p>
+                <LegalSections doc={legalDoc} wrapProps={{ className: 'ps-legal-modal-sec' }} />
+                {!legalDoc.full && <p className="ps-legal-modal-foot">This summary is provided for your convenience and may be updated from time to time.</p>}
               </div>
             </div>
             <style>{`
@@ -2049,13 +2022,8 @@ export default function ProfileSettings() {
               <button type="button" className="ps-legal-modal-x" onClick={() => setLegalDoc(null)} aria-label="Close">✕</button>
             </div>
             <div className="ps-legal-modal-body">
-              {legalDoc.sections.map((sec, i) => (
-                <div className="ps-legal-modal-sec" key={i}>
-                  <h4>{sec.h}</h4>
-                  <p>{sec.p}</p>
-                </div>
-              ))}
-              <p className="ps-legal-modal-foot">This summary is provided for your convenience and may be updated from time to time.</p>
+              <LegalSections doc={legalDoc} wrapProps={{ className: 'ps-legal-modal-sec' }} />
+              {!legalDoc.full && <p className="ps-legal-modal-foot">This summary is provided for your convenience and may be updated from time to time.</p>}
             </div>
           </div>
           <style>{`

@@ -14,7 +14,7 @@ jest.mock('../App', () => ({ useAuth: () => ({}) }));
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 // The routes /terms, /community-guidelines, /cookie-policy, /privacy-policy in App.js use these ids.
-test.each(['privacy', 'terms', 'guidelines', 'cookies'])('legal page renders the %s text and a link home', async (id) => {
+test.each(['privacy', 'terms', 'agreement', 'guidelines', 'cookies'])('legal page renders the %s text and a link home', async (id) => {
   const doc = LEGAL_DOCS.find((d) => d.id === id);
   const host = document.createElement('div'); document.body.appendChild(host); const root = createRoot(host);
   try {

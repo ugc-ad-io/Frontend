@@ -9,3 +9,15 @@ export function budgetLabel(min, max) {
   if (!lo || !hi || lo === hi) return inr(lo || hi);
   return `${inr(lo)} - ${inr(hi)}`;
 }
+
+// A saved draft often carries only the per-video figure, so the header total falls back to
+// per-video x deliverables x creators instead of Rs. 0 (same rule as the app). 0 = not set yet.
+export function draftTotalBudget(c) {
+  const total = Number(c?.budget || c?.total_budget) || 0;
+  if (total > 0) return total;
+  const perVideo = Number(c?.per_video_budget || c?.budget_max) || 0;
+  const items = Array.isArray(c?.deliverable_items) ? c.deliverable_items : [];
+  const quantity = items.reduce((sum, d) => sum + Math.max(1, Number(d?.quantity) || 1), 0);
+  const creators = Math.max(1, Number(c?.creators_wanted) || 1);
+  return perVideo * Math.max(1, quantity) * creators;
+}

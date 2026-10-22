@@ -727,8 +727,8 @@ export default function BrandCreators() {
             <ArrowLeft size={16} aria-hidden="true" /> Back to All Creators
           </Link>
           <div className="cmk-page-head">
-            <h1>Creators Approved by Our UGCAD Team</h1>
-            <p>Every creator here has been reviewed and approved by the UGCAD team.</p>
+            <h1>Preferred Creators by the UGCAD Team</h1>
+            <p>Our team's top picks. Every UGCAD creator is approved; these are the ones we recommend first.</p>
           </div>
         </div>
       ) : (
@@ -765,7 +765,7 @@ export default function BrandCreators() {
         {/* Plain text link on the subtitle line, above the category row. */}
         <Link className="bc-approved-link" to={{ search: collectionSearch(true) }}>
           <BadgeCheck size={17} className="bc-approved-link__check" aria-hidden="true" />
-          <span>Meet Creators Approved by Our UGCAD Team</span>
+          <span>Meet Our Preferred Creators</span>
           <ArrowRight size={16} className="bc-approved-link__arrow" aria-hidden="true" />
         </Link>
 
@@ -801,8 +801,8 @@ export default function BrandCreators() {
         />
       ) : filtered.length === 0 && approvedMode ? (
         <EmptyState
-          title="No approved creators to show"
-          message={q ? 'None of the UGCAD approved creators match your search.' : 'The UGCAD team has not approved any creators for this collection yet. Check back soon.'}
+          title="No preferred creators to show"
+          message={q ? 'None of the preferred creators match your search.' : 'The UGCAD team has not picked any preferred creators yet. Check back soon.'}
           action={{ label: 'Back to All Creators', onClick: () => navigate({ search: collectionSearch(false) }) }}
         />
       ) : filtered.length === 0 ? (

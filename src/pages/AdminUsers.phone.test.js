@@ -49,7 +49,7 @@ test('phone user cards show identity, masked email, badges and wallet', async ()
   expect(card.textContent).toContain('ar•••@gmail.com');
   expect(card.textContent).not.toContain('arushi@gmail.com');
   expect(card.textContent).toContain('Creator');
-  expect(card.textContent).toContain('UGCAD approved');
+  expect(card.textContent).toContain('UGCAD preferred');
   expect(card.querySelector('.amu-verified')).not.toBeNull();
   expect(card.textContent).toContain('Active');
   expect(card.textContent).toContain('₹1,500.00');

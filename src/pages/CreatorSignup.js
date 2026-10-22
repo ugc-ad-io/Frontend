@@ -209,6 +209,7 @@ export default function CreatorSignup() {
           --cs-purple: #07074e;
           --cs-purple-deep: #4f63e6;
           min-height: 100vh;
+          min-height: 100dvh;
           display: flex;
           align-items: center;
           justify-content: center;

@@ -213,7 +213,7 @@ axios.interceptors.response.use(
 );
 
 // Pages anyone can open without a session; they never wait on, or are replaced by, the auth check.
-const PUBLIC_PATHS = ['/', '/auth', '/creator', '/creator/signup', '/team/accept', '/privacy-policy', '/terms', '/community-guidelines', '/cookie-policy'];
+const PUBLIC_PATHS = ['/', '/auth', '/creator', '/creator/signup', '/team/accept', '/privacy-policy', '/terms', '/community-guidelines', '/cookie-policy', '/creator-brand-agreement'];
 
 // Where each role lands after sign-in (mirrors routeForUser in pages/Auth.js).
 export function homeForUser(user) {
@@ -551,6 +551,7 @@ function App() {
             <Route path="/terms" element={<LegalPage docId="terms" />} />
             <Route path="/community-guidelines" element={<LegalPage docId="guidelines" />} />
             <Route path="/cookie-policy" element={<LegalPage docId="cookies" />} />
+            <Route path="/creator-brand-agreement" element={<LegalPage docId="agreement" />} />
             <Route
               path="/profile-setup/creator"
               element={

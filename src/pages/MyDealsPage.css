@@ -1,6 +1,8 @@
 .deal-page {
   min-height: 100%;
-  padding: 24px 28px 40px;
+  /* No padding of its own: the loading skeleton and the empty/error states render inside
+     CreatorTopNavLayout, whose .cmk-page already pads every side (60px bottom, 96px on phones). */
+  padding: 0;
   background: #fdfdfe;
 }
 
@@ -1765,7 +1767,7 @@
 
 @media (max-width: 760px) {
   .deal-page {
-    padding: 16px 16px 92px;
+    padding: 0;
   }
 
   .deal-mobile-tabs {

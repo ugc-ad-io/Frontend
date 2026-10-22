@@ -41,9 +41,23 @@ export async function downloadDeliverable(api, workId, name, asset) {
     window.setTimeout(() => window.URL.revokeObjectURL(a.href), 10000);
     return;
   } else {
-    // Unknown host that will not force a download: open it rather than fail silently.
-    a.href = href;
-    a.target = '_blank';
+    // Unknown host that will not force a download. Save it in-page as a blob when the
+    // host allows it (no credentials, so no Origin: null / CORS trouble with our API
+    // token); only if that is blocked open it in a tab rather than fail silently.
+    try {
+      const res = await fetch(href);
+      if (!res.ok) throw new Error(String(res.status));
+      a.href = window.URL.createObjectURL(await res.blob());
+      a.download = data.filename || '';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.setTimeout(() => window.URL.revokeObjectURL(a.href), 10000);
+      return;
+    } catch {
+      a.href = href;
+      a.target = '_blank';
+    }
   }
   document.body.appendChild(a);
   a.click();

@@ -1,4 +1,5 @@
 import { useLiveEffect } from '../lib/liveUpdates';
+import { showcaseVideos, HERO_POSTERS } from '../data/landingShowcase';
 ﻿import { useState, useEffect, useLayoutEffect, useRef, lazy, Suspense, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth, useTheme } from '../App';
@@ -1290,65 +1291,6 @@ const achieveItems = [
     title: 'Payments Held Safe in Escrow',
     desc: 'Your money is locked in escrow the moment you hire, and only released when you approve the final video. The creator knows they’ll be paid. You know you’ll get what you approved.',
   },
-];
-
-// Hero gallery poster stills — every /public/home/*.jpg exists (unlike the /ma clips,
-// which have no sibling still), so no card ever shows a broken image.
-const HERO_POSTERS = [
-  '03', '04', '05', '06', '07', '10', '13', '15',
-  '16', '19', '21', '22', '23', '24', '25', '26',
-].map((n) => ({ poster: `/home/video_${n}.jpg`, video: `/home/video_${n}.mp4` }));
-
-// Sixteen showcase video slots — local UGC clips from /public/home.
-const showcaseVideos = [
-  { id: 1, industryId: 'apps',    label: 'Apps/Software',    isVideo: true,
-    src: '/ma/video_03.mp4',
-    brand: 'Color By Number', creator: 'Abigail', logoBg: 'linear-gradient(135deg, #3A3A66, #fb923c)', logoText: 'CN', tier: 'RISING', rating: 4.8, avatar: '/avatars/a01.jpg', poster: '/posters/p01.jpg' },
-  { id: 2, industryId: 'apps',    label: 'Apps/Software',    isVideo: true,
-    src: '/ma/video_04.mp4',
-    brand: 'Gener8',          creator: 'Chelsea', logoBg: 'linear-gradient(135deg, #1F1F4E, #07074e)', logoText: '8', tier: 'PRO', rating: 4.9, avatar: '/avatars/a02.jpg', poster: '/posters/p02.jpg' },
-  { id: 3, industryId: 'family',  label: 'Family/Kids',      isVideo: true,
-    src: '/ma/video_05.mp4',
-    brand: 'Gatorade',        creator: 'Becki',   logoBg: 'linear-gradient(135deg, #fb923c, #f59e0b)', logoText: 'G', tier: 'ELITE', rating: 5.0, avatar: '/avatars/a03.jpg', poster: '/posters/p03.jpg' },
-  { id: 4, industryId: 'beauty',  label: 'Beauty/Cosmetics', isVideo: true,
-    src: '/home/video_06.mp4',
-    brand: 'Glowly',          creator: 'Maya',    logoBg: 'linear-gradient(135deg, #fb7185, #f43f5e)', logoText: 'Gl', tier: 'PRO', rating: 4.7, avatar: '/avatars/a04.jpg', poster: '/posters/p04.jpg' },
-  { id: 5, industryId: 'beauty',  label: 'Beauty/Cosmetics', isVideo: true,
-    src: '/home/video_07.mp4',
-    brand: 'Thix Hair',       creator: 'Lara',    logoBg: 'linear-gradient(135deg, #34d399, #14b8a6)', logoText: 'T', tier: 'ELITE', rating: 4.9, avatar: '/avatars/a05.jpg', poster: '/posters/p05.jpg' },
-  { id: 6, industryId: 'beauty',  label: 'Beauty/Cosmetics', isVideo: true,
-    src: '/home/video_10.mp4',
-    brand: 'AirShine',        creator: 'Priya',   logoBg: 'linear-gradient(135deg, #1F1F4E, #1F1F4E)', logoText: 'A', tier: 'RISING', rating: 4.8, avatar: '/avatars/a06.jpg', poster: '/posters/p06.jpg' },
-  { id: 7, industryId: 'pets',    label: 'Pets',             isVideo: true,
-    src: '/home/video_13.mp4',
-    brand: 'Pawfect',         creator: 'Riya',    logoBg: 'linear-gradient(135deg, #1F1F4E, #a855f7)', logoText: 'Pf', tier: 'ELITE', rating: 4.9, avatar: '/avatars/a07.jpg', poster: '/posters/p07.jpg' },
-  { id: 8, industryId: 'food',    label: 'Food/Beverage',    isVideo: true,
-    src: '/home/video_15.mp4',
-    brand: 'BrewHaus',        creator: 'Sofia',   logoBg: 'linear-gradient(135deg, #78350f, #f59e0b)', logoText: 'BH', tier: 'PRO', rating: 4.8, avatar: '/avatars/a08.jpg', poster: '/posters/p08.jpg' },
-  { id: 9, industryId: 'fitness', label: 'Fitness/Supplements', isVideo: true,
-    src: '/home/video_16.mp4',
-    brand: 'FitFuel',         creator: 'Noah',    logoBg: 'linear-gradient(135deg, #14532d, #22c55e)', logoText: 'FF', tier: 'RISING', rating: 4.7, avatar: '/avatars/a09.jpg', poster: '/posters/p09.jpg' },
-  { id: 10, industryId: 'health', label: 'Health/Wellness',  isVideo: true,
-    src: '/home/video_19.mp4',
-    brand: 'VitaGlow',        creator: 'Emma',    logoBg: 'linear-gradient(135deg, #0e7490, #06b6d4)', logoText: 'VG', tier: 'ELITE', rating: 5.0, avatar: '/avatars/a10.jpg', poster: '/posters/p10.jpg' },
-  { id: 11, industryId: 'travel', label: 'Travel',           isVideo: true,
-    src: '/home/video_21.mp4',
-    brand: 'NomadPack',       creator: 'Liam',    logoBg: 'linear-gradient(135deg, #1e3a8a, #3b82f6)', logoText: 'NP', tier: 'PRO', rating: 4.8, avatar: '/avatars/a11.jpg', poster: '/posters/p11.jpg' },
-  { id: 12, industryId: 'finance', label: 'Finance/Insurance', isVideo: true,
-    src: '/home/video_22.mp4',
-    brand: 'CoinKeep',        creator: 'Ava',     logoBg: 'linear-gradient(135deg, #3A3A66, #fbbf24)', logoText: 'CK', tier: 'RISING', rating: 4.7, avatar: '/avatars/a12.jpg', poster: '/posters/p12.jpg' },
-  { id: 13, industryId: 'home',   label: 'Home/Household',   isVideo: true,
-    src: '/home/video_23.mp4',
-    brand: 'NestHome',        creator: 'Olivia',  logoBg: 'linear-gradient(135deg, #7c2d12, #fb7185)', logoText: 'NH', tier: 'PRO', rating: 4.9, avatar: '/avatars/a13.jpg', poster: '/posters/p13.jpg' },
-  { id: 14, industryId: 'gaming', label: 'Gaming',           isVideo: true,
-    src: '/home/video_24.mp4',
-    brand: 'PlayVerse',       creator: 'Ethan',   logoBg: 'linear-gradient(135deg, #4c1d95, #8b5cf6)', logoText: 'PV', tier: 'ELITE', rating: 4.8, avatar: '/avatars/a14.jpg', poster: '/posters/p14.jpg' },
-  { id: 15, industryId: 'charity', label: 'Charity',         isVideo: true,
-    src: '/home/video_25.mp4',
-    brand: 'CareCircle',      creator: 'Mia',     logoBg: 'linear-gradient(135deg, #831843, #ec4899)', logoText: 'CC', tier: 'RISING', rating: 4.9, avatar: '/avatars/a15.jpg', poster: '/posters/p15.jpg' },
-  { id: 16, industryId: 'services', label: 'Consumer Services', isVideo: true,
-    src: '/home/video_26.mp4',
-    brand: 'SwiftServe',      creator: 'Lucas',   logoBg: 'linear-gradient(135deg, #1F1F4E, #0ea5e9)', logoText: 'SS', tier: 'PRO', rating: 4.7, avatar: '/avatars/a16.jpg', poster: '/posters/p16.jpg' },
 ];
 
 // Curated pick for the "Our Services" promise cards (PromiseCard) — plain showcaseVideos[i]
@@ -3774,6 +3716,7 @@ export default function Landing() {
                   <li><a href="/terms" onClick={(e) => { e.preventDefault(); navigate('/terms'); }}>Terms</a></li>
                   <li><a href="/privacy-policy" onClick={(e) => { e.preventDefault(); navigate('/privacy-policy'); }}>Privacy</a></li>
                   <li><a href="/community-guidelines" onClick={(e) => { e.preventDefault(); navigate('/community-guidelines'); }}>Community Guidelines</a></li>
+                  <li><a href="/creator-brand-agreement" onClick={(e) => { e.preventDefault(); navigate('/creator-brand-agreement'); }}>Creator &amp; Brand Agreement</a></li>
                   <li><a href="/cookie-policy" onClick={(e) => { e.preventDefault(); navigate('/cookie-policy'); }}>Cookies</a></li>
                 </ul>
               </div>

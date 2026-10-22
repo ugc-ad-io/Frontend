@@ -28,7 +28,7 @@ export const slotsLeft = (campaign) =>
  * It stays open while there are slots left — not just until the first hire.
  */
 export const isOpenForBids = (campaign) =>
-  campaign?.status === 'active' && slotsLeft(campaign) > 0;
+  campaign?.status === 'active' && slotsLeft(campaign) > 0 && campaign?.visibility !== 'private';
 
 /**
  * The creator (not UGC.ad's editors) cuts the edited file, so their bid is quoted

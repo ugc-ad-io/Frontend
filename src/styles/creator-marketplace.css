@@ -1795,7 +1795,8 @@
 .cmk-rev-top{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:22px;align-items:stretch;margin-top:24px}
 .cmk-rev-stats-2x2{grid-template-columns:repeat(2,1fr);gap:14px;margin-top:0;align-content:start}
 .cmk-rev-top-breakdown{margin-top:0}
-.cmk-rev-recent{margin-top:22px;margin-bottom:48px;background:transparent;border:none;box-shadow:none;padding:0}
+/* no margin-bottom: .cmk-page already pads the bottom (60px / 96px on phones), the extra 48px stacked a ~110-140px dead band under the last review. */
+.cmk-rev-recent{margin-top:22px;margin-bottom:0;background:transparent;border:none;box-shadow:none;padding:0}
 .cmk-rev-recent .cmk-rev-phead{margin-bottom:16px}
 @media (max-width:1000px){.cmk-rev-top{grid-template-columns:1fr}}
 /* 620, not 540: in the 541-620px band each card is ~255px of usable width and has to
@@ -1837,6 +1838,11 @@
   font-weight:700;font-size:14.5px;color:#fff;padding:13px 24px;border-radius:14px;
   background:linear-gradient(100deg,#5b6bff,#4452f0);box-shadow:0 14px 30px -12px rgba(68,82,240,.7);transition:.18s}
 .cmk-emptystate-btn:hover{transform:translateY(-2px)}
+/* Messages is a full-bleed pane up to 768px (MessagesPage.css). HoverSideRail sets `.cmk-app.has-rail .cmk-page{padding-left/right:12px}` (0,3,0), which beat `.cmk-page--flush{padding:0}` and `.cmk-page--flush.cmk-wrap` (0,2,0), leaving a 12px blank strip each side of the chat. 0,4,0 wins. */
+@media (max-width:768px){.cmk-app.has-rail .cmk-page.cmk-page--flush{padding-left:0;padding-right:0}}
+/* Straight under a tab/filter row (which already has 22px margin-bottom): drop the extra 16px margin and shorten the top padding so the box is not ~100px below the underline. */
+.cmk-tabs-row + .cmk-emptystate,.cmk-filter-row + .cmk-emptystate{margin-top:0;padding-top:36px}
+@media (max-width:640px){.cmk-emptystate{padding:36px 16px 28px}.cmk-emptystate-ic{margin-bottom:14px}}
 
 /* ── Brand pages: phone-width fixes ──────────────────────────────────────────
    Audited each brand tab: Creators (.bc-grid), Campaigns (.bcam-grid), Work
@@ -2009,7 +2015,10 @@
 .cat-rail{position:relative;display:flex;gap:6px;min-width:0;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
 .cat-rail::-webkit-scrollbar{display:none}
 .cat-rail > *{flex:none;scroll-snap-align:start;margin:0!important}
-.cat-rail-card{flex:0 1 auto;margin-left:auto;max-width:96px}
+/* Card: the chips sit on their OWN line under the name. Beside the name they took 96px of
+   a ~150px row and squeezed the creator's name down to its first letter ("D..."). */
+.bc-name-top{flex-wrap:wrap}
+.cat-rail-card{flex:1 1 100%;margin-left:0;max-width:100%}
 .cat-rail-quick{margin-top:4px;max-width:100%}
 
 /* Prominent entry to the team-approved creator collection. */

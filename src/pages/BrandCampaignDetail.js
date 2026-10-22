@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { downloadDeliverable } from '../utils/downloadDeliverable';
 import {
   ArrowLeft, ChevronRight, Check, FileText, Send, MessageSquare, User, CheckCircle, Download,
-  Play, Clock, Calendar, FileVideo, CheckCircle2, Hourglass, RefreshCw, MoreHorizontal, Copy, Truck, Star,
+  Play, Clock, Calendar, FileVideo, CheckCircle2, Hourglass, RefreshCw, MoreHorizontal, Copy, Truck, Star, Pencil,
 } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import { Skeleton } from '../components/Skeleton';
@@ -26,7 +26,7 @@ import BookingCard from '../components/BookingCard';
 import '../styles/creator-marketplace.css';
 import '../styles/brand-mobile.css';
 import EmptyState from '../components/EmptyState';
-import { budgetLabel } from '../utils/budgetLabel';
+import { budgetLabel, draftTotalBudget } from '../utils/budgetLabel';
 import { selectedCreators, creatorsWanted, slotsLeft, bidSplitLabel } from '../utils/campaignCreators';
 import { creatorFirstName } from '../utils/displayName';
 import { hireUnfunded, showUnfundedHire, escrowHeldText } from '../utils/hireFunding';
@@ -633,6 +633,10 @@ export default function BrandCampaignDetail() {
     }
   };
 
+  // A draft has not been sent to anyone: no progress timeline, and it is finished in the brief wizard.
+  const isDraft = campaign.status === 'draft';
+  const draftTotal = draftTotalBudget(campaign);
+  const editDraft = () => navigate(`/dashboard/business/post-brief?draft=${encodeURIComponent(id)}`);
   const handle = creator ? creatorFirstName(creator) : null;
   const cp = creator?.profile || {};
   const ship = deal?.shipment || {};
@@ -740,13 +744,14 @@ export default function BrandCampaignDetail() {
           <div className="bcd-title-wrap">
             <span className={`bcd-badge ${statusBadge(campaign.status).cls}`}>{statusBadge(campaign.status).label}</span>
             <h1>{campaign.title}</h1>
-            <span className="bcd-sub">Campaign ID: CMP-{String(campaign.id || campaign._id || '').slice(-6).toUpperCase()} · Launched on {fmtDate(campaign.createdAt || campaign.created_at)}</span>
+            <span className="bcd-sub">Campaign ID: CMP-{String(campaign.id || campaign._id || '').slice(-6).toUpperCase()} · {isDraft ? 'Created' : 'Launched'} on {fmtDate(campaign.createdAt || campaign.created_at)}</span>
           </div>
           <div className="bcd-budget">
             <label>Budget</label>
-            <strong>{budgetLabel(campaign.budget_min, campaign.budget_max)}</strong>
+            <strong>{isDraft ? (draftTotal ? inr(draftTotal) : 'Not set yet') : budgetLabel(campaign.budget_min, campaign.budget_max)}</strong>
           </div>
           <div className="bcd-actions">
+            {isDraft && <button type="button" className="cmk-btn-primary-sm" onClick={editDraft} data-testid="edit-draft-btn"><Pencil size={16} /> Edit Draft</button>}
             <button className="cmk-btn-ghost-sm" onClick={duplicateBrief}><Copy size={16} /> Duplicate</button>
             <button className="cmk-btn-ghost-sm bcd-action-details" onClick={() => setDetailsOpen(true)}>View Details</button>
           </div>
@@ -952,7 +957,14 @@ export default function BrandCampaignDetail() {
         <>
         <div className="bcd-row-main">
         <div className="bcd-col-left">
-        {/* Campaign Progress — horizontal; shipment folded in */}
+        {/* A draft was never sent, so no "Brief Sent" progress - just the way to finish it. */}
+        {isDraft ? (
+          <div className="bcd-card bcd-draft-card">
+            <h3>This campaign is a draft</h3>
+            <p>Edit it to finish the brief, then publish it from the editor to send it to our team for review and on to creators.</p>
+            <button type="button" className="cmk-btn-primary-sm" onClick={editDraft}><Pencil size={16} /> Edit Draft</button>
+          </div>
+        ) : (
         <div className="bcd-card bcd-progress-card">
           <div className="bcd-progress-head">
             <h3>Campaign Progress{creators.length > 1 && handle ? ` - ${handle.replace(/^@/, '')}` : ''}</h3>
@@ -1048,6 +1060,7 @@ export default function BrandCampaignDetail() {
             </div>
           )}
         </div>
+        )}
         <div className="bcd-card bcd-deliver-card">
           <h3>Deliverables</h3>
           {(deliverList.length ? deliverList : ['1 UGC video as described in the brief']).map((d, i) => (
@@ -1375,6 +1388,8 @@ export default function BrandCampaignDetail() {
         }
         /* horizontal campaign progress */
         .bcd-progress-card{margin-bottom:0}
+        .bcd-draft-card h3{margin-bottom:6px}
+        .bcd-draft-card p{margin:0 0 14px;color:#585c7e;font-size:14px;line-height:1.5}
         .bcd-progress-head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:4px}
         .bcd-progress-head h3{margin:0}
         .bcd-progress-ship{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -1514,7 +1529,7 @@ export default function BrandCampaignDetail() {
           .bcd-title-wrap{flex:1 1 100%;min-width:0}
           .bcd-title-wrap h1{font-size:22px;word-break:break-word}
           .bcd-budget{min-width:0;flex:1 1 auto;max-width:calc(100% - 140px)}
-          .bcd-actions{flex:none;margin-left:auto;gap:8px}
+          .bcd-actions{flex:none;margin-left:auto;gap:8px;flex-wrap:wrap;justify-content:flex-end;max-width:100%}
           .bcd-actions button{flex:none;justify-content:center;min-width:120px}
           /* Spread the three tabs evenly across the row on mobile. */
           .bcd-tabs{gap:18px;overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap;justify-content:flex-start;scrollbar-width:none}

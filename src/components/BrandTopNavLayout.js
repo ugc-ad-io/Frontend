@@ -99,6 +99,7 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
   const photo = user?.profile_photo || user?.brand_logo;
   const isActive = (to) => (to === '/dashboard/business' ? pathname === to : pathname === to || pathname.startsWith(`${to}/`));
   const handleLogout = () => { logout(); };
+  const isMessages = pathname === '/messages' || pathname.startsWith('/messages/');
 
   // Approval gate — a brand whose profile is still pending review (or was
   // rejected) must not reach ANY feature page. BusinessDashboard already gates
@@ -261,12 +262,15 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
         )}
       </header>
 
-      <main className="cmk-wrap cmk-page">
+      {/* Messages is a full-height app pane: the normal page padding (18px top + ~96px bottom on a
+          phone) added ~114px of blank scroll under it and pushed the composer off screen. Same
+          flush rule CreatorTopNavLayout already applies. */}
+      <main className={`cmk-wrap cmk-page${isMessages ? ' cmk-page--flush' : ''}`}>
         {children}
       </main>
 
       {/* Floating Message button — hidden on the Messages page itself (redundant there). */}
-      {!(pathname === '/messages' || pathname.startsWith('/messages/')) && (
+      {!isMessages && (
         <>
           {/* Hidden while the popup is open so the FAB doesn't peek out behind it. */}
           {!msgOpen && (

@@ -728,7 +728,6 @@ export default function BrandCreators() {
           </Link>
           <div className="cmk-page-head">
             <h1>Preferred Creators by the UGCAD Team</h1>
-            <p>Our team's top picks. Every UGCAD creator is approved; these are the ones we recommend first.</p>
           </div>
         </div>
       ) : (

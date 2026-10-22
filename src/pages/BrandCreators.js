@@ -308,6 +308,7 @@ export function ReelCard({ c, onView, onMessage, onExpand, cloneStart }) {
         )}
         <div className="bc-rate">
           <span className={`bc-tier ${tier.toLowerCase()}`}>{tier}</span>
+          <CategoryChips c={c} chipClass="bc-cat" railClass="cat-rail-reel" />
         </div>
       </div>
 
@@ -323,7 +324,6 @@ export function ReelCard({ c, onView, onMessage, onExpand, cloneStart }) {
               {c.kyc_verified && (
                 <span className="bc-verified" title="Identity verified (KYC)"><BadgeCheck size={14} /></span>
               )}
-              <CategoryChips c={c} chipClass="bc-cat" railClass="cat-rail-card" />
             </span>
           </button>
           <div className="bc-price-row">

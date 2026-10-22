@@ -2015,10 +2015,10 @@
 .cat-rail{position:relative;display:flex;gap:6px;min-width:0;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
 .cat-rail::-webkit-scrollbar{display:none}
 .cat-rail > *{flex:none;scroll-snap-align:start;margin:0!important}
-/* Card: the chips sit on their OWN line under the name. Beside the name they took 96px of
-   a ~150px row and squeezed the creator's name down to its first letter ("D..."). */
-.bc-name-top{flex-wrap:wrap}
-.cat-rail-card{flex:1 1 100%;margin-left:0;max-width:100%}
+/* Card: the chips ride the video's top-right corner (opposite the tier badge). Beside the
+   name they took 96px of a ~150px row and squeezed it down to its first letter ("D..."). */
+.cat-rail-reel{flex:0 1 auto;max-width:62%;margin-left:auto}
+.cat-rail-reel .bc-cat{box-shadow:0 2px 8px rgba(0,0,0,.25)}
 .cat-rail-quick{margin-top:4px;max-width:100%}
 
 /* Prominent entry to the team-approved creator collection. */

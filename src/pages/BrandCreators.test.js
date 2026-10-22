@@ -68,10 +68,11 @@ test('preferred collection page heading, subtitle and only the flagged creators'
   await done();
 });
 
-// jsdom does no layout, so guard the CSS rule that stopped names collapsing to "D...":
-// the card's chip rail must take its own line instead of sitting beside the name.
-test('category chips wrap under the name instead of squeezing it', () => {
-  const css = fs.readFileSync(path.join(__dirname, '..', 'styles', 'creator-marketplace.css'), 'utf8');
-  expect(css).toMatch(/\.bc-name-top\{flex-wrap:wrap\}/);
-  expect(css).toMatch(/\.cat-rail-card\{flex:1 1 100%;margin-left:0;max-width:100%\}/);
+// Names collapsed to "D..." when the chips sat beside them: the chips now live on the
+// video's top-right corner, so the name row holds only the name (and the KYC tick).
+test('category chips sit on the video corner, not beside the name', async () => {
+  const { host, done } = await mount();
+  expect(host.querySelectorAll('.bc-reel .bc-rate .cat-rail-reel').length).toBeGreaterThan(0);
+  expect(host.querySelectorAll('.bc-name-top .cat-rail')).toHaveLength(0);
+  await done();
 });

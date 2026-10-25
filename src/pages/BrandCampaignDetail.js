@@ -25,6 +25,10 @@ import CampaignDetails from './CampaignDetails';
 import BookingCard from '../components/BookingCard';
 import '../styles/creator-marketplace.css';
 import '../styles/brand-mobile.css';
+import '../styles/brand-ui.css';
+import '../styles/brand-ui-pages.css';
+import '../styles/brand-ui-detail.css';
+import { campaignStage, campaignPill, STAGE_LABELS } from '../utils/campaignStage';
 import EmptyState from '../components/EmptyState';
 import { budgetLabel, draftTotalBudget } from '../utils/budgetLabel';
 import { selectedCreators, creatorsWanted, slotsLeft, bidSplitLabel } from '../utils/campaignCreators';
@@ -34,7 +38,7 @@ import PhotoOrInitial from '../components/PhotoOrInitial';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
-const inr = (n) => `Rs. ${Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+const inr = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : '-');
 const assetUrl = mediaUrl;
 // The /profile endpoint stores the photo under several keys (top-level or nested
@@ -97,46 +101,66 @@ function ScriptConfirmCard({ campaign, onDone }) {
     }
   };
 
+  // One row per script line; a leading "0-3s - Hook:" style prefix becomes the row's tag.
+  const lines = String(campaign.script_text || '').split(/\n+/).map((l) => l.trim()).filter(Boolean).map((l) => {
+    const m = l.match(/^(\d+\s*[–-]\s*\d+\s*s?(?:\s*[·-]\s*[A-Za-z ]{2,14})?)\s*[:—-]\s*(.+)$/);
+    return m ? { tag: m[1].trim(), text: m[2].trim() } : { tag: '', text: l };
+  });
+
   return (
-    <div style={{ background: '#fffdf4', border: '1px solid #e7d9a0', borderRadius: 12, padding: '18px 20px', margin: '14px 0' }}>
-      <strong style={{ display: 'block', fontSize: 16, marginBottom: 6 }}>📝 Your script is ready - review it before the brief goes live</strong>
-      <p style={{ margin: '0 0 12px', fontSize: 13.5, color: '#6b6236' }}>
-        UGC.ad wrote this script for your campaign. Creators will only see the brief after you confirm.
-      </p>
-      <div style={{ whiteSpace: 'pre-wrap', background: '#fff', border: '1px solid #eee4bd', borderRadius: 8, padding: '12px 14px', fontSize: 14, maxHeight: 320, overflowY: 'auto' }}>
-        {campaign.script_text || 'No script text attached - contact support.'}
+    <section className="bui-script">
+      <div className="bui-script-h">
+        <span className="bui-hero-glow bui-hero-glow--sm" aria-hidden="true" />
+        <div className="bui-script-ht">
+          <div className="bui-eyebrow">Your turn &middot; script ready</div>
+          <div className="bui-script-t">Our team wrote your script &mdash; please check it</div>
+          <div className="bui-script-s">Creators can start bidding once you confirm.</div>
+        </div>
       </div>
-      {changesOpen && (
-        <textarea
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          placeholder="What should the team change? Be specific - tone, hook, product points…"
-          rows={3}
-          style={{ width: '100%', marginTop: 12, borderRadius: 8, border: '1px solid #ddd', padding: 10, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }}
-        />
-      )}
-      <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
-        {!changesOpen ? (
-          <>
-            <button className="cmk-btn-primary-sm" disabled={busy} onClick={() => act('confirm')}>
-              <Check size={15} /> {busy ? 'Publishing…' : 'Confirm - send to creators'}
-            </button>
-            <button className="cmk-btn-ghost-sm" disabled={busy} onClick={() => setChangesOpen(true)}>
-              Request changes
-            </button>
-          </>
-        ) : (
-          <>
-            <button className="cmk-btn-primary-sm" disabled={busy} onClick={() => act('request_changes')}>
-              {busy ? 'Sending…' : 'Send change request'}
-            </button>
-            <button className="cmk-btn-ghost-sm" disabled={busy} onClick={() => { setChangesOpen(false); setNote(''); }}>
-              Back
-            </button>
-          </>
-        )}
+      <div className="bui-script-b">
+        <div className="bui-script-lines">
+          {lines.length === 0 ? (
+            <div className="bui-script-line"><span>No script text attached - contact support.</span></div>
+          ) : lines.map((l, i) => (
+            <div key={i} className="bui-script-line">
+              {l.tag && <b>{l.tag}</b>}
+              <span>{l.text}</span>
+            </div>
+          ))}
+        </div>
+        <div className="bui-script-act">
+          {!changesOpen ? (
+            <>
+              <button type="button" className="bui-btn bui-btn--tall bui-btn--block" disabled={busy} onClick={() => act('confirm')}>
+                <Check size={16} /> {busy ? 'Publishing…' : 'Confirm — send to creators'}
+              </button>
+              <button type="button" className="bui-btn bui-btn--ghost bui-btn--tall bui-btn--block" disabled={busy} onClick={() => setChangesOpen(true)}>
+                Request changes
+              </button>
+              <p className="bui-note">Changes are free. Our team usually updates the script the same day.</p>
+            </>
+          ) : (
+            <>
+              <label className="bui-field">
+                <span>What should change?</span>
+                <textarea
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="Be specific - tone, hook, product points…"
+                  rows={4}
+                />
+              </label>
+              <button type="button" className="bui-btn bui-btn--block" disabled={busy} onClick={() => act('request_changes')}>
+                {busy ? 'Sending…' : 'Send to our team'}
+              </button>
+              <button type="button" className="bui-btn bui-btn--ghost bui-btn--block" disabled={busy} onClick={() => { setChangesOpen(false); setNote(''); }}>
+                Cancel
+              </button>
+            </>
+          )}
+        </div>
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -731,29 +755,58 @@ export default function BrandCampaignDetail() {
     </div>
   );
 
+  // ── Campaign detail (design board 05): stage bar, "your turn" banner, shipping, hired creator, open slots ──
+  const dealIdxNow = deal ? dealStateIndex(deal.current_state) : -1;
+  const baseStage = campaignStage(campaign, shipped);
+  const stageIdx = dealIdxNow >= 6 ? 5 : dealIdxNow >= 4 ? 4 : dealIdxNow >= 3 ? 3 : dealIdxNow >= 1 ? 2 : baseStage.idx;
+  const requiresShipHere = Boolean(campaign.requires_shipment || ship.required);
+  const heroThumb = campaign.image_url || campaign.product_image || (campaign.product_images || [])[0] || campaign.cover_image || campaign.brand_logo_url || campaign.brand_logo;
+  const pill = campaignPill(campaign, shipped);
+  const creatorName = handle ? handle.replace(/^@+/, '') : 'the creator';
+  let turn = null;
+  if (!isDraft) {
+    if (stageIdx === 1 && openBids.length > 0) {
+      turn = { title: 'Your turn: pick a creator', sub: `${openBids.length} creator${openBids.length === 1 ? '' : 's'} applied. You're only charged when you pick someone.`, cta: 'Compare bids', run: () => navigate('/dashboard/business/pending-bids') };
+    } else if (stageIdx === 2 && requiresShipHere && creatorSelected && !shipped) {
+      turn = { title: `Your turn: ship the product to ${creatorName}`, sub: 'Filming starts as soon as it arrives.', cta: 'Ship product', run: () => setShipmentOpen(true) };
+    } else if (stageIdx === 4 && wsStatus === 'pending_review') {
+      turn = { title: 'Your turn: review the delivery', sub: 'Approve to release payment, or ask for changes.', cta: 'Review', run: () => setTab('work') };
+    }
+  }
+  const shipStatus = delivered ? { t: 'Delivered', tone: 'ok' } : shipped ? { t: 'In transit', tone: 'info' } : { t: 'Ready to ship', tone: 'warn' };
+  const creatorBid = creator ? bids.find((b) => String(b.creator_id) === String(creator.id)) : null;
+  const creatorPoster = creator && creator.portfolio_preview && !isVideo(creator.portfolio_preview) ? assetUrl(creator.portfolio_preview) : creatorPhoto(creator);
+  const creatorRating = Number(creator?.avg_rating || creator?.rating || 0);
+  const creatorReviews = Number(creator?.review_count || 0);
+
   return (
     <BrandTopNavLayout>
-      <div className="bcd">
-        <div className="bcd-bc">
-          <button onClick={() => navigate('/dashboard/business/all-campaigns')}><ArrowLeft size={16} /> Campaigns</button>
-          <ChevronRight size={15} color="#9296ba" />
-          <strong>{campaign.title}</strong>
-        </div>
+      <div className="bcd bui-main bui-main--detail">
+        <nav className="bui-crumb" aria-label="Breadcrumb">
+          <button type="button" className="bui-crumb-link" onClick={() => navigate('/dashboard/business/all-campaigns')}>Campaigns</button>
+          <span aria-hidden="true">/</span>
+          <strong aria-current="page">{campaign.title}</strong>
+        </nav>
 
-        <div className="bcd-top">
-          <div className="bcd-title-wrap">
-            <span className={`bcd-badge ${statusBadge(campaign.status).cls}`}>{statusBadge(campaign.status).label}</span>
-            <h1>{campaign.title}</h1>
-            <span className="bcd-sub">Campaign ID: CMP-{String(campaign.id || campaign._id || '').slice(-6).toUpperCase()} · {isDraft ? 'Created' : 'Launched'} on {fmtDate(campaign.createdAt || campaign.created_at)}</span>
+        <div className="bui-dhead">
+          <div className="bui-dhead-l">
+            <span className="bui-dthumb">{heroThumb ? <img src={assetUrl(heroThumb)} alt="" /> : <b>{String(campaign.title || 'C').charAt(0).toUpperCase()}</b>}</span>
+            <div className="bui-dhead-t">
+              <div className="bui-dhead-meta">
+                <span className={`bui-status bui-status--${statusBadge(campaign.status).cls === 'live' || statusBadge(campaign.status).cls === 'done' ? 'ok' : statusBadge(campaign.status).cls === 'rejected' ? 'bad' : statusBadge(campaign.status).cls === 'review' ? 'warn' : 'muted'}`}>{statusBadge(campaign.status).label}</span>
+                <span className="bui-dhead-sub">CMP-{String(campaign.id || campaign._id || '').slice(-6).toUpperCase()} &middot; {isDraft ? 'Created' : 'Launched'} {fmtDate(campaign.createdAt || campaign.created_at)}{[campaign.product_category, campaign.video_format].filter(Boolean).length ? ` · ${[campaign.product_category, campaign.video_format].filter(Boolean).join(' · ')}` : ''}</span>
+              </div>
+              <h1 className="bui-h1 bui-h1--detail">{campaign.title}</h1>
+            </div>
           </div>
-          <div className="bcd-budget">
-            <label>Budget</label>
-            <strong>{isDraft ? (draftTotal ? inr(draftTotal) : 'Not set yet') : budgetLabel(campaign.budget_min, campaign.budget_max)}</strong>
-          </div>
-          <div className="bcd-actions">
-            {isDraft && <button type="button" className="cmk-btn-primary-sm" onClick={editDraft} data-testid="edit-draft-btn"><Pencil size={16} /> Edit Draft</button>}
-            <button className="cmk-btn-ghost-sm" onClick={duplicateBrief}><Copy size={16} /> Duplicate</button>
-            <button className="cmk-btn-ghost-sm bcd-action-details" onClick={() => setDetailsOpen(true)}>View Details</button>
+          <div className="bui-dhead-r">
+            <div className="bui-budget">
+              <small>{isDraft ? 'Budget' : 'Total budget · held in escrow'}</small>
+              <b>{isDraft ? (draftTotal ? inr(draftTotal) : 'Not set yet') : budgetLabel(campaign.budget_min, campaign.budget_max).replace(/Rs\.\s?/g, '\u20b9')}</b>
+            </div>
+            {isDraft && <button type="button" className="bui-btn" onClick={editDraft} data-testid="edit-draft-btn"><Pencil size={16} /> Edit Draft</button>}
+            <button type="button" className="bui-btn bui-btn--ghost" onClick={duplicateBrief}><Copy size={16} /> Duplicate</button>
+            <button type="button" className="bui-btn bui-btn--ghost bcd-action-details" onClick={() => setDetailsOpen(true)}>View brief</button>
           </div>
         </div>
 
@@ -765,9 +818,11 @@ export default function BrandCampaignDetail() {
         {/* Direct booking: answer the creator's price, or send the brief once accepted. */}
         <BookingCard deal={deal || { campaign }} role="brand" onDone={load} />
 
-        <div className="bcd-tabs">
-          {[['overview', 'Overview'], ['about', 'About Campaign'], ['work', `Work Review${ws ? ' (1)' : ''}`]].map(([k, l]) => (
-            <button key={k} className={`${tab === k ? 'is-active' : ''}${k === 'work' ? ' bcd-tab-right' : ''}`} onClick={() => setTab(k)}>{l}</button>
+        <div className="bui-tabs" role="tablist" aria-label="Campaign sections">
+          {[['overview', 'Overview', null], ['about', 'About campaign', null], ['work', 'Work review', ws ? 1 : null]].map(([k, l, n]) => (
+            <button key={k} type="button" role="tab" aria-selected={tab === k} className={`bui-tab${tab === k ? ' is-on' : ''}`} onClick={() => setTab(k)}>
+              {l}{n ? <span>{n}</span> : null}
+            </button>
           ))}
         </div>
 
@@ -949,224 +1004,172 @@ export default function BrandCampaignDetail() {
           )}
           </>
         ) : tab === 'about' ? (
-          <div className="bcd-card bcd-about-card">
-            <h3>About Campaign</h3>
+          <section className="bui-panel bui-about" aria-label="About campaign">
             <div className="bcd-about">{renderBrief(campaign.brief_text)}</div>
-          </div>
+          </section>
         ) : (
-        <>
-        <div className="bcd-row-main">
-        <div className="bcd-col-left">
-        {/* A draft was never sent, so no "Brief Sent" progress - just the way to finish it. */}
-        {isDraft ? (
-          <div className="bcd-card bcd-draft-card">
-            <h3>This campaign is a draft</h3>
-            <p>Edit it to finish the brief, then publish it from the editor to send it to our team for review and on to creators.</p>
-            <button type="button" className="cmk-btn-primary-sm" onClick={editDraft}><Pencil size={16} /> Edit Draft</button>
-          </div>
-        ) : (
-        <div className="bcd-card bcd-progress-card">
-          <div className="bcd-progress-head">
-            <h3>Campaign Progress{creators.length > 1 && handle ? ` - ${handle.replace(/^@/, '')}` : ''}</h3>
-            {(campaign.requires_shipment || ship.required) && (delivered || shipped) && (
-              <div className="bcd-progress-ship">
-                <span className={`bcd-pill ${delivered ? 'ok' : 'info'}`}>{delivered ? 'Delivered' : 'Shipped'}</span>
-                {unboxingUrl && <button type="button" className="bcd-pill-btn" onClick={() => setVideoModal({ src: unboxingUrl, title: 'Unboxing Video' })}><Play size={13} /> Unboxing</button>}
-              </div>
-            )}
-          </div>
-          {/* Desktop: full horizontal stepper. Hidden on mobile — replaced by the
-              collapsed summary bar + tap-to-expand timeline below. */}
-          <div className="bcd-hsteps">
-            {steps.map((s, i) => (
-              <div key={i} className={`bcd-hstep ${s.done ? 'done' : ''} ${s.current ? 'current' : ''} ${!s.done && !s.current ? 'todo' : ''}`}>
-                <span className="bcd-hstep-dot">{s.done ? <Check size={13} /> : null}</span>
-                <strong>{s.label}</strong>
-                <small>{s.date ? fmtDate(s.date) : (s.current ? 'In progress' : '-')}</small>
-              </div>
-            ))}
-          </div>
-
-          {/* Mobile only: collapsed to start/end + a position marker on the track
-              (mirrors a shipment-tracker bar). Tap to reveal the full timeline. */}
-          <button
-            type="button"
-            className="bcd-progress-mini"
-            onClick={() => setProgressExpanded((v) => !v)}
-            aria-expanded={progressExpanded}
-          >
-            <div className="bcd-progress-mini-top">
-              <div className="bcd-progress-mini-end">
-                <strong>{steps[0].label}</strong>
-                <small>{steps[0].date ? fmtDate(steps[0].date) : '-'}</small>
-              </div>
-              <div className="bcd-progress-mini-end right">
-                <strong>{steps[steps.length - 1].label}</strong>
-                <small>{steps[steps.length - 1].date ? fmtDate(steps[steps.length - 1].date) : '-'}</small>
-              </div>
-            </div>
-            <div className="bcd-progress-mini-track">
-              <span className="bcd-progress-mini-fill" style={{ width: `${progressPct}%` }} />
-              <span className="bcd-progress-mini-dot start" />
-              <span className="bcd-progress-mini-marker" style={{ left: `${progressPct}%` }}><Truck size={14} /></span>
-              <span className="bcd-progress-mini-dot end" />
-            </div>
-            <div className="bcd-progress-mini-foot">
-              <span>{steps[progressIdx]?.current ? `${steps[progressIdx].label} - in progress` : steps[progressIdx]?.label}</span>
-              <ChevronRight size={15} className="bcd-progress-mini-chev" />
-            </div>
-          </button>
-
-          {progressExpanded && (
-            <div className="bcd-vsteps">
-              {steps.map((s, i) => (
-                <div key={i} className={`bcd-vstep ${s.done ? 'done' : ''} ${s.current ? 'current' : ''}`}>
-                  <span className="bcd-vstep-dot">{s.done ? <Check size={12} /> : null}</span>
-                  <div className="bcd-vstep-body">
-                    <strong>{s.label}</strong>
-                    <small>{s.date ? fmtDate(s.date) : (s.current ? 'In progress' : '-')}</small>
+        <div className="bui-dgrid">
+          <div className="bui-dcol">
+            {/* A draft was never sent, so no progress bar - just the way to finish it. */}
+            {isDraft ? (
+              <section className="bui-panel">
+                <h2 className="bui-panel-t">This campaign is a draft</h2>
+                <p className="bui-muted-p">Edit it to finish the brief, then publish it from the editor to send it to our team for review and on to creators.</p>
+                <button type="button" className="bui-btn bui-btn--mt" onClick={editDraft}><Pencil size={16} /> Edit Draft</button>
+              </section>
+            ) : (
+              <section className="bui-panel">
+                <div className="bui-panel-h">
+                  <h2 className="bui-panel-t">Campaign progress</h2>
+                  <span className="bui-panel-aside">{`Step ${stageIdx + 1} of ${STAGE_LABELS.length}`}{creator ? ` · with ${creatorName}` : ''}</span>
+                </div>
+                <div className="bui-track6 bui-track6--full" role="list" aria-label="Campaign progress">
+                  {STAGE_LABELS.map((name, i) => (
+                    <div key={name} role="listitem" className={i < stageIdx ? 'is-done' : i === stageIdx && campaign.status !== 'completed' ? 'is-now' : campaign.status === 'completed' ? 'is-done' : ''}>
+                      <span aria-hidden="true" />
+                      <em>{name}</em>
+                    </div>
+                  ))}
+                </div>
+                {(campaign.requires_shipment || ship.required) && unboxingUrl && (
+                  <button type="button" className="bui-btn bui-btn--ghost bui-btn--sm bui-btn--mt" onClick={() => setVideoModal({ src: unboxingUrl, title: 'Unboxing Video' })}><Play size={13} /> Unboxing video</button>
+                )}
+                {turn && (
+                  <div className="bui-turn">
+                    <span className="bui-turn-ic"><Truck size={18} /></span>
+                    <div className="bui-turn-tx"><b>{turn.title}</b><small>{turn.sub}</small></div>
+                    <button type="button" className="bui-btn" onClick={turn.run}>{turn.cta}</button>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-          {shippingAllowed && (campaign.requires_shipment || ship.required) && (
-            <div className="bcd-ship-detail">
-              <div className="bcd-kv"><label>Status</label><strong>{delivered ? 'Delivered' : shipped ? 'Shipped' : 'Pending'}</strong></div>
-              <div className="bcd-kv"><label>Tracking ID</label><strong>{ship.tracking_id || '-'}</strong></div>
-              <div className="bcd-kv"><label>Courier</label><strong>{ship.courier || '-'}</strong></div>
-              {delivered && <div className="bcd-kv"><label>Delivered on</label><strong>{fmtDate(rec.received_at || ship.delivered_at)}</strong></div>}
+                )}
+              </section>
+            )}
 
-              {/* This panel was read-only: it showed "Pending / — / —" with no way
-                  to act on it, so the brand had to hunt for the Shipments page to
-                  enter a tracking number. Same drawer, opened from here.
+            {shippingAllowed && requiresShipHere && !isDraft && (
+              <section className="bui-panel">
+                <div className="bui-panel-h">
+                  <h2 className="bui-panel-t">Shipping</h2>
+                  <span className={`bui-status bui-status--${shipStatus.tone}`}>{shipStatus.t}</span>
+                </div>
+                <div className="bui-kv4">
+                  <div><small>Status</small><b>{delivered ? 'Delivered' : shipped ? 'Shipped' : 'Not shipped yet'}</b></div>
+                  <div><small>Courier</small><b>{ship.courier || '—'}</b></div>
+                  <div><small>Ship by</small><b>{ship.ship_by || campaign.ship_by ? fmtDate(ship.ship_by || campaign.ship_by) : '—'}</b></div>
+                  <div><small>Tracking ID</small><b>{ship.tracking_id || '—'}</b></div>
+                  {delivered && <div><small>Delivered on</small><b>{fmtDate(rec.received_at || ship.delivered_at)}</b></div>}
+                </div>
+                {!delivered && (
+                  creatorSelected ? (
+                    <button type="button" className="bui-btn bui-btn--ghost bui-btn--sm bui-btn--mt" onClick={() => setShipmentOpen(true)} data-testid="add-shipment-btn">
+                      <Truck size={15} /> {shipped ? 'Update shipment details' : 'Add shipment details'}
+                    </button>
+                  ) : (
+                    <p className="bui-note">Select a creator to add shipment details.</p>
+                  )
+                )}
+                <p className="bui-note">We create a pre-paid label for you. The creator&rsquo;s address stays private.</p>
+              </section>
+            )}
 
-                  Only once a creator is on the campaign: there is nobody to ship
-                  to before that, and the label flow needs the creator's address. */}
-              {!delivered && (
-                creatorSelected ? (
-                  <button
-                    type="button"
-                    className="bcd-ship-btn"
-                    onClick={() => setShipmentOpen(true)}
-                    data-testid="add-shipment-btn"
-                  >
-                    <Truck size={15} /> {shipped ? 'Update shipment details' : 'Add shipment details'}
-                  </button>
-                ) : (
-                  <span className="bcd-ship-wait">Select a creator to add shipment details</span>
-                )
-              )}
-            </div>
-          )}
-        </div>
-        )}
-        <div className="bcd-card bcd-deliver-card">
-          <h3>Deliverables</h3>
-          {(deliverList.length ? deliverList : ['1 UGC video as described in the brief']).map((d, i) => (
-            <div key={i} className="bcd-deliver"><CheckCircle size={16} /> {d}</div>
-          ))}
-        </div>
-        </div>
+            <section className="bui-panel">
+              <h2 className="bui-panel-t bui-panel-t--mb">Deliverables</h2>
+              <ul className="bui-dlist">
+                {(deliverList.length ? deliverList : ['1 UGC video as described in the brief']).map((d, i) => (
+                  <li key={i}><span>{i + 1}</span><b>{d}</b></li>
+                ))}
+              </ul>
+            </section>
+          </div>
 
-        {/* Creator */}
-        <div className="bcd-card bcd-creator-card">
-          <h3>{creators.length > 1 ? `Creators (${creators.length})` : 'Creator'}</h3>
-            {creators.length > 1 && <CreatorTabs />}
-            {creator ? (
-              <>
-                <div className="bcd-creator">
-                  <span className="bcd-cre-ava">{creatorPhoto(creator) ? <img src={creatorPhoto(creator)} alt="" /> : (handle || 'C').replace('@', '').charAt(0).toUpperCase()}</span>
-                  <div><strong>{handle}</strong><small>{(cp.category || 'UGC Creator').replace(/_/g, ' ')}</small></div>
-                </div>
-                <div className="bcd-kv-row">
-                  <div className="bcd-kv"><label>Category</label><strong>{(cp.category || creator.primary_category || 'UGC').replace(/_/g, ' ')}</strong></div>
-                  <div className="bcd-kv"><label>Content Type</label><strong>{safeText(cp.content_type, 'Reels')}</strong></div>
-                  <div className="bcd-kv"><label>Platform</label><strong>{safeText(cp.platform, 'Instagram')}</strong></div>
-                </div>
-                <div className="bcd-kv-row">
-                  <div className="bcd-kv"><label>Languages</label><strong>{Array.isArray(cp.languages) && cp.languages.length ? cp.languages.slice(0, 2).join(', ') : safeText(cp.languages, 'English')}</strong></div>
-                  <div className="bcd-kv"><label>Location</label><strong>{safeText(cp.city || cp.location_region || creator.city_tier, 'India')}</strong></div>
-                  <div className="bcd-kv"><label>Level</label><strong>{fmtLevel(safeText(creator.level_label || creator.level, 'New'))}</strong></div>
-                </div>
-                <div className="bcd-kv-row">
-                  <div className="bcd-kv"><label>Deliverables</label><strong>{safeText(creator.deliverables_completed, '0')} done</strong></div>
-                  <div className="bcd-kv"><label>Starting Rate</label><strong>{safeText((cp.rate_card && cp.rate_card.expected_payout) || cp.expectedPayout || creator.budget_range, 'On request')}</strong></div>
-                  <div className="bcd-kv"><label>Skills</label><strong>{Array.isArray(cp.skills) && cp.skills.length ? cp.skills.slice(0, 2).join(', ') : safeText(creator.content_style, '-')}</strong></div>
-                </div>
-                {cp.bio && <p className="bcd-cre-bio">{cp.bio}</p>}
-                <div className="bcd-cre-actions">
-                  <button className="bcd-cta" onClick={() => creator.id && navigate(`/dashboard/business/creator/${creator.id}`)}><User size={14} /> View Profile</button>
-                  <button className="bcd-cta primary" onClick={() => setChatOpen(true)}><MessageSquare size={14} /> Chat</button>
+          <div className="bui-dcol">
+            <section className="bui-panel bui-panel--tight">
+              <div className="bui-panel-h">
+                <h2 className="bui-panel-t">{creators.length > 1 ? 'Hired creators' : 'Hired creator'}</h2>
+                {creators.length > 1 && <span className="bui-panel-aside">{creators.findIndex((c) => String(c.id) === String(activeCreatorId)) + 1} of {creators.length}</span>}
+              </div>
+              {creators.length > 1 && <CreatorTabs />}
+              {creator ? (
+                <>
+                  <div className="bui-hired">
+                    <span className="bui-hired-poster">{creatorPoster ? <img src={creatorPoster} alt="" /> : <b>{creatorName.charAt(0).toUpperCase()}</b>}</span>
+                    <div className="bui-hired-tx">
+                      <div className="bui-hired-name">
+                        <span className="bui-ava30">{creatorPhoto(creator) ? <img src={creatorPhoto(creator)} alt="" /> : creatorName.charAt(0).toUpperCase()}</span>
+                        <b>{creatorName}</b>
+                      </div>
+                      {creator.ugcad_approved
+                        ? <span className="bui-badge bui-badge--choice">UGCAD.IO Choice</span>
+                        : <span className="bui-lvl">{fmtLevel(safeText(creator.level_label || creator.level, 'New'))}</span>}
+                      {creatorRating > 0 && creatorReviews > 0 && (
+                        <div className="bui-hired-line"><Star size={13} fill="currentColor" /> <strong>{creatorRating.toFixed(1)}</strong> ({creatorReviews})</div>
+                      )}
+                      <div className="bui-hired-line">{[(cp.category || creator.primary_category || '').replace(/_/g, ' '), Array.isArray(cp.languages) && cp.languages.length ? cp.languages.slice(0, 2).join(', ') : '', safeText(cp.city || cp.location_region || creator.city_tier, '')].filter(Boolean).join(' · ') || 'UGC creator'}</div>
+                      {creatorBid?.amount ? <div className="bui-hired-line">Agreed <strong>{inr(creatorBid.amount)}</strong> / video</div> : null}
+                    </div>
+                  </div>
+                  <div className="bui-btnrow">
+                    <button type="button" className="bui-btn bui-btn--ghost bui-btn--grow" onClick={() => creator.id && navigate(`/dashboard/business/creator/${creator.id}`)}>View profile</button>
+                    <button type="button" className="bui-btn bui-btn--grow" onClick={() => setChatOpen(true)}><MessageSquare size={15} /> Chat</button>
+                  </div>
                   {/* Review CTA lives here too so it's reachable even when the deal
                       completed via a dispute (no work-submission card to hang it on). */}
                   {dealCompleted && (myReview
-                    ? <span className="bcd-reviewed"><Star size={14} fill="#f5b301" color="#f5b301" /> Rated {myReview.rating}★</span>
-                    : <button className="bcd-cta" onClick={() => setReviewOpen(true)}><Star size={14} /> Review</button>
+                    ? <span className="bcd-reviewed"><Star size={14} fill="#f5b301" color="#f5b301" /> Rated {myReview.rating}&#9733;</span>
+                    : <button type="button" className="bui-btn bui-btn--ghost bui-btn--mt" onClick={() => setReviewOpen(true)}><Star size={14} /> Review</button>
+                  )}
+                </>
+              ) : (
+                <p className="bui-muted-p">{openBids.length ? 'No creator picked yet.' : 'No creator selected yet, and no bids have come in.'}</p>
+              )}
+            </section>
+
+            {/* A brief hires `creators_wanted` creators, so this stays open until every slot
+                is filled; "Finish hiring" refunds the budget reserved for unfilled slots. */}
+            {openSlots > 0 && (openBids.length > 0 || hiredIds.length > 0) && (
+              <section className="bui-panel bui-panel--tight">
+                <div className="bui-panel-h">
+                  <h2 className="bui-panel-t">{hiredIds.length > 0 ? (openSlots === 1 ? 'Fill your last slot' : 'Fill your open slots') : 'Creators who applied'}</h2>
+                  <span className="bui-status">{openBids.length} bid{openBids.length === 1 ? '' : 's'}</span>
+                </div>
+                <p className="bui-note bui-note--top">
+                  {hiredIds.length > 0
+                    ? `${hiredIds.length} of ${wanted} hired · ${openSlots} slot${openSlots === 1 ? '' : 's'} left · you're only charged when you pick someone.`
+                    : `Pick up to ${wanted} · you're only charged when you pick someone.`}
+                </p>
+                <div className="bui-bids">
+                  {openBids.map((b) => {
+                    const nm = String(b.creator_name || b.creator_nickname || 'Creator').replace(/^@+/, '').trim().split(/\s+/)[0];
+                    return (
+                      <div key={b.id || b.creator_id} className="bui-bid">
+                        <span className="bui-ava36">{nm.charAt(0).toUpperCase()}</span>
+                        <div className="bui-bid-tx">
+                          <button type="button" className="bui-linkbtn" onClick={() => navigate(`/dashboard/business/creator/${b.creator_id}`)}>{nm}</button>
+                          <small>{b.estimated_delivery_days ? `${b.estimated_delivery_days}-day delivery` : 'Delivery not specified'}{bidSplitLabel(b) ? ` · ${bidSplitLabel(b)}` : ''}</small>
+                        </div>
+                        <div className="bui-bid-act">
+                          <b>{inr(b.amount)}</b>
+                          <button type="button" className="bui-btn bui-btn--sm" disabled={selecting === b.creator_id} onClick={() => selectCreator(b)}>
+                            {selecting === b.creator_id ? 'Selecting…' : 'Accept'}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {openBids.length === 0 && (
+                    <p className="bui-note">No more pending bids. Waiting for more creators to apply for the remaining {openSlots} slot{openSlots === 1 ? '' : 's'}, or finish hiring below.</p>
                   )}
                 </div>
-              </>
-            ) : null}
-
-            {/* A brief hires `creators_wanted` creators, so this section stays open
-                until every slot is filled — it used to vanish once every pending bid
-                was either accepted or the bid list ran dry, which meant a 5-creator
-                brief with only 2 bids (both accepted) had no way to close its 3
-                permanently-unfillable slots. "Finish hiring" now shows any time slots
-                are still open and at least one creator is hired, whether or not any
-                bids are left to review. Creators already hired are dropped from the
-                bid list below. */}
-            {openSlots > 0 && (openBids.length > 0 || hiredIds.length > 0) && (
-              <div className="bcd-bids">
-                <p className="bcd-bids-h">
-                  {hiredIds.length > 0
-                    ? `${hiredIds.length} of ${wanted} hired - ${openSlots} slot${openSlots === 1 ? '' : 's'} left. You're only charged when you pick someone.`
-                    : `${openBids.length} creator${openBids.length === 1 ? '' : 's'} applied - pick up to ${wanted}. You're only charged when you pick someone.`}
-                </p>
-                {/* Hired at least one but don't want to fill every slot? Close hiring
-                    now and get the unused slots' budget back. */}
-                {hiredIds.length > 0 && (
-                  <button type="button" className="bcd-finish-hiring" onClick={finishHiring} disabled={finishing} data-testid="finish-hiring-btn">
-                    <Check size={14} /> {finishing ? 'Closing…' : `Finish hiring with ${hiredIds.length} - refund ${openSlots} slot${openSlots === 1 ? '' : 's'}`}
-                  </button>
-                )}
-                {openBids.map((b) => (
-                  <div key={b.id || b.creator_id} className="bcd-bid">
-                    <div className="bcd-bid-top">
-                      <span className="bcd-cre-ava sm">{String(b.creator_name || b.creator_nickname || 'C').replace(/^@+/, '').charAt(0).toUpperCase()}</span>
-                      <div className="bcd-bid-who">
-                        <strong>{String(b.creator_name || b.creator_nickname || 'Creator').replace(/^@+/, '').trim().split(/\s+/)[0]}</strong>
-                        <small>{b.estimated_delivery_days ? `${b.estimated_delivery_days} day delivery` : 'Delivery not specified'}</small>
-                      </div>
-                      <b className="bcd-bid-amt">{inr(b.amount)}{bidSplitLabel(b) && <small style={{ display: 'block', fontWeight: 500 }}>{bidSplitLabel(b)}</small>}</b>
-                    </div>
-                    {b.proposal && <p className="bcd-bid-msg">{b.proposal}</p>}
-                    <div className="bcd-bid-actions">
-                      <button className="bcd-cta" onClick={() => navigate(`/dashboard/business/creator/${b.creator_id}`)}>
-                        <User size={14} /> View profile
-                      </button>
-                      <button
-                        className="bcd-cta primary"
-                        disabled={selecting === b.creator_id}
-                        onClick={() => selectCreator(b)}
-                      >
-                        <Check size={14} /> {selecting === b.creator_id ? 'Selecting…' : `Accept ${inr(b.amount)}`}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-                {openBids.length === 0 && hiredIds.length > 0 && (
-                  <p className="bcd-muted">No more pending bids - waiting for more creators to apply for the remaining {openSlots} slot{openSlots === 1 ? '' : 's'}, or finish hiring above.</p>
-                )}
-              </div>
+                <div className="bui-btnrow">
+                  <button type="button" className="bui-btn bui-btn--ghost bui-btn--sm bui-btn--grow" onClick={() => navigate('/dashboard/business/pending-bids')}>Compare bids</button>
+                  {hiredIds.length > 0 && (
+                    <button type="button" className="bui-btn bui-btn--ghost bui-btn--sm bui-btn--grow bui-btn--quiet" onClick={finishHiring} disabled={finishing} data-testid="finish-hiring-btn">
+                      {finishing ? 'Closing…' : `Finish with ${hiredIds.length}`}
+                    </button>
+                  )}
+                </div>
+              </section>
             )}
-
-            {!creator && openBids.length === 0 && (
-              <p className="bcd-muted">No creator selected yet, and no bids have come in.</p>
-            )}
+          </div>
         </div>
-        </div>
-        </>
         )}
       </div>
 

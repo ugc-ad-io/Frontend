@@ -1,7 +1,7 @@
 import { createReadCache } from './lib/readCache';
 import { useState, useEffect, createContext, useContext } from 'react';
 import lazy from './lib/retryLazy';
-import { BrowserRouter, Routes, Route, Navigate, Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import './App.css';
 import './styles/admin-theme.css';
@@ -14,6 +14,8 @@ import AgreementGate from './components/AgreementGate';
 import { Toaster } from 'sonner';
 import { useLiveEffect, useLiveUpdates } from './lib/liveUpdates';
 import HorizontalAccess from './components/HorizontalAccess';
+import AppOverride from './app/AppOverride';
+import { APP_UI } from './utils/appMode';
 
 // ── Route-level code splitting ───────────────────────────────────────────────
 // Every page is lazy-loaded so a visitor only downloads the chunk for the route
@@ -28,7 +30,11 @@ const CreatorProfileSetup = lazy(() => import('./pages/CreatorProfileSetup'));
 const BusinessProfileSetup = lazy(() => import('./pages/BusinessProfileSetup'));
 const CreatorDashboard = lazy(() => import('./pages/CreatorDashboard'));
 const BusinessDashboard = lazy(() => import('./pages/BusinessDashboard'));
-const BrandOverview = lazy(() => import('./pages/BrandOverview'));
+const BrandHome = lazy(() => import('./pages/BrandHome'));
+const BrandMultiBrief = lazy(() => import('./pages/BrandMultiBrief'));
+const BrandPlans = lazy(() => import('./pages/BrandPlans'));
+const BrandEditAddon = lazy(() => import('./pages/BrandEditAddon'));
+const BrandInvoice = lazy(() => import('./pages/BrandInvoice'));
 const BrandCreators = lazy(() => import('./pages/BrandCreators'));
 const BrandWorkReview = lazy(() => import('./pages/BrandWorkReview'));
 const BrandCampaigns = lazy(() => import('./pages/BrandCampaigns'));
@@ -59,6 +65,7 @@ const ReviewsPage = lazy(() => import('./pages/ReviewsPage'));
 const BrandReviewsPage = lazy(() => import('./pages/BrandReviewsPage'));
 const PortfolioPage = lazy(() => import('./pages/PortfolioPage'));
 const LegalPage = lazy(() => import('./pages/LegalPage'));
+const NotFound = lazy(() => import('./pages/NotFoundPage'));
 const AdminCampaigns = lazy(() => import('./pages/AdminCampaigns'));
 const AdminWithdrawals = lazy(() => import('./pages/AdminWithdrawals'));
 const AdminDisputes = lazy(() => import('./pages/AdminDisputes'));
@@ -409,7 +416,7 @@ function HomeRoute() {
   const { user, loading } = useAuth();
   const [launch] = useState(() => {
     try {
-      if (window.ReactNativeWebView || !isStandalone() || sessionStorage.getItem('ugcad_launch_done')) return false;
+      if (window.ReactNativeWebView || !(isStandalone() || APP_UI) || sessionStorage.getItem('ugcad_launch_done')) return false;
       sessionStorage.setItem('ugcad_launch_done', '1');
       return true;
     } catch { return false; }
@@ -418,23 +425,6 @@ function HomeRoute() {
   if (user) return <Navigate to={homeForUser(user)} replace />;
   if (loading && localStorage.getItem('token')) return <Loader />;
   return <Navigate to="/auth" replace />;
-}
-
-// Catch-all: an unknown URL used to render a blank page.
-function NotFound() {
-  const { user } = useAuth();
-  const home = user ? homeForUser(user) : '/';
-  return (
-    <main style={{ minHeight: '60vh', display: 'grid', placeItems: 'center', textAlign: 'center', padding: 24 }}>
-      <div style={{ minWidth: 0 }}>
-        <h1 style={{ margin: '0 0 8px', overflowWrap: 'anywhere' }}>Page not found</h1>
-        <p style={{ margin: '0 0 18px', color: '#585c7e', fontSize: 16 }}>The page you are looking for does not exist or has moved.</p>
-        <Link to={home} style={{ display: 'inline-block', padding: '12px 16px', color: '#5b6bff', fontWeight: 700 }}>
-          {user ? 'Go to my dashboard' : 'Go to home'}
-        </Link>
-      </div>
-    </main>
-  );
 }
 
 // `/my-deals` serves two things: the "My Deals" hub (all deals + invites + bids)
@@ -479,6 +469,12 @@ function ScrollToTop() {
     window.scrollTo(0, 0);
   }, [pathname]);
   return null;
+}
+
+// Installed app only: URLs that have a phone screen (src/app/screens) render it instead of the website page.
+function AppRoutes({ children }) {
+  const { user } = useAuth();
+  return <AppOverride user={user} ProtectedRoute={ProtectedRoute}>{children}</AppOverride>;
 }
 
 function App() {
@@ -540,6 +536,7 @@ function App() {
           <OverlayBack />
           <Toaster position="top-right" richColors closeButton mobileOffset={{ top: "calc(env(safe-area-inset-top, 0px) + 8px)", left: 16, right: 16 }} />
           <RouteLoadingBoundary>
+          <AppRoutes>
           <Routes>
             <Route path="/" element={<HomeRoute />} />
             <Route path="/creator" element={<CreatorLanding />} />
@@ -652,7 +649,7 @@ function App() {
               path="/brand-home"
               element={
                 <ProtectedRoute allowedRoles={['business']}>
-                  <BrandOverview />
+                  <BrandHome />
                 </ProtectedRoute>
               }
             />
@@ -660,7 +657,7 @@ function App() {
               path="/dashboard/business"
               element={
                 <ProtectedRoute allowedRoles={['business']}>
-                  <Navigate to="/dashboard/business/browse-creator" replace />
+                  <Navigate to="/brand-home" replace />
                 </ProtectedRoute>
               }
             />
@@ -737,10 +734,42 @@ function App() {
               }
             />
             <Route
+              path="/dashboard/business/multi-brief"
+              element={
+                <ProtectedRoute allowedRoles={['business']}>
+                  <BrandMultiBrief />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/dashboard/business/wallet"
               element={
                 <ProtectedRoute allowedRoles={['business']}>
                   <BusinessDashboard page="wallet" />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/business/plans"
+              element={
+                <ProtectedRoute allowedRoles={['business']}>
+                  <BrandPlans />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/business/edit-addon"
+              element={
+                <ProtectedRoute allowedRoles={['business']}>
+                  <BrandEditAddon />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/dashboard/business/invoice/:id"
+              element={
+                <ProtectedRoute allowedRoles={['business']}>
+                  <BrandInvoice />
                 </ProtectedRoute>
               }
             />
@@ -1053,6 +1082,7 @@ function App() {
             />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </AppRoutes>
           </RouteLoadingBoundary>
         </AuthProvider>
         </ThemeProvider>

@@ -24,7 +24,7 @@ function Stars({ n = 0, size = 14 }) {
   return (
     <span className="bpc-stars">
       {[1, 2, 3, 4, 5].map((i) => (
-        <Star key={i} size={size} fill={i <= Math.round(n) ? '#f5b301' : 'none'} color={i <= Math.round(n) ? '#f5b301' : '#cfd2e6'} />
+        <Star key={i} size={size} fill={i <= Math.round(n) ? '#7387FF' : 'none'} color={i <= Math.round(n) ? '#7387FF' : '#C9C9E2'} />
       ))}
     </span>
   );
@@ -110,7 +110,7 @@ export default function BrandProfileCard({ id, fallbackName, onClose, onMessage,
       <div className="bpc" onClick={(e) => e.stopPropagation()}>
         <div
           className="bpc-banner"
-          style={banner ? { backgroundImage: `url(${banner}), linear-gradient(120deg,#5b6bff,#23236a 55%,#4452f0)` } : undefined}
+          style={banner ? { backgroundImage: `url(${banner})` } : undefined}
         >
           <button type="button" className="bpc-x" onClick={onClose} aria-label="Close"><X size={18} /></button>
         </div>
@@ -127,7 +127,7 @@ export default function BrandProfileCard({ id, fallbackName, onClose, onMessage,
               <button type="button" className="bpc-review" onClick={() => setReviewOpen(true)}><Star size={15} /> Review this brand</button>
             )}
             {canReview && alreadyReviewed && (
-              <span className="bpc-reviewed"><Star size={14} fill="#f5b301" color="#f5b301" /> Reviewed</span>
+              <span className="bpc-reviewed"><Star size={14} fill="#7387FF" color="#7387FF" /> Reviewed</span>
             )}
             {onMessage && <button type="button" className="bpc-msg" onClick={onMessage}><MessageSquare size={16} /> Send Message</button>}
           </div>
@@ -139,7 +139,7 @@ export default function BrandProfileCard({ id, fallbackName, onClose, onMessage,
 
           <div className="bpc-stats">
             <span className="bpc-stat-rating">
-              <Star size={15} fill="#f5b301" color="#f5b301" />
+              <Star size={15} fill="#7387FF" color="#7387FF" />
               <strong className={reviewCount ? '' : 'is-unrated'}>{ratingTxt}</strong> rating
             </span>
             <span><strong>{reviewCount}</strong> review{reviewCount === 1 ? '' : 's'}</span>
@@ -185,7 +185,7 @@ export default function BrandProfileCard({ id, fallbackName, onClose, onMessage,
             <section className="bpc-sec">
               {reviewCount === 0 ? (
                 <div className="bpc-rev-empty">
-                  <Star size={26} color="#cfd2e6" />
+                  <Star size={26} color="#C9C9E2" />
                   <strong>No reviews yet</strong>
                   <span>Reviews from creators appear here once a deal is completed.</span>
                 </div>
@@ -234,75 +234,78 @@ export default function BrandProfileCard({ id, fallbackName, onClose, onMessage,
       )}
 
       <style>{`
-        .bpc-ov{position:fixed;inset:0;background:rgba(15,22,58,.5);backdrop-filter:blur(3px);z-index:1400;display:flex;align-items:flex-start;justify-content:center;padding:20px;overflow:auto}
-        .bpc{position:relative;width:min(720px,100%);background:#fff;border-radius:22px;box-shadow:0 30px 70px rgba(15,22,58,.4);overflow:hidden}
-        .bpc-banner{position:relative;height:170px;background:linear-gradient(120deg,#5b6bff,#23236a 55%,#4452f0);background-size:cover;background-position:center}
-        .bpc-x{position:absolute;top:16px;right:16px;width:38px;height:38px;border-radius:50%;border:none;background:rgba(255,255,255,.92);color:#15163a;cursor:pointer;display:grid;place-items:center;z-index:2;box-shadow:0 4px 14px rgba(15,22,58,.25)}
+        .bpc-ov{position:fixed;inset:0;background:rgba(7,7,78,.45);backdrop-filter:blur(3px);z-index:1400;display:flex;align-items:flex-start;justify-content:center;padding:24px 20px;overflow:auto;overscroll-behavior:contain}
+        .bpc{position:relative;width:min(720px,100%);margin:auto;background:#fff;border-radius:20px;box-shadow:0 1px 2px rgba(7,7,78,.05),0 40px 80px -30px rgba(7,7,78,.6);overflow:hidden;font-family:'Inter',system-ui,sans-serif;color:#07074E}
+        .bpc-banner{position:relative;height:150px;background:#ECEDFA;background-size:cover;background-position:center}
+        .bpc-x{position:absolute;top:14px;right:14px;width:36px;height:36px;border-radius:50%;border:1px solid #E2E2F0;background:#fff;color:#07074E;cursor:pointer;display:grid;place-items:center;z-index:2}
+        .bpc-x:hover{background:#F3F3FF}
+        .bpc-x:focus-visible,.bpc-msg:focus-visible,.bpc-review:focus-visible,.bpc-tabs button:focus-visible{outline:2px solid #7387FF;outline-offset:2px}
         .bpc-phead{position:relative;padding:0 28px 20px}
-        .bpc-avatar-wrap{position:relative;width:108px;height:108px;margin-top:-54px}
-        .bpc-avatar-lg{box-sizing:border-box;display:grid;place-items:center;width:108px;height:108px;border-radius:24px;border:4px solid #fff;overflow:hidden;background:linear-gradient(135deg,#5b6bff,#23236a);color:#fff;font-weight:800;font-size:38px;box-shadow:0 8px 22px -8px rgba(15,22,58,.4)}
+        .bpc-avatar-wrap{position:relative;width:96px;height:96px;margin-top:-48px}
+        .bpc-avatar-lg{box-sizing:border-box;display:grid;place-items:center;width:96px;height:96px;border-radius:50%;border:4px solid #fff;overflow:hidden;background:#ECEDFA;color:#4E60E6;font-family:'Readex Pro','Plus Jakarta Sans',sans-serif;font-weight:500;font-size:34px}
         .bpc-avatar-lg img{width:100%;height:100%;object-fit:cover}
-        .bpc-actions{position:absolute;right:28px;top:122px;display:flex;align-items:center;gap:10px}
-        .bpc-msg{display:inline-flex;align-items:center;gap:8px;background:#15163a;color:#fff;border:none;border-radius:30px;padding:11px 20px;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit}
-        .bpc-msg:hover{filter:brightness(1.12)}
-        .bpc-review{display:inline-flex;align-items:center;gap:7px;background:#f5b301;color:#15163a;border:none;border-radius:30px;padding:11px 18px;font-weight:800;font-size:13.5px;cursor:pointer;font-family:inherit}
-        .bpc-review:hover{filter:brightness(1.06)}
-        .bpc-reviewed{display:inline-flex;align-items:center;gap:6px;background:#fff6df;color:#8a6d1f;border-radius:30px;padding:9px 15px;font-weight:800;font-size:12.5px}
-        .bpc-name{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:25px;font-weight:800;color:#15163a;margin:12px 0 2px}
-        .bpc-id{color:#9296ba;font-size:13px;font-weight:600}
-        .bpc-stats{display:flex;flex-wrap:wrap;align-items:center;gap:8px 26px;margin-top:16px}
-        .bpc-stats span{color:#9296ba;font-size:12.5px;font-weight:600;display:inline-flex;align-items:center;gap:5px}
-        .bpc-stats strong{color:#15163a;font-size:17px;font-weight:800}
+        .bpc-actions{position:absolute;right:28px;top:16px;display:flex;align-items:center;gap:10px}
+        .bpc-msg{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;background:#07074E;color:#fff;border:0;border-radius:999px;padding:0 20px;font-weight:600;font-size:14px;cursor:pointer;font-family:inherit}
+        .bpc-msg:hover{background:#12124f}
+        .bpc-review{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:40px;background:#fff;color:#07074E;border:1.5px solid #9f9fd1;border-radius:999px;padding:0 18px;font-weight:600;font-size:14px;cursor:pointer;font-family:inherit}
+        .bpc-review:hover{background:#F3F3FF}
+        .bpc-reviewed{display:inline-flex;align-items:center;gap:6px;height:32px;background:#ECEDFA;color:#4E60E6;border-radius:999px;padding:0 13px;font-weight:700;font-size:12.5px}
+        .bpc-name{font-family:'Readex Pro','Plus Jakarta Sans',sans-serif;font-size:26px;font-weight:500;letter-spacing:-.02em;color:#07074E;margin:12px 0 2px}
+        .bpc-id{color:#6E6E96;font-size:13.5px}
+        .bpc-stats{display:flex;flex-wrap:wrap;align-items:center;gap:8px 24px;margin-top:14px}
+        .bpc-stats span{color:#6E6E96;font-size:13px;font-weight:500;display:inline-flex;align-items:center;gap:5px}
+        .bpc-stats strong{color:#07074E;font-size:16px;font-weight:700}
         .bpc-stat-rating strong{margin:0 2px}
-        /* "New" (no rating yet) shouldn't tower over the "rating" label like a big
-           number does - render it at the label size so the pill reads evenly. */
-        .bpc-stat-rating strong.is-unrated{font-size:12.5px;font-weight:700}
-        .bpc-badge{padding:3px 12px;border-radius:20px;background:#eef0ff;color:#5b6bff;font-size:12px!important;font-weight:700!important}
-        .bpc-highlights{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:18px;padding:16px;border:1px solid #ebedfb;border-radius:16px;background:linear-gradient(140deg,#fbfbff,#f4f5ff)}
+        .bpc-stat-rating strong.is-unrated{font-size:13px;font-weight:600}
+        .bpc-badge{height:24px;padding:0 10px;border-radius:999px;background:#E6E8FF;color:#4E60E6!important;font-size:12px!important;font-weight:700!important}
+        .bpc-highlights{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:18px;padding:14px 16px;border-radius:14px;background:#F3F3FF}
         .bpc-hl{min-width:0}
-        .bpc-hl label{display:block;color:#9296ba;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
-        .bpc-hl strong{display:block;color:#07074e;font-size:16px;font-weight:800;margin-top:3px;text-transform:capitalize;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-        .bpc-hl-link{display:inline-flex;align-items:center;gap:5px;margin-top:5px;color:#4452f0;font-size:14px;font-weight:800;text-decoration:none}
+        .bpc-hl label{display:block;color:#6E6E96;font-size:11.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+        .bpc-hl strong{display:block;color:#07074E;font-size:15px;font-weight:700;margin-top:3px;text-transform:capitalize;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .bpc-hl-link{display:inline-flex;align-items:center;gap:5px;margin-top:4px;color:#4E60E6;font-size:14.5px;font-weight:700;text-decoration:none}
         .bpc-hl-link:hover{text-decoration:underline}
-        @media (max-width:520px){.bpc-highlights{grid-template-columns:1fr 1fr}}
-        .bpc-tabs{display:flex;gap:26px;border-bottom:1px solid #eef0f6;margin-top:20px;padding:0 28px;background:#fff}
-        .bpc-tabs button{background:none;border:none;padding:14px 2px;font-size:15px;font-weight:700;color:#9296ba;cursor:pointer;font-family:inherit;border-bottom:2.5px solid transparent;margin-bottom:-1px}
-        .bpc-tabs button.on{color:#15163a;border-bottom-color:#5b6bff}
+        .bpc-tabs{display:flex;gap:28px;border-bottom:1px solid #EDEDF6;margin-top:6px;padding:0 28px;background:#fff}
+        .bpc-tabs button{background:none;border:none;padding:0;height:46px;font-size:15px;font-weight:500;color:#6E6E96;cursor:pointer;font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-1px}
+        .bpc-tabs button.on{color:#07074E;font-weight:700;border-bottom-color:#07074E}
         .bpc-body{padding:22px 28px 26px}
         .bpc-sec{padding-top:2px}
         .bpc-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
         .bpc-f{display:flex;flex-direction:column;gap:5px;min-width:0}
         .bpc-f.wide{grid-column:1/-1}
-        .bpc-f label{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#9296ba;text-transform:uppercase;letter-spacing:.3px}
-        .bpc-f span{font-size:14.5px;color:#15163a;font-weight:600;overflow-wrap:anywhere;text-transform:capitalize}
-        .bpc-link{font-size:14.5px;color:#4452f0;font-weight:600;overflow-wrap:anywhere;text-decoration:none}
+        .bpc-f label{display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:#6E6E96;text-transform:uppercase;letter-spacing:.04em}
+        .bpc-f span{font-size:15px;color:#07074E;font-weight:600;overflow-wrap:anywhere;text-transform:capitalize}
+        .bpc-link{font-size:15px;color:#4E60E6;font-weight:600;overflow-wrap:anywhere;text-decoration:none}
         .bpc-link:hover{text-decoration:underline}
-        .bpc-empty{text-align:center;color:#9296ba;padding:30px 0;font-size:14px}
+        .bpc-empty{text-align:center;color:#6E6E96;padding:30px 0;font-size:14px}
         .bpc-stars{display:inline-flex;gap:2px;vertical-align:middle}
         .bpc-reviews{display:flex;flex-direction:column;gap:16px}
         .bpc-rev-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
-        .bpc-rev-head h3{margin:0;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:19px;font-weight:800;color:#15163a}
+        .bpc-rev-head h3{margin:0;font-family:'Readex Pro','Plus Jakarta Sans',sans-serif;font-size:19px;font-weight:500;color:#07074E}
         .bpc-rev-overall{display:inline-flex;align-items:center;gap:8px}
-        .bpc-rev-overall b{font-size:16px;color:#15163a}
-        .bpc-rev-list{display:flex;flex-direction:column;gap:12px;border-top:1px solid #eef0f6;padding-top:16px}
-        .bpc-rev-card{border:1px solid #eef0f6;border-radius:14px;padding:14px 16px;background:#fff}
+        .bpc-rev-overall b{font-size:16px;color:#07074E}
+        .bpc-rev-list{display:flex;flex-direction:column;gap:12px;border-top:1px solid #EDEDF6;padding-top:16px}
+        .bpc-rev-card{border:1px solid #E2E2F0;border-radius:16px;padding:14px 16px;background:#fff}
         .bpc-rev-who{display:flex;align-items:center;gap:10px}
-        .bpc-rev-ava{width:38px;height:38px;border-radius:50%;flex:none;display:grid;place-items:center;background:linear-gradient(135deg,#5b6bff,#23236a);color:#fff;font-weight:800;font-size:15px}
-        .bpc-rev-who strong{font-size:14.5px;color:#15163a}
-        .bpc-rev-meta{display:flex;align-items:center;gap:6px;margin-top:4px;color:#9296ba;font-size:12.5px}
-        .bpc-rev-meta b{color:#15163a;font-size:13px}
-        .bpc-rev-text{margin:10px 0 0;color:#3a3d63;font-size:14px;line-height:1.6}
-        .bpc-rev-empty{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:34px 20px;border:1px dashed #e6e8f3;border-radius:16px;background:#fafbff}
-        .bpc-rev-empty strong{color:#15163a;font-size:15px;font-weight:800}
-        .bpc-rev-empty span{color:#9296ba;font-size:13px;max-width:320px}
-          @media(max-width:640px){
-            .bpc-actions{position:static;margin-top:12px}
-            .bpc-msg{flex:1}
-            .bpc-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
-            .bpc-f label{font-size:9.5px;line-height:1.25}
-            .bpc-f span{font-size:13px;line-height:1.35}
-          }
-          @media(max-width:340px){.bpc-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+        .bpc-rev-ava{width:38px;height:38px;border-radius:50%;flex:none;display:grid;place-items:center;background:#ECEDFA;color:#4E60E6;font-weight:700;font-size:15px}
+        .bpc-rev-who strong{font-size:14.5px;color:#07074E}
+        .bpc-rev-meta{display:flex;align-items:center;gap:6px;margin-top:4px;color:#6E6E96;font-size:12.5px}
+        .bpc-rev-meta b{color:#07074E;font-size:13px}
+        .bpc-rev-text{margin:10px 0 0;color:#07074E;font-size:14px;line-height:1.6}
+        .bpc-rev-empty{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:34px 20px;border-radius:16px;background:#F3F3FF}
+        .bpc-rev-empty strong{color:#07074E;font-size:15px;font-weight:700}
+        .bpc-rev-empty span{color:#6E6E96;font-size:13.5px;max-width:320px}
+        @media (max-width:640px){
+          .bpc-ov{padding:12px 8px}
+          .bpc-phead{padding:0 18px 18px}
+          .bpc-tabs{padding:0 18px}
+          .bpc-body{padding:20px 18px 24px}
+          .bpc-actions{position:static;margin-top:12px}
+          .bpc-actions .bpc-msg{flex:1}
+          .bpc-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+          .bpc-f label{font-size:10px;line-height:1.25}
+          .bpc-f span{font-size:13px;line-height:1.35}
+        }
+        @media (max-width:340px){.bpc-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
       `}</style>
     </div>
   );

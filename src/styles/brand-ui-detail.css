@@ -1,0 +1,81 @@
+/* Campaign detail (board 05) */
+.bui-main--detail{padding-top:28px;gap:24px}
+.bui-crumb-link{color:var(--bui-link) !important;font-weight:500}
+.bui-dhead{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:18px}
+.bui-dhead-l{display:flex;align-items:center;gap:18px;min-width:0}
+.bui-dthumb{width:64px;height:84px;border-radius:10px;overflow:hidden;flex:none;background:#e6e6f2;display:grid;place-items:center;color:var(--bui-muted)}
+.bui-dthumb img{width:100%;height:100%;object-fit:cover}
+.bui-dhead-t{min-width:0}
+.bui-dhead-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.bui-dhead-sub{font-size:13.5px;color:var(--bui-muted)}
+.bui-h1--detail{margin-top:6px}
+.bui-dhead-r{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.bui-budget{text-align:right;margin-right:8px}
+.bui-budget small{display:block;font-size:12.5px;color:var(--bui-muted)}
+.bui-budget b{font-family:var(--bui-head);font-weight:600;font-size:22px;font-variant-numeric:tabular-nums}
+.bui-btn--grow{flex:1}
+.bui-btn--quiet{border-color:var(--bui-line);color:var(--bui-muted)}
+.bui-btn:disabled{opacity:.55;cursor:default}
+
+.bui-dgrid{display:grid;grid-template-columns:minmax(0,1.75fr) minmax(320px,1fr);gap:24px;align-items:start}
+.bui-dcol{display:flex;flex-direction:column;gap:20px;min-width:0}
+.bui-panel{background:#fff;border:1px solid var(--bui-line);border-radius:14px;padding:22px 24px}
+.bui-panel--tight{padding:20px}
+.bui-panel-h{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+.bui-panel-t{margin:0;font-family:var(--bui-head);font-size:17px;font-weight:500;letter-spacing:-.01em;color:var(--bui-ink)}
+.bui-panel-t--mb{margin-bottom:12px}
+.bui-panel-aside{font-size:13.5px;color:var(--bui-muted)}
+.bui-track6--full{max-width:100%}
+.bui-turn{margin-top:20px;display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:12px;background:var(--bui-bg);box-shadow:inset 0 0 0 1px #e2e4ff;flex-wrap:wrap}
+.bui-turn-ic{flex:none;width:38px;height:38px;border-radius:10px;background:var(--bui-ink);color:#fff;display:grid;place-items:center}
+.bui-turn-tx{flex:1;min-width:200px}
+.bui-turn-tx b{display:block;font-weight:600;font-size:15px}
+.bui-turn-tx small{display:block;font-size:13.5px;color:var(--bui-muted)}
+.bui-kv4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.bui-kv4 small{display:block;font-size:12.5px;color:var(--bui-muted)}
+.bui-kv4 b{display:block;margin-top:3px;font-weight:600;font-size:14.5px;overflow-wrap:anywhere}
+.bui-note{margin:14px 0 0;font-size:13px;color:var(--bui-muted)}
+.bui-note--top{margin:6px 0}
+.bui-dlist{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}
+.bui-dlist li{display:flex;align-items:center;gap:12px;font-size:14.5px}
+.bui-dlist span{flex:none;width:26px;height:26px;border-radius:8px;background:var(--bui-badge);color:#2a3ab8;display:grid;place-items:center;font-weight:700;font-size:12.5px}
+.bui-dlist b{flex:1;font-weight:400;overflow-wrap:anywhere}
+.bui-hired{display:flex;gap:14px}
+.bui-hired-poster{width:92px;aspect-ratio:9/16;border-radius:12px;overflow:hidden;flex:none;background:#e6e6f2;display:grid;place-items:center;color:var(--bui-muted)}
+.bui-hired-poster img{width:100%;height:100%;object-fit:cover}
+.bui-hired-tx{min-width:0;display:flex;flex-direction:column;gap:6px;align-items:flex-start}
+.bui-hired-name{display:flex;align-items:center;gap:8px}
+.bui-hired-name b{font-weight:700;font-size:15.5px}
+.bui-hired-line{display:flex;align-items:center;gap:4px;font-size:13px;color:var(--bui-muted)}
+.bui-hired-line strong{color:var(--bui-ink)}
+.bui-btnrow{display:flex;gap:8px;margin-top:16px}
+.bui-bids{display:flex;flex-direction:column}
+.bui-bid{display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 0;border-top:1px solid #eeeef6}
+.bui-ava36{width:36px;height:36px;border-radius:50%;background:var(--bui-badge);display:grid;place-items:center;font-weight:700;font-size:14px}
+.bui-bid-tx small{display:block;font-size:12.5px;color:var(--bui-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bui-linkbtn{background:none;border:0;padding:0;font:inherit;font-weight:700;font-size:14.5px;color:var(--bui-ink);cursor:pointer}
+.bui-linkbtn:hover{color:var(--bui-link)}
+.bui-bid-act{display:flex;align-items:center;gap:10px}
+.bui-bid-act b{font-weight:700;font-size:15px;font-variant-numeric:tabular-nums}
+.bui-about .bcd-about{margin:0}
+.bui-panel .bcd-cre-tabs{margin:0 0 14px}
+@media (max-width:980px){.bui-dgrid{grid-template-columns:1fr}.bui-kv4{grid-template-columns:repeat(2,minmax(0,1fr))}.bui-budget{text-align:left}}
+.bui-lvl{text-transform:capitalize}
+.bui-crumb button.bui-crumb-link{background:none;border:0;padding:0;font:inherit;cursor:pointer}
+
+/* Script approval card (board 24) */
+.bui-script{background:#fff;border:1px solid var(--bui-line);border-radius:14px;overflow:hidden}
+.bui-script-h{position:relative;overflow:hidden;padding:22px 26px;background:linear-gradient(112deg,#07074e 0%,#0f1468 55%,#2a3ab8 100%);color:#fff}
+.bui-script-ht{position:relative}
+.bui-script-t{margin-top:6px;font-family:var(--bui-head);font-weight:500;font-size:24px}
+.bui-script-s{margin-top:4px;font-size:14.5px;color:rgba(255,255,255,.8)}
+.bui-script-b{padding:22px 26px;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:26px}
+.bui-script-lines{display:flex;flex-direction:column;gap:12px;max-height:380px;overflow-y:auto}
+.bui-script-line{display:flex;gap:14px;padding:14px 16px;border-radius:12px;background:#f6f6fd;font-size:15px;line-height:1.55;overflow-wrap:anywhere}
+.bui-script-line b{flex:none;min-width:70px;font-size:12.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#2a3ab8;padding-top:2px}
+.bui-script-act{display:flex;flex-direction:column;gap:10px}
+.bui-script-act .bui-btn{height:50px}
+.bui-field{display:flex;flex-direction:column;gap:6px;font-size:13.5px;font-weight:600;min-width:0}
+.bui-field textarea{min-height:84px;padding:10px 14px;box-sizing:border-box;border-radius:10px;border:1px solid #c9c9e2;background:#fff;font:inherit;font-weight:400;font-size:15px;color:var(--bui-ink);line-height:1.5;resize:vertical;outline:0}
+.bui-field textarea:focus{border-color:var(--bui-primary)}
+@media (max-width:900px){.bui-script-b{grid-template-columns:1fr}}

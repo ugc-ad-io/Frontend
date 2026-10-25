@@ -1,0 +1,56 @@
+/* Creator Settings (design board C18): grouped cards, each row opens a section or page.
+   Scoped under `.cui-set`; the brand settings live in brand-ui-settings.css (`.bui-set`). */
+
+/* index.css forces `main{padding-inline:var(--site-h-pad) !important}` (4px / 14px): give the page its own gutter */
+body .cui-app main.cui-main:has(> .cui-set){padding-left:34px !important;padding-right:34px !important}
+.cui-set{display:flex;flex-direction:column;gap:22px;min-width:0}
+.cui-set .ps-content{padding:0;overflow:visible;flex:none}
+.cui-set .ps-container{max-width:none;gap:0}
+
+/* home: two columns of cards */
+.cui-set-grid{column-count:2;column-gap:20px}
+.cui-set-card{break-inside:avoid;margin:0 0 20px;min-width:0;background:#fff;border-radius:16px;box-shadow:inset 0 0 0 1px #e4e5f3;padding:20px 22px 8px}
+.cui-set-card h2{margin:0 0 6px;font-family:var(--cui-head);font-weight:500;font-size:18px;color:var(--cui-ink)}
+.cui-set-row{display:flex;align-items:center;gap:12px;width:100%;min-height:60px;padding:12px 0;border:0;border-top:1px solid #ededf6;background:none;font:inherit;color:var(--cui-ink);text-align:left}
+.cui-set-card h2+.cui-set-row{border-top:0}
+button.cui-set-row{cursor:pointer}
+button.cui-set-row:hover .cui-set-txt strong{color:var(--cui-link)}
+.cui-set-ic{flex:none;width:36px;height:36px;border-radius:11px;background:#eef0ff;color:#2a3ab8;display:grid;place-items:center}
+.cui-set-txt{flex:1;min-width:0}
+.cui-set-txt strong{display:block;font-size:14px;font-weight:600}
+.cui-set-txt small{display:block;margin-top:1px;font-size:12px;color:var(--cui-muted);overflow-wrap:anywhere}
+.cui-set-chev{flex:none;color:var(--cui-muted)}
+
+/* detail panel (the existing sections) in the creator look */
+.cui-set .ps-panel{max-width:none;padding:24px 26px;border-radius:16px;background:#fff;box-shadow:inset 0 0 0 1px #e4e5f3;color:var(--cui-ink)}
+.cui-set .ps-password-compact,.cui-set .ps-2fa-compact-title,.cui-set .ps-2fa-compact-desc,.cui-set .ps-2fa-setup--compact{max-width:none}
+.cui-set .ps-panel h2{font-family:var(--cui-head);font-weight:500;font-size:22px;letter-spacing:-.01em;color:var(--cui-ink)}
+.cui-set .ps-panel-desc{color:var(--cui-muted)}
+.cui-set .bs-back.cui-set-back{display:inline-flex;align-items:center;gap:6px;width:auto;height:44px;margin:-6px 0 12px -8px;padding:0 12px 0 6px;border:0;border-radius:10px;background:none;box-shadow:none;position:static;color:var(--cui-link);font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.cui-set .bs-back.cui-set-back span{display:inline}
+.cui-set .ps-btn-primary{background:var(--cui-ink);border-radius:12px;box-shadow:none;min-height:44px}
+.cui-set .ps-btn-primary:hover:not(:disabled){background:#12124f;transform:none;box-shadow:none}
+.cui-set .ps-switch.is-on{background:var(--cui-ink)}
+.cui-set .ps-toggle-ic,.cui-set .ps-legal-ic{background:#eef0ff;color:#2a3ab8}
+.cui-set .ps-toggle-row,.cui-set .ps-legal-row{border-color:#e9e9f6}
+.cui-set .ps-form-group input[type="password"],.cui-set .ps-form-group input[type="text"]{min-height:44px}
+
+@media (max-width:1000px){.cui-set-grid{column-count:1}}
+@media (max-width:900px){
+  body .cui-app main.cui-main:has(> .cui-set){padding-left:16px !important;padding-right:16px !important}
+  .cui-set{gap:14px}
+  .cui-set-card{padding:16px 16px 4px;margin-bottom:14px}
+  .cui-set-row{min-height:64px}
+  .cui-set .ps-panel{padding:16px 14px;min-height:0;box-shadow:inset 0 0 0 1px #e4e5f3;border-radius:16px}
+  .cui-set .ps-panel-profile-full{padding:0;box-shadow:none;border-radius:0}
+  .cui-set .ps-form-group input,.cui-set .ps-form-group select,.cui-set .ps-form-group textarea{font-size:16px}
+  .cui-set .ps-btn-primary,.cui-set .ps-btn-danger{min-height:44px;width:100%;justify-content:center}
+  .cui-set .ps-switch{width:46px;height:26px}
+  .cui-set .ps-switch i{width:20px;height:20px}
+  .cui-set .ps-switch.is-on i{left:23px}
+  /* the 40px profile back circle from ProfileSettings.css is for the old full-bleed profile; use the text back here */
+  .cui-set .ps-content-profile-full .ps-settings-back{position:static;width:auto;height:44px;border-radius:10px;background:none;display:inline-flex}
+  .cui-set .ps-content-profile-full .ps-settings-back span{display:inline}
+}
+.cui-set .ps-legal-row{width:100%;text-align:left;font:inherit;color:inherit}
+.cui-set .ps-toggle-txt strong,.cui-set .ps-legal-txt strong{color:var(--cui-ink)}

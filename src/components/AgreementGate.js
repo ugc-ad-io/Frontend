@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
+import '../styles/web1-misc.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -69,11 +70,9 @@ export default function AgreementGate({ onAccepted }) {
 
   if (!data) {
     return (
-      <div style={S.overlay}>
-        <div style={S.card}>
-          <p style={{ ...S.muted, padding: 40, textAlign: 'center' }}>
-            {error || 'Loading agreement…'}
-          </p>
+      <div className="w1 ag-ov">
+        <div className="ag-card">
+          <p className="ag-load">{error || 'Loading agreement…'}</p>
         </div>
       </div>
     );
@@ -83,41 +82,36 @@ export default function AgreementGate({ onAccepted }) {
   const canAgree = expanded && atBottom && !submitting;
 
   return (
-    <div style={S.overlay}>
-      <div style={S.card}>
-        <div style={S.head}>
-          <h2 style={S.title}>{data.title}</h2>
-          <p style={S.sub}>Last updated {data.last_updated} · Please read and accept to continue.</p>
+    <div className="w1 ag-ov">
+      <div className="ag-card" role="dialog" aria-modal="true" aria-label={data.title}>
+        <div className="ag-head">
+          <h2>{data.title}</h2>
+          <p>Last updated {data.last_updated} · Please read and accept to continue.</p>
         </div>
 
-        <div ref={bodyRef} onScroll={onScroll} style={S.body}>
-          <p style={S.intro}>{data.intro}</p>
+        <div ref={bodyRef} onScroll={onScroll} className="ag-body">
+          <p className="ag-intro">{data.intro}</p>
           {shown.map((sec) => (
-            <div key={sec.n} style={S.section}>
-              <h3 style={S.secHead}>
+            <div key={sec.n} className="ag-sec">
+              <h3>
                 {sec.n}. {sec.heading}
               </h3>
-              <p style={S.secBody}>{sec.body}</p>
+              <p>{sec.body}</p>
             </div>
           ))}
 
           {!expanded && (
-            <button type="button" style={S.viewAll} onClick={viewAll}>
-              View full agreement ↓
+            <button type="button" className="ag-viewall" onClick={viewAll}>
+              View full agreement
             </button>
           )}
-          {expanded && !atBottom && <p style={S.scrollHint}>Scroll to the end to enable “Agree”.</p>}
+          {expanded && !atBottom && <p className="ag-hint">Scroll to the end to enable “Agree”.</p>}
         </div>
 
-        {error && <p style={S.err}>{error}</p>}
+        {error && <p className="ag-err">{error}</p>}
 
-        <div style={S.footer}>
-          <button
-            type="button"
-            style={{ ...S.agree, ...(canAgree ? {} : S.agreeOff) }}
-            disabled={!canAgree}
-            onClick={agree}
-          >
+        <div className="ag-foot">
+          <button type="button" className="w1-btn" disabled={!canAgree} onClick={agree}>
             {submitting ? 'Saving…' : expanded ? (atBottom ? 'Agree & Continue' : 'Scroll to the end') : 'View full agreement first'}
           </button>
         </div>
@@ -125,65 +119,3 @@ export default function AgreementGate({ onAccepted }) {
     </div>
   );
 }
-
-const S = {
-  overlay: {
-    position: 'fixed',
-    inset: 0,
-    zIndex: 2000,
-    background: 'rgba(10, 12, 30, 0.62)',
-    backdropFilter: 'blur(4px)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-  },
-  card: {
-    width: '100%',
-    maxWidth: 560,
-    maxHeight: '82vh',
-    margin: 'auto',
-    display: 'flex',
-    flexDirection: 'column',
-    background: '#ffffff',
-    borderRadius: 20,
-    boxShadow: '0 24px 70px rgba(0,0,0,0.35)',
-    overflow: 'hidden',
-  },
-  head: { padding: '22px 24px 14px', borderBottom: '1px solid #eef0f5' },
-  title: { margin: 0, fontSize: 19, fontWeight: 800, color: '#12142e' },
-  sub: { margin: '6px 0 0', fontSize: 13, color: '#6b7280' },
-  body: { padding: '18px 24px', overflowY: 'auto', flex: 1 },
-  intro: { margin: '0 0 16px', fontSize: 13.5, lineHeight: 1.6, color: '#374151', whiteSpace: 'pre-line' },
-  section: { marginBottom: 16 },
-  secHead: { margin: '0 0 6px', fontSize: 14.5, fontWeight: 800, color: '#1f2340' },
-  secBody: { margin: 0, fontSize: 13.5, lineHeight: 1.6, color: '#374151', whiteSpace: 'pre-line' },
-  viewAll: {
-    marginTop: 8,
-    padding: '11px 16px',
-    width: '100%',
-    border: '1px solid #d7daf0',
-    background: '#eef0ff',
-    color: '#3b41a8',
-    fontWeight: 700,
-    fontSize: 14,
-    borderRadius: 11,
-    cursor: 'pointer',
-  },
-  scrollHint: { marginTop: 14, textAlign: 'center', fontSize: 12.5, color: '#9aa0b4' },
-  muted: { color: '#6b7280', fontSize: 14 },
-  err: { margin: '0 24px', color: '#c0392b', fontSize: 13 },
-  footer: { padding: '14px 24px', borderTop: '1px solid #eef0f5' },
-  agree: {
-    width: '100%',
-    height: 46,
-    border: 'none',
-    borderRadius: 12,
-    background: '#4C5BF3',
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: 800,
-    cursor: 'pointer',
-  },
-  agreeOff: { background: '#c3c7dd', cursor: 'not-allowed' },
-};

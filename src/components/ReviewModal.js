@@ -65,23 +65,23 @@ export default function ReviewModal({ title = 'Rate this creator', subtitle, onS
       </div>
 
       <style>{`
-        .rvm-overlay{position:fixed;inset:0;z-index:1200;background:rgba(15,22,58,.5);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:24px;overflow-y:auto;overscroll-behavior:contain}
-        .rvm-card{position:relative;width:min(440px,100%);background:#fff;border-radius:20px;padding:26px 24px 22px;max-height:calc(100dvh - 48px);overflow-y:auto;box-shadow:0 30px 70px rgba(15,22,58,.42);animation:rvm-pop .2s ease}
+        .rvm-overlay{position:fixed;inset:0;z-index:1200;background:rgba(7,7,78,.45);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:24px;overflow-y:auto;overscroll-behavior:contain}
+        .rvm-card{position:relative;width:min(440px,100%);background:#fff;border-radius:20px;padding:26px 24px 22px;max-height:calc(100dvh - 48px);overflow-y:auto;box-shadow:0 40px 80px -30px rgba(7,7,78,.6);font-family:'Inter',system-ui,sans-serif;color:#07074e;animation:rvm-pop .2s ease}
         @keyframes rvm-pop{from{transform:translateY(12px) scale(.98);opacity:0}to{transform:none;opacity:1}}
-        .rvm-x{position:absolute;top:14px;right:14px;width:32px;height:32px;border:none;border-radius:9px;background:#f1f3fa;color:#15163a;cursor:pointer;display:grid;place-items:center}
-        .rvm-x:hover{background:#e7eaf5}
-        .rvm-card h3{margin:0 0 4px;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:19px;color:#15163a}
-        .rvm-sub{margin:0 0 16px;color:#6b7094;font-size:13.5px}
+        .rvm-x{position:absolute;top:14px;right:14px;width:32px;height:32px;border:none;border-radius:9px;background:#f6f6fd;color:#07074e;cursor:pointer;display:grid;place-items:center}
+        .rvm-x:hover{background:#eef0ff}
+        .rvm-card h3{margin:0 0 4px;font-family:'Readex Pro','Plus Jakarta Sans',sans-serif;font-weight:500;font-size:20px;color:#07074e}
+        .rvm-sub{margin:0 0 16px;color:#6e6e96;font-size:13.5px}
         .rvm-stars{display:flex;gap:6px;justify-content:center;margin:8px 0 18px}
         .rvm-star{background:none;border:none;cursor:pointer;padding:2px;line-height:0}
-        .rvm-text{width:100%;border:1px solid #e6e8f3;border-radius:12px;padding:12px 14px;font:inherit;font-size:14px;color:#15163a;resize:vertical;outline:none}
-        .rvm-text:focus{border-color:#5b6bff;box-shadow:0 0 0 3px rgba(91,107,255,.14)}
+        .rvm-text{width:100%;border:1.5px solid transparent;background:#f6f6fd;border-radius:16px;padding:12px 14px;font:inherit;font-size:14px;color:#07074e;resize:vertical;outline:none}
+        .rvm-text:focus{background:#fff;border-color:#7387ff;box-shadow:0 0 0 3px rgba(115,135,255,.2)}
         .rvm-actions{display:flex;gap:10px;margin-top:16px}
-        .rvm-ghost,.rvm-submit{flex:1;height:46px;border-radius:12px;font:inherit;font-weight:700;font-size:14px;cursor:pointer;border:1px solid transparent}
-        .rvm-ghost{background:#fff;border-color:#e9ebf4;color:#15163a}
-        .rvm-ghost:hover{border-color:#d3d7f0}
-        .rvm-submit{background:#12124f;color:#fff}
-        .rvm-submit:hover:not(:disabled){background:#07074e}
+        .rvm-ghost,.rvm-submit{flex:1;height:48px;border-radius:999px;font:inherit;font-weight:700;font-size:14.5px;cursor:pointer;border:1px solid transparent}
+        .rvm-ghost{background:#fff;border-color:#c9cbea;color:#07074e}
+        .rvm-ghost:hover{background:#f3f3ff}
+        .rvm-submit{background:#07074e;color:#fff}
+        .rvm-submit:hover:not(:disabled){background:#12124f}
         .rvm-submit:disabled,.rvm-ghost:disabled{opacity:.55;cursor:not-allowed}
         @media (max-width:768px){
           .rvm-overlay{padding:max(12px,env(safe-area-inset-top,0px)) 12px max(12px,env(safe-area-inset-bottom,0px))}

@@ -214,7 +214,7 @@ const ShippingDetailsCard = forwardRef(function ShippingDetailsCard({ campaignId
             <label>Full name<input ref={firstFieldRef} value={form.full_name} onChange={(e) => set('full_name', e.target.value)} placeholder="Name for the courier" /></label>
             <label>Phone<input value={form.phone} onChange={(e) => set('phone', e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="10-digit mobile" inputMode="numeric" /></label>
             <label className="sdc-full">Address line 1<input value={form.line1} onChange={(e) => set('line1', e.target.value)} placeholder="House / building, street" /></label>
-            <label className="sdc-full">Address line 2 <em>(optional)</em><input value={form.line2} onChange={(e) => set('line2', e.target.value)} placeholder="Area, landmark" /></label>
+            <label className="sdc-full"><span>Address line 2 <em>(optional)</em></span><input value={form.line2} onChange={(e) => set('line2', e.target.value)} placeholder="Area, landmark" /></label>
             <label>City<input value={form.city} onChange={(e) => set('city', e.target.value)} /></label>
             <label>State<input value={form.state} onChange={(e) => set('state', e.target.value)} /></label>
             <label>Pincode<input value={form.pincode} onChange={(e) => set('pincode', e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="6-digit" inputMode="numeric" /></label>
@@ -230,42 +230,44 @@ const ShippingDetailsCard = forwardRef(function ShippingDetailsCard({ campaignId
       </div>
 
       <style>{`
-        .sdc{border:1px solid #e9ebf4;border-radius:14px;background:#fff;overflow:hidden;min-width:0}
-        .sdc-head{display:flex;gap:12px;align-items:flex-start;padding:16px 18px;border-bottom:1px solid #f1f3fa}
-        .sdc-ic{flex:none;width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:#eef0ff;color:#5b6bff}
-        .sdc-head h3{margin:0;font-size:15px;color:#15163a}
-        .sdc-head p{margin:3px 0 0;font-size:12.5px;color:#9296ba}
-        .sdc-status{display:flex;gap:8px;flex-wrap:wrap;padding:12px 18px;background:#fafbff;border-bottom:1px solid #f1f3fa}
-        .sdc-chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px}
-        .sdc-chip.ok{background:#e8f7ef;color:#0f7a43}
-        .sdc-chip.wait{background:#fff4e5;color:#a35b00}
-        .sdc-chip.ready{background:#eef0ff;color:#3730a3}
-        .sdc-body{padding:16px 18px}
-        .sdc-muted{color:#9296ba;font-size:13.5px}
-        .sdc-lead{display:flex;align-items:center;gap:7px;margin:0 0 12px;font-size:13px;color:#585c7e}
+        .sdc{border-radius:20px;background:#fff;overflow:hidden;min-width:0;box-shadow:inset 0 0 0 1px #e2e2f0;color:#07074e;font-family:'Inter',system-ui,sans-serif}
+        .sdc-head{display:flex;gap:12px;align-items:flex-start;padding:18px 20px;border-bottom:1px solid #edeef6}
+        .sdc-ic{flex:none;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:#eef0ff;color:#4e60e6}
+        .sdc-head h3{margin:0;font-family:'Readex Pro','Plus Jakarta Sans',sans-serif;font-weight:500;font-size:17px;color:#07074e}
+        .sdc-head p{margin:3px 0 0;font-size:13.5px;color:#6e6e96}
+        .sdc-status{display:flex;gap:8px;flex-wrap:wrap;padding:12px 20px;background:#f6f6fd;border-bottom:1px solid #edeef6}
+        .sdc-chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;height:26px;padding:0 10px;border-radius:999px}
+        .sdc-chip.ok{background:#e4f5ec;color:#13774f}
+        .sdc-chip.wait{background:#fff2dc;color:#8a4b00}
+        .sdc-chip.ready{background:#e6e8ff;color:#2a3ab8}
+        .sdc-body{padding:18px 20px}
+        .sdc-muted{color:#6e6e96;font-size:14px}
+        .sdc-lead{display:flex;align-items:center;gap:7px;margin:0 0 12px;font-size:13.5px;color:#5a5a8c}
         .sdc-choices{display:flex;flex-direction:column;gap:10px}
-        .sdc-choice{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;border:1px solid #e6e8f3;border-radius:12px;padding:12px 14px}
+        .sdc-choice{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;box-shadow:inset 0 0 0 1px #e2e2f0;border-radius:16px;padding:14px 16px}
         .sdc-choice .sdc-addr{flex:1 1 220px;min-width:0}
-        .sdc-src{font-style:normal;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#9296ba}
-        .sdc-addr{display:flex;gap:10px;color:#5b6bff}
-        .sdc-addr strong{display:block;color:#15163a;font-size:14px}
-        .sdc-addr span{display:block;color:#585c7e;font-size:13.5px;line-height:1.5;margin-top:2px;overflow-wrap:anywhere}
+        .sdc-src{font-style:normal;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#6e6e96}
+        .sdc-addr{display:flex;gap:10px;color:#4e60e6}
+        .sdc-addr strong{display:block;color:#07074e;font-size:14.5px;font-weight:600}
+        .sdc-addr span{display:block;color:#5a5a8c;font-size:14px;line-height:1.5;margin-top:2px;overflow-wrap:anywhere}
         .sdc-addr em{display:block}
-        .sdc-edit{margin-top:12px;align-self:flex-start;border:1px solid #d6dbff;background:#fff;color:#4452f0;font-weight:700;font-size:13px;padding:7px 14px;border-radius:9px;cursor:pointer}
-        .sdc-edit:hover{background:#eef0ff}
-        .sdc-note{display:flex;align-items:center;gap:6px;margin:12px 0 0;font-size:12.5px;color:#9296ba}
+        .sdc-edit{margin-top:12px;align-self:flex-start;border:1px solid #c9cbea;background:#fff;color:#07074e;font-family:inherit;font-weight:700;font-size:13.5px;height:40px;padding:0 18px;border-radius:999px;cursor:pointer}
+        .sdc-edit:hover{background:#f3f3ff}
+        .sdc-note{display:flex;align-items:center;gap:6px;margin:12px 0 0;font-size:13px;color:#6e6e96}
         .sdc-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
         .sdc-full{grid-column:1 / -1}
-        .sdc-form label{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:700;color:#5b6573;min-width:0}
-        .sdc-form label em{font-weight:500;color:#9296ba;font-style:normal}
-        .sdc-form input{border:1px solid #e6e8f3;border-radius:10px;padding:9px 11px;font-size:14px;font-family:inherit;color:#15163a;outline:none;min-width:0;width:100%;box-sizing:border-box}
-        .sdc-form input:focus{border-color:#5b6bff;box-shadow:0 0 0 3px rgba(91,107,255,.14)}
+        .sdc-form label{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700;color:#07074e;min-width:0}
+        .sdc-form label em{font-weight:500;color:#6e6e96;font-style:normal}
+        .sdc-form input{border:1.5px solid transparent;background:#f6f6fd;border-radius:16px;padding:11px 14px;font-size:14px;font-weight:400;font-family:inherit;color:#07074e;outline:none;min-width:0;width:100%;box-sizing:border-box}
+        .sdc-form input:focus{background:#fff;border-color:#7387ff;box-shadow:0 0 0 3px rgba(115,135,255,.2)}
         .sdc-actions{grid-column:1 / -1;display:flex;gap:10px;justify-content:flex-end;margin-top:4px}
-        .sdc-save{border:none;background:linear-gradient(100deg,#12124f,#07074e);color:#fff;font-weight:700;font-size:13.5px;padding:10px 18px;border-radius:10px;cursor:pointer;white-space:nowrap}
+        .sdc-save{border:none;background:#07074e;color:#fff;font-family:inherit;font-weight:700;font-size:14px;height:44px;padding:0 22px;border-radius:999px;cursor:pointer;white-space:nowrap}
+        .sdc-save:hover:not(:disabled){background:#12124f}
         .sdc-save:disabled{opacity:.55;cursor:not-allowed}
-        .sdc-ghost{border:1px solid #e6e8f3;background:#fff;color:#5b6573;font-weight:600;font-size:13.5px;padding:10px 16px;border-radius:10px;cursor:pointer}
-        @media (max-width:560px){.sdc-form{grid-template-columns:minmax(0,1fr)}}
-      `}</style>
+        .sdc-ghost{border:1px solid #c9cbea;background:#fff;color:#07074e;font-family:inherit;font-weight:700;font-size:14px;height:44px;padding:0 20px;border-radius:999px;cursor:pointer}
+        .sdc-ghost:hover{background:#f3f3ff}
+        @media (max-width:560px){.sdc-form{grid-template-columns:minmax(0,1fr)}.sdc-actions{flex-wrap:wrap}.sdc-actions button{flex:1 1 140px}}
+        `}</style>
     </div>
   );
 });

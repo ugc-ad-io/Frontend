@@ -10,5 +10,5 @@ const creatorSrc = fs.readFileSync(path.join(__dirname, 'CreatorTopNavLayout.js'
 test('brand shell flushes the page padding on /messages like the creator shell does', () => {
   expect(src).toMatch(/const isMessages = pathname === '\/messages' \|\| pathname\.startsWith\('\/messages\/'\)/);
   expect(src).toMatch(/<main className=\{`cmk-wrap cmk-page\$\{isMessages \? ' cmk-page--flush' : ''\}`\}>/);
-  expect(creatorSrc).toContain("cmk-page--flush");
+  expect(creatorSrc).toContain("cui-main--flush");
 });

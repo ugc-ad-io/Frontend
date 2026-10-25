@@ -1,0 +1,43 @@
+/* Creator card + video viewer shared by the brand discovery screens. Values from board M0 (Home / Creators / Saved). */
+.ap-rc{display:flex;flex-direction:column;gap:7px;min-width:0}
+.ap-rc-media{position:relative;aspect-ratio:9/16;border-radius:14px;overflow:hidden;background:#e6e6f2}
+.ap-rc-play,.ap-rc-novid{position:absolute;inset:0;width:100%;height:100%;border:0;padding:0;margin:0;background:transparent;cursor:pointer;display:block}
+.ap-rc-play video{width:100%;height:100%;object-fit:cover;display:block;background:#e6e6f2}
+.ap-rc-playic{position:absolute;right:8px;top:50%;margin-top:-14px;width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,.42);color:#fff;display:grid;place-items:center;padding-left:2px}
+.ap-rc-novid{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:#8a8aae;font:inherit;font-size:11.5px;font-weight:600}
+.ap-rc-badge{position:absolute;left:7px;top:8px;display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:999px;font-size:9.5px;font-weight:700;white-space:nowrap;background:#fff;color:#07074e;pointer-events:none}
+.ap-rc-badge--choice{background:linear-gradient(112deg,#07074e 0%,#0f1468 55%,#2a3ab8 100%);color:#fff;box-shadow:inset 0 0 0 1px rgba(115,135,255,.55)}
+.ap-rc-badge--l1{background:#e6e8ff}
+.ap-rc-badge--l2{background:#7387ff}
+.ap-rc-badge--elite{background:#07074e;color:#fff}
+.ap-rc-save{position:absolute;right:0;top:0;width:44px;height:44px;border:0;padding:0;background:transparent;display:grid;place-items:center;cursor:pointer;color:#07074e}
+.ap-rc-save span{width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.92);display:grid;place-items:center}
+.ap-rc-save.is-on span{color:#e5484d}
+.ap-rc-who{position:absolute;left:6px;right:6px;bottom:6px;display:flex;align-items:center;gap:6px;padding:6px 7px;border-radius:10px;background:rgba(255,255,255,.92);border:0;font:inherit;text-align:left;cursor:pointer;color:#07074e;min-height:36px}
+.ap-rc-ava{flex:none;width:22px;height:22px;border-radius:50%;overflow:hidden;background:#07074e;color:#fff;display:grid;place-items:center;font-size:10px;font-weight:700}
+.ap-rc-ava img{width:100%;height:100%;object-fit:cover}
+.ap-rc-nm{min-width:0;display:block}
+.ap-rc-nm b{display:flex;align-items:center;gap:3px;font-weight:700;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ap-rc-nm small{display:block;font-size:10px;color:#5a5a8c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ap-rc-foot{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.ap-rc-price{font-weight:700;font-size:13px;white-space:nowrap}
+.ap-rc-price small{font-weight:500;font-size:10.5px;color:#5a5a8c}
+.ap-rc-invite{position:relative;height:28px;padding:0 10px;border-radius:8px;border:0;background:#07074e;color:#fff;font:inherit;font-size:11.5px;font-weight:600;cursor:pointer}
+.ap-rc-invite::after{content:'';position:absolute;inset:-8px -4px}
+
+/* full-size player (board M0 "Video viewer") */
+.ap-vv{position:fixed;inset:0;z-index:300;background:#000;display:flex;flex-direction:column;color:#fff;font-family:'Inter',-apple-system,system-ui,sans-serif}
+.ap-vv-top{display:flex;align-items:center;gap:8px;padding:calc(8px + env(safe-area-inset-top,0px)) calc(8px + env(safe-area-inset-right,0px)) 8px calc(8px + env(safe-area-inset-left,0px))}
+.ap-vv-top div{flex:1;min-width:0}
+.ap-vv-top b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ap-vv-top small{display:block;font-size:12.5px;color:rgba(255,255,255,.7)}
+.ap-vv-btn{width:44px;height:44px;border-radius:50%;border:0;background:rgba(255,255,255,.14);color:#fff;display:grid;place-items:center;cursor:pointer;flex:none;padding:0}
+.ap-vv-stage{position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
+.ap-vv-stage video,.ap-vv-stage img{max-width:100%;max-height:100%;width:100%;height:100%;object-fit:contain}
+.ap-vv-wm{position:absolute;top:calc(10px + env(safe-area-inset-top,0px));right:calc(12px + env(safe-area-inset-right,0px));display:flex;flex-direction:column;align-items:center;gap:3px;pointer-events:none}
+.ap-vv-wm img{width:36px;height:36px;object-fit:contain;border-radius:9px;opacity:.92}
+.ap-vv-wm span{font-size:10.5px;font-weight:800;text-shadow:0 1px 4px rgba(0,0,0,.7)}
+.ap-vv-nav{position:absolute;top:50%;margin-top:-22px}
+.ap-vv-nav--l{left:calc(8px + env(safe-area-inset-left,0px))}.ap-vv-nav--r{right:calc(8px + env(safe-area-inset-right,0px))}
+.ap-vv-bot{display:flex;gap:10px;padding:10px calc(16px + env(safe-area-inset-right,0px)) calc(14px + env(safe-area-inset-bottom,0px)) calc(16px + env(safe-area-inset-left,0px))}
+.ap-vv-bot .ap-btn{flex:1}

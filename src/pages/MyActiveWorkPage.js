@@ -3,9 +3,12 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { Zap, AlertTriangle, Hourglass, CheckCircle2, XCircle, ArrowRight, RefreshCw, Inbox, IndianRupee, ChevronDown } from 'lucide-react';
+import { Clock } from 'lucide-react';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
+import CreatorPageHead from '../components/CreatorPageHead';
+import { inr, brandTile } from '../utils/orderUi';
 import '../styles/creator-marketplace.css';
+import '../styles/creator-ui-orders.css';
 import EmptyState from '../components/EmptyState';
 import { Skeleton } from '../components/Skeleton';
 import { isSelectedCreator } from '../utils/campaignCreators';
@@ -17,8 +20,6 @@ const getInitial = (name) => (name || 'B').trim().charAt(0).toUpperCase();
 
 // Deal lifecycle stages, rendered as a segmented progress bar on each row.
 const STAGES = ['Accepted', 'Shipment', 'Video Submission', 'Review', 'Payout'];
-// A distinct colour per stage; the final stage (Payout) is green.
-const STAGE_COLORS = ['#3b82f6', '#6366f1', '#6d7bff', '#f59e0b', '#22c55e'];
 
 // Online-only campaigns (app, service, storefront) ship nothing, so a "Shipment"
 // stage is dead weight — the creator starts filming the moment they accept. The
@@ -27,10 +28,7 @@ const dealShips = (c) => (
   c.requires_shipment === true || c.shipment_required === true || c.shipment_option === 'yes'
 );
 // Stage list + matching colours for this specific deal.
-const stagesFor = (c) => {
-  if (dealShips(c)) return { labels: STAGES, colors: STAGE_COLORS };
-  return { labels: STAGES.filter((s) => s !== 'Shipment'), colors: STAGE_COLORS.filter((_, i) => i !== 1) };
-};
+const stagesFor = (c) => ({ labels: dealShips(c) ? STAGES : STAGES.filter((x) => x !== 'Shipment') });
 function stageIndex(c) {
   const s = c.status;
   const ships = dealShips(c);
@@ -55,24 +53,24 @@ const needsRevision = (c) => (c.work_submission || {}).status === 'revision_requ
 const isBookingRequest = (c) => c.booking_status === 'pending_creator' || c.booking_status === 'price_revision';
 const needsCreatorResponse = (c) => c.booking_status === 'pending_creator';
 
-// Reference-style status badge: label + accent colour + icon.
+// Status badge: label + tone (cui-o-pill).
 function statusMeta(c) {
   const s = c.status;
   const due = c.due_date ? Math.ceil((new Date(c.due_date) - Date.now()) / 86400000) : null;
   const startFuture = (c.start_date || c.scheduled_at) && new Date(c.start_date || c.scheduled_at) > Date.now();
-  // Booking requests come first — a pending one needs the creator to respond, and a
+  // Booking requests come first - a pending one needs the creator to respond, and a
   // price proposal is parked waiting on the brand. Neither is active work yet.
-  if (c.booking_status === 'pending_creator') return { label: 'Booking Request', color: '#4452f0', Icon: Inbox };
-  if (c.booking_status === 'price_revision') return { label: 'Price Sent - Awaiting Brand', color: '#f59e0b', Icon: Hourglass };
+  if (c.booking_status === 'pending_creator') return { label: 'Booking request', tone: 'info' };
+  if (c.booking_status === 'price_revision') return { label: 'Price sent - awaiting brand', tone: 'warn' };
   // A revision request drops the campaign back to in_progress, which used to read
-  // as a plain "Active" — the creator had no signal the brand wanted changes.
-  if (needsRevision(c)) return { label: 'Revision Requested', color: '#f97316', Icon: RefreshCw };
-  if (s === 'completed') return { label: 'Completed', color: '#22c55e', Icon: CheckCircle2 };
-  if (s === 'cancelled') return { label: 'Cancelled', color: '#ef4444', Icon: XCircle };
-  if (s === 'work_submitted' || s === 'under_review') return { label: 'In Review', color: '#f59e0b', Icon: Hourglass };
-  if (due !== null && due < 0) return { label: 'Over Time', color: '#ef4444', Icon: AlertTriangle };
-  if (startFuture) return { label: 'Upcoming', color: '#f97316', Icon: Hourglass };
-  return { label: 'Active', color: '#16a34a', Icon: Zap };
+  // as a plain "Active" - the creator had no signal the brand wanted changes.
+  if (needsRevision(c)) return { label: 'Changes asked', tone: 'warn' };
+  if (s === 'completed') return { label: 'Completed', tone: 'ok' };
+  if (s === 'cancelled') return { label: 'Cancelled', tone: 'muted' };
+  if (s === 'work_submitted' || s === 'under_review') return { label: 'In review', tone: 'info' };
+  if (due !== null && due < 0) return { label: 'Over time', tone: 'bad' };
+  if (startFuture) return { label: 'Upcoming', tone: 'warn' };
+  return { label: 'Active', tone: 'info' };
 }
 
 const TABS = [
@@ -94,7 +92,6 @@ export default function MyActiveWorkPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [tab, setTab] = useState('active');
-  const [expandedProgress, setExpandedProgress] = useState(() => new Set());
   // Land on the Requests tab once if there's a booking waiting on the creator — the
   // whole point of the "New booking request" notification is to not miss it. Only
   // fires on the first load that has requests; manual tab switches stick after that.
@@ -141,166 +138,113 @@ export default function MyActiveWorkPage() {
 
   return (
     <CreatorTopNavLayout notifications={0}>
-      <div className="cmk-page-head">
-        <h1>My Active Work</h1>
-        <p>Manage and track all your ongoing campaigns.</p>
-      </div>
+      <div className="cui-o-page">
+        <CreatorPageHead title="My Active Work" subtitle="Manage and track all your ongoing campaigns." />
 
-      {loadError && campaigns.length > 0 && (
-        <p role="alert" style={{ margin: '10px 0', fontSize: 13.5, color: '#b45309' }}>{loadError} Showing the last loaded list.</p>
-      )}
+        {loadError && campaigns.length > 0 && (
+          <div className="cui-o-err" role="alert">{loadError} Showing the last loaded list.</div>
+        )}
 
-      <div className="cmk-tabs-row">
-        <div className="cmk-tabs">
-          {TABS.map((t) => (
-            <button key={t.key} type="button" className={tab === t.key ? 'is-active' : ''} onClick={() => setTab(t.key)}>
-              {t.label} <em>({counts[t.key] || 0})</em>
-            </button>
-          ))}
-        </div>
-      </div>
+        <div className="cui-o-card" style={{ paddingBottom: 6 }}>
+          <div className="cui-o-tabs" role="tablist">
+            {TABS.map((t) => (
+              <button key={t.key} type="button" role="tab" aria-selected={tab === t.key} className={`cui-o-tab ${tab === t.key ? 'is-on' : ''}`} onClick={() => setTab(t.key)}>
+                {t.label} <span className="cui-o-count">{counts[t.key] || 0}</span>
+              </button>
+            ))}
+          </div>
 
-      {loadError && !campaigns.length && !loading ? (
-        <EmptyState title="Could not load active work" message={loadError} action={{ label: 'Retry', onClick: () => { setLoading(true); fetchData(); } }} />
-      ) : loading ? (
-        <div className="cmk-awc-grid">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <article className="cmk-awc" key={i} aria-hidden="true">
-              <Skeleton width={46} height={46} radius={12} />
-              <div className="cmk-awc-lead" style={{ flex: 1, minWidth: 0 }}>
-                <Skeleton width={120} height={12} />
-                <Skeleton width="55%" height={16} style={{ marginTop: 8 }} />
-                <Skeleton width="40%" height={12} style={{ marginTop: 6 }} />
-              </div>
-              <Skeleton width={140} height={30} radius={8} />
-              <Skeleton width={38} height={38} radius="50%" />
-            </article>
-          ))}
-        </div>
-      ) : rows.length ? (
-        <div className="cmk-awc-grid">
-          {rows.map((c) => {
-            const meta = statusMeta(c);
-            const brand = String(c.brand_name || c.business_name || c.company_name || c.business_nickname || c.brand_handle || '').replace(/^@+/, '').trim() || 'Brand';
-            const channel = (Array.isArray(c.objectives) && c.objectives[0]) || c.industry_type || 'UGC Video';
-            const shortId = `#${String(c.id).slice(-4).toUpperCase()}`;
-            const cur = stageIndex(c);
-            const steps = stagesFor(c);
-            const progress = steps.labels.length > 1 ? (cur / (steps.labels.length - 1)) * 100 : 0;
-            const progressOpen = expandedProgress.has(c.id);
-            return (
-              <article
-                key={c.id}
-                className="cmk-awc cmk-rise"
-                style={{ '--awc': meta.color }}
-                onClick={() => navigate(`/my-deals?campaign=${c.id}`)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); navigate(`/my-deals?campaign=${c.id}`); } }}
-              >
-                <span className="cmk-awc-ava">
-                  {c.brand_logo ? <img src={c.brand_logo.startsWith('http') ? c.brand_logo : `${BACKEND_URL}${c.brand_logo}`} alt="" /> : getInitial(brand)}
-                </span>
-
-                <div className="cmk-awc-lead">
-                  <div className="cmk-awc-top">
-                    <span className="cmk-awc-id">{shortId}</span>
-                    <span className="cmk-awc-div" />
-                    <span className="cmk-awc-badge"><meta.Icon size={14} /> {meta.label}</span>
+          {loadError && !campaigns.length && !loading ? (
+            <EmptyState title="Could not load active work" message={loadError} action={{ label: 'Retry', onClick: () => { setLoading(true); fetchData(); } }} />
+          ) : loading ? (
+            <div aria-hidden="true">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div className="cui-o-skel" key={i}>
+                  <Skeleton width={54} height={54} radius={12} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <Skeleton width={110} height={12} />
+                    <Skeleton width="55%" height={16} style={{ marginTop: 8 }} />
                   </div>
-                  <h3 className="cmk-awc-title">{c.title || 'Campaign'}</h3>
-                  <small className="cmk-awc-sub">{brand} · Via {channel}</small>
-
-                  {/* The one place the creator can actually read the brand's notes
-                      and re-upload. Without it, "Revision Requested" is a dead end. */}
-                  {needsRevision(c) && (
-                    <button
-                      type="button"
-                      className="cmk-awc-revision"
-                      onClick={(e) => { e.stopPropagation(); navigate(`/my-deals?campaign=${c.id}&tab=deliverables`); }}
-                      data-testid={`see-revision-${c.id}`}
-                    >
-                      <RefreshCw size={13} /> See what they asked for
-                    </button>
-                  )}
+                  <Skeleton width={80} height={24} radius={999} />
                 </div>
-
-                {isBookingRequest(c) ? (
-                  /* Work hasn't started — the stage stepper would be misleading. Show the
-                     payout and a direct "Respond" CTA into the Deal Room booking card. */
-                  <div className="cmk-awc-reqcta">
-                    <span className="cmk-awc-reqpay">
-                      <IndianRupee size={15} />
-                      <b>{Number(c.budget_max || c.budget_min || 0).toLocaleString('en-IN')}</b>
-                      <em>you'll be paid</em>
-                    </span>
-                    <button
-                      type="button"
-                      className="cmk-awc-respond"
-                      onClick={(e) => { e.stopPropagation(); navigate(`/my-deals?campaign=${c.id}`); }}
-                      data-testid={`respond-booking-${c.id}`}
-                    >
-                      {needsCreatorResponse(c) ? 'Respond to request' : 'View proposal'}
-                    </button>
-                  </div>
-                ) : (
-                  <div className={`cmk-awc-progress ${progressOpen ? 'is-expanded' : ''}`} onClick={(event) => event.stopPropagation()}>
-                    <button
-                      type="button"
-                      className="cmk-awc-progress-summary"
-                      onClick={() => setExpandedProgress((current) => {
-                        const next = new Set(current);
-                        if (next.has(c.id)) next.delete(c.id);
-                        else next.add(c.id);
-                        return next;
-                      })}
-                      aria-expanded={progressOpen}
-                      aria-controls={`campaign-progress-${c.id}`}
-                    >
-                      <span className="cmk-awc-progress-labels">
-                        <strong>Start</strong>
-                        <em>{steps.labels[cur]}</em>
-                        <strong>Payout</strong>
+              ))}
+            </div>
+          ) : rows.length ? (
+            <>
+              <div className="cui-o-thead" aria-hidden="true"><span>ORDER</span><span>DUE</span><span>STATUS</span><span>PRICE</span><span /></div>
+              {rows.map((c) => {
+                const meta = statusMeta(c);
+                const brand = String(c.brand_name || c.business_name || c.company_name || c.business_nickname || c.brand_handle || '').replace(/^@+/, '').trim() || 'Brand';
+                const { bg, fg } = brandTile(brand);
+                const cur = stageIndex(c);
+                const steps = stagesFor(c);
+                const dueDays = c.due_date ? Math.ceil((new Date(c.due_date) - Date.now()) / 86400000) : null;
+                const open = () => navigate(`/my-deals?campaign=${c.id}`);
+                return (
+                  <div
+                    key={c.id}
+                    className="cui-o-row"
+                    onClick={open}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); open(); } }}
+                  >
+                    <div className="cui-o-order">
+                      <span className="cui-o-tile" style={{ width: 54, height: 54, background: c.brand_logo ? '#fff' : bg, color: fg, fontSize: 22 }}>
+                        {c.brand_logo ? <img src={c.brand_logo.startsWith('http') ? c.brand_logo : `${BACKEND_URL}${c.brand_logo}`} alt="" /> : getInitial(brand)}
                       </span>
-                      <span className="cmk-awc-progress-track" aria-hidden="true">
-                        <i style={{ width: `${progress}%` }} />
-                        <b style={{ left: `${progress}%` }} />
-                      </span>
-                      <small>{progressOpen ? 'Hide stages' : 'View stages'} <ChevronDown size={13} /></small>
-                    </button>
-
-                    <div id={`campaign-progress-${c.id}`} className="cmk-awc-steps">
-                      {steps.labels.map((label, i) => (
-                        <div
-                          key={label}
-                          className={`awc-step ${i < cur ? 'done' : ''} ${i === cur ? 'current' : ''}`}
-                          style={{ '--s': steps.colors[i] }}
-                        >
-                          <span className="awc-step-lbl">{label}</span>
-                          <i className="awc-step-bar" />
+                      <div>
+                        <div className="cui-o-by">
+                          <span className="cui-o-mini" style={{ background: fg }}>{getInitial(brand)}</span>
+                          <span>{brand}</span>
                         </div>
-                      ))}
+                        <div className="cui-o-ttl" title={c.title}>{c.title || 'Campaign'}</div>
+                      </div>
+                    </div>
+                    <div className="cui-o-due">
+                      {dueDays !== null && c.status !== 'completed' && c.status !== 'cancelled'
+                        ? <span className={`cui-o-pill ${dueDays < 0 ? 'bad' : dueDays <= 2 ? 'warn' : 'muted'}`}><Clock size={12} />{dueDays < 0 ? 'Overdue' : dueDays === 0 ? 'Due today' : `Due in ${dueDays} day${dueDays > 1 ? 's' : ''}`}</span>
+                        : <span className="cui-o-dim">-</span>}
+                    </div>
+                    <div className="cui-o-st"><span className={`cui-o-pill ${meta.tone}`}>{meta.label}</span></div>
+                    <div className="cui-o-price" title={isBookingRequest(c) ? "You'll be paid" : undefined}>{inr(c.budget_max || c.budget_min || 0)}</div>
+                    <div className="cui-o-next">{isBookingRequest(c) ? (needsCreatorResponse(c) ? 'Respond to the request' : 'Waiting on the brand') : `Stage: ${steps.labels[cur]}`}</div>
+                    <div className="cui-o-go">
+                      {isBookingRequest(c) ? (
+                        <button
+                          type="button"
+                          className={`cui-o-btn sm ${needsCreatorResponse(c) ? '' : 'soft'}`}
+                          onClick={(e) => { e.stopPropagation(); open(); }}
+                          data-testid={`respond-booking-${c.id}`}
+                        >
+                          {needsCreatorResponse(c) ? 'Respond to request' : 'View proposal'}
+                        </button>
+                      ) : needsRevision(c) ? (
+                        /* The one place the creator can actually read the brand's notes
+                           and re-upload. Without it, "Revision Requested" is a dead end. */
+                        <button
+                          type="button"
+                          className="cui-o-btn sm soft"
+                          onClick={(e) => { e.stopPropagation(); navigate(`/my-deals?campaign=${c.id}&tab=deliverables`); }}
+                          data-testid={`see-revision-${c.id}`}
+                        >
+                          See what they asked for
+                        </button>
+                      ) : (
+                        <button type="button" className="cui-o-btn sm soft" aria-label="Open campaign" onClick={(e) => { e.stopPropagation(); open(); }}>Open</button>
+                      )}
                     </div>
                   </div>
-                )}
-
-                <button
-                  type="button"
-                  className="cmk-awc-go"
-                  aria-label={isBookingRequest(c) ? 'Open booking request' : 'Open campaign'}
-                  onClick={(e) => { e.stopPropagation(); navigate(`/my-deals?campaign=${c.id}`); }}
-                >
-                  <ArrowRight size={18} />
-                </button>
-              </article>
-            );
-          })}
+                );
+              })}
+            </>
+          ) : tab === 'requests' ? (
+            <EmptyState title="No booking requests" message="When a brand books you directly, the request lands here to accept, decline, or propose your own price." action={{ label: 'Browse Campaigns', onClick: () => navigate('/browse-briefs') }} />
+          ) : (
+            <EmptyState title={`No work in “${TABS.find((t) => t.key === tab).label}”`} message="Once a brand selects your bid, your active deals will appear here to manage." action={{ label: 'Browse Campaigns', onClick: () => navigate('/browse-briefs') }} />
+          )}
         </div>
-      ) : tab === 'requests' ? (
-        <EmptyState title="No booking requests" message="When a brand books you directly, the request lands here to accept, decline, or propose your own price." action={{ label: 'Browse Campaigns', onClick: () => navigate('/browse-briefs') }} />
-      ) : (
-        <EmptyState title={`No work in “${TABS.find((t) => t.key === tab).label}”`} message="Once a brand selects your bid, your active deals will appear here to manage." action={{ label: 'Browse Campaigns', onClick: () => navigate('/browse-briefs') }} />
-      )}
+      </div>
     </CreatorTopNavLayout>
   );
 }

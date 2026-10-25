@@ -1,0 +1,4 @@
+/* Post-a-campaign / compare-bids additions: safe-area handling for the pinned Review & publish bar. */
+.ap-cp-pin{padding-left:calc(16px + env(safe-area-inset-left,0px));padding-right:calc(16px + env(safe-area-inset-right,0px));padding-bottom:calc(14px + env(safe-area-inset-bottom,0px))}
+.ap-cp-pad{padding-bottom:calc(132px + env(safe-area-inset-bottom,0px))}
+.ap-cp-steprow>.ap-cp-step{flex-direction:row;align-items:center;gap:10px}

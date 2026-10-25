@@ -3,13 +3,15 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { createPortal } from 'react-dom';
-import { Play, VolumeX, Volume2, Maximize2, X, Star, VideoOff, BadgeCheck, SlidersHorizontal, Bookmark, MessageSquare, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Play, X, Star, VideoOff, BadgeCheck, Bookmark, MessageSquare, Heart, ChevronDown, Check, TrendingUp, Crown } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import ChatPopup from '../components/ChatPopup';
 import { matchesCreatorSearch } from '../utils/creatorSearch';
 import '../styles/creator-marketplace.css';
 import '../styles/brand-mobile.css';
+import '../styles/brand-ui.css';
 import EmptyState from '../components/EmptyState';
+import BrandNoResults from './BrandNoResults';
 import { Skeleton } from '../components/Skeleton';
 import { creatorFirstName } from '../utils/displayName';
 import { toggleSavedCreator, useSavedCreatorIds } from '../utils/savedCreators';
@@ -114,10 +116,6 @@ const catClass = (cat) => {
 };
 
 // Per-creator rate: their set rate (formatted) or a stable level-based price.
-const LEVEL_KEYS = { new: 1, verified: 1, l1: 1, l2: 1, elite: 1 };
-const levelKeyOf = (c) => (LEVEL_KEYS[String(c.level || '').toLowerCase()] ? String(c.level).toLowerCase() : 'new');
-const hashOf = (s) => { let h = 0; for (const ch of String(s)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return h; };
-const LEVEL_BASE = { elite: 5000, l2: 3500, l1: 2500, verified: 2200, new: 1500 };
 const priceTextOf = (c) => {
   const raw = String(c.budget_range || c.price || c.rate || c.expected_payout || (c.rate_card || {}).expected_payout || '').trim();
   if (raw) {
@@ -161,188 +159,6 @@ function CategoryChips({ c, chipClass, railClass }) {
     >
       {list.map((cat) => <span key={cat} className={`${chipClass} ${catClass(cat)}`}>{cat}</span>)}
     </span>
-  );
-}
-
-// `cloneStart` marks the first card of the mobile loop's cloned tail — the auto-scroll
-// measures its offset to know exactly where one full pass ends (see gridRef below).
-// Exported so Saved Creators renders the SAME reel card as Browse Creators
-// (video preview + tier + avatar/name/price) instead of a separate banner card.
-export function ReelCard({ c, onView, onMessage, onExpand, cloneStart }) {
-  const vref = useRef(null);
-  const [muted, setMuted] = useState(true);
-  const [playing, setPlaying] = useState(false);
-  const originalVideo = creatorVideoUrl(c);
-  // A video uploaded seconds ago may not have its small clip yet: fall back to the original.
-  const [clipFailed, setClipFailed] = useState(false);
-  const media = clipFailed ? browserCompatibleVideoUrl(originalVideo) : previewVideoUrl(originalVideo);
-  // Only ever show a creator's OWN uploaded video — never a stock/sample fallback.
-  const hasVideo = !!(media && isVideo(media));
-  const videoSrc = hasVideo ? `${media}#t=0.5` : '';
-  const [posterFailed, setPosterFailed] = useState(false);
-  const poster = posterFailed ? '' : videoPoster(originalVideo);
-
-  useEffect(() => { setPosterFailed(false); setClipFailed(false); }, [originalVideo]);
-
-  useEffect(() => {
-    const video = vref.current;
-    if (!video || !hasVideo) return;
-    // Metadata alone does not reliably decode a frame. Buffer visible cards
-    // without starting playback, including uploads with no generated poster.
-    const loadThumbnail = () => {
-      video.preload = 'auto';
-      video.load();
-    };
-    if (typeof IntersectionObserver === 'undefined') {
-      loadThumbnail();
-      return;
-    }
-    const observer = new IntersectionObserver(([entry]) => {
-      if (!entry.isIntersecting) return;
-      loadThumbnail();
-      observer.disconnect();
-    }, { rootMargin: '150px' });
-    observer.observe(video);
-    return () => observer.disconnect();
-  }, [videoSrc, hasVideo]);
-  // Creator level (admin-assigned): New / Verified / L1 / L2 / Elite.
-  const LEVEL_LABEL = { new: 'New', verified: 'Verified', l1: 'L1', l2: 'L2', elite: 'Elite' };
-  const levelKey = LEVEL_LABEL[String(c.level || '').toLowerCase()] ? String(c.level).toLowerCase() : 'new';
-  const tier = LEVEL_LABEL[levelKey];
-  const fullName = nameOf(c).replace('@', '');
-  const location = c.city_tier || c.location_region || 'India';
-  const priceText = priceTextOf(c);
-
-  const togglePlay = () => {
-    if (!vref.current) return;
-    if (vref.current.paused) { vref.current.play().then(() => setPlaying(true)).catch(() => {}); }
-    else { vref.current.pause(); setPlaying(false); }
-  };
-
-  const hoverPlay = () => {
-    if (!window.matchMedia('(hover: hover)').matches || !vref.current) return;
-    const video = vref.current;
-    document.querySelectorAll('.bc-reel video').forEach((other) => {
-      if (other !== video) {
-        other.pause();
-        other.muted = true;
-      }
-    });
-    video.muted = true;
-    video.play().then(() => {
-      if (!video.parentElement?.matches(':hover')) video.pause();
-    }).catch(() => setPlaying(false));
-  };
-
-  const hoverPause = () => {
-    if (!window.matchMedia('(hover: hover)').matches || !vref.current) return;
-    vref.current.pause();
-    vref.current.muted = true;
-    setMuted(true);
-    setPlaying(false);
-  };
-
-  // Desktop previews play only while hovered. On touch devices, play is explicit.
-  return (
-    <div className="bc-card" data-clone-start={cloneStart ? 'true' : undefined}>
-      <div
-        className="bc-reel"
-        onClick={hasVideo ? togglePlay : undefined}
-        onMouseEnter={hasVideo ? hoverPlay : undefined}
-        onMouseLeave={hasVideo ? hoverPause : undefined}
-      >
-        {hasVideo ? (
-          <>
-            <video
-              ref={vref}
-              src={videoSrc}
-              poster={poster || undefined}
-              onError={() => setClipFailed(true)}
-              muted={muted}
-              loop
-              playsInline
-              preload="none"
-              onLoadedMetadata={(event) => {
-                const video = event.currentTarget;
-                if (video.paused && Number.isFinite(video.duration) && video.duration > 0) {
-                  video.currentTime = Math.min(0.1, video.duration / 2);
-                }
-              }}
-              onPlaying={() => setPlaying(true)}
-              onPause={() => setPlaying(false)}
-            />
-            {!playing && poster && <img src={poster} alt="" aria-hidden="true" onError={() => setPosterFailed(true)} />}
-            {!playing && <span className="bc-play"><Play size={20} fill="currentColor" /></span>}
-            <button type="button" className="bc-mute" aria-label={muted ? 'Unmute' : 'Mute'} onClick={(e) => {
-              e.stopPropagation();
-              const v = vref.current;
-              const next = !muted;
-              setMuted(next);
-              if (v) {
-                if (!next) {
-                  // unmuting → silence every other reel so only this one is audible
-                  document.querySelectorAll('.bc-reel video').forEach((el) => { if (el !== v) el.muted = true; });
-                }
-                v.muted = next;            // set DOM property directly (React's `muted` prop can be unreliable)
-                v.volume = 1;
-                if (!next) {               // unmuting → make sure it's actually playing so sound is heard
-                  v.play().then(() => setPlaying(true)).catch(() => {});
-                }
-              }
-            }}>
-              {muted ? <VolumeX size={15} /> : <Volume2 size={15} />}
-            </button>
-            <button type="button" className="bc-expand" aria-label="Expand video" onClick={(e) => {
-              e.stopPropagation();
-              if (vref.current) { vref.current.pause(); setPlaying(false); }
-              onExpand?.({ src: browserCompatibleVideoUrl(originalVideo), name: fullName });
-            }}>
-              <Maximize2 size={14} />
-            </button>
-          </>
-        ) : (
-          <div className="bc-novideo">
-            <VideoOff size={26} />
-            <span>No video yet</span>
-          </div>
-        )}
-        <div className="bc-rate">
-          <span className={`bc-tier ${tier.toLowerCase()}`}>{tier}</span>
-          <CategoryChips c={c} chipClass="bc-cat" railClass="cat-rail-reel" />
-        </div>
-      </div>
-
-      <div className="bc-meta">
-        <button type="button" className="bc-ava bc-ava-btn" onClick={() => onView(c)} aria-label="View profile">
-          <PhotoOrInitial src={assetUrl(c.profile_photo)} initial={initialOf(c)} />
-        </button>
-        <div className="bc-name">
-          <button type="button" className="bc-name-btn" onClick={() => onView(c)}>
-            <span className="bc-name-top">
-              <strong>{fullName}</strong>
-              {/* Identity verified (admin-approved KYC) — a real, verified person. */}
-              {c.kyc_verified && (
-                <span className="bc-verified" title="Identity verified (KYC)"><BadgeCheck size={14} /></span>
-              )}
-            </span>
-          </button>
-          <div className="bc-price-row">
-            <small className="bc-price-txt">{priceText}</small>
-            {onMessage && (
-              <button
-                type="button"
-                className="bc-message-btn"
-                onClick={() => onMessage(c)}
-                aria-label={`Message ${fullName}`}
-                title={`Message ${fullName}`}
-              >
-                <MessageSquare size={16} />
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -527,6 +343,310 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
   );
 }
 
+// ───────────────────────── GigCard (design board 03) ─────────────────────────
+const CATEGORY_ALIASES = {
+  'food & drinks': ['food', 'drink', 'beverage'],
+  'tech & gadgets': ['tech', 'gadget', 'electronic'],
+  skincare: ['skin', 'beauty'],
+  apps: ['app'],
+  pets: ['pet'],
+};
+const matchesCategory = (cats, label) => {
+  const key = String(label || '').toLowerCase();
+  const tokens = CATEGORY_ALIASES[key] || [key];
+  return cats.some((cat) => tokens.some((t) => cat.includes(t)));
+};
+const titleCase = (v) => String(v || '').replace(/_/g, ' ').replace(/^./, (m) => m.toUpperCase());
+const budgetOf = (c) => {
+  const raw = c.budget_range || c.price || c.rate || c.expected_payout || (c.rate_card || {}).expected_payout || '';
+  const n = parseInt(String(raw).replace(/[^0-9]/g, ''), 10);
+  return Number.isFinite(n) && n > 0 ? n : 0;
+};
+const inr = (n) => `₹${Number(n).toLocaleString('en-IN')}`;
+const LEVEL_BADGE = { new: 'New', verified: 'Verified', l1: 'Level 1', l2: 'Level 2', elite: 'Elite' };
+const LEVEL_RANK = { new: 0, verified: 0, l1: 1, l2: 2, elite: 3 };
+// Delivery time in days. The directory does not return it yet (backend creator_directory_public_view
+// needs a `delivery_days` field); this reads it as soon as it appears and is null (nothing shown) until then.
+export const deliveryDaysOf = (c) => {
+  const n = Math.round(Number(c.delivery_days ?? c.turnaround_days ?? c.profile?.delivery_days ?? c.profile?.rate_card?.delivery_days));
+  return n > 0 ? n : null;
+};
+const fmtDuration = (s) => (Number.isFinite(s) && s > 0 ? `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}` : '');
+
+const BUDGET_OPTIONS = [
+  { key: 'any', label: 'Any', test: () => true },
+  { key: 'u3', label: 'Under ₹3,000', test: (n) => n > 0 && n < 3000 },
+  { key: '3-6', label: '₹3,000–6,000', test: (n) => n >= 3000 && n < 6000 },
+  { key: '6-10', label: '₹6,000–10,000', test: (n) => n >= 6000 && n < 10000 },
+  { key: '10+', label: '₹10,000+', test: (n) => n >= 10000 },
+];
+const DETAIL_OPTIONS = [
+  { key: 'any', label: 'Any', test: () => true },
+  { key: 'verified', label: 'Verified', test: (c) => !!c.kyc_verified },
+  { key: 'l1', label: 'Level 1+', test: (c) => (LEVEL_RANK[String(c.level).toLowerCase()] || 0) >= 1 },
+  { key: 'l2', label: 'Level 2+', test: (c) => (LEVEL_RANK[String(c.level).toLowerCase()] || 0) >= 2 },
+  { key: 'elite', label: 'Elite', test: (c) => String(c.level).toLowerCase() === 'elite' },
+  { key: 'choice', label: 'UGCAD.IO Choice', test: (c) => !!c.ugcad_approved },
+];
+
+// Shared by the creator cards: first-frame buffering, hover-to-play, duration, expand.
+function useCardVideo(c, onExpand, name) {
+  const vref = useRef(null);
+  const [playing, setPlaying] = useState(false);
+  const [duration, setDuration] = useState('');
+  const [clipFailed, setClipFailed] = useState(false);
+  const [posterFailed, setPosterFailed] = useState(false);
+  const originalVideo = creatorVideoUrl(c);
+  const media = clipFailed ? browserCompatibleVideoUrl(originalVideo) : previewVideoUrl(originalVideo);
+  const hasVideo = !!(media && isVideo(media));
+  const poster = posterFailed ? '' : videoPoster(originalVideo);
+  useEffect(() => { setPosterFailed(false); setClipFailed(false); }, [originalVideo]);
+
+  // Buffer the first frame once the card scrolls near the viewport (no autoplay).
+  useEffect(() => {
+    const video = vref.current;
+    if (!video || !hasVideo) return undefined;
+    const load = () => { video.preload = 'auto'; video.load(); };
+    if (typeof IntersectionObserver === 'undefined') { load(); return undefined; }
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      load();
+      observer.disconnect();
+    }, { rootMargin: '150px' });
+    observer.observe(video);
+    return () => observer.disconnect();
+  }, [media, hasVideo]);
+
+  const hoverPlay = () => {
+    const video = vref.current;
+    if (!video || !window.matchMedia('(hover: hover)').matches) return;
+    document.querySelectorAll('.bui-vid').forEach((o) => { if (o !== video) o.pause(); });
+    video.muted = true;
+    video.play().then(() => setPlaying(true)).catch(() => {});
+  };
+  const hoverPause = () => {
+    const video = vref.current;
+    if (!video || !window.matchMedia('(hover: hover)').matches) return;
+    video.pause();
+    setPlaying(false);
+  };
+  const togglePlay = () => {
+    const video = vref.current;
+    if (!video) return;
+    if (video.paused) video.play().then(() => setPlaying(true)).catch(() => {});
+    else { video.pause(); setPlaying(false); }
+  };
+  const expand = (e) => {
+    e.stopPropagation();
+    if (vref.current) { vref.current.pause(); setPlaying(false); }
+    onExpand?.({ src: browserCompatibleVideoUrl(originalVideo), name });
+  };
+  const videoEl = hasVideo ? (
+    <>
+      <video
+        ref={vref}
+        className="bui-vid"
+        src={`${media}#t=0.5`}
+        poster={poster || undefined}
+        onError={() => setClipFailed(true)}
+        muted
+        loop
+        playsInline
+        preload="none"
+        onLoadedMetadata={(e) => setDuration(fmtDuration(e.currentTarget.duration))}
+        onPlaying={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
+        onClick={togglePlay}
+      />
+      {!playing && poster && <img src={poster} alt="" aria-hidden="true" onError={() => setPosterFailed(true)} />}
+    </>
+  ) : (
+    <div className="bui-gig-novideo"><VideoOff size={24} /><span>No video yet</span></div>
+  );
+  return { hasVideo, videoEl, duration, hoverPlay, hoverPause, expand };
+}
+
+// Level → badge (design board 01). UGCAD.IO Choice outranks the creator's level.
+const REEL_BADGE = {
+  choice: 'UGCAD.IO Choice', elite: 'Elite', l2: 'Level 2', l1: 'Level 1', verified: 'Verified', new: 'New',
+};
+const reelBadgeKey = (c) => {
+  if (c.ugcad_approved) return 'choice';
+  const k = String(c.level || '').toLowerCase();
+  return REEL_BADGE[k] ? k : 'new';
+};
+const BadgeIcon = ({ kind }) => {
+  if (kind === 'verified') return <Check size={11} strokeWidth={3} color="#4E60E6" />;
+  if (kind === 'l1') return <TrendingUp size={11} color="#4E60E6" />;
+  if (kind === 'l2') return <Star size={11} fill="#07074E" />;
+  if (kind === 'elite') return <Crown size={11} fill="#7387FF" color="#7387FF" />;
+  if (kind === 'choice') return <span className="bui-badge-mark" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-logo.png)` }} aria-hidden="true" />;
+  return null;
+};
+
+// 9:16 creator card used on Home, Saved creators and No-results (design boards 01 / 12 / 30).
+// `cloneStart` is kept for the callers that still pass it.
+export function ReelCard({ c, onView, onMessage, onExpand, cloneStart }) {
+  const navigate = useNavigate();
+  const name = nameOf(c).replace('@', '');
+  const { hasVideo, videoEl, duration, hoverPlay, hoverPause, expand } = useCardVideo(c, onExpand, name);
+  const saved = useSavedCreatorIds().has(String(c.id));
+  const badge = reelBadgeKey(c);
+  const rating = Number(c.avg_rating || c.rating || 0);
+  const reviews = Number(c.review_count || 0);
+  const price = budgetOf(c);
+  const days = deliveryDaysOf(c);
+
+  return (
+    <article className="bui-reel"data-clone-start={cloneStart ? 'true' : undefined}>
+      <div className="bui-reel-media" onMouseEnter={hasVideo ? hoverPlay : undefined} onMouseLeave={hasVideo ? hoverPause : undefined}>
+        {videoEl}
+        <div className="bui-reel-bars" aria-hidden="true"><span className="on" /><span /><span /></div>
+        <div className="bui-reel-top">
+          <span className={`bui-badge bui-badge--${badge}`}>
+            <BadgeIcon kind={badge} />
+            <span>{REEL_BADGE[badge]}</span>
+          </span>
+          <button
+            type="button"
+            className="bui-reel-save"
+            aria-label={saved ? `Remove ${name} from saved` : `Save ${name}`}
+            onClick={async (e) => {
+              e.stopPropagation();
+              const now = await toggleSavedCreator({ id: c.id });
+              toast.success(now ? 'Saved to your creators' : 'Removed from saved');
+            }}
+          >
+            <Heart size={15} fill={saved ? 'currentColor' : 'none'} />
+          </button>
+        </div>
+        {hasVideo && duration && (
+          <button type="button" className="bui-reel-dur" aria-label="Expand video" onClick={expand}>
+            <Play size={9} fill="currentColor" />{duration}
+          </button>
+        )}
+        <button type="button" className="bui-reel-glass" onClick={() => onView(c)}>
+          <span className="bui-reel-ava"><PhotoOrInitial src={assetUrl(c.profile_photo)} initial={initialOf(c)} /></span>
+          <span className="bui-reel-who">
+            <span className="bui-reel-name">{name}{c.kyc_verified && <BadgeCheck size={14} color="#4E60E6" aria-label="Identity verified" />}</span>
+            <span className="bui-reel-meta">
+              {rating > 0 && reviews > 0 ? (<><Star size={12} fill="#07074E" color="#07074E" /><strong>{rating.toFixed(1)}</strong><span>({reviews})</span></>) : null}
+              {!(rating > 0 && reviews > 0) && <span>New on UGCad</span>}
+              {days && <span className="bui-reel-deliv">· {days}-day delivery</span>}
+            </span>
+          </span>
+        </button>
+      </div>
+      <div className="bui-reel-foot">
+        <div className="bui-reel-price">
+          <small>From</small>
+          <b>{price ? inr(price) : 'On request'}{price ? <span> / video</span> : null}</b>
+        </div>
+        <button
+          type="button"
+          className="bui-reel-msg"
+          aria-label={`Message ${name}`}
+          onClick={() => (onMessage ? onMessage(c) : navigate('/messages'))}
+        >
+          <MessageSquare size={16} />
+        </button>
+        <button type="button" className="bui-reel-invite" onClick={() => navigate(`/dashboard/business/creator/${c.id}`)}>Invite</button>
+      </div>
+    </article>
+  );
+}
+
+// One creator as a "gig" card: sample video, creator line, headline, rating, price + Invite (board 03).
+export function GigCard({ c, onView, onExpand }) {
+  const navigate = useNavigate();
+  const name = nameOf(c).replace('@', '');
+  const { hasVideo, videoEl, duration, hoverPlay, hoverPause, expand } = useCardVideo(c, onExpand, name);
+  const saved = useSavedCreatorIds().has(String(c.id));
+  const levelKey = LEVEL_BADGE[String(c.level || '').toLowerCase()] ? String(c.level).toLowerCase() : 'new';
+  const rating = Number(c.avg_rating || c.rating || 0);
+  const reviews = Number(c.review_count || 0);
+  const price = budgetOf(c);
+  const days = deliveryDaysOf(c);
+  const headline =c.gig_title || c.headline || [titleCase(c.content_style), titleCase(catOf(c))].filter(Boolean).join(' · ');
+
+  return (
+    <article className="bui-gig">
+      <div className="bui-gig-media" onMouseEnter={hasVideo ? hoverPlay : undefined} onMouseLeave={hasVideo ? hoverPause : undefined}>
+        {videoEl}
+        <button
+          type="button"
+          className="bui-gig-save"
+          aria-label={saved ? `Remove ${name} from saved` : `Save ${name}`}
+          onClick={async (e) => {
+            e.stopPropagation();
+            const now = await toggleSavedCreator({ id: c.id });
+            toast.success(now ? 'Saved to your creators' : 'Removed from saved');
+          }}
+        >
+          <Heart size={16} fill={saved ? 'currentColor' : 'none'} />
+        </button>
+        {hasVideo && (
+          <button type="button" className="bui-gig-dur" aria-label="Expand video" onClick={expand}>
+            <Play size={10} fill="currentColor" />
+            {duration}
+          </button>
+        )}
+      </div>
+
+      <button type="button" className="bui-gig-who" onClick={() => onView(c)}>
+        <span className="bui-gig-ava"><PhotoOrInitial src={assetUrl(c.profile_photo)} initial={initialOf(c)} /></span>
+        <span className="bui-gig-name">{name}</span>
+        {c.kyc_verified && <BadgeCheck size={14} className="bui-gig-kyc" aria-label="Identity verified" />}
+        <span className={`bui-lvl bui-lvl--${levelKey}`}>{LEVEL_BADGE[levelKey]}</span>
+      </button>
+
+      <button type="button" className="bui-gig-title" onClick={() => onView(c)}>{headline}</button>
+
+      <div className="bui-gig-rate">
+        {rating > 0 && reviews > 0 ? (
+          <>
+            <Star size={14} fill="currentColor" />
+            <strong>{rating.toFixed(1)}</strong>
+            <span>({reviews})</span>
+          </>
+        ) : (
+          <span>No reviews yet</span>
+        )}
+        {days && <span className="bui-gig-deliv">· {days}-day delivery</span>}
+      </div>
+
+      <div className="bui-gig-foot">
+        <span className="bui-gig-price">{price ? `From ${inr(price)}` : 'Rate on request'}</span>
+        <button type="button" className="bui-gig-invite" onClick={() => navigate(`/dashboard/business/creator/${c.id}`)}>Invite</button>
+      </div>
+    </article>
+  );
+}
+
+// ───────────────────────── Filter pop-up (design board 03) ─────────────────────────
+function FilterModal({ title, options, value, onPick, onClear, onClose }) {
+  return createPortal(
+    <div className="bui-modal-ov" onClick={onClose}>
+      <div className="bui-modal" role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}>
+        <button type="button" className="bui-modal-x" aria-label="Close" onClick={onClose}><X size={15} /></button>
+        <h2 className="bui-modal-h">{title}</h2>
+        <div className="bui-modal-body">
+          <div className="bui-chips">
+            {options.map((o) => (
+              <button key={o.key} type="button" className={`bui-chip${value === o.key ? ' is-on' : ''}`} onClick={() => onPick(o.key)}>{o.label}</button>
+            ))}
+          </div>
+          <div className="bui-modal-foot">
+            <button type="button" className="bui-btn bui-btn--ghost" onClick={onClear}>Clear</button>
+            <button type="button" className="bui-btn" onClick={onClose}>Show creators</button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 export default function BrandCreators() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -543,9 +663,6 @@ export default function BrandCreators() {
   const [loadError, setLoadError] = useState('');
   const [reloadKey, setReloadKey] = useState(0);
   const [q, setQ] = useState(searchParams.get('q') || '');
-  const [cat, setCat] = useState('all');
-  const [filterOpen, setFilterOpen] = useState(false); // mobile category-filter menu
-  const filterRef = useRef(null);
   const [chatWith, setChatWith] = useState(null);
   const [videoCard, setVideoCard] = useState(null);
   const [preview, setPreview] = useState(null);   // quick-preview card
@@ -587,242 +704,163 @@ export default function BrandCreators() {
     setQ(p || '');
   }, [searchParams]);
 
-  const categories = useMemo(() => {
-    const set = new Set(creators.flatMap(catsOf));
-    return ['all', ...Array.from(set)];
-  }, [creators]);
+  // ── Filters (design board 03). All client-side over the loaded directory. ──
+  const categoryLabel = searchParams.get('category') || '';
+  const [fStyle, setFStyle] = useState('any');
+  const [fDetails, setFDetails] = useState('any');
+  const [fBudget, setFBudget] = useState('any');
+  const [fLang, setFLang] = useState('any');
+  const [fElite, setFElite] = useState(false);
+  const [fVerified, setFVerified] = useState(false);
+  const [fFast, setFFast] = useState(false);
+  // The "Delivers in 3 days" switch only exists once the directory reports delivery times; until then
+  // the bar keeps "ID verified" (also available under Creator details).
+  const hasDelivery = useMemo(() => creators.some((c) => deliveryDaysOf(c)), [creators]);
+  const [openFilter, setOpenFilter] = useState(null); // 'style' | 'details' | 'budget' | 'language'
 
-  // Close the mobile category-filter menu on any outside click.
-  useEffect(() => {
-    if (!filterOpen) return undefined;
-    const onDoc = (e) => { if (filterRef.current && !filterRef.current.contains(e.target)) setFilterOpen(false); };
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, [filterOpen]);
+  const styleOptions = useMemo(() => [
+    { key: 'any', label: 'Any' },
+    ...Array.from(new Set(creators.map((c) => c.content_style).filter(Boolean))).map((s) => ({ key: s, label: titleCase(s) })),
+  ], [creators]);
+  const langOptions = useMemo(() => [
+    { key: 'any', label: 'Any' },
+    ...Array.from(new Set(creators.flatMap((c) => c.languages || []).filter(Boolean))).map((l) => ({ key: l, label: titleCase(l) })),
+  ], [creators]);
 
   const filtered = useMemo(() => creators.filter((c) => {
     if (approvedMode && !c.ugcad_approved) return false;
     const cats = catsOf(c);
-    if (!approvedMode && cat !== 'all' && !cats.includes(cat)) return false;
+    if (!approvedMode && categoryLabel && !matchesCategory(cats, categoryLabel)) return false;
     if (!matchesCreatorSearch(c, q, cats)) return false;
+    if (fStyle !== 'any' && c.content_style !== fStyle) return false;
+    if (fLang !== 'any' && !(c.languages || []).includes(fLang)) return false;
+    if (!BUDGET_OPTIONS.find((o) => o.key === fBudget).test(budgetOf(c))) return false;
+    if (!DETAIL_OPTIONS.find((o) => o.key === fDetails).test(c)) return false;
+    if (fElite && String(c.level).toLowerCase() !== 'elite') return false;
+    if (fVerified && !c.kyc_verified) return false;
+    if (fFast && !(deliveryDaysOf(c) > 0 && deliveryDaysOf(c) <= 3)) return false;
     return true;
-  }), [creators, cat, q, approvedMode]);
+  }), [creators, categoryLabel, q, approvedMode, fStyle, fLang, fBudget, fDetails, fElite, fVerified, fFast]);
+
+  // No-results helpers (board 30): the most common real categories + a few popular creators.
+  const noResultCats = useMemo(() => {
+    const m = new Map();
+    creators.forEach((c) => new Set(catsOf(c)).forEach((k) => m.set(k, (m.get(k) || 0) + 1)));
+    return [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k]) => titleCase(k));
+  }, [creators]);
+  const noResultSimilar = useMemo(() => [...creators]
+    .sort((a, b) => (Number(!!b.ugcad_approved) - Number(!!a.ugcad_approved)) || (Number(b.avg_rating || 0) - Number(a.avg_rating || 0)))
+    .slice(0, 5), [creators]);
 
   const openChat = (c) => { setChatWith({ id: c.id, name: nameOf(c).replace('@', ''), photo: c.profile_photo }); };
 
-  // Track phone width in state (not just inside the effect) because the cloned tail is
-  // RENDERED markup — it must not exist in the desktop grid, where it would show as
-  // duplicate creators.
-  const [isPhone, setIsPhone] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 620px)').matches
-  );
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 620px)');
-    const onChange = () => setIsPhone(mq.matches);
-    mq.addEventListener('change', onChange);
-    return () => mq.removeEventListener('change', onChange);
-  }, []);
-
-  // Clone up to 6 leading cards (3 columns ≈ 132vw) so the loop always has a full-screen
-  // tail to wrap into. Any list past a single column (2 cards) overflows the phone and
-  // needs the loop — with only ≤2 cards there's nothing to scroll, so skip the clone.
-  const cloneTail = useMemo(
-    () => (isPhone && filtered.length > 2 ? filtered.slice(0, Math.min(6, filtered.length)) : []),
-    [isPhone, filtered]
-  );
-
-  // Phone only: the grid becomes a two-row horizontal track (see .bc-grid in
-  // creator-marketplace.css) and drifts on its own. Scrolling the real container —
-  // rather than duplicating the cards into a CSS marquee — keeps ONE <video> per
-  // creator; a duplicated track would double the media on a phone.
-  // It reverses at each end instead of snapping back to 0, so there's no visible jump,
-  // and any touch/drag/wheel pauses it for 3s so it never fights the user.
-  const gridRef = useRef(null);
-  useEffect(() => {
-    const el = gridRef.current;
-    if (!el || !filtered.length) return undefined;
-    // Kept as live queries (not one-shot checks) so start()/stop() can react when the
-    // viewport crosses the breakpoint — an early return here would freeze it at mount.
-    const mq = window.matchMedia('(max-width: 620px)');
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
-
-    let raf = 0; let paused = false; let resumeTimer;
-    let pos = 0;       // our own sub-pixel position — see the note in step()
-    let loopWidth = 0; // distance of one full pass, i.e. where the cloned tail begins
-
-    // The clone's offset IS the width of the real list, so wrapping back by exactly
-    // that lands on an identical frame — the seam is invisible. Measured on start and
-    // on resize rather than per-frame, since offsetLeft forces a layout read.
-    const measure = () => {
-      const clone = el.querySelector('[data-clone-start]');
-      loopWidth = clone ? clone.offsetLeft : 0;
-    };
-
-    const step = () => {
-      if (!paused) {
-        pos += 0.45;                          // ~27px/s — always leftward, never reverses
-        if (loopWidth > 0) {
-          // Infinite: hop back one full pass once we're into the clones.
-          if (pos >= loopWidth) pos -= loopWidth;
-        } else {
-          // No clones (short list) — just stop at the end instead of jumping.
-          const max = el.scrollWidth - el.clientWidth;
-          if (pos > max) pos = max;
-        }
-        // Assign from the float accumulator, never `el.scrollLeft += n`. Reading
-        // scrollLeft back rounds to whole pixels, so a 0.45 step would round away
-        // to 0 every frame and the track would sit still.
-        el.scrollLeft = pos;
-      }
-      raf = requestAnimationFrame(step);
-    };
-    const pause = () => {
-      paused = true;
-      clearTimeout(resumeTimer);
-      // Resync to wherever the user left it, or we'd snap back on resume.
-      resumeTimer = setTimeout(() => { pos = el.scrollLeft; paused = false; }, 3000);
-    };
-
-    const opts = { passive: true };
-    const start = () => {
-      if (raf || !mq.matches || reduce.matches) return;
-      measure();
-      pos = el.scrollLeft;
-      // Pause only on an actual DRAG (touchmove) or wheel — a plain tap (to play/open
-      // a card) must NOT stop the auto-scroll.
-      el.addEventListener('touchmove', pause, opts);
-      el.addEventListener('wheel', pause, opts);
-      raf = requestAnimationFrame(step);
-    };
-    const stop = () => {
-      if (raf) cancelAnimationFrame(raf);
-      raf = 0;
-      clearTimeout(resumeTimer);
-      el.removeEventListener('touchmove', pause, opts);
-      el.removeEventListener('wheel', pause, opts);
-    };
-    // Crossing the 620px breakpoint has to start/stop it — otherwise resizing into
-    // phone width (or rotating) leaves the track dead until a remount.
-    const onChange = () => { stop(); start(); };
-    // Column width is vw-based, so any resize changes where the clones begin.
-    const onResize = () => measure();
-
-    start();
-    mq.addEventListener('change', onChange);
-    window.addEventListener('resize', onResize, opts);
-    return () => {
-      stop();
-      mq.removeEventListener('change', onChange);
-      window.removeEventListener('resize', onResize, opts);
-    };
-    // cloneTail.length matters: the loop can't measure a wrap point until the cloned
-    // tail is actually in the DOM.
-  }, [filtered.length, cloneTail.length]);
+  const FILTERS = [
+    { id: 'style', label: 'Content style', options: styleOptions, value: fStyle, set: setFStyle },
+    { id: 'details', label: 'Creator details', options: DETAIL_OPTIONS, value: fDetails, set: setFDetails },
+    { id: 'budget', label: 'Budget', options: BUDGET_OPTIONS, value: fBudget, set: setFBudget },
+    { id: 'language', label: 'Language', options: langOptions, value: fLang, set: setFLang },
+  ];
+  const activeFilter = FILTERS.find((f) => f.id === openFilter);
+  const pageTitle = approvedMode ? 'Preferred Creators by the UGCAD Team' : (categoryLabel ? `${categoryLabel} creators` : 'All creators');
+  const pageSub = approvedMode
+    ? 'Hand-picked by the UGCad team for your next campaign.'
+    : 'Videos from creators vetted by the UGCad team.';
 
   return (
     <BrandTopNavLayout>
-      {approvedMode ? (
-        <div className="bc-approved-head">
-          <Link className="bc-back-link" to={{ search: collectionSearch(false) }}>
-            <ArrowLeft size={16} aria-hidden="true" /> Back to All Creators
-          </Link>
-          <div className="cmk-page-head">
-            <h1>Preferred Creators by the UGCAD Team</h1>
-          </div>
+      <div className="bui-main bui-main--tight">
+        <nav className="bui-crumb" aria-label="Breadcrumb">
+          <Link to="/brand-home">Home</Link>
+          <span aria-hidden="true">/</span>
+          <Link to="/dashboard/business/browse-creator">Creators</Link>
+          {(categoryLabel || approvedMode) && (
+            <>
+              <span aria-hidden="true">/</span>
+              <strong>{approvedMode ? 'Preferred' : categoryLabel}</strong>
+            </>
+          )}
+        </nav>
+
+        <div>
+          <h1 className="bui-h1">{pageTitle}</h1>
+          <p className="bui-sub">{pageSub}</p>
         </div>
-      ) : (
-      <div className="bc-head-row bc-head-row--approved">
-        <div className="cmk-page-head cmk-page-head--filter">
-          <div>
-            <h1>Browse Creators</h1>
-            <p>Find the perfect creators for your campaign.</p>
-          </div>
-          {/* Mobile only: sits on the title row, replaces the category chips. */}
-          <div className="wr-filter-wrap" ref={filterRef}>
-            <button type="button" className="wr-filter-btn" onClick={() => setFilterOpen((v) => !v)} aria-haspopup="menu" aria-expanded={filterOpen}>
-              <SlidersHorizontal size={16} /> Filter
+
+        <div className="bui-filterbar">
+          {FILTERS.map((f) => (
+            <button key={f.id} type="button" className={`bui-fbtn${f.value !== 'any' ? ' is-on' : ''}`} onClick={() => setOpenFilter(f.id)}>
+              {f.label}
+              <ChevronDown size={14} strokeWidth={2.4} />
             </button>
-            {filterOpen && (
-              <div className="wr-filter-menu" role="menu">
-                {categories.map((k) => (
-                  <button
-                    key={k}
-                    type="button"
-                    role="menuitemradio"
-                    aria-checked={cat === k}
-                    className={cat === k ? 'is-active' : ''}
-                    onClick={() => { setCat(k); setFilterOpen(false); }}
-                  >
-                    {k === 'all' ? 'All' : k.replace(/_/g, ' ')}
-                  </button>
-                ))}
+          ))}
+          <span className="bui-grow" />
+          <button type="button" role="switch" aria-checked={fElite} className="bui-toggle" onClick={() => setFElite((v) => !v)}>
+            <span className={`bui-track${fElite ? ' is-on' : ''}`}><span /></span>Elite creators
+          </button>
+          {hasDelivery ? (
+            <button type="button" role="switch" aria-checked={fFast} className="bui-toggle" onClick={() => setFFast((v) => !v)}>
+              <span className={`bui-track${fFast ? ' is-on' : ''}`}><span /></span>Delivers in 3 days
+            </button>
+          ) : (
+            <button type="button" role="switch" aria-checked={fVerified} className="bui-toggle" onClick={() => setFVerified((v) => !v)}>
+              <span className={`bui-track${fVerified ? ' is-on' : ''}`}><span /></span>ID verified
+            </button>
+          )}
+        </div>
+
+        <div className="bui-countrow">
+          <span><strong>{filtered.length}</strong> creators available</span>
+          {approvedMode ? (
+            <Link className="bui-link" to={{ search: collectionSearch(false) }}>Back to All Creators</Link>
+          ) : (
+            <Link className="bui-link bc-approved-link" to={{ search: collectionSearch(true) }}>Meet Our Preferred Creators</Link>
+          )}
+          <span>Sort by: <strong>Best match</strong></span>
+        </div>
+
+        {loading ? (
+          <div className="bui-gig-grid">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <div className="bui-gig" key={i} aria-hidden="true">
+                <Skeleton height="100%" radius={10} style={{ aspectRatio: '4 / 5', display: 'block' }} />
+                <Skeleton width="60%" height={14} />
+                <Skeleton width="90%" height={14} />
+                <Skeleton width="40%" height={12} />
               </div>
-            )}
+            ))}
           </div>
-        </div>
-
-        {/* Plain text link on the subtitle line, above the category row. */}
-        <Link className="bc-approved-link" to={{ search: collectionSearch(true) }}>
-          <BadgeCheck size={17} className="bc-approved-link__check" aria-hidden="true" />
-          <span>Meet Our Preferred Creators</span>
-          <ArrowRight size={16} className="bc-approved-link__arrow" aria-hidden="true" />
-        </Link>
-
-        <div className="bc-cats bc-cats--select">
-          {categories.map((k) => (
-            <button key={k} type="button" className={cat === k ? 'is-active' : ''} onClick={() => setCat(k)}>{k === 'all' ? 'All' : k.replace(/_/g, ' ')}</button>
-          ))}
-        </div>
+        ) : loadError ? (
+          <EmptyState
+            title="Could not load creators"
+            message={loadError}
+            action={{ label: 'Try again', onClick: () => setReloadKey((v) => v + 1) }}
+          />
+        ) : filtered.length === 0 && approvedMode ? (
+          <EmptyState
+            title="No preferred creators to show"
+            message={q ? 'None of the preferred creators match your search.' : 'The UGCAD team has not picked any preferred creators yet. Check back soon.'}
+            action={{ label: 'Back to All Creators', onClick: () => navigate({ search: collectionSearch(false) }) }}
+          />
+        ) : filtered.length === 0 ? (
+          <BrandNoResults query={q} categories={noResultCats}>
+            {noResultSimilar.map((c) => <ReelCard key={c.id} c={c} onView={viewProfile} onExpand={setVideoCard} />)}
+          </BrandNoResults>
+        ) : (
+          <div className="bui-gig-grid">
+            {filtered.map((c) => <GigCard key={c.id} c={c} onView={viewProfile} onExpand={setVideoCard} />)}
+          </div>
+        )}
       </div>
-      )}
 
-      {loading ? (
-        <div className="bc-grid">
-          {Array.from({ length: 10 }).map((_, i) => (
-            <div className="bc-card" key={i} aria-hidden="true">
-              {/* mirrors ReelCard: portrait 9/16 reel, then avatar + name/price row */}
-              <Skeleton height="100%" radius={16} style={{ aspectRatio: '9 / 16', display: 'block' }} />
-              <div className="bc-meta">
-                <Skeleton width={30} height={30} radius="50%" />
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, flex: 1 }}>
-                  <Skeleton width="70%" height={12} />
-                  <Skeleton width="45%" height={10} />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : loadError ? (
-        <EmptyState
-          title="Could not load creators"
-          message={loadError}
-          action={{ label: 'Try again', onClick: () => setReloadKey((v) => v + 1) }}
+      {activeFilter && (
+        <FilterModal
+          title={activeFilter.label === 'Budget' ? 'Budget per video' : activeFilter.label}
+          options={activeFilter.options}
+          value={activeFilter.value}
+          onPick={activeFilter.set}
+          onClear={() => activeFilter.set('any')}
+          onClose={() => setOpenFilter(null)}
         />
-      ) : filtered.length === 0 && approvedMode ? (
-        <EmptyState
-          title="No preferred creators to show"
-          message={q ? 'None of the preferred creators match your search.' : 'The UGCAD team has not picked any preferred creators yet. Check back soon.'}
-          action={{ label: 'Back to All Creators', onClick: () => navigate({ search: collectionSearch(false) }) }}
-        />
-      ) : filtered.length === 0 ? (
-        <EmptyState title="No creators found" message="No creators match your current search or filters. Try clearing them to see everyone." />
-      ) : (
-        <div className="bc-grid" ref={gridRef}>
-          {filtered.map((c) => <ReelCard key={c.id} c={c} onMessage={openChat} onView={viewProfile} onExpand={setVideoCard} />)}
-          {/* Phone only: a short cloned tail the loop wraps into. Only enough cards to
-              cover one screen (NOT a full second copy), so the jump back to the start
-              is invisible without doubling every <video> on the page. */}
-          {cloneTail.map((c, i) => (
-            <ReelCard
-              key={`loop-${c.id}-${i}`}
-              c={c}
-              onMessage={openChat}
-              onView={viewProfile}
-              onExpand={setVideoCard}
-              cloneStart={i === 0}
-            />
-          ))}
-        </div>
       )}
 
       {/* Portaled to <body> so the expanded video always sits above the quick-preview

@@ -1,0 +1,9 @@
+/* PageModal (page-in-a-modal / drawer): new-ui tokens. Loaded by PageModal.js; wins over creator-marketplace.css via the `body` prefix. */
+body .pm-overlay{background:rgba(7,7,78,.45);backdrop-filter:blur(3px)}
+body .pm-modal{background:#F3F3FF;border-radius:20px;box-shadow:0 1px 2px rgba(7,7,78,.05),0 40px 80px -30px rgba(7,7,78,.6)}
+body .pm-close{top:14px;right:14px;width:36px;height:36px;border:1px solid #E2E2F0;background:#fff;box-shadow:none;color:#07074E}
+body .pm-close:hover{background:#F3F3FF}
+body .pm-close:focus-visible{outline:2px solid #7387FF;outline-offset:2px}
+body .pm-modal.pm-bare{background:transparent;box-shadow:none;border-radius:0}
+body .pm-drawer .pm-modal{border-radius:0;box-shadow:-24px 0 60px -28px rgba(7,7,78,.5)}
+@media (prefers-reduced-motion:reduce){body .pm-drawer .pm-modal{animation:none}}

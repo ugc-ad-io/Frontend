@@ -1,0 +1,28 @@
+/* Notifications (phone app). Values from boards "Notifications" (MobileMessages / CMobileStates2) and "All notifications" (MobileMore3). */
+.ap-nf-cnt{min-width:18px;height:18px;padding:0 5px;border-radius:999px;font-size:10.5px;font-weight:700;display:inline-grid;place-items:center;background:var(--ap-primary);color:#fff}
+.ap-chip.is-on .ap-nf-cnt{background:#fff;color:var(--ap-ink)}
+.ap-nf-group{display:flex;flex-direction:column;gap:8px}
+.ap-nf-gh{display:flex;justify-content:space-between;align-items:center;min-height:32px;padding:0 4px}
+.ap-nf-gh h2{margin:0;font-size:16px;font-weight:700}
+.ap-nf-markall{display:inline-flex;align-items:center;gap:5px;font-size:13px;min-height:44px;padding:0 4px;color:var(--ap-primary)}
+.ap-nf-markall:disabled{opacity:.5}
+.ap-nf-card{padding:2px 16px}
+.ap-nf-row{display:flex;gap:12px;width:100%;padding:13px 0;background:none;border:0;border-top:1px solid var(--ap-line);font:inherit;color:inherit;text-align:left;cursor:pointer;min-height:64px;align-items:flex-start}
+.ap-nf-row:first-child{border-top:0}
+.ap-nf-ic{flex:none;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:#eef0ff;color:#2a3ab8}
+.ap-nf-ic--success{background:#e3f6ec;color:#13774f}
+.ap-nf-ic--warning{background:#fff2dc;color:#8a4b00}
+.ap-nf-ic--error{background:#ffe9e9;color:#b42318}
+.ap-nf-ic--message{background:#e6e8ff;color:#4e60e6}
+.ap-nf-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.ap-nf-title{font-size:14px;line-height:1.4;font-weight:600;display:flex;flex-wrap:wrap;align-items:center;gap:6px;overflow-wrap:anywhere}
+.ap-nf-row.is-unread .ap-nf-title{font-weight:700}
+.ap-nf-text{font-size:13px;line-height:1.4;color:#3a3a6a;overflow-wrap:anywhere}
+.ap-nf-when{font-size:12px;color:var(--ap-muted)}
+.ap-nf-chip{height:20px;font-size:10.5px}
+.ap-nf-cta{align-self:flex-start;margin-top:8px;display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 18px;border-radius:999px;font-weight:700;font-size:14px;background:#eef0ff;color:var(--ap-ink)}
+.ap-nf-cta.is-primary{background:var(--ap-ink);color:#fff}
+.ap-nf-dot{flex:none;width:9px;height:9px;margin-top:6px;border-radius:50%;background:var(--ap-primary)}
+.ap-nf-sk{height:56px;margin:10px 0}
+.ap-nf-warn{font-size:13px;color:#8a4b00;background:#fff8ec}
+@media (min-width:600px){.ap-nf-group,.ap-chips,.ap-nf-warn{max-width:560px;width:100%;margin-left:auto;margin-right:auto}}

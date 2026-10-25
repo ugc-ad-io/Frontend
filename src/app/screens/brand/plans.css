@@ -1,0 +1,77 @@
+/* Brand plans + expert-editing add-on (phone app). Classes ap-pl-* and ap-ad-*. */
+.ap-pl-seg{display:flex;gap:4px;padding:4px;border-radius:14px;background:#fff;box-shadow:inset 0 0 0 1px #e2e2f0}
+.ap-pl-seg button{flex:1;min-height:44px;border:0;border-radius:10px;background:none;font:inherit;font-size:14px;font-weight:600;color:var(--ap-soft);cursor:pointer}
+.ap-pl-seg button.is-on{background:var(--ap-ink);color:#fff}
+
+.ap-pl-card{display:flex;flex-direction:column;gap:14px;padding:18px}
+.ap-pl-card.is-pop{background:var(--ap-ink);color:#fff}
+.ap-pl-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.ap-pl-head h2{margin:0;font-family:var(--ap-head);font-weight:500;font-size:22px;letter-spacing:-.02em}
+.ap-pl-head small{display:block;margin-top:2px;font-size:13px;color:var(--ap-muted)}
+.ap-pl-card.is-pop .ap-pl-head small{color:#b9bff0}
+.ap-pl-pop{background:#fff;color:var(--ap-ink)}
+.ap-pl-price{display:flex;align-items:baseline;flex-wrap:wrap;gap:6px}
+.ap-pl-price b{font-family:var(--ap-head);font-weight:600;font-size:32px;line-height:1.15}
+.ap-pl-price span{font-size:13px;color:var(--ap-muted)}
+.ap-pl-card.is-pop .ap-pl-price span{color:#b9bff0}
+.ap-pl-fee{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:#f1f2ff;font-size:13.5px}
+.ap-pl-fee b{font-family:var(--ap-head);font-weight:600;font-size:20px;color:var(--ap-link)}
+.ap-pl-fee span{color:var(--ap-soft)}
+.ap-pl-card.is-pop .ap-pl-fee{background:rgba(255,255,255,.1)}
+.ap-pl-card.is-pop .ap-pl-fee b{color:#fff}
+.ap-pl-card.is-pop .ap-pl-fee span{color:#d4d8ff}
+.ap-pl-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px}
+.ap-pl-list li{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.4}
+.ap-pl-list i{flex:none;width:18px;height:18px;margin-top:1px;border-radius:50%;background:var(--ap-badge);color:var(--ap-link);display:grid;place-items:center}
+.ap-pl-card.is-pop .ap-pl-list i{background:rgba(255,255,255,.18);color:#fff}
+
+.ap-pl-calc{display:flex;flex-direction:column;gap:12px}
+.ap-pl-calc>p{margin:0;font-size:14px;color:var(--ap-muted)}
+.ap-pl-save{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;background:#f6f6fd}
+.ap-pl-save span{display:flex;flex-direction:column;min-width:0}
+.ap-pl-save small{font-size:12px;color:var(--ap-muted)}
+.ap-pl-save b{flex:none;font-size:14px;color:var(--ap-muted)}
+.ap-pl-save.is-good{background:#e3f6ec}
+.ap-pl-save.is-good b{color:#13774f}
+.ap-pl-faq{display:flex;flex-direction:column;gap:0;padding:6px 16px}
+.ap-pl-faq>div{display:flex;flex-direction:column;gap:3px;padding:12px 0;border-top:1px solid var(--ap-line)}
+.ap-pl-faq>div:first-child{border-top:0}
+.ap-pl-faq strong{font-size:14.5px}
+.ap-pl-faq span{font-size:13.5px;line-height:1.5;color:var(--ap-muted)}
+
+/* expert editing add-on */
+.ap-ad-card{display:flex;flex-direction:column;gap:12px}
+.ap-ad-card h2{margin:0;font-family:var(--ap-head);font-weight:500;font-size:26px;line-height:1.2;letter-spacing:-.02em}
+.ap-ad-card p{margin:0;font-size:14px;line-height:1.5;color:var(--ap-muted)}
+.ap-ad-price{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--ap-soft)}
+.ap-ad-price strong{font-family:var(--ap-head);font-size:20px;color:var(--ap-ink)}
+.ap-ad-inc{display:flex;flex-direction:column;gap:10px;margin-top:4px}
+.ap-ad-inc div{display:flex;gap:10px;align-items:center;font-size:14px}
+.ap-ad-inc i{flex:none;width:20px;height:20px;border-radius:50%;background:var(--ap-badge);color:var(--ap-link);display:grid;place-items:center}
+.ap-ad-pick-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:4px}
+.ap-ad-pick-h h3{margin:0;font-size:17px;font-weight:700}
+.ap-ad-pick-h small{font-size:12.5px;color:var(--ap-muted)}
+.ap-ad-row{display:flex;align-items:center;gap:12px;width:100%;min-height:64px;padding:10px 0;background:none;border:0;border-top:1px solid var(--ap-line);font:inherit;color:var(--ap-ink);text-align:left;cursor:pointer}
+.ap-ad-row:first-of-type{border-top:0}
+.ap-ad-box{flex:none;width:24px;height:24px;border-radius:8px;box-shadow:inset 0 0 0 1.5px #b9b9dc;display:grid;place-items:center;color:#fff}
+.ap-ad-row.is-on .ap-ad-box{background:var(--ap-ink);box-shadow:none}
+.ap-ad-thumb{flex:none;width:40px;height:40px;border-radius:12px;background:var(--ap-badge);color:var(--ap-link);display:grid;place-items:center;font-weight:700}
+.ap-ad-row-t{flex:1;min-width:0}
+.ap-ad-row-t b{display:block;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ap-ad-row-t small{display:block;font-size:12.5px;color:var(--ap-muted)}
+.ap-ad-row>b{flex:none;font-size:14px}
+.ap-ad-note{margin:8px 0 4px;font-size:14px;line-height:1.5;color:var(--ap-muted)}
+.ap-ad-err{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;color:#b42318}
+.ap-ad-err p{margin:0;font-size:14px}
+
+.ap-ad-bar{position:fixed;left:0;right:0;bottom:0;z-index:70;display:flex;align-items:center;gap:12px;padding:10px calc(16px + env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) calc(16px + env(safe-area-inset-left,0px));background:rgba(255,255,255,.96);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border-top:1px solid var(--ap-line)}
+.ap-ad-bar>div{flex:1;min-width:0}
+.ap-ad-bar small{display:block;font-size:12px;color:var(--ap-muted)}
+.ap-ad-bar b{display:block;font-family:var(--ap-head);font-weight:600;font-size:19px;line-height:1.2}
+.ap-ad-bar .ap-btn{flex:none;height:48px}
+.ap-ad-sum{display:flex;flex-direction:column;gap:6px;font-size:13.5px}
+.ap-ad-sum div{display:flex;justify-content:space-between;gap:12px;color:var(--ap-muted)}
+.ap-ad-sum strong{color:var(--ap-ink);font-weight:600}
+.ap-ad-tip{margin:8px 0 0;font-size:12.5px;line-height:1.45;color:var(--ap-muted)}
+.ap-ad-tip button{padding:0;border:0;background:none;font:inherit;font-weight:700;color:var(--ap-link);cursor:pointer;min-height:32px}
+.ap-ad-shell main.ap-body{padding-bottom:calc(92px + env(safe-area-inset-bottom,0px))}

@@ -1,4 +1,7 @@
 import { Component } from 'react';
+import { AlertTriangle, WifiOff } from 'lucide-react';
+import '../styles/brand-ui-states.css';
+import '../styles/brand-ui-mobile-b.css';
 import { shouldRecoverChunk, freshPageUrl } from '../utils/chunkRecovery';
 
 export default class AppErrorBoundary extends Component {
@@ -18,28 +21,17 @@ export default class AppErrorBoundary extends Component {
       // A lazy page chunk that cannot download while offline is the common cause: say so.
       const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
       return (
-        <main
-          role="alert"
-          className="app-full"
-          style={{
-            boxSizing: 'border-box', display: 'grid', placeItems: 'center', textAlign: 'center',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-            padding: 'max(24px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left))',
-          }}
-        >
-          <div style={{ width: '100%', maxWidth: 420, minWidth: 0 }}>
-            <h1 style={{ margin: '0 0 8px' }}>{offline ? "You're offline" : 'UGCad.io'}</h1>
-            <p style={{ margin: '0 0 20px', fontSize: 16, lineHeight: 1.5 }}>
-              {offline ? 'Check your connection, then try again.' : 'This page could not load. Please try again.'}
-            </p>
-            <button
-              type="button"
-              style={{ minHeight: 48, padding: '12px 28px', borderRadius: 999, border: 0, background: '#0A0A47', color: '#fff', font: 'inherit', fontWeight: 700, cursor: 'pointer' }}
-              onClick={() => window.location.replace(freshPageUrl(window.location.href))}
-            >
-              Retry loading page
-            </button>
-            <p style={{ marginTop: 16 }}><a href="/" style={{ display: 'inline-block', padding: 12 }}>Go to home</a></p>
+        <main role="alert" className="app-full bui-err">
+          <div className="bui-err-card">
+            <span className="bui-err-ic" aria-hidden="true">{offline ? <WifiOff size={26} /> : <AlertTriangle size={26} />}</span>
+            <h1>{offline ? "You're offline" : 'Something went wrong'}</h1>
+            <p>{offline ? 'Check your connection, then try again.' : 'This page could not load. Please try again.'}</p>
+            <div className="bui-err-actions">
+              <a className="bui-err-btn bui-err-btn--ghost" href="/">Go to home</a>
+              <button type="button" className="bui-err-btn" onClick={() => window.location.replace(freshPageUrl(window.location.href))}>
+                Retry loading page
+              </button>
+            </div>
           </div>
         </main>
       );

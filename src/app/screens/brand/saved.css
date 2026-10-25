@@ -1,0 +1,6 @@
+/* Brand app Saved creators (board M0 "Saved creators"). Prefix ap-sv-. */
+.ap-sv-sub{margin:0;font-size:14px;color:var(--ap-muted);line-height:1.45}
+.ap-sv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.ap-sv-sk{aspect-ratio:9/16;border-radius:14px}
+.ap-sv-note{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--ap-muted)}
+.ap-sv-note span{flex:1}

@@ -1,0 +1,4 @@
+/* Public brief page (phone app). The brief itself is the creator BriefDetail (ap-bf-*); this only trims what a viewer can't use. */
+.ap-cv-sk{display:flex;flex-direction:column;gap:14px}
+body.ap-cv-noapply .ap-bf-dfoot .ap-btn{display:none}
+body.ap-cv-nosave .ap-bf-dbar .ap-bf-dbtn[aria-pressed]{display:none}

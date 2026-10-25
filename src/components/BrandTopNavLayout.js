@@ -1,21 +1,35 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../App';
-import { ChevronDown, Plus, Wallet, Package, LogOut, Search, UserRoundSearch, X, Menu, Users, Megaphone, ClipboardCheck, MessageSquare, Bookmark, Send, Star, Settings, Bell, LifeBuoy } from 'lucide-react';
+import axios from 'axios';
+import { Wallet, Package, LogOut, Search, UserRoundSearch, X, Menu, Users, Megaphone, ClipboardCheck, MessageSquare, Bookmark, Send, Star, Settings, Bell, LifeBuoy, Heart } from 'lucide-react';
 import NotificationBell from './NotificationBell';
-import HoverSideRail, { openHelpDialog } from './HoverSideRail';
+import { openHelpDialog } from './HoverSideRail';
 import MessagesPopup from './MessagesPopup';
 import RejectedGate from './RejectedGate';
 import MoreInfoGate from './MoreInfoGate';
+import BrandPendingGate from './BrandPendingGate';
 import { brandName } from '../utils/displayName';
 import PostABrief from '../pages/PostABrief';
 import { creatorSearchUrl } from '../utils/creatorSearch';
 import BriefOverlay from './BriefOverlay';
 import useNavHeightVar from '../utils/useNavHeightVar';
 import '../styles/creator-marketplace.css';
+import '../styles/brand-ui.css';
+import '../styles/brand-ui-home.css';
+import '../styles/brand-ui-pages.css';
+import '../styles/brand-ui-detail.css';
+import '../styles/brand-ui-bids.css';
+import '../styles/brand-ui-work.css';
+import '../styles/brand-ui-wallet.css';
+import '../styles/brand-ui-mobile-a.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const getInitial = (name) => (name || 'B').trim().charAt(0).toUpperCase();
+
+// Category strip under the header (design board 01). Each entry filters the creator directory.
+const CATEGORIES = ['Beauty', 'Skincare', 'Fashion', 'Fitness', 'Food & Drinks', 'Tech & Gadgets', 'Lifestyle', 'Travel', 'Home', 'Pets', 'Apps'];
+const inr = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
 
 const PRIMARY_LINKS = [
   { name: 'Creators', to: '/dashboard/business/browse-creator', icon: Users },
@@ -56,8 +70,11 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
   useEffect(() => { setSearchText(new URLSearchParams(search).get('q') || ''); }, [pathname, search]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  // Any navigation (menu item, category chip, logo, browser back) closes the phone menu.
+  useEffect(() => { setMobileOpen(false); }, [pathname, search]);
   const [briefOpen, setBriefOpen] = useState(false);
   const [msgOpen, setMsgOpen] = useState(false);
+  const [balance, setBalance] = useState(null);
   const menuRef = useRef(null);
   const headerRef = useRef(null);
   useNavHeightVar(headerRef);
@@ -69,6 +86,15 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
     await briefRef.current?.saveDraftNow();
     setBriefOpen(false);
   };
+
+  // Wallet pill in the header. A failed/gated load just hides the pill; the Wallet page owns the error UI.
+  useEffect(() => {
+    let live = true;
+    axios.get(`${BACKEND_URL}/api/business/wallet`)
+      .then((r) => { if (live) setBalance(Number(r.data?.available_balance || 0)); })
+      .catch(() => {});
+    return () => { live = false; };
+  }, []);
 
   useEffect(() => {
     const close = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false); };
@@ -116,148 +142,110 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
   if (isBrand && approval === 'more_info') {
     return <MoreInfoGate user={user} kind="business" onLogout={handleLogout} />;
   }
-  if (isBrand && approval === 'pending') {
-    return (
-      <div className="brl-gate">
-        <div className="brl-gate-card">
-          <span className="brl-gate-ic">🕓</span>
-          <p className="brl-gate-eyebrow">Business verification</p>
-          <h1>Profile Under Review</h1>
-          <p>
-            Your business profile is being verified by our team. Most accounts are approved within 24–48 hours,
-            and we’ll email you once you’re cleared to launch campaigns.
-          </p>
-          <button type="button" className="brl-gate-btn" onClick={handleLogout}>Back to Home</button>
-        </div>
-        <style>{`
-          .brl-gate{min-height:100vh;min-height:100dvh;display:grid;place-items:center;padding:max(24px,env(safe-area-inset-top)) max(24px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(24px,env(safe-area-inset-left));background:linear-gradient(160deg,#05050f 0%,#0d0b26 100%)}
-          .brl-gate-card{width:min(560px,100%);padding:48px 40px;box-sizing:border-box;border-radius:24px;background:#141420;color:#f4f4f8;text-align:center;border:1px solid rgba(255,255,255,.08);box-shadow:0 24px 60px rgba(0,0,0,.5)}
-          .brl-gate-ic{font-size:44px;line-height:1}
-          .brl-gate-eyebrow{margin:16px 0 4px;color:#8b8fb5;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
-          .brl-gate-card h1{margin:0 0 12px;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:26px;color:#fff}
-          .brl-gate-card p{margin:0 auto;max-width:420px;color:rgba(255,255,255,.62);font-size:14.5px;line-height:1.65}
-          .brl-gate-btn{margin-top:26px;padding:12px 26px;border-radius:12px;border:none;cursor:pointer;font:inherit;font-weight:700;font-size:14px;background:#5b6bff;color:#fff}
-          .brl-gate-btn:hover{background:#4452f0}
-        `}</style>
-      </div>
-    );
-  }
+  if (isBrand && approval === 'pending') return <BrandPendingGate user={user} onLogout={handleLogout} />;
 
   return (
-    <div className="cmk-app has-rail">
-      <HoverSideRail
-        brandMark="U"
-        onLogoClick={() => navigate('/dashboard/business/browse-creator')}
-        primary={PRIMARY_LINKS}
-        secondary={MENU_LINKS.filter((i) => !i.sep)}
-        isActive={isActive}
-        onNavigate={navigate}
-        onLogout={handleLogout}
-        account={{ name: displayName, role: 'Brand Account', photo }}
-      />
-      <header ref={headerRef} className={`cmk-nav${mobileOpen ? ' cmk-nav--open' : ''}`}>
-        <div className="cmk-wrap cmk-nav-inner">
-          <button type="button" className="cmk-hamburger" aria-label="Menu" aria-expanded={mobileOpen} onClick={() => setMobileOpen((v) => !v)}>
+    <div className="cmk-app bui-app">
+      <header ref={headerRef} className="bui-header">
+        <div className="bui-header-in">
+          <button type="button" className="bui-hamburger" aria-label="Menu" aria-expanded={mobileOpen} onClick={() => setMobileOpen((v) => !v)}>
             {mobileOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
-          <button type="button" className="cmk-brand" onClick={() => navigate('/dashboard/business/browse-creator')} aria-label="Go to Creators">
-            <img src="/ugcad-logo.png" alt="UGCad.io" className="cmk-brand-logo" />
+          <button type="button" className="bui-logo" onClick={() => navigate('/brand-home')} aria-label="UGCad.io home">
+            <span className="bui-logo-mark" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-logo.png)` }} />
+            <span className="bui-logo-word"><b>UGC</b>ad.io</span>
           </button>
 
-          <div className="cmk-nav-search" role="search">
-            <Search size={18} />
-            <input
-              type="search"
-              placeholder="Search creators by name, niche..."
-              aria-label="Search creators"
-              value={searchText}
-              onChange={(event) => {
-                const value = event.target.value;
-                setSearchText(value);
-                if (pathname.includes('browse-creator')) navigate(creatorSearchUrl(search, value), { replace: true });
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  const v = e.target.value.trim();
-                  navigate(creatorSearchUrl(pathname.includes('browse-creator') ? search : '', v));
-                }
-              }}
-            />
-          </div>
+          <form
+            className="bui-search"
+            role="search"
+            onSubmit={(e) => { e.preventDefault(); navigate(creatorSearchUrl(pathname.includes('browse-creator') ? search : '', searchText)); }}
+          >
+            <label>
+              <input
+                type="search"
+                aria-label="Search creators"
+                placeholder="What kind of creator are you looking for?"
+                value={searchText}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setSearchText(value);
+                  if (pathname.includes('browse-creator')) navigate(creatorSearchUrl(search, value), { replace: true });
+                }}
+              />
+            </label>
+            <button type="submit" aria-label="Search"><Search size={18} strokeWidth={2.4} /></button>
+          </form>
 
-          <nav className="cmk-links" aria-label="Brand">
-            {PRIMARY_LINKS.map((link) => (
-              <button key={link.name} type="button" className={isActive(link.to) ? 'is-active' : ''} onClick={() => navigate(link.to)}>
-                {link.name}
-                {link.dot && <span className="cmk-link-dot" />}
-              </button>
-            ))}
-          </nav>
-
-          <div className="cmk-nav-right" ref={menuRef}>
-            <button type="button" className="cmk-btn-primary-sm cmk-nav-post-full" onClick={() => setBriefOpen(true)} title="Post a Campaign" aria-label="Post a Campaign">
-              <Plus size={18} /><span className="cmk-btn-label">Post a Campaign</span>
-            </button>
-
+          <nav className="bui-nav" aria-label="Account" ref={menuRef}>
             <NotificationBell />
-
-            <button type="button" className="cmk-avatar-btn" onClick={() => setMenuOpen((v) => !v)} aria-label="Account menu" aria-expanded={menuOpen}>
-              <span className="cmk-avatar">
-                {photo ? <img src={photo.startsWith('http') ? photo : `${BACKEND_URL}${photo}`} alt={displayName} /> : getInitial(displayName)}
-              </span>
-              <span className="cmk-avatar-id">
-                <strong>{displayName}</strong>
-                <small>Brand Account</small>
-              </span>
+            <button type="button" className="bui-iconbtn" aria-label="Messages" onClick={() => setMsgOpen((v) => !v)}>
+              <MessageSquare size={20} />
             </button>
-
-            {menuOpen && (
-              <div className="cmk-menu">
-                {/* Only account-level entries here — the rail already lists Saved
-                    Creators / Creator Bids / Sent Briefs / Shipments / Wallet. */}
-                {ACCOUNT_LINKS.map((item) => (
-                  <button
-                    key={item.name}
-                    type="button"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      if (item.action === 'help') openHelpDialog();
-                      else navigate(item.to);
-                    }}
-                  >
-                    <item.icon size={18} /> {item.name}
-                  </button>
-                ))}
-                <button type="button" onClick={handleLogout}><LogOut size={18} /> Log out</button>
-              </div>
+            <button type="button" className="bui-iconbtn" aria-label="Saved creators" onClick={() => navigate('/dashboard/business/saved-creators')}>
+              <Heart size={20} />
+            </button>
+            <button type="button" className={`bui-navlink${isActive('/dashboard/business/all-campaigns') ? ' is-active' : ''}`} onClick={() => navigate('/dashboard/business/all-campaigns')}>
+              Campaigns
+            </button>
+            {balance !== null && (
+              <button type="button" className="bui-wallet" onClick={() => navigate('/dashboard/business/wallet')} aria-label="Wallet balance">{inr(balance)}</button>
             )}
-          </div>
-        </div>
-        {mobileOpen && (
-          <div className="cmk-mobile-backdrop" onClick={() => setMobileOpen(false)} aria-hidden="true" />
-        )}
-        {mobileOpen && (
-          <div className="cmk-mobile-menu">
-            {/* These carry an `icon` just like the other two groups, but the mobile
-                menu was rendering the bare name — so the top four entries sat
-                icon-less and misaligned against everything below them. */}
-            {PRIMARY_LINKS.map((link) => (
-              <button key={link.name} type="button" className={isActive(link.to) ? 'is-active' : ''} onClick={() => { setMobileOpen(false); navigate(link.to); }}>
-                <link.icon size={18} /> {link.name}
+            <div className="bui-acct">
+              <button type="button" className="bui-avatar" onClick={() => setMenuOpen((v) => !v)} aria-label="Account menu" aria-expanded={menuOpen}>
+                {photo ? <img src={photo.startsWith('http') ? photo : `${BACKEND_URL}${photo}`} alt={displayName} /> : getInitial(displayName)}
+                <i aria-hidden="true" />
               </button>
-            ))}
-            <div className="cmk-sep" />
-            {MENU_LINKS.filter((i) => !i.sep).map((item) => (
-              <button key={item.name} type="button" className={isActive(item.to) ? 'is-active' : ''} onClick={() => { setMobileOpen(false); navigate(item.to); }}>
-                <item.icon size={18} /> {item.name}
-              </button>
-            ))}
-            {/* Reviews / Notifications / Settings / Need help? live in the profile
-                (avatar) menu, so they're intentionally omitted here to avoid dupes. */}
-            <div className="cmk-mobile-foot">
-              <div className="cmk-sep" />
-              <button type="button" onClick={handleLogout}><LogOut size={18} /> Log out</button>
+              {menuOpen && (
+                <div className="bui-menu">
+                  <div className="bui-menu-head"><strong>{displayName}</strong><small>Brand Account</small></div>
+                  {[...MENU_LINKS, ...ACCOUNT_LINKS].map((item) => (
+                    <button
+                      key={item.name}
+                      type="button"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        if (item.action === 'help') openHelpDialog();
+                        else navigate(item.to);
+                      }}
+                    >
+                      <item.icon size={17} /> {item.name}
+                    </button>
+                  ))}
+                  <button type="button" onClick={handleLogout}><LogOut size={17} /> Log out</button>
+                </div>
+              )}
             </div>
+            <button type="button" className="bui-post" onClick={() => setBriefOpen(true)}>Post a campaign</button>
+          </nav>
+        </div>
+
+        <div className="bui-cats">
+          <nav className="bui-cats-in" aria-label="Categories">
+            {CATEGORIES.map((c) => {
+              const on = pathname.includes('browse-creator') && (new URLSearchParams(search).get('category') || '').toLowerCase() === c.toLowerCase();
+              return (
+                <button key={c} type="button" className={on ? 'is-active' : ''} onClick={() => navigate(`/dashboard/business/browse-creator?category=${encodeURIComponent(c)}`)}>{c}</button>
+              );
+            })}
+          </nav>
+        </div>
+
+        {mobileOpen && (
+          <div className="bui-mobile">
+            <button type="button" className="bui-mobile-post" onClick={() => { setMobileOpen(false); setBriefOpen(true); }}><Megaphone size={18} /> Post a campaign</button>
+            {[...PRIMARY_LINKS, ...MENU_LINKS, ...ACCOUNT_LINKS].map((link) => (
+              <button
+                key={link.name}
+                type="button"
+                className={link.to && isActive(link.to) ? 'is-active' : ''}
+                onClick={() => { setMobileOpen(false); if (link.action === 'help') openHelpDialog(); else navigate(link.to); }}
+              >
+                <link.icon size={18} /> {link.name}
+                {link.name === 'Wallet' && balance !== null && <em className="bui-mobile-bal">{inr(balance)}</em>}
+              </button>
+            ))}
+            <button type="button" onClick={handleLogout}><LogOut size={18} /> Log out</button>
           </div>
         )}
       </header>

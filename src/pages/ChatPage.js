@@ -7,6 +7,9 @@ import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import { displayName } from '../utils/displayName';
 import { ArrowLeft, Send, AlertTriangle, Shield } from 'lucide-react';
+import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
+import BrandTopNavLayout from '../components/BrandTopNavLayout';
+import '../styles/web1-chat.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -126,13 +129,16 @@ export default function ChatPage() {
     }
   };
 
-  return (
-    <div className="chat-page">
+  const role = user?.role;
+  const Shell = role === 'creator' ? CreatorTopNavLayout : role === 'business' ? BrandTopNavLayout : null;
+  const page = (
+    <div className={`chat-page wcc${role === 'business' ? ' bui-main bui-main--tight' : ''}${Shell ? '' : ' wcc--bare'}`}>
       <div className="chat-container">
         <div className="chat-header">
           <button type="button" className="back-btn" aria-label="Back" onClick={() => navigate(-1)} data-testid="back-btn">
             <ArrowLeft size={20} />
           </button>
+          <span className="chat-ava" aria-hidden="true">{otherUser ? displayName(otherUser, 'User').trim().charAt(0).toUpperCase() : ''}</span>
           <div className="chat-user-info">
             <h2>{otherUser ? displayName(otherUser, 'User') : 'Loading...'}</h2>
             <span className="user-role">{otherUser?.role}</span>
@@ -143,7 +149,7 @@ export default function ChatPage() {
         <div className="warning-banner">
           <Shield size={20} />
           <div className="warning-content">
-            <strong>Platform Policy:</strong> Do not share personal contact information (email, phone, WhatsApp, Telegram, Discord, etc.) in chat. All communication must remain on the platform. Violations will result in warnings and potential account suspension.
+            <strong>Platform policy:</strong> Do not share personal contact information (email, phone, WhatsApp, Telegram, Discord, etc.) in chat. All communication must remain on the platform. Violations will result in warnings and potential account suspension.
             {warnings.warning_count > 0 && (
               <div className="warning-count">
                 <AlertTriangle size={16} />
@@ -174,7 +180,7 @@ export default function ChatPage() {
                 return (
                   <div key={msg.id || idx} className="system-message" data-testid={`system-message-${idx}`}>
                     <div className="system-message-content">
-                      <strong>🔔 Platform Notification</strong>
+                      <strong>Platform notification</strong>
                       <p>{msg.message}</p>
                       <span className="message-time">
                         {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -224,328 +230,7 @@ export default function ChatPage() {
         </form>
       </div>
 
-      <style>{`
-        .chat-page {
-          min-height: 100vh;
-          min-height: 100dvh;
-          background: linear-gradient(135deg, #f8f9ff 0%, #e8ecff 100%);
-          padding: 40px 20px;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-        }
-
-        .chat-container {
-          width: 100%;
-          max-width: 900px;
-          height: 80vh;
-          height: 80dvh;
-          min-height: 0;
-          background: white;
-          border-radius: 24px;
-          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-          display: flex;
-          flex-direction: column;
-          overflow: hidden;
-        }
-
-        .chat-header {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-          padding: 20px 24px;
-          background: white;
-          border-bottom: 2px solid #e2e8f0;
-        }
-
-        .back-btn {
-          flex: none;
-          min-width: 44px;
-          min-height: 44px;
-          justify-content: center;
-          padding: 8px;
-          background: #f8f9ff;
-          border: 2px solid #e2e8f0;
-          border-radius: 12px;
-          color: #4a5568;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          display: flex;
-          align-items: center;
-        }
-
-        .back-btn:hover {
-          border-color: #667eea;
-          color: #667eea;
-        }
-
-        .chat-user-info {
-          flex: 1;
-          min-width: 0;
-        }
-
-        .chat-user-info h2 {
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        .chat-user-info h2 {
-          font-size: var(--fs-h2);
-          font-weight: var(--fw-head);
-          color: #1a202c;
-          margin-bottom: 4px;
-        }
-
-        .user-role {
-          font-size: 0.875rem;
-          color: #718096;
-          text-transform: capitalize;
-        }
-
-        .warning-banner {
-          display: flex;
-          gap: 12px;
-          padding: 16px;
-          background: linear-gradient(135deg, #fff3cd 0%, #ffe69c 100%);
-          border: 2px solid #ffc107;
-          border-radius: 12px;
-          margin: 12px 16px 0;
-          flex: none;
-          color: #856404;
-        }
-
-        .warning-banner > svg { flex: none; }
-
-        .warning-content {
-          flex: 1;
-          font-size: 0.9rem;
-          line-height: 1.5;
-        }
-
-        .warning-content strong {
-          color: #533f03;
-        }
-
-        .warning-count {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          margin-top: 8px;
-          padding: 8px 12px;
-          background: #ff6b6b;
-          color: white;
-          border-radius: 8px;
-          font-weight: 600;
-          font-size: 0.875rem;
-        }
-
-        .chat-messages {
-          flex: 1;
-          min-height: 0;
-          overflow-y: auto;
-          padding: 24px;
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-          background: #f8f9ff;
-        }
-
-        .loading,
-        .empty-chat {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          height: 100%;
-          color: #718096;
-        }
-
-        .message {
-          display: flex;
-        }
-
-        .message.own {
-          justify-content: flex-end;
-        }
-
-        .message.other {
-          justify-content: flex-start;
-        }
-
-        .message-bubble {
-          max-width: 70%;
-          padding: 12px 16px;
-          border-radius: 16px;
-          min-width: 0;
-          overflow-wrap: anywhere;
-          white-space: pre-wrap;
-        }
-
-        .message.own .message-bubble {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
-          border-bottom-right-radius: 4px;
-        }
-
-        .message.other .message-bubble {
-          background: white;
-          color: #1a202c;
-          border: 2px solid #e2e8f0;
-          border-bottom-left-radius: 4px;
-        }
-
-        .message-bubble p {
-          margin: 0 0 6px 0;
-          line-height: 1.5;
-        }
-
-        .message-time {
-          font-size: 0.75rem;
-          opacity: 0.8;
-        }
-
-        .message.filtered .message-bubble {
-          border: 2px solid #ff6b6b;
-          background: #ffe5e5 !important;
-        }
-
-        .filtered-indicator {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 0.75rem;
-          color: #c53030;
-          font-weight: 600;
-          margin-bottom: 6px;
-          padding: 4px 8px;
-          background: white;
-          border-radius: 6px;
-        }
-
-        .system-message {
-          display: flex;
-          justify-content: center;
-          margin: 24px 0;
-        }
-
-        .system-message-content {
-          background: linear-gradient(135deg, #e6f7ff 0%, #f0f9ff 100%);
-          border: 2px solid #48bb78;
-          border-radius: 16px;
-          padding: 16px 20px;
-          max-width: 80%;
-          text-align: center;
-        }
-
-        .system-message-content strong {
-          display: block;
-          color: #2d3748;
-          font-size: 1rem;
-          margin-bottom: 8px;
-        }
-
-        .system-message-content p {
-          color: #4a5568;
-          line-height: 1.6;
-          white-space: pre-line;
-          margin: 0 0 8px 0;
-        }
-
-        .system-message-content .message-time {
-          font-size: 0.75rem;
-          color: #718096;
-        }
-
-        .chat-input-form {
-          display: flex;
-          gap: 12px;
-          flex: none;
-          padding: 20px 24px;
-          background: white;
-          border-top: 2px solid #e2e8f0;
-        }
-
-        .chat-input {
-          flex: 1;
-          min-width: 0;
-          padding: 12px 16px;
-          border: 2px solid #e2e8f0;
-          border-radius: 12px;
-          font-size: 1rem;
-          font-family: var(--font-body);
-          transition: all 0.3s ease;
-        }
-
-        .chat-input:focus {
-          outline: none;
-          border-color: #667eea;
-        }
-
-        .send-btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; box-shadow: none; }
-
-        .send-btn {
-          min-width: 48px;
-          min-height: 48px;
-          justify-content: center;
-          padding: 12px 20px;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
-          border: none;
-          border-radius: 12px;
-          cursor: pointer;
-          transition: all 0.3s ease;
-          display: flex;
-          align-items: center;
-        }
-
-        .send-btn:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-        }
-
-        @media (max-width: 640px) {
-          .chat-page {
-            padding: 0;
-          }
-
-          .chat-container {
-            height: 100vh;
-            height: 100dvh;
-            border-radius: 0;
-          }
-
-          .chat-header {
-            padding: 12px 12px 12px max(12px, env(safe-area-inset-left));
-          }
-
-          /* The policy text is long: keep it small so the conversation keeps the screen. */
-          .warning-banner {
-            margin: 8px 12px 0;
-            padding: 10px 12px;
-            max-height: 30vh;
-            overflow-y: auto;
-          }
-
-          .warning-content {
-            font-size: 0.78rem;
-            line-height: 1.4;
-          }
-
-          .chat-messages {
-            padding: 16px 12px;
-            gap: 12px;
-          }
-
-          .chat-input-form {
-            gap: 8px;
-            padding: 10px 12px max(10px, env(safe-area-inset-bottom));
-          }
-
-          .message-bubble {
-            max-width: 85%;
-          }
-        }
-      `}</style>
     </div>
   );
+  return Shell ? <Shell>{page}</Shell> : page;
 }

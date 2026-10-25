@@ -122,47 +122,53 @@ export default function RevisionRequestModal({ onClose, onSubmit, submitting = f
         </div>
 
         <style>{`
-          .rrm-ov{position:fixed;inset:0;background:rgba(15,22,58,.5);backdrop-filter:blur(3px);z-index:1500;display:flex;align-items:flex-start;justify-content:center;padding:24px;overflow:auto}
-          .rrm{position:relative;width:min(620px,100%);background:#fff;border-radius:20px;box-shadow:0 30px 70px rgba(15,22,58,.4);overflow:hidden}
-          .rrm-x{position:absolute;top:14px;right:14px;width:34px;height:34px;border-radius:50%;border:none;background:#f1f3fa;color:#15163a;cursor:pointer;display:grid;place-items:center}
-          .rrm-head{display:flex;gap:12px;align-items:center;padding:22px 24px 14px;border-bottom:1px solid #eef0f6}
-          .rrm-ic{flex:none;width:40px;height:40px;border-radius:11px;display:grid;place-items:center;background:#fff3e6;color:#e08a1e}
-          .rrm-head h3{margin:0;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:18px;color:#15163a}
-          .rrm-head p{margin:2px 0 0;color:#9296ba;font-size:13px}
-          .rrm-fee{margin:14px 24px 0;padding:10px 14px;background:#fff3e6;border:1px solid #ffd9a8;color:#9a5b00;border-radius:10px;font-size:13px;font-weight:600}
-          .rrm-free{margin:14px 24px 0;padding:10px 14px;background:#eafaf0;border:1px solid #b6e6c7;color:#15a35b;border-radius:10px;font-size:13px;font-weight:600}
-          .rrm-warn{display:flex;gap:8px;align-items:flex-start;margin:14px 24px 0;padding:10px 14px;background:#fdecec;border:1px solid #f6c3c3;color:#c0392b;border-radius:10px;font-size:12.5px;font-weight:600;line-height:1.4}
+          .rrm-ov{position:fixed;inset:0;background:rgba(7,7,78,.45);backdrop-filter:blur(3px);z-index:1500;display:flex;align-items:flex-start;justify-content:center;padding:24px;overflow:auto;height:100vh;height:100dvh;overscroll-behavior:contain}
+          .rrm{position:relative;width:min(560px,100%);background:#fff;border-radius:20px;box-shadow:0 40px 80px -30px rgba(7,7,78,.6);overflow:hidden;font-family:'Inter',system-ui,sans-serif;color:#07074e;margin:auto}
+          .rrm-x{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:9px;border:none;background:#f6f6fd;color:#07074e;cursor:pointer;display:grid;place-items:center}
+          .rrm-x:hover{background:#eef0ff}
+          .rrm-head{display:flex;gap:12px;align-items:center;padding:22px 64px 14px 24px;border-bottom:1px solid #edeef6}
+          .rrm-ic{flex:none;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:#eef0ff;color:#4e60e6}
+          .rrm-head h3{margin:0;font-family:'Readex Pro','Plus Jakarta Sans',sans-serif;font-weight:500;font-size:20px;color:#07074e}
+          .rrm-head p{margin:2px 0 0;color:#6e6e96;font-size:13.5px}
+          .rrm-fee,.rrm-free,.rrm-warn{margin:14px 24px 0;padding:10px 14px;border-radius:12px;font-size:13px;font-weight:600;line-height:1.4}
+          .rrm-fee{background:#fff2dc;color:#8a4b00}
+          .rrm-free{background:#e4f5ec;color:#13774f}
+          .rrm-warn{display:flex;gap:8px;align-items:flex-start;background:#fde8e8;color:#b42318}
           .rrm-warn svg{flex:none;margin-top:1px}
           .rrm-body{padding:18px 24px;max-height:60vh;overflow:auto}
-          .rrm-label{display:block;font-size:12px;font-weight:800;color:#15163a;text-transform:uppercase;letter-spacing:.4px;margin:10px 0 8px}
-          .rrm-label span{color:#9296ba;font-weight:600;text-transform:none;letter-spacing:0}
-          .rrm-item{border:1px solid #eef0f6;border-radius:12px;padding:12px;margin-bottom:10px;background:#fbfbfe}
+          .rrm-label{display:block;font-size:13px;font-weight:700;color:#07074e;margin:10px 0 8px}
+          .rrm-label span{color:#6e6e96;font-weight:500}
+          .rrm-item{border-radius:16px;padding:12px;margin-bottom:10px;background:#f6f6fd}
           .rrm-item-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
-          .rrm-item-top strong{font-size:12.5px;color:#585c7e}
-          .rrm-del{border:none;background:none;color:#9296ba;cursor:pointer;padding:2px}
+          .rrm-item-top strong{font-size:13px;color:#5a5a8c;font-weight:600}
+          .rrm-del{border:none;background:none;color:#9f9fd1;cursor:pointer;padding:2px}
           .rrm-del:hover{color:#e5484d}
-          .rrm-item textarea,.rrm-notes,.rrm-time input{width:100%;border:1px solid #e6e8f3;border-radius:9px;padding:9px 11px;font-size:13.5px;font-family:inherit;color:#15163a;outline:none;box-sizing:border-box}
-          .rrm-item textarea:focus,.rrm-notes:focus{border-color:#5b6bff}
-          .rrm-time button{border:1px solid #e6e8f3;background:#fff;color:#585c7e;border-radius:20px;padding:7px 13px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit}
-          .rrm-time button.on{background:#eef0ff;border-color:#5b6bff;color:#4452f0}
-          .rrm-add{display:inline-flex;align-items:center;gap:6px;border:1px dashed #cdd4ff;background:#f6f7ff;color:#5b6bff;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit}
-          .rrm-count{text-align:right;color:#9296ba;font-size:11.5px;margin-top:4px}
+          .rrm-item textarea,.rrm-notes,.rrm-time input{width:100%;border:1.5px solid transparent;border-radius:12px;padding:10px 12px;font-size:14px;font-family:inherit;color:#07074e;background:#fff;outline:none;box-sizing:border-box;resize:vertical}
+          .rrm-notes{background:#f6f6fd;border-radius:16px}
+          .rrm-item textarea:focus,.rrm-notes:focus{background:#fff;border-color:#7387ff;box-shadow:0 0 0 3px rgba(115,135,255,.2)}
+          .rrm-time button{border:1px solid #c9cbea;background:#fff;color:#07074e;border-radius:999px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit}
+          .rrm-time button:hover{background:#f3f3ff}
+          .rrm-time button.on{background:#07074e;border-color:#07074e;color:#fff}
+          .rrm-add{display:inline-flex;align-items:center;gap:6px;border:1.5px dashed #9f9fd1;background:#fff;color:#4e60e6;border-radius:12px;padding:9px 14px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit}
+          .rrm-add:hover{background:#f6f6fd}
+          .rrm-count{text-align:right;color:#6e6e96;font-size:12px;margin-top:4px}
           .rrm-time{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-          .rrm-foot{display:flex;justify-content:flex-end;gap:10px;padding:16px 24px;border-top:1px solid #eef0f6}
-          .rrm-cancel{border:1px solid #e6e8f3;background:#fff;color:#15163a;border-radius:30px;padding:11px 20px;font-weight:700;font-size:13.5px;cursor:pointer;font-family:inherit}
-          .rrm-submit{border:none;background:linear-gradient(100deg,#12124f,#07074e);color:#fff;border-radius:30px;padding:11px 22px;font-weight:800;font-size:13.5px;cursor:pointer;font-family:inherit;box-shadow:0 12px 26px -12px rgba(7,7,78,.7)}
-          .rrm-submit:disabled{opacity:.5;cursor:not-allowed}
-          .rrm-ov{height:100vh;height:100dvh;overscroll-behavior:contain}
-          .rrm-head{padding-right:60px}
+          .rrm-foot{display:flex;justify-content:flex-end;gap:10px;padding:16px 24px;border-top:1px solid #edeef6}
+          .rrm-cancel,.rrm-submit{height:48px;border-radius:999px;padding:0 24px;font-weight:700;font-size:14.5px;cursor:pointer;font-family:inherit;border:1px solid transparent}
+          .rrm-cancel{background:#fff;border-color:#c9cbea;color:#07074e}
+          .rrm-cancel:hover{background:#f3f3ff}
+          .rrm-submit{background:#07074e;color:#fff}
+          .rrm-submit:hover:not(:disabled){background:#12124f}
+          .rrm-submit:disabled{opacity:.55;cursor:not-allowed}
           @media (max-width:768px){
             .rrm-ov{padding:max(12px,env(safe-area-inset-top,0px)) 12px max(12px,env(safe-area-inset-bottom,0px))}
             .rrm{display:flex;flex-direction:column;max-height:calc(100vh - 24px);max-height:calc(100dvh - 24px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
             .rrm-body{flex:1;min-height:0;max-height:none;overflow:auto;padding:16px}
             .rrm-head,.rrm-fee,.rrm-free,.rrm-warn,.rrm-foot{flex:none}
-            .rrm-head{padding:18px 16px 12px;padding-right:64px}
+            .rrm-head{padding:18px 64px 12px 16px}
             .rrm-fee,.rrm-free,.rrm-warn{margin-left:16px;margin-right:16px}
             .rrm-foot{padding:12px 16px;flex-wrap:wrap}
-            .rrm-foot button{flex:1 1 140px;min-height:44px}
+            .rrm-foot button{flex:1 1 140px}
             .rrm-x{width:44px;height:44px;top:10px;right:10px}
             .rrm-del{min-width:44px;min-height:44px;display:grid;place-items:center;padding:0}
             .rrm-add,.rrm-time button{min-height:44px}

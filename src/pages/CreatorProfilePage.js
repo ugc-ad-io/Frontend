@@ -1,27 +1,23 @@
 import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
-import CreatorProfileModal from '../components/CreatorProfileModal';
+import BrandCreatorProfile from '../components/BrandCreatorProfile';
 import ChatPopup from '../components/ChatPopup';
 import PlanBrief from './PlanBrief';
 
 /**
  * Full-page creator profile (route /dashboard/business/creator/:id).
- * Reuses CreatorProfileModal in `asPage` mode — same data + sections, no overlay.
+ * Renders BrandCreatorProfile (design board 08): same /profile data as the old modal, read-only.
  */
 export default function CreatorProfilePage() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [chatWith, setChatWith] = useState(null);
   const [briefOpen, setBriefOpen] = useState(false);
 
   return (
     <BrandTopNavLayout>
-      <CreatorProfileModal
+      <BrandCreatorProfile
         id={id}
-        asPage
-        // Opened straight from a link (new tab, notification) there is nothing to go back to: land on Browse Creators.
-        onClose={() => (window.history.state?.idx > 0 ? navigate(-1) : navigate('/dashboard/business/browse-creator', { replace: true }))}
         onMessage={() => setChatWith({ id })}
         onBegin={() => setBriefOpen(true)}
       />

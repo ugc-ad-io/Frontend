@@ -1,33 +1,31 @@
 import { useLiveEffect } from '../lib/liveUpdates';
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { ArrowRight, Clock, Lock } from 'lucide-react';
+import { Clock } from 'lucide-react';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
+import CreatorPageHead from '../components/CreatorPageHead';
+import { inr, brandTile, orderStatus, dueLabel, isPaidDeal, isInReview, shortDate } from '../utils/orderUi';
 import EmptyState from '../components/EmptyState';
 import { MyBidsContent } from './MyBidsPage';
 import { Skeleton } from '../components/Skeleton';
 import '../styles/creator-marketplace.css';
+import '../styles/creator-ui-orders.css';
 
-// Row skeleton matching an .mdh-card: avatar + lead lines + amount + arrow.
+// Row skeleton matching a .cui-o-row: tile + lead lines + pill.
 function DealsSkeleton() {
   return (
-    <div className="mdh-grid" aria-hidden="true">
-      {Array.from({ length: 4 }).map((_, i) => (
-        <article className="mdh-card" key={i}>
-          <Skeleton width={46} height={46} radius={12} />
-          <div className="mdh-lead" style={{ flex: 1, minWidth: 0 }}>
-            <Skeleton width={130} height={14} />
+    <div aria-hidden="true">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div className="cui-o-skel" key={i}>
+          <Skeleton width={54} height={54} radius={12} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <Skeleton width={110} height={12} />
             <Skeleton width="55%" height={16} style={{ marginTop: 8 }} />
-            <Skeleton width="40%" height={12} style={{ marginTop: 6 }} />
           </div>
-          <div className="mdh-amt" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <Skeleton width={50} height={10} />
-            <Skeleton width={80} height={16} />
-          </div>
-          <Skeleton width={38} height={38} radius="50%" />
-        </article>
+          <Skeleton width={80} height={24} radius={999} />
+        </div>
       ))}
     </div>
   );
@@ -67,29 +65,48 @@ const isRequested = (d) =>
 const isDead = (d) =>
   bookingStatus(d) === 'declined' || String(d?.current_state || '').toLowerCase().includes('cancelled');
 
-// Colour + a SHORT, single-line label for an active deal's current state — the
-// full backend state (e.g. "Received — Content in Progress") is kept as a tooltip.
-function activeMeta(d) {
-  const full = d?.current_state || 'Active';
-  const s = full.toLowerCase();
-  if (s.includes('paid') || s.includes('complete')) return { label: 'Paid', color: '#22c55e', full };
-  if (s.includes('approved')) return { label: 'Approved', color: '#22c55e', full };
-  if (s.includes('revision')) return { label: 'Revision Requested', color: '#f97316', full };
-  if (s.includes('submitted') || (s.includes('await') && s.includes('review'))) return { label: 'In Review', color: '#f59e0b', full };
-  if (s.includes('dispute')) return { label: 'Disputed', color: '#ef4444', full };
-  if (s.includes('damaged')) return { label: 'Issue Reported', color: '#ef4444', full };
-  if (s.includes('content in progress') || s.includes('received')) return { label: 'Content in Progress', color: '#6366f1', full };
-  if (s.includes('delivered')) return { label: 'Delivered', color: '#6366f1', full };
-  if (s.includes('shipped') || s.includes('transit')) return { label: 'Shipped', color: '#3b82f6', full };
-  if (s.includes('accepted') || s.includes('awaiting shipment')) return { label: 'Awaiting Shipment', color: '#3b82f6', full };
-  return { label: full, color: '#16a34a', full };
+const TABS = [
+  { key: 'active', label: 'Active' },
+  { key: 'delivered', label: 'Delivered' },
+  { key: 'completed', label: 'Completed' },
+  { key: 'requested', label: 'Requested' },
+  { key: 'bids', label: 'My bids' },
+  { key: 'cancelled', label: 'Cancelled' },
+];
+
+const stateText = (d) => String(d?.current_state || '').replace(/\s*(?:—|–|-)\s*/g, ' - ').toLowerCase();
+
+// The one button on each row: what the creator does next.
+function rowAction(d) {
+  const s = stateText(d);
+  if (s.includes('revision')) return { label: 'See changes', soft: true };
+  if (s.includes('content in progress') || s.includes('edited video due')) return { label: 'Deliver' };
+  if (s.includes('delivered')) return { label: 'Mark received' };
+  if (s.includes('shipped')) return { label: 'Track', soft: true };
+  return { label: 'View', soft: true };
 }
 
-const TABS = [
-  { key: 'active', label: 'Active Deals' },
-  { key: 'requested', label: 'Requested Deals' },
-  { key: 'bids', label: 'My Bids' },
-];
+function BrandTile({ deal, size }) {
+  const name = dealBrand(deal);
+  const { bg, fg } = brandTile(name);
+  const logo = dealLogo(deal);
+  return (
+    <span className="cui-o-tile" style={{ width: size, height: size, background: logo ? '#fff' : bg, color: fg, fontSize: size * 0.4 }}>
+      {logo ? <img src={assetUrl(logo)} alt="" /> : getInitial(name)}
+    </span>
+  );
+}
+
+function BrandBy({ deal }) {
+  const name = dealBrand(deal);
+  const { fg } = brandTile(name);
+  return (
+    <div className="cui-o-by">
+      <span className="cui-o-mini" style={{ background: fg }}>{getInitial(name)}</span>
+      <span>{name}</span>
+    </div>
+  );
+}
 
 export default function MyDealsHubPage() {
   const { user } = useAuth();
@@ -135,172 +152,148 @@ export default function MyDealsHubPage() {
   };
 
   const requested = useMemo(() => deals.filter(isRequested), [deals]);
-  const active = useMemo(() => deals.filter((d) => !isRequested(d) && !isDead(d)), [deals]);
+  const live = useMemo(() => deals.filter((d) => !isRequested(d) && !isDead(d)), [deals]);
+  const cancelled = useMemo(() => deals.filter((d) => !isRequested(d) && isDead(d)), [deals]);
+  const completed = useMemo(() => live.filter(isPaidDeal), [live]);
+  const delivered = useMemo(() => live.filter((d) => !isPaidDeal(d) && isInReview(d)), [live]);
+  const active = useMemo(() => live.filter((d) => !isPaidDeal(d) && !isInReview(d)), [live]);
+
+  const inEscrow = active.concat(delivered).reduce((sum, d) => sum + dealAmount(d), 0);
+  const paidOut = completed.reduce((sum, d) => sum + dealAmount(d), 0);
+  const needYou = active.filter((d) => d.active_party === 'creator').length;
+  const soonest = delivered.map((d) => d.deadline_countdown_hours).filter((h) => typeof h === 'number' && h >= 0).sort((a, b) => a - b)[0];
+  const deliverNext = active.find((d) => rowAction(d).label === 'Deliver');
 
   const openDeal = (d) => navigate(`/my-deals?campaign=${d?.campaign?.id || dealId(d)}`);
-  // Cards are role="button": Enter/Space must open them too (only when the card itself has focus).
-  const cardKey = (d) => (e) => {
+  // Rows are role="button": Enter/Space must open them too (only when the row itself has focus).
+  const rowKey = (d) => (e) => {
     if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openDeal(d); }
   };
   const errorBlock = (
     <EmptyState title="Could not load deals" message={loadError} action={{ label: 'Retry', onClick: () => { setLoading(true); fetchDeals(); } }} />
   );
+  const counts = { active: active.length, delivered: delivered.length, completed: completed.length, requested: requested.length };
+
+  const orderCell = (d, size = 54) => (
+    <div className="cui-o-order">
+      <BrandTile deal={d} size={size} />
+      <div>
+        <BrandBy deal={d} />
+        <div className="cui-o-ttl" title={dealTitle(d)}>{dealTitle(d)}</div>
+      </div>
+    </div>
+  );
+  const goBtn = (d, a) => (
+    <div className="cui-o-go">
+      <button type="button" className={`cui-o-btn sm ${a.soft ? 'soft' : ''}`} onClick={(e) => { e.stopPropagation(); openDeal(d); }}>{a.label}</button>
+    </div>
+  );
+
+  const orderRows = (list) => (
+    <>
+      <div className="cui-o-thead" aria-hidden="true"><span>ORDER</span><span>DUE</span><span>STATUS</span><span>PRICE</span><span /></div>
+      {list.map((d) => {
+        const st = orderStatus(d);
+        const due = dueLabel(d);
+        const a = rowAction(d);
+        const priv = d?.campaign?.direct_booking;
+        return (
+          <div key={dealId(d)} className="cui-o-row" onClick={() => openDeal(d)} onKeyDown={rowKey(d)} role="button" tabIndex={0} title={d?.current_state}>
+            {orderCell(d)}
+            <div className="cui-o-due">{due ? <span className={`cui-o-pill ${due.tone}`}><Clock size={12} />{due.text}</span> : <span className="cui-o-dim">-</span>}</div>
+            <div className="cui-o-st"><span className={`cui-o-pill ${st.tone}`}>{st.label}</span>{priv ? <span className="cui-o-dim"> Private</span> : null}</div>
+            <div className="cui-o-price">{inr(dealAmount(d))}</div>
+            <div className="cui-o-next">{d.primary_next_action ? `Next: ${d.primary_next_action}` : ''}</div>
+            {goBtn(d, a)}
+          </div>
+        );
+      })}
+    </>
+  );
+
+  const doneRows = (list) => list.map((d) => (
+    <div key={dealId(d)} className="cui-o-row cui-o-done" onClick={() => openDeal(d)} onKeyDown={rowKey(d)} role="button" tabIndex={0}>
+      {orderCell(d, 46)}
+      <span className="cui-o-dim cui-o-due">{d?.escrow?.estimated_payout_at ? `Paid ${shortDate(d.escrow.estimated_payout_at)}` : 'Paid'}</span>
+      <strong className="cui-o-price">{inr(dealAmount(d))}</strong>
+      <div className="cui-o-go"><button type="button" className="cui-o-link" onClick={(e) => { e.stopPropagation(); openDeal(d); }}>View</button></div>
+    </div>
+  ));
+
+  const emptyBox = (text) => <div className="cui-o-empty">{text}</div>;
+  const listFor = (list, empty, rows = orderRows) => (
+    loading ? <DealsSkeleton /> : loadError && !deals.length ? errorBlock : list.length ? rows(list) : emptyBox(empty)
+  );
+
+  const nOpen = active.length + delivered.length;
+  const subtitle = `${nOpen} active order${nOpen === 1 ? '' : 's'} worth ${inr(inEscrow)} · ${completed.length} completed.`;
 
   return (
     <CreatorTopNavLayout notifications={0}>
-      <div className="cmk-page-head my-deals-head">
-        <h1>My Deals</h1>
-        <p>All your deals and invites in one place - active work, booking requests, and the campaigns you've bid on.</p>
-      </div>
+      <div className="cui-o-page">
+        <CreatorPageHead
+          title="Orders"
+          subtitle={loading ? 'Your deals, deliveries and payments in one place.' : subtitle}
+          action={deliverNext ? <button type="button" className="cui-btn" onClick={() => openDeal(deliverNext)}>Deliver work</button> : null}
+        />
 
-      <div className="cmk-tabs-row">
-        <div className="cmk-tabs">
-          {TABS.map((t) => (
-            <button key={t.key} type="button" className={tab === t.key ? 'is-active' : ''} onClick={() => openTab(t.key)}>
-              {t.label}
-              {t.key === 'active' && <em>({active.length})</em>}
-              {t.key === 'requested' && <em>({requested.length})</em>}
-            </button>
-          ))}
+        {loadError && deals.length > 0 && <div className="cui-o-err" role="alert">{loadError} Showing the last loaded list.</div>}
+
+        <div className="cui-o-kpis">
+          <div className="cui-o-kpi"><small>Active</small><b>{active.length}</b><em className={needYou ? 'warn' : ''}>{needYou ? `${needYou} need${needYou === 1 ? 's' : ''} you` : 'Nothing waiting on you'}</em></div>
+          <div className="cui-o-kpi"><small>In review</small><b>{delivered.length}</b><em>{soonest != null ? `Auto-approves in ${soonest < 24 ? `${Math.max(1, Math.round(soonest))}h` : `${Math.ceil(soonest / 24)} days`}` : 'Waiting on brands'}</em></div>
+          <div className="cui-o-kpi"><small>Completed</small><b>{completed.length}</b><em className="ok">{paidOut ? `${inr(paidOut)} paid out` : 'No payouts yet'}</em></div>
+          <div className="cui-o-kpi"><small>In escrow</small><b>{inr(inEscrow)}</b><em>Held safely until approval</em></div>
         </div>
+
+        <div className="cui-o-card" style={{ paddingBottom: 6 }}>
+          <div className="cui-o-tabs" role="tablist">
+            {TABS.map((t) => (
+              <button key={t.key} type="button" role="tab" aria-selected={tab === t.key} className={`cui-o-tab ${tab === t.key ? 'is-on' : ''}`} onClick={() => openTab(t.key)}>
+                {t.label}
+                {counts[t.key] != null && <span className="cui-o-count">{counts[t.key]}</span>}
+              </button>
+            ))}
+          </div>
+
+          {tab === 'active' && (!active.length && !loading && !loadError
+            ? <EmptyState title="No active deals yet" message="Once you accept a booking or a brand picks your bid, your live deals show up here." action={{ label: 'Browse Campaigns', onClick: () => navigate('/browse-briefs') }} />
+            : listFor(active, ''))}
+          {tab === 'delivered' && listFor(delivered, 'Nothing is waiting on a brand right now. Work you deliver shows up here until it is approved.')}
+          {tab === 'completed' && listFor(completed, 'Paid orders will show up here.', doneRows)}
+          {tab === 'cancelled' && listFor(cancelled, 'No cancelled or declined orders.')}
+
+          {tab === 'requested' && (
+            loading ? <DealsSkeleton /> : loadError && !deals.length ? errorBlock : requested.length ? (
+              <>
+                <div className="cui-o-thead" aria-hidden="true"><span>ORDER</span><span>REQUEST</span><span>TYPE</span><span>PRICE</span><span /></div>
+                {requested.map((d) => {
+                  const price = bookingStatus(d) === 'price_revision';
+                  return (
+                    <div key={dealId(d)} className="cui-o-row" onClick={() => openDeal(d)} onKeyDown={rowKey(d)} role="button" tabIndex={0}>
+                      {orderCell(d)}
+                      <div className="cui-o-due"><span className={`cui-o-pill ${price ? 'warn' : ''}`}><Clock size={12} />{price ? 'Awaiting brand' : 'Awaiting your reply'}</span></div>
+                      <div className="cui-o-st"><span className="cui-o-pill muted">{price ? 'Custom price' : 'Private invite'}</span></div>
+                      <div className="cui-o-price" title={price ? 'You countered' : "You'll get"}>{inr(price ? d?.campaign?.proposed_amount : dealAmount(d))}</div>
+                      <div className="cui-o-next">{price ? 'You countered - waiting for the brand' : `${d?.campaign?.video_count || 1} video(s) · accept, decline or counter`}</div>
+                      {goBtn(d, { label: price ? 'View counter' : 'Respond', soft: price })}
+                    </div>
+                  );
+                })}
+              </>
+            ) : emptyBox('No requests right now. When a brand books you directly or proposes a custom deal, the invite lands here to accept, decline, or counter.')
+          )}
+
+          {tab === 'bids' && <div style={{ marginTop: 14 }}><MyBidsContent /></div>}
+        </div>
+
+        {tab === 'active' && completed.length > 0 && !loading && (
+          <div className="cui-o-card">
+            <div className="cui-o-h"><span>Recently completed</span><button type="button" className="cui-o-link" onClick={() => openTab('completed')}>See all {completed.length}</button></div>
+            <div style={{ marginTop: 12 }}>{doneRows(completed.slice(0, 3))}</div>
+          </div>
+        )}
       </div>
-
-      {/* ---------------- Active Deals ---------------- */}
-      {tab === 'active' && (
-        loading ? (
-          <DealsSkeleton />
-        ) : loadError && !deals.length ? errorBlock : active.length ? (
-          <div className="mdh-grid">
-            {active.map((d) => {
-              const meta = activeMeta(d);
-              const priv = d?.campaign?.direct_booking;
-              return (
-                <article key={dealId(d)} className="mdh-card cmk-rise" style={{ '--mdh': meta.color }} onClick={() => openDeal(d)} onKeyDown={cardKey(d)} role="button" tabIndex={0}>
-                  <span className="mdh-ava">
-                    {dealLogo(d) ? <img src={assetUrl(dealLogo(d))} alt="" /> : getInitial(dealBrand(d))}
-                  </span>
-                  <div className="mdh-lead">
-                    <div className="mdh-top">
-                      <span className="mdh-badge" title={meta.full}><span className="mdh-dot" /> {meta.label}</span>
-                      {priv && <span className="mdh-priv"><Lock size={11} /> Private</span>}
-                    </div>
-                    <h3>{dealTitle(d)}</h3>
-                    <small>{dealBrand(d)}</small>
-                  </div>
-                  <div className="mdh-amt"><small>Escrow</small><strong>{formatMoney(dealAmount(d))}</strong></div>
-                  <button type="button" className="mdh-go" aria-label="Open deal" onClick={(e) => { e.stopPropagation(); openDeal(d); }}>
-                    <ArrowRight size={18} />
-                  </button>
-                </article>
-              );
-            })}
-          </div>
-        ) : (
-          <EmptyState
-            title="No active deals yet"
-            message="Once you accept a booking or a brand picks your bid, your live deals show up here."
-            action={{ label: 'Browse Campaigns', onClick: () => navigate('/browse-briefs') }}
-          />
-        )
-      )}
-
-      {/* ---------------- Requested Deals ---------------- */}
-      {tab === 'requested' && (
-        loading ? (
-          <DealsSkeleton />
-        ) : loadError && !deals.length ? errorBlock : requested.length ? (
-          <div className="mdh-grid">
-            {requested.map((d) => {
-              const price = bookingStatus(d) === 'price_revision';
-              return (
-                <article key={dealId(d)} className="mdh-card cmk-rise is-req" onClick={() => openDeal(d)} onKeyDown={cardKey(d)} role="button" tabIndex={0}>
-                  <span className="mdh-ava">
-                    {dealLogo(d) ? <img src={assetUrl(dealLogo(d))} alt="" /> : getInitial(dealBrand(d))}
-                  </span>
-                  <div className="mdh-lead">
-                    <div className="mdh-top">
-                      <span className={`mdh-badge ${price ? 'warn' : 'info'}`} title={price ? 'You proposed a custom price - waiting for the brand' : 'A brand booked you directly - accept, decline, or counter'}>
-                        <Clock size={12} /> {price ? 'Counter sent - awaiting brand' : 'Awaiting your response'}
-                      </span>
-                      <span className="mdh-priv"><Lock size={11} /> {price ? 'Custom price' : 'Private invite'}</span>
-                    </div>
-                    <h3>{dealTitle(d)}</h3>
-                    <small>{dealBrand(d)} · {d?.campaign?.video_count || 1} video(s)</small>
-                  </div>
-                  <div className="mdh-amt">
-                    <small>{price ? 'You countered' : "You'll get"}</small>
-                    <strong>{formatMoney(price ? d?.campaign?.proposed_amount : dealAmount(d))}</strong>
-                  </div>
-                  <button type="button" className="mdh-review" onClick={(e) => { e.stopPropagation(); openDeal(d); }}>
-                    {price ? 'View counter' : 'Accept · decline · counter'} <ArrowRight size={15} />
-                  </button>
-                </article>
-              );
-            })}
-          </div>
-        ) : (
-          <EmptyState
-            title="No requests right now"
-            message="When a brand books you directly or proposes a custom deal, the invite lands here to accept, decline, or counter."
-          />
-        )
-      )}
-
-      {/* ---------------- My Bids ---------------- */}
-      {tab === 'bids' && <MyBidsContent />}
-
-      <style>{`
-        /* auto-fit + 1fr: cards STRETCH to fill the full row width instead of
-           being capped at 480px with empty tracks to the right. One deal spans
-           the whole width; several deals fill the row with no dead space. */
-        .mdh-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr)); gap: 16px; }
-        .mdh-card { position: relative; display: grid; grid-template-columns: 48px minmax(0,1fr) auto; align-items: center;
-          column-gap: 14px; row-gap: 12px;
-          background: #fff; border: 1px solid #eef0f6; border-left: 4px solid var(--mdh, #4452f0); border-radius: 16px;
-          padding: 16px 54px 16px 16px; cursor: pointer; transition: box-shadow .18s, transform .18s; }
-        .mdh-card:hover { box-shadow: 0 18px 40px -26px rgba(15,23,42,.5); transform: translateY(-2px); }
-        .mdh-card.is-req { border-left-color: #4452f0; }
-        .mdh-ava { width: 48px; height: 48px; border-radius: 13px; display: grid; place-items: center; overflow: hidden;
-          background: linear-gradient(135deg,#eef0ff,#e0e4ff); color: #4452f0; font-weight: 800; font-size: 19px; }
-        .mdh-ava img { width: 100%; height: 100%; object-fit: cover; }
-        .mdh-lead { min-width: 0; }
-        .mdh-top { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; min-width: 0; }
-        .mdh-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 700;
-          color: #15803d; background: #e6f6ec; border-radius: 999px; padding: 3px 10px; max-width: 100%;
-          white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .mdh-badge.info { color: #3730a3; background: #eef0ff; }
-        .mdh-badge.warn { color: #b45309; background: #fff7ed; }
-        .mdh-dot { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--mdh, #16a34a); }
-        .mdh-priv { flex: none; display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 700;
-          color: #64748b; background: #f1f3fa; border-radius: 999px; padding: 3px 9px; white-space: nowrap; }
-        .mdh-lead h3 { margin: 0; font-size: 15px; font-weight: 700; color: #15163a; line-height: 1.3; overflow: hidden;
-          text-overflow: ellipsis; white-space: nowrap; }
-        .mdh-lead small { color: #9296ba; font-size: 12.5px; }
-        .mdh-amt { text-align: right; white-space: nowrap; }
-        .mdh-amt small { display: block; color: #9296ba; font-size: 11px; font-weight: 600; }
-        .mdh-amt strong { color: #15163a; font-size: 15px; font-family: var(--font-head,'Plus Jakarta Sans',sans-serif); }
-        .mdh-go { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); width: 34px; height: 34px;
-          border: 0; border-radius: 10px; background: #f1f3fa; color: #4452f0; display: grid; place-items: center; cursor: pointer; }
-        .mdh-go:hover { background: #e6e9ff; }
-        .mdh-review { grid-column: 1 / -1; margin: 0; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-          border: 0; border-radius: 10px; padding: 10px 16px; font-weight: 700; font-size: 13.5px; cursor: pointer; font-family: inherit;
-          background: linear-gradient(100deg,#12124f,#07074e); color: #fff; box-shadow: 0 12px 26px -12px rgba(7,7,78,.7); }
-        .mdh-card.is-req { padding-right: 16px; }
-        @media (max-width: 560px) {
-          .mdh-grid { grid-template-columns: minmax(0, 1fr); gap: 0; }
-          .mdh-card { column-gap: 12px; padding-left: 12px; }
-          .mdh-amt strong { font-size: 14px; }
-          .mdh-review { min-height: 44px; }
-          .mdh-card { border-top: 0; border-right: 0; border-bottom: 1px solid #eef0f6; border-radius: 0; box-shadow: none; }
-          .mdh-card:hover { box-shadow: none; transform: none; }
-          .mdh-card:not(.is-req) { padding-right: 16px; }
-          .mdh-card:not(.is-req) .mdh-amt { justify-self: end; padding-top: 16px; }
-          .mdh-go { right: 10px; top: 9px; transform: none; width: 24px; height: 24px;
-            border-radius: 0; background: transparent; }
-          .mdh-go:hover, .mdh-go:active { background: transparent; }
-          .mdh-go svg { width: 15px; height: 15px; }
-        }
-      `}</style>
     </CreatorTopNavLayout>
   );
 }

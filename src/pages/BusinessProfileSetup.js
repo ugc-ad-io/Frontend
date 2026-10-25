@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../App';
 import { toast } from 'sonner';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Users, ShieldCheck, Clock } from 'lucide-react';
+import BrandGateHeader from '../components/BrandGateHeader';
 import { apiErrorMessage } from '../utils/apiError';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -153,12 +154,11 @@ export default function BusinessProfileSetup() {
     } catch { setIgCheck(null); }
   };
 
-  // Small coloured status line rendered under the website / instagram fields.
+  // Small status line rendered under the website / instagram fields.
   const CheckNote = ({ c }) => {
     if (!c) return null;
-    const map = { valid: ['#34d399', '✓ '], invalid: ['#f87171', '✕ '], uncertain: ['#fbbf24', '⚠ '], checking: ['#94a3b8', ''] };
-    const [color, icon] = map[c.status] || map.checking;
-    return <span style={{ display: 'block', marginTop: 6, fontSize: 12.5, fontWeight: 600, color }}>{icon}{c.status === 'checking' ? 'Checking…' : c.msg}</span>;
+    const icon = { valid: '\u2713 ', invalid: '\u2715 ', uncertain: '\u26A0 ' }[c.status] || '';
+    return <span className={`su-check su-check--${c.status}`}>{icon}{c.status === 'checking' ? 'Checking\u2026' : c.msg}</span>;
   };
 
   const errors = {
@@ -223,484 +223,193 @@ export default function BusinessProfileSetup() {
     }
   };
 
+  const inputCls = (field, extra = '') => `su-input${err(field) ? ' su-input--error' : ''}${extra}`;
+  const Err = ({ f }) => (err(f) ? <span className="su-err">{err(f)}</span> : null);
+
   return (
-    <div className="bp-page">
-      <header className="bp-topbar">
-        <button type="button" className="bp-brand" onClick={() => navigate('/')}>
-          <img src="/newlogo-tight.png" alt="UGCad.io" className="bp-brand__logo" />
-        </button>
-        <span className="bp-topbar__tag">Brand onboarding</span>
-      </header>
+    <div className="bui-app bg-page">
+      <BrandGateHeader />
 
-      <form className="bp-card" onSubmit={handleSubmit} noValidate>
-        <h1 className="bp-title">Add your <span className="bp-accent">Brand</span> Details</h1>
-        <p className="bp-sub">
-          Provide your brand's online details so we can tailor insights and recommendations for you.
-        </p>
+      <main className="su-main">
+        <form className="su-card" onSubmit={handleSubmit} noValidate>
+          <div>
+            <span className="su-badge">Step 1 of 1 · takes 2 minutes</span>
+            <h1 className="bui-h1">Tell us about your brand</h1>
+            <p className="su-lead">We check every brand so creators know your briefs are real. Most brands are approved within 24–48 hours.</p>
+          </div>
 
-        {/* Business name */}
-        <div className="bp-field">
-          <label className="bp-label" htmlFor="bp-name">Business name</label>
-          <input
-            id="bp-name"
-            className={`bp-input${err('businessName') ? ' bp-input--error' : ''}`}
-            placeholder="Enter business name.."
-            value={form.businessName}
-            onChange={(e) => set('businessName', e.target.value)}
-          />
-          {err('businessName') && <span className="bp-err">{err('businessName')}</span>}
-        </div>
-
-        {/* Optional Instagram username; verified on blur and stored as a profile URL. */}
-        <div className="bp-field">
-          <label className="bp-label" htmlFor="bp-ig">Instagram username</label>
-          <input
-            id="bp-ig"
-            className={`bp-input${err('instagram') ? ' bp-input--error' : ''}`}
-            placeholder="@yourbrand"
-            value={form.instagram}
-            onChange={(e) => { set('instagram', e.target.value); setIgCheck(null); }}
-            onBlur={checkInstagramLive}
-          />
-          {err('instagram') && <span className="bp-err">{err('instagram')}</span>}
-          <CheckNote c={igCheck} />
-        </div>
-
-        {/* Website URL */}
-        <div className="bp-field">
-          <label className="bp-label" htmlFor="bp-web">Business website URL</label>
-          <input
-            id="bp-web"
-            className={`bp-input${err('website') ? ' bp-input--error' : ''}`}
-            placeholder="www.business.com"
-            value={form.website}
-            onChange={(e) => { set('website', e.target.value); setWebCheck(null); }}
-            onBlur={checkWebsiteLive}
-          />
-          {err('website') && <span className="bp-err">{err('website')}</span>}
-          <CheckNote c={webCheck} />
-        </div>
-
-        {/* Phone */}
-        <div className="bp-field">
-          <label className="bp-label" htmlFor="bp-phone">Phone Number</label>
-          <div className="bp-phone-wrap">
-            <div className={`bp-input-group${err('phone') ? ' bp-input--error' : ''}`}>
-              <button
-                type="button"
-                className="bp-dial-btn"
-                onClick={() => setDialOpen((o) => !o)}
-                aria-label="Country code"
-              >
-                <img className="bp-flag" src={flagSrc(dial.iso)} alt={dial.label} />
-                <span className="bp-dial-code">{dial.code}</span>
-                <ChevronDown size={15} className="bp-dial-caret" />
-              </button>
+          <div className="su-row">
+            {/* Business name */}
+            <div className="su-field">
+              <label htmlFor="bp-name">Business name *</label>
               <input
-                id="bp-phone"
-                type="tel"
-                className="bp-input bp-input--bare"
-                value={form.phone}
-                onChange={(e) => set('phone', e.target.value.replace(/[^\d\s-]/g, ''))}
+                id="bp-name"
+                className={inputCls('businessName')}
+                placeholder="Enter business name.."
+                value={form.businessName}
+                onChange={(e) => set('businessName', e.target.value)}
               />
+              <Err f="businessName" />
             </div>
 
-            {dialOpen && (
-              <>
-                <div className="bp-dial-backdrop" onClick={() => setDialOpen(false)} />
-                <ul className="bp-dial-menu" role="listbox">
-                  {DIAL_CODES.map((d, i) => (
-                    <li
-                      key={i}
-                      className={`bp-dial-opt${d.iso === dial.iso ? ' bp-dial-opt--active' : ''}`}
-                      onClick={() => { setDial(d); setDialOpen(false); }}
-                    >
-                      <img className="bp-flag" src={flagSrc(d.iso)} alt={d.label} />
-                      <span className="bp-dial-opt__label">{d.label}</span>
-                      <span className="bp-dial-opt__code">{d.code}</span>
-                    </li>
-                  ))}
-                </ul>
-              </>
-            )}
+            {/* Industry */}
+            <div className="su-field">
+              <label htmlFor="bp-industry">Industry</label>
+              <select
+                id="bp-industry"
+                className={`su-input${!form.industry ? ' is-empty' : ''}`}
+                value={form.industry}
+                onChange={(e) => set('industry', e.target.value)}
+              >
+                <option value="" disabled>Select industry...</option>
+                {INDUSTRIES.map((i) => <option key={i} value={i}>{i}</option>)}
+              </select>
+            </div>
           </div>
-          {err('phone') && <span className="bp-err">{err('phone')}</span>}
-        </div>
-
-        {/* Country */}
-        <div className="bp-field">
-          <label className="bp-label" htmlFor="bp-country">Country</label>
-          <select
-            id="bp-country"
-            className={`bp-input bp-select${err('country') ? ' bp-input--error' : ''}${!form.country ? ' bp-select--placeholder' : ''}`}
-            value={form.country}
-            onChange={(e) => set('country', e.target.value)}
-          >
-            <option value="" disabled>Select country...</option>
-            {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
-          {err('country') && <span className="bp-err">{err('country')}</span>}
-        </div>
-
-        {/* Industry */}
-        <div className="bp-field">
-          <label className="bp-label" htmlFor="bp-industry">Industry</label>
-          <select
-            id="bp-industry"
-            className={`bp-input bp-select${!form.industry ? ' bp-select--placeholder' : ''}`}
-            value={form.industry}
-            onChange={(e) => set('industry', e.target.value)}
-          >
-            <option value="" disabled>Select industry...</option>
-            {INDUSTRIES.map((i) => <option key={i} value={i}>{i}</option>)}
-          </select>
           {form.industry === 'Other' && (
             <input
-              className="bp-input"
-              style={{ marginTop: 10 }}
+              className="su-input"
               placeholder="Enter your industry"
+              aria-label="Your industry"
               value={form.customIndustry}
               onChange={(e) => set('customIndustry', e.target.value)}
             />
           )}
-        </div>
 
-        {/* GSTIN — optional */}
-        <div className="bp-field">
-          <label className="bp-label" htmlFor="bp-gstin">GSTIN Number</label>
-          <input
-            id="bp-gstin"
-            className="bp-input"
-            placeholder="Enter GSTIN"
-            value={form.gstin}
-            onChange={(e) => set('gstin', e.target.value.toUpperCase())}
-            maxLength={15}
-          />
-        </div>
+          {/* Website URL */}
+          <div className="su-field">
+            <label htmlFor="bp-web">Website *</label>
+            <input
+              id="bp-web"
+              className={inputCls('website', webCheck?.status === 'valid' ? ' su-input--ok' : '')}
+              placeholder="www.business.com"
+              value={form.website}
+              onChange={(e) => { set('website', e.target.value); setWebCheck(null); }}
+              onBlur={checkWebsiteLive}
+            />
+            <Err f="website" />
+            <CheckNote c={webCheck} />
+          </div>
 
-        <button type="submit" className="bp-next" disabled={submitting}>
-          {submitting ? 'Submitting…' : 'Submit'}
-        </button>
-      </form>
+          {/* Optional Instagram username; verified on blur and stored as a profile URL. */}
+          <div className="su-field">
+            <label htmlFor="bp-ig">Instagram <span className="su-opt">optional — helps us approve you faster</span></label>
+            <input
+              id="bp-ig"
+              className={inputCls('instagram', igCheck?.status === 'valid' ? ' su-input--ok' : '')}
+              placeholder="@yourbrand"
+              value={form.instagram}
+              onChange={(e) => { set('instagram', e.target.value); setIgCheck(null); }}
+              onBlur={checkInstagramLive}
+            />
+            <Err f="instagram" />
+            <CheckNote c={igCheck} />
+          </div>
 
-      <ThemeStyles />
+          <div className="su-row su-row--3">
+            {/* Phone: dial-code picker + number */}
+            <div className="su-field">
+              <label htmlFor="bp-dial">Code</label>
+              <div className="su-input su-group">
+                <button
+                  id="bp-dial"
+                  type="button"
+                  className="su-dial"
+                  onClick={() => setDialOpen((o) => !o)}
+                  aria-label="Country code"
+                >
+                  <img className="su-flag" src={flagSrc(dial.iso)} alt={dial.label} />
+                  <span>{dial.code}</span>
+                  <ChevronDown size={15} style={{ marginLeft: 'auto', color: '#5a5a8c' }} />
+                </button>
+              </div>
+              {dialOpen && (
+                <>
+                  <div className="su-backdrop" onClick={() => setDialOpen(false)} />
+                  <ul className="su-menu" role="listbox">
+                    {DIAL_CODES.map((d, i) => (
+                      <li
+                        key={i}
+                        role="option"
+                        aria-selected={d.iso === dial.iso}
+                        className={`su-opt-li${d.iso === dial.iso ? ' is-on' : ''}`}
+                        onClick={() => { setDial(d); setDialOpen(false); }}
+                      >
+                        <img className="su-flag" src={flagSrc(d.iso)} alt="" />
+                        <span>{d.label}</span>
+                        <small>{d.code}</small>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+            </div>
+
+            <div className="su-field">
+              <label htmlFor="bp-phone">Phone *</label>
+              <input
+                id="bp-phone"
+                type="tel"
+                className={inputCls('phone')}
+                placeholder="98765 43210"
+                value={form.phone}
+                onChange={(e) => set('phone', e.target.value.replace(/[^\d\s-]/g, ''))}
+              />
+              <Err f="phone" />
+            </div>
+
+            {/* Country */}
+            <div className="su-field">
+              <label htmlFor="bp-country">Country *</label>
+              <select
+                id="bp-country"
+                className={inputCls('country', !form.country ? ' is-empty' : '')}
+                value={form.country}
+                onChange={(e) => set('country', e.target.value)}
+              >
+                <option value="" disabled>Select country...</option>
+                {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+              <Err f="country" />
+            </div>
+          </div>
+
+          {/* GSTIN — optional */}
+          <div className="su-field">
+            <label htmlFor="bp-gstin">GSTIN</label>
+            <input
+              id="bp-gstin"
+              className="su-input"
+              placeholder="Enter GSTIN"
+              value={form.gstin}
+              onChange={(e) => set('gstin', e.target.value.toUpperCase())}
+              maxLength={15}
+            />
+            <span className="su-note">Optional · needed for GST invoices</span>
+          </div>
+
+          <button type="submit" className="bui-btn su-submit" disabled={submitting}>
+            {submitting ? 'Submitting…' : 'Submit for review'}
+          </button>
+          <p className="su-fine">By continuing you agree to the Terms and Privacy Policy.</p>
+        </form>
+
+        <aside className="su-aside">
+          <section className="su-hero">
+            <h2>What happens next</h2>
+            <ol>
+              <li><b>1</b><span><strong>We review your brand</strong><span>Usually within 24–48 hours</span></span></li>
+              <li><b>2</b><span><strong>Add funds to your wallet</strong><span>Needed to chat with creators</span></span></li>
+              <li><b>3</b><span><strong>Post your first campaign</strong><span>Or invite a creator directly</span></span></li>
+            </ol>
+          </section>
+          <div className="su-trust">
+            <div><i><Users size={16} /></i>Vetted creators taking briefs</div>
+            <div><i><ShieldCheck size={16} /></i>Money held in escrow until you approve</div>
+            <div><i><Clock size={16} /></i>Fast turnaround on first videos</div>
+          </div>
+        </aside>
+      </main>
     </div>
-  );
-}
-
-function ThemeStyles() {
-  return (
-    <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-
-        .bp-page {
-          position: relative;
-          min-height: 100vh;
-          min-height: 100dvh;
-          display: flex;
-          flex-direction: column;
-          justify-content: flex-start;
-          align-items: center;
-          padding: 24px 20px 32px;
-          background: linear-gradient(160deg, #050510 0%, #0b0a26 55%, #07074e 100%);
-          font-family: var(--font-body);
-          overflow: hidden;
-        }
-
-        /* Top bar - UGCad.io logo, matches the creator onboarding page */
-        .bp-topbar {
-          position: relative;
-          z-index: 1;
-          width: 100vw;
-          max-width: 100vw;
-          margin-left: calc(50% - 50vw);
-          margin-right: calc(50% - 50vw);
-          box-sizing: border-box;
-          display: flex;
-          align-items: center;
-          gap: 16px;
-          margin-bottom: 28px;
-          padding: 0 clamp(20px, 6vw, 90px) 20px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        .bp-brand {
-          display: inline-flex;
-          align-items: center;
-          background: none;
-          border: none;
-          cursor: pointer;
-          padding: 0;
-        }
-        .bp-brand__logo { height: 30px; width: auto; display: block; }
-        .bp-topbar__tag {
-          margin-left: auto;
-          font-size: 0.82rem;
-          font-weight: 500;
-          letter-spacing: 0.02em;
-          color: rgba(255, 255, 255, 0.6);
-          padding: 6px 14px;
-          border-radius: 999px;
-          border: 1px solid rgba(255, 255, 255, 0.18);
-        }
-        .bp-page::before,
-        .bp-page::after {
-          content: '';
-          position: absolute;
-          border-radius: 50%;
-          filter: blur(90px);
-          pointer-events: none;
-          z-index: 0;
-        }
-        .bp-page::before {
-          width: 520px; height: 520px;
-          top: -12%; left: -6%;
-          background: rgba(99, 102, 241, 0.20);
-        }
-        .bp-page::after {
-          width: 460px; height: 460px;
-          bottom: -10%; right: -4%;
-          background: rgba(109,123,255, 0.16);
-        }
-
-        .bp-card {
-          position: relative;
-          z-index: 1;
-          width: 100%;
-          max-width: 520px;
-          background: rgba(18, 18, 26, 0.72);
-          backdrop-filter: blur(16px);
-          border: 1px solid rgba(255, 255, 255, 0.09);
-          border-radius: 18px;
-          padding: 28px 34px 30px;
-          box-shadow: 0 30px 70px rgba(0, 0, 0, 0.55);
-        }
-
-        .bp-step {
-          display: block;
-          color: #07074e;
-          font-size: 0.85rem;
-          font-weight: 600;
-          margin-bottom: 6px;
-        }
-        .bp-title {
-          margin: 0 0 6px;
-          font-family: var(--font-head);
-          font-size: var(--fs-h2);
-          font-weight: var(--fw-head);
-          color: #ffffff;
-          letter-spacing: -0.01em;
-        }
-        .bp-accent { color: #6d7bff; }
-        .bp-sub {
-          margin: 0 0 22px;
-          color: rgba(255, 255, 255, 0.62);
-          font-size: 0.9rem;
-          line-height: 1.5;
-        }
-
-        .bp-field { margin-bottom: 14px; }
-        .bp-label {
-          display: block;
-          font-size: 0.88rem;
-          font-weight: 600;
-          color: rgba(255, 255, 255, 0.85);
-          margin-bottom: 7px;
-        }
-
-        .bp-input {
-          width: 100%;
-          background: rgba(255, 255, 255, 0.04);
-          border: 1.5px solid rgba(255, 255, 255, 0.14);
-          border-radius: 9px;
-          padding: 11px 14px;
-          font-size: 0.92rem;
-          color: #ffffff;
-          font-family: var(--font-body);
-          transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
-        }
-        .bp-input::placeholder { color: rgba(255, 255, 255, 0.38); }
-        .bp-input:focus {
-          outline: none;
-          border-color: #07074e;
-          background: rgba(255, 255, 255, 0.06);
-          box-shadow: 0 0 0 3px rgba(7, 7, 78, 0.18);
-        }
-        .bp-input--error { border-color: #f87171; }
-        /* Dark dropdown lists for native selects */
-        .bp-input option, .bp-select option {
-          background-color: #14142a;
-          color: #ffffff;
-        }
-        .bp-select option:disabled { color: rgba(255, 255, 255, 0.4); }
-
-        /* Grouped inputs (prefix / dial code) */
-        .bp-input-group {
-          display: flex;
-          align-items: stretch;
-          background: rgba(255, 255, 255, 0.04);
-          border: 1.5px solid rgba(255, 255, 255, 0.14);
-          border-radius: 9px;
-          overflow: hidden;
-          transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
-        }
-        .bp-input-group:focus-within {
-          border-color: #07074e;
-          background: rgba(255, 255, 255, 0.06);
-          box-shadow: 0 0 0 3px rgba(7, 7, 78, 0.18);
-        }
-        .bp-input-group.bp-input--error { border-color: #f87171; }
-        .bp-prefix {
-          display: flex;
-          align-items: center;
-          padding: 0 12px;
-          color: rgba(255, 255, 255, 0.55);
-          font-size: 0.95rem;
-          border-right: 1.5px solid rgba(255, 255, 255, 0.14);
-        }
-        .bp-input--bare {
-          border: none;
-          border-radius: 0;
-          background: transparent;
-          flex: 1;
-          min-width: 0;
-        }
-        .bp-input--bare:focus { box-shadow: none; background: transparent; }
-
-        /* Custom phone country-code dropdown */
-        .bp-phone-wrap { position: relative; }
-        .bp-dial-btn {
-          display: flex;
-          align-items: center;
-          gap: 7px;
-          border: none;
-          border-right: 1.5px solid rgba(255, 255, 255, 0.14);
-          background: transparent;
-          padding: 0 10px 0 12px;
-          font-family: var(--font-body);
-          cursor: pointer;
-          outline: none;
-          color: #ffffff;
-        }
-        .bp-flag {
-          width: 22px;
-          height: 16px;
-          object-fit: cover;
-          border-radius: 3px;
-          flex-shrink: 0;
-          box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
-        }
-        .bp-dial-code { font-size: 0.92rem; font-weight: 600; color: #ffffff; }
-        .bp-dial-caret { color: rgba(255, 255, 255, 0.55); }
-
-        .bp-dial-backdrop {
-          position: fixed;
-          inset: 0;
-          z-index: 40;
-        }
-        .bp-dial-menu {
-          position: absolute;
-          z-index: 41;
-          top: calc(100% + 6px);
-          left: 0;
-          width: 200px;
-          max-height: 260px;
-          overflow-y: auto;
-          margin: 0;
-          padding: 6px;
-          list-style: none;
-          background: #14142a;
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          border-radius: 12px;
-          box-shadow: 0 20px 44px rgba(0, 0, 0, 0.55);
-        }
-        .bp-dial-opt {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 9px 10px;
-          border-radius: 8px;
-          cursor: pointer;
-          transition: background 0.15s ease;
-        }
-        .bp-dial-opt:hover { background: rgba(255, 255, 255, 0.07); }
-        .bp-dial-opt--active { background: rgba(7, 7, 78, 0.18); }
-        .bp-dial-opt__label {
-          font-size: 0.82rem;
-          font-weight: 600;
-          color: rgba(255, 255, 255, 0.55);
-          width: 24px;
-        }
-        .bp-dial-opt__code { font-size: 0.9rem; color: #ffffff; }
-
-        /* Native selects */
-        .bp-select {
-          cursor: pointer;
-          appearance: none;
-          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' opacity='0.5'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-          background-repeat: no-repeat;
-          background-position: right 14px center;
-          padding-right: 40px;
-        }
-        .bp-select--placeholder { color: rgba(255, 255, 255, 0.4); }
-
-        .bp-err {
-          display: block;
-          margin-top: 6px;
-          color: #f87171;
-          font-size: 0.82rem;
-        }
-
-        .bp-next {
-          width: 100%;
-          margin-top: 18px;
-          padding: 14px;
-          border: none;
-          border-radius: 100px;
-          background: linear-gradient(120deg, #07074e, #4f63e6);
-          color: #ffffff;
-          font-size: 1rem;
-          font-weight: 700;
-          font-family: var(--font-body);
-          cursor: pointer;
-          box-shadow: none;
-          transition: transform 0.15s ease;
-        }
-        .bp-next:hover { transform: translateY(-1px); }
-        .bp-next:active { transform: translateY(0); }
-
-        /* Thank-you screen */
-        .bp-card--thanks { text-align: center; }
-        .bp-check {
-          width: 88px;
-          height: 88px;
-          margin: 0 auto 18px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 50%;
-          color: #22c55e;
-          background: rgba(34, 197, 94, 0.15);
-          border: 1px solid rgba(34, 197, 94, 0.35);
-          box-shadow: 0 0 0 10px rgba(34, 197, 94, 0.10), 0 16px 40px rgba(34, 197, 94, 0.22);
-        }
-        .bp-sub--center { margin-bottom: 26px; }
-        .bp-card--thanks .bp-title { margin-bottom: 10px; }
-
-        @media (max-width: 768px) {
-          /* 16px stops the iOS focus-zoom on every field; 44px tap targets on the dial button / submit. */
-          .bp-input, .bp-dial-code { font-size: 16px; }
-          .bp-dial-btn { min-height: 44px; }
-          .bp-page { padding-bottom: max(32px, calc(16px + env(safe-area-inset-bottom, 0px))); }
-        }
-        @media (max-width: 520px) {
-          .bp-card { padding: 24px 20px 26px; }
-        }
-        @media (max-width: 400px) {
-          .bp-page { padding-left: 16px; padding-right: 16px; }
-          .bp-topbar { padding-left: 16px; padding-right: 16px; }
-          .bp-topbar__tag { font-size: 0.74rem; padding: 5px 10px; white-space: nowrap; }
-          .bp-card { padding: 20px 16px 22px; }
-        }
-      `}</style>
   );
 }

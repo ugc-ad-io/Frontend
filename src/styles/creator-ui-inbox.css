@@ -1,0 +1,223 @@
+/* Creator Inbox (design board C09). Everything is scoped under `.cui-app` (the creator shell root),
+   so the brand view of the same page (`.bui-app`, brand-ui-messages.css) is untouched.
+   Same markup as the brand view (msg-*), restyled as ONE white card split in three columns. */
+.cui-app .msg-action-card-price{display:none}
+
+.cui-m-page{display:flex;flex-direction:column;gap:22px;padding:0 0 40px;min-width:0}
+.cui-app .msg-layout{
+  flex:none;margin:0;width:auto;max-width:none;gap:0;
+  background:#fff;border:0;border-radius:16px;box-shadow:inset 0 0 0 1px #e4e5f3;overflow:hidden;
+  height:clamp(560px,calc(100vh - 170px),860px);height:clamp(560px,calc(100dvh - 170px),860px);
+  font-family:'Inter',system-ui,sans-serif;color:var(--cui-ink);
+}
+.cui-app .msg-layout,.cui-app .msg-layout *{box-sizing:border-box}
+
+/* ── conversation list ─────────────────────────────────────────────── */
+.cui-app .msg-list-panel{width:320px;flex:none;background:#fff;border:0;border-right:1px solid #eeeef6;border-radius:0;box-shadow:none;padding-top:14px;gap:10px}
+.cui-app .msg-search{margin:0 16px;height:40px;padding:0 12px;border:0;border-radius:10px;background:#f6f6fd;flex:none}
+.cui-app .msg-search input{font-size:13.5px;color:var(--cui-ink)}
+.cui-app .msg-search input::placeholder,.cui-app .msg-search svg{color:#8484b0}
+.cui-app .msg-filters{flex:none;margin:0 16px;padding:3px;gap:0;border:0;border-radius:10px;background:#f3f3fc;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));overflow:visible}
+.cui-app .msg-filters button{min-width:0;padding:7px 0;border:0;border-radius:8px;background:transparent;color:var(--cui-muted);font:inherit;font-size:11.5px;font-weight:600;text-align:center}
+.cui-app .msg-filters button:hover{background:transparent;color:var(--cui-ink)}
+.cui-app .msg-filters button.is-active{background:#fff;color:var(--cui-ink);box-shadow:0 1px 3px rgba(7,7,78,.12);font-weight:600}
+.cui-app .msg-conv-list{padding:0 0 8px}
+.cui-app .msg-conv-item{position:relative;margin:0;padding:13px 16px;gap:12px;border-radius:0;align-items:flex-start}
+.cui-app .msg-conv-item:hover{background:#f7f7ff}
+.cui-app .msg-conv-item.is-active{background:#eef0ff;padding-left:16px}
+.cui-app .msg-conv-item.is-active::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:0 3px 3px 0;background:var(--cui-ink)}
+.cui-app .msg-conv-item .msg-avatar-wrap{width:42px;height:42px;min-width:42px}
+.cui-app .msg-conv-item .msg-avatar{width:42px;height:42px;min-width:42px;border-radius:12px;font-family:var(--cui-head);font-weight:600;font-size:19px}
+.cui-app .msg-conv-top{margin-bottom:0;align-items:center;gap:8px}
+.cui-app .msg-conv-top strong{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'Inter',system-ui,sans-serif;font-weight:700;font-size:14.5px;color:var(--cui-ink)}
+.cui-app .msg-time-ago{flex:none;font-size:11.5px;font-weight:500;color:var(--cui-muted)}
+.cui-app .msg-conv-item.has-unread .msg-time-ago{color:var(--cui-primary);font-weight:700}
+.cui-app .msg-preview{margin:2px 0 0;font-size:13px;color:var(--cui-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cui-app .msg-conv-item.has-unread .msg-preview{color:var(--cui-ink);font-weight:600;padding-right:28px}
+.cui-app .msg-conv-item.is-active .msg-preview{color:var(--cui-muted)}
+.cui-app .msg-conv-item.is-active.has-unread .msg-preview{color:var(--cui-ink)}
+.cui-app .msg-badge{position:absolute;right:16px;top:36px;width:auto;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:var(--cui-primary);font-size:11px;font-weight:700}
+.cui-app .msg-deal-status{display:inline-flex;align-items:center;height:24px;margin-top:7px;padding:0 10px;border-radius:999px;background:#eef0ff;color:#2a3ab8;font-size:11.5px;font-weight:700}
+.cui-app .msg-deal-status[data-status*="complet"],.cui-app .msg-deal-status[data-status*="paid"]{background:#e4f5ec;color:#13774f}
+.cui-app .msg-deal-status[data-status*="revis"],.cui-app .msg-deal-status[data-status*="review"],.cui-app .msg-deal-status[data-status*="await"],.cui-app .msg-deal-status[data-status*="dispute"]{background:#fff2dc;color:#8a4b00}
+
+/* ── chat column ───────────────────────────────────────────────────── */
+.cui-app .msg-chat-panel{flex:1;min-width:0;background:#f7f7ff;border:0;border-radius:0;box-shadow:none}
+.cui-app .msg-chat-panel.msg-empty{background:#f7f7ff}
+.cui-app .msg-chat-header{padding:12px 20px;gap:12px;background:#fff;border-bottom:1px solid #eeeef6}
+.cui-app .msg-chat-header .msg-avatar-wrap{width:40px !important;height:40px !important;min-width:40px}
+.cui-app .msg-chat-header .msg-avatar{width:40px;height:40px;min-width:40px;border-radius:12px;font-family:var(--cui-head);font-weight:600;font-size:18px}
+.cui-app .msg-header-info strong{font-family:'Inter',system-ui,sans-serif;font-weight:700;font-size:15.5px;color:var(--cui-ink)}
+.cui-app .msg-online{font-size:12.5px;color:var(--cui-muted) !important}
+.cui-app .msg-chat-actions{align-items:center;gap:8px}
+.cui-app .msg-chat-actions button{width:36px;height:36px;border:0;border-radius:10px;background:transparent;color:var(--cui-muted)}
+.cui-app .msg-chat-actions button:hover,.cui-app .msg-chat-actions button.is-on{background:var(--cui-bg);color:var(--cui-ink)}
+.cui-app .msg-more-menu{border:1px solid var(--cui-line);border-radius:12px;box-shadow:0 16px 40px -12px rgba(7,7,78,.28)}
+
+.cui-app .msg-messages{background:transparent;background-image:none;padding:18px 22px;gap:14px}
+.cui-app .msg-bubble{max-width:68%;padding:11px 14px;border-radius:18px 18px 18px 4px;font-family:'Inter',system-ui,sans-serif;box-shadow:0 1px 2px rgba(7,7,78,.06),inset 0 0 0 1px #ecedf7}
+.cui-app .msg-bubble::before{display:none}
+.cui-app .msg-bubble p{font-size:14px;line-height:1.45}
+.cui-app .msg-bubble-row:not(.is-own) .msg-bubble{background:#fff;color:var(--cui-ink)}
+.cui-app .msg-bubble-row.is-own .msg-bubble{background:var(--cui-ink);color:#fff;border-radius:18px 18px 4px 18px;box-shadow:none}
+.cui-app .msg-bubble-row.is-own .msg-time{color:rgba(255,255,255,.7)}
+.cui-app .msg-bubble-row:not(.is-own) .msg-time{color:#a3a3c0}
+.cui-app .msg-time{font-size:11.5px;opacity:1}
+.cui-app .msg-avatar{font-family:var(--cui-head);font-weight:600}
+.cui-app .msg-avatar.sm{border-radius:10px}
+.cui-app .msg-typing{border:0;background:transparent;color:var(--cui-muted);font-size:12.5px;padding:0}
+.cui-app .msg-system-pill{background:#fff;border:0;box-shadow:inset 0 0 0 1px #ecedf7;border-radius:999px;color:var(--cui-muted);font-size:12px;font-weight:500;text-align:center;padding:6px 14px;width:auto;align-self:center}
+
+/* offer / action cards */
+.cui-app .msg-action-card{flex-shrink:0;align-self:flex-start;width:min(380px,100%);padding:0;overflow:hidden;border:0;border-radius:18px;background:#fff;box-shadow:0 10px 24px -18px rgba(7,7,78,.5),inset 0 0 0 1px #ecedf7}
+.cui-app .msg-action-card.is-own{align-self:flex-end;border-left:0}
+.cui-app .msg-action-card-top{position:relative;overflow:hidden;padding:14px 16px;background:linear-gradient(112deg,#07074e 0%,#0f1468 55%,#2a3ab8 100%);color:#fff;display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;align-items:baseline}
+.cui-app .msg-action-card-top::before{content:"";position:absolute;right:-50px;top:-80px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(115,135,255,.7) 0%,rgba(115,135,255,.22) 40%,rgba(115,135,255,0) 70%);pointer-events:none}
+.cui-app .msg-action-card-head{position:relative;grid-column:1/-1;margin-bottom:0;gap:10px}
+.cui-app .msg-action-card-head>span{display:none}
+.cui-app .msg-action-card-head strong{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#c9ceff}
+.cui-app .msg-action-card-head small{color:rgba(255,255,255,.7);font-size:12px}
+.cui-app .msg-action-card-head em{padding:3px 9px;background:rgba(255,255,255,.16);color:#fff;font-size:11px;font-weight:700;font-style:normal;letter-spacing:.04em}
+.cui-app .msg-action-card-title{position:relative;margin-top:4px;font-weight:700;font-size:16px;line-height:1.3;overflow-wrap:anywhere}
+.cui-app .msg-action-card-price{display:block;position:relative;grid-column:1/-1;margin-top:4px;font-family:var(--cui-head);font-weight:600;font-size:22px;font-variant-numeric:tabular-nums}
+.cui-app .msg-action-card-title+.msg-action-card-price{grid-column:2;margin-top:4px}
+.cui-app .msg-action-card-fields{padding:12px 16px 0;gap:10px 16px;display:grid;grid-template-columns:1fr 1fr}
+.cui-app .msg-action-card-fields p{display:flex;flex-direction:column;gap:1px;margin:0;min-width:0;font-size:13px}
+.cui-app .msg-action-card-fields p[data-field="price"],.cui-app .msg-action-card-fields p[data-field="budget"],.cui-app .msg-action-card-fields p[data-field="modified_price"]{display:none}
+.cui-app .msg-action-card-fields span{font-size:12px;color:var(--cui-muted);text-transform:capitalize}
+.cui-app .msg-action-card-fields strong{font-weight:700;text-align:left;color:var(--cui-ink);overflow-wrap:anywhere}
+.cui-app .msg-action-card-actions{display:flex;flex-wrap:wrap;margin:0;padding:12px 16px 0;gap:8px}
+.cui-app .msg-action-card-actions button{flex:none;display:inline-flex;align-items:center;justify-content:center;height:40px;padding:0 18px;border:1.5px solid #c9cbea;border-radius:999px;background:#fff;color:var(--cui-ink);font:inherit;font-size:14px;font-weight:700;white-space:nowrap;cursor:pointer}
+.cui-app .msg-action-card-actions button.is-reject{order:1}
+.cui-app .msg-action-card-actions button.is-counter{order:2;background:#eef0ff;border-color:#eef0ff}
+.cui-app .msg-action-card-actions button.is-accept,.cui-app .msg-action-card-actions button.is-primary{order:3;flex:1;background:var(--cui-ink);border-color:var(--cui-ink);color:#fff}
+.cui-app .msg-action-card-actions button:disabled{opacity:.6;cursor:default}
+.cui-app .msg-action-card-note{margin:12px 16px 0;font-size:13px;color:var(--cui-muted)}
+.cui-app .msg-action-card-decline{padding:12px 16px 0}
+.cui-app .msg-action-card-decline select,.cui-app .msg-action-card-decline input{min-height:44px;font:inherit;font-size:16px;color:var(--cui-ink)}
+.cui-app .msg-action-card-time{display:block;padding:10px 16px 14px;margin:0;color:#a3a3c0;font-size:11.5px}
+
+/* action-card launcher, composer, input */
+.cui-app .msg-quick-actions{padding:10px 16px 0;border-top:0}
+.cui-app .msg-quick-actions-lbl{height:36px;padding:0 14px;margin-bottom:0;border:0;border-radius:999px;background:#fff;box-shadow:inset 0 0 0 1px #dadbee;color:var(--cui-ink);font-size:13px;font-weight:600}
+.cui-app .msg-quick-actions-lbl:hover,.cui-app .msg-quick-actions-lbl.is-open{background:#eef0ff;color:var(--cui-ink)}
+.cui-app .msg-actions-row{margin-top:8px;padding-bottom:0}
+.cui-app .msg-action-chip{height:36px;padding:0 14px;border:0;border-radius:999px;background:#fff;box-shadow:inset 0 0 0 1px #dadbee;color:var(--cui-ink);font:inherit;font-size:13px;font-weight:600}
+.cui-app .msg-action-chip:hover:not(:disabled){background:#eef0ff;color:var(--cui-ink)}
+.cui-app .msg-action-composer{margin:10px 16px 0;border-color:var(--cui-line);border-radius:14px;background:#fff}
+.cui-app .msg-action-composer input,.cui-app .msg-action-composer select,.cui-app .msg-action-composer textarea{font-size:16px}
+.cui-app .msg-action-composer-actions button:last-child{background:var(--cui-ink);border-radius:10px}
+.cui-app .msg-policy-banner{border-radius:0}
+.cui-app .msg-input-row{flex:none;margin:10px 16px 16px;padding:0 8px 0 6px;height:52px;gap:4px;border:0;border-radius:14px;background:#fff;box-shadow:inset 0 0 0 1px #dadbee;align-items:center}
+.cui-app .msg-input-row:focus-within{box-shadow:inset 0 0 0 1.5px var(--cui-primary)}
+.cui-app .msg-input{flex:1;min-width:0;height:100%;padding:0 6px;border:0;border-radius:0;background:transparent;box-shadow:none;font-size:14px;color:var(--cui-ink)}
+.cui-app .msg-input:focus{border:0;box-shadow:none;outline:0}
+.cui-app .msg-input::placeholder{color:#a3a3c0}
+.cui-app .msg-input-icon{width:36px;height:36px;padding:0;border-radius:10px;background:transparent;color:var(--cui-muted)}
+.cui-app .msg-input-icon:hover{transform:none;background:var(--cui-bg);color:var(--cui-ink)}
+.cui-app .msg-send{width:38px;min-width:38px;height:38px;padding:0;border-radius:10px;background:var(--cui-ink);box-shadow:none}
+.cui-app .msg-send:hover:not(:disabled){transform:none;background:#12124f;box-shadow:none}
+.cui-app .msg-empty-icon{color:var(--cui-ink);box-shadow:0 12px 30px rgba(7,7,78,.12)}
+.cui-app .msg-empty-inner h3{font-family:var(--cui-head);font-weight:500;letter-spacing:-.02em;color:var(--cui-ink)}
+
+/* ── right column: brand, deal, shared files ───────────────────────── */
+.cui-app .msg-side{width:290px;flex:none;display:flex;flex-direction:column;min-height:0;overflow-y:auto;border-left:1px solid #eeeef6;background:#fff}
+.cui-app .msg-side-card{display:flex;flex-direction:column;gap:6px;padding:16px 18px;font-size:13.5px}
+.cui-app .msg-side-card+.msg-side-card{border-top:1px solid #eeeef6}
+.cui-app .msg-side-card h3{margin:0 0 4px;font-family:'Inter',system-ui,sans-serif;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--cui-muted)}
+.cui-m-who-row{display:flex;align-items:center;gap:12px}
+.cui-m-who-av{flex:none;width:46px;height:46px;border-radius:14px;color:#fff;display:grid;place-items:center;font-family:var(--cui-head);font-weight:600;font-size:21px}
+.cui-m-who-row strong{display:block;font-size:15px;font-weight:700;overflow-wrap:anywhere}
+.cui-m-who-row small{display:block;margin-top:1px;font-size:12.5px;color:var(--cui-muted)}
+.cui-app .msg-deal-title{font-size:14px;font-weight:700;line-height:1.3;overflow-wrap:anywhere}
+.cui-app .msg-deal-sub{color:var(--cui-muted);overflow-wrap:anywhere}
+.cui-app .msg-deal-rows{margin:8px 0 0;display:flex;flex-direction:column;gap:8px}
+.cui-app .msg-deal-rows div{display:flex;justify-content:space-between;gap:12px;font-size:14px}
+.cui-app .msg-deal-rows dt{color:var(--cui-muted)}
+.cui-app .msg-deal-rows dd{margin:0;font-weight:600;text-align:right;overflow-wrap:anywhere}
+.cui-app .msg-shared-grid{display:flex;flex-wrap:wrap;gap:8px}
+.cui-app .msg-shared-grid:empty{display:none}
+.cui-app .msg-shared-grid a{display:block;width:56px;height:74px;border-radius:8px;overflow:hidden;background:var(--cui-bg)}
+.cui-app .msg-shared-grid img{width:100%;height:100%;object-fit:cover;display:block}
+.cui-app .msg-shared-file{display:flex;align-items:center;gap:8px;min-height:32px;color:var(--cui-ink);font-weight:600;text-decoration:none}
+.cui-app .msg-shared-file:hover{color:var(--cui-link)}
+.cui-app .msg-shared-file span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cui-app .msg-shared-file svg{flex:none;color:var(--cui-muted)}
+.cui-m-safe{margin:auto 16px 16px;display:flex;gap:10px;padding:12px;border-radius:12px;background:#eef0ff;font-size:12.5px;line-height:1.5;color:#2b2b6a}
+.cui-m-safe svg{flex:none;margin-top:1px}
+
+/* compact deal strip under the chat header (narrow screens only) */
+.cui-app .msg-deal-strip{display:none;flex-shrink:0;border-bottom:1px solid #eeeef6;background:#fff;font-size:13.5px}
+.cui-app .msg-deal-strip summary{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 16px;cursor:pointer;list-style:none}
+.cui-app .msg-deal-strip summary::-webkit-details-marker{display:none}
+.cui-app .msg-deal-strip summary span{flex:none;font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--cui-muted)}
+.cui-app .msg-deal-strip summary em{flex:1;min-width:0;font-style:normal;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cui-app .msg-deal-strip summary::after{content:"";flex:none;width:8px;height:8px;border-right:2px solid var(--cui-muted);border-bottom:2px solid var(--cui-muted);transform:rotate(45deg) translateY(-2px);transition:transform .15s}
+.cui-app .msg-deal-strip[open] summary::after{transform:rotate(225deg)}
+.cui-app .msg-deal-strip-body{display:flex;flex-direction:column;gap:6px;padding:0 16px 14px;max-height:40vh;overflow-y:auto}
+.cui-app .msg-deal-strip-body .msg-deal-title{display:none}
+.cui-app .msg-deal-strip-body .msg-deal-rows div{display:flex;justify-content:space-between;gap:12px}
+.cui-app .msg-deal-strip-body .msg-deal-rows{margin:4px 0 0;display:flex;flex-direction:column;gap:6px}
+.cui-app .msg-deal-strip-body .msg-deal-rows dd{margin:0;font-weight:600}
+.cui-app .msg-deal-strip-body .msg-deal-rows dt{color:var(--cui-muted)}
+
+@media (max-width:1100px){
+  .cui-app .msg-side{display:none}
+  .cui-app .msg-deal-strip{display:block}
+}
+
+/* ── phone + tablet: one pane at a time (the shell switches to its phone chrome at 900px) ─────── */
+@media (max-width:900px){
+  .cui-m-page{gap:0;padding:0}
+  .cui-m-page>.cui-head{padding:14px 16px 12px;gap:10px}
+  .cui-m-page>.cui-head .cui-head-t{min-width:0}
+  .cui-m-page>.cui-head h1{font-size:22px}
+  /* Chat open: pin the whole pane between the 56px top bar and the 64px bottom tabs, so the composer
+     is always visible above the tab bar (regardless of any banner above it in the page). */
+  .cui-m-page.has-chat{position:fixed;left:0;right:0;top:56px;bottom:calc(64px + env(safe-area-inset-bottom,0px));z-index:50;background:#fff}
+  .cui-m-page.has-chat>.cui-head{display:none}
+  .cui-m-page.has-chat .msg-layout{height:100%}
+  .cui-app .msg-layout{height:auto;min-height:calc(100dvh - 56px - 64px - 70px - env(safe-area-inset-bottom,0px));border-radius:0;box-shadow:none;flex-direction:column;overflow:visible}
+  .cui-app .msg-list-panel{width:100%;height:auto;overflow:visible;border-right:0;padding-top:4px}
+  .cui-app .msg-conv-list{overflow:visible;flex:none}
+  .cui-app .msg-layout.has-active-chat .msg-list-panel{display:none}
+  .cui-app .msg-layout:not(.has-active-chat) .msg-chat-panel{display:none}
+  .cui-app .msg-layout.has-active-chat{overflow:hidden}
+  .cui-app .msg-chat-panel{width:100%;height:100%;min-height:0;border-left:0}
+  .cui-app .msg-back-btn{display:flex;width:44px;height:44px;margin:0 -4px 0 -10px;color:var(--cui-ink)}
+  .cui-app .msg-search{margin:8px 16px 0;height:44px}
+  .cui-app .msg-search input{font-size:16px}
+  .cui-app .msg-filters{margin:0 16px}
+  .cui-app .msg-filters button{min-height:36px;font-size:12.5px}
+  .cui-app .msg-conv-item{min-height:72px;padding:12px 16px}
+  .cui-app .msg-chat-header{gap:10px;padding:8px 12px}
+  .cui-app .msg-header-info{flex:1;min-width:0}
+  .cui-app .msg-header-info strong,.cui-app .msg-online{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cui-app .msg-chat-actions{flex:none;gap:4px}
+  .cui-app .msg-chat-actions button{width:44px;height:44px}
+  .cui-app .msg-messages{width:100%;padding:14px 12px;overflow-x:hidden}
+  .cui-app .msg-bubble{max-width:84%;overflow-wrap:anywhere}
+  .cui-app .msg-action-card{width:min(380px,100%)}
+  .cui-app .msg-action-card-actions button{height:44px}
+  .cui-app .msg-quick-actions{padding:8px 12px 0}
+  .cui-app .msg-quick-actions-lbl,.cui-app .msg-action-chip{height:44px}
+  .cui-app .msg-actions-row{flex-wrap:wrap}
+  .cui-app .msg-action-composer{margin:8px 12px 0;max-height:46vh;overflow-y:auto}
+  .cui-app .msg-action-composer-grid{grid-template-columns:1fr}
+  .cui-app .msg-input-row{width:auto;margin:8px 12px 10px;height:52px;padding:0 8px 0 4px}
+  .cui-app .msg-input{font-size:16px}
+  .cui-app .msg-input-icon{width:44px;height:44px}
+  .cui-app .msg-send{width:44px;min-width:44px;height:44px}
+  .cui-app .msg-deal-strip summary{min-height:48px}
+  .cui-app .msg-system-pill{max-width:100%}
+}
+@media (max-width:480px){
+  .cui-app .msg-action-card-fields{grid-template-columns:1fr 1fr}
+  .cui-app .msg-action-card-actions button{padding:0 14px;flex:1 1 auto}
+  .cui-app .msg-action-card-actions button.is-accept{flex:2 1 100%}
+}
+/* index.css forces `main{padding-inline:var(--site-h-pad) !important}` (4px / 14px): give the inbox page its own gutter */
+body .cui-app main.cui-main:has(> .cui-m-page){padding-left:34px !important;padding-right:34px !important}
+@media (max-width:900px){
+  body .cui-app main.cui-main:has(> .cui-m-page){padding-left:0 !important;padding-right:0 !important}
+}

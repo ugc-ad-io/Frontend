@@ -4,15 +4,15 @@
   display: inline-block;
   position: relative;
   overflow: hidden;
-  background: #e9ecf3;
-  background: linear-gradient(100deg, #e9ecf3 30%, #f4f6fb 50%, #e9ecf3 70%);
-  background-size: 200% 100%;
-  animation: sk-shimmer 1.25s ease-in-out infinite;
+  background: #ECEDFA;
+  background: linear-gradient(90deg, #ECEDFA 0%, #F5F5FC 40%, #ECEDFA 80%);
+  background-size: 1200px 100%;
+  animation: sk-shimmer 1.4s linear infinite;
 }
 
 @keyframes sk-shimmer {
-  0%   { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0%   { background-position: -600px 0; }
+  100% { background-position: 600px 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -22,10 +22,10 @@
 .sk-text { display: flex; flex-direction: column; width: 100%; }
 
 /* Table placeholder */
-.sk-table { display: flex; flex-direction: column; width: 100%; border: 1px solid #eef0f6; border-radius: 12px; overflow: hidden; background: #fff; }
-.sk-tr { display: flex; align-items: center; gap: 16px; padding: 14px 16px; border-bottom: 1px solid #f1f5f9; }
+.sk-table { display: flex; flex-direction: column; width: 100%; border: 1px solid #EDEDF6; border-radius: 20px; overflow: hidden; background: #fff; }
+.sk-tr { display: flex; align-items: center; gap: 16px; padding: 14px 16px; border-bottom: 1px solid #EDEDF6; }
 .sk-tr:last-child { border-bottom: 0; }
-.sk-tr--head { background: #f9fafb; }
+.sk-tr--head { background: #F3F3FF; }
 .sk-td { flex: 1; min-width: 0; }
 .sk-td:first-child { flex: 1.4; }
 
@@ -36,7 +36,7 @@
 
 /* Card-grid placeholder */
 .sk-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
-.sk-card { display: flex; flex-direction: column; gap: 14px; padding: 16px; border: 1px solid #eef0f6; border-radius: 14px; background: #fff; }
+.sk-card { display: flex; flex-direction: column; gap: 14px; padding: 16px; border: 1px solid #EDEDF6; border-radius: 20px; background: #fff; }
 .sk-card-head { display: flex; align-items: center; gap: 12px; }
 .sk-card-lines { display: flex; flex-direction: column; gap: 8px; flex: 1; }
 .sk-card-foot { display: flex; gap: 10px; }

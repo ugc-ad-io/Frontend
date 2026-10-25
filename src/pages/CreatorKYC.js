@@ -6,6 +6,8 @@ import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import { ShieldCheck, Upload, FileCheck2, Hourglass, XCircle, CheckCircle2, ArrowLeft } from 'lucide-react';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
+import CreatorPageHead from '../components/CreatorPageHead';
+import '../styles/creator-ui-kyc.css';
 import { Skeleton } from '../components/Skeleton';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -84,13 +86,13 @@ function DocUpload({ label, hint, value, onChange }) {
   };
 
   return (
-    <div className="kyc-doc">
-      <label className="kyc-label">{label}</label>
-      <button type="button" className={`kyc-drop ${value ? 'has' : ''}`} onClick={() => ref.current?.click()} disabled={busy}>
+    <div className="cui-s-k-doc">
+      <label className="cui-s-k-label">{label}</label>
+      <button type="button" className={`cui-s-k-drop ${value ? 'has' : ''}`} onClick={() => ref.current?.click()} disabled={busy}>
         {value ? <><FileCheck2 size={18} /> Uploaded - click to replace</> : <><Upload size={18} /> {busy ? 'Uploading…' : 'Upload image or PDF'}</>}
       </button>
       <input ref={ref} type="file" accept="image/*,application/pdf" hidden onChange={pick} />
-      <small className="kyc-hint">{hint}</small>
+      <small className="cui-s-k-hint">{hint}</small>
     </div>
   );
 }
@@ -209,61 +211,70 @@ export default function CreatorKYC() {
   const status = kyc?.status || 'not_submitted';
   const canEdit = status === 'not_submitted' || status === 'rejected';
 
+  const stage = status === 'verified' ? 2 : status === 'pending' ? 1 : 0;
+  const STAGES = ['Submit', 'In review', 'Verified'];
+
+  const field = (label, control, hint) => (
+    <div className="cui-s-k-f">
+      <label className="cui-s-k-label">{label}</label>
+      {control}
+      {hint}
+    </div>
+  );
+
   return (
     <CreatorTopNavLayout>
-      <div className="kyc-page">
-        <button type="button" className="kyc-back" onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/dashboard/creator'))}><ArrowLeft size={16} /> Back</button>
-
-        <header className="kyc-head">
-          <span className="kyc-head-ic"><ShieldCheck size={22} /></span>
-          <div>
-            <h1>Identity verification (KYC)</h1>
-            <p>We pay real money to a real person, so we verify who that is. Your Aadhaar and PAN are visible only to you and our review team - never to brands.</p>
-          </div>
-        </header>
+      <div className="cui-s-kyc">
+        <button type="button" className="cui-s-k-back" onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/settings'))}>
+          <ArrowLeft size={18} /> Back
+        </button>
+        <CreatorPageHead
+          title="Get paid"
+          subtitle="Verify your identity once, then withdraw your earnings to UPI or bank."
+          hideSearch
+        />
 
         {loading ? (
-          <div className="kyc-card" aria-hidden="true">
+          <div className="cui-s-k-card" aria-hidden="true">
             <Skeleton width={180} height={20} style={{ marginBottom: 20 }} />
-            <div className="kyc-grid">
+            <div className="cui-s-k-row">
               {Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <Skeleton width="45%" height={12} />
-                  <Skeleton width="100%" height={42} radius={10} />
+                  <Skeleton width="100%" height={46} radius={16} />
                 </div>
               ))}
             </div>
             <Skeleton width={150} height={20} style={{ margin: '24px 0 16px' }} />
-            <div className="kyc-grid">
-              <Skeleton width="100%" height={90} radius={12} />
-              <Skeleton width="100%" height={90} radius={12} />
+            <div className="cui-s-k-row">
+              <Skeleton width="100%" height={90} radius={14} />
+              <Skeleton width="100%" height={90} radius={14} />
             </div>
-            <Skeleton width={200} height={46} radius={12} style={{ marginTop: 24 }} />
           </div>
         ) : loadError ? (
-          <div className="kyc-state bad" role="alert">
+          <div className="cui-s-k-state bad" role="alert">
             <XCircle size={20} />
             <div>
               <strong>Could not load your verification status</strong>
               <p>Check your connection and try again.</p>
-              <button type="button" className="kyc-back" onClick={() => { setLoading(true); loadKyc(); }}>Retry</button>
+              <button type="button" className="cui-s-k-btn" onClick={() => { setLoading(true); loadKyc(); }}>Retry</button>
             </div>
           </div>
         ) : (
           <>
             {status === 'verified' && (
-              <div className="kyc-state ok">
+              <div className="cui-s-k-state ok">
                 <CheckCircle2 size={20} />
                 <div>
                   <strong>Verified</strong>
                   <p>Your identity is confirmed. You can withdraw your earnings.</p>
                 </div>
-                <button type="button" onClick={() => navigate('/withdrawal')}>Go to payouts</button>
+                <button type="button" className="cui-s-k-btn cui-s-k-btn--ink" onClick={() => navigate('/withdrawal')}>Go to payouts</button>
               </div>
             )}
 
             {status === 'pending' && (
-              <div className="kyc-state wait">
+              <div className="cui-s-k-state wait">
                 <Hourglass size={20} />
                 <div>
                   <strong>Under review</strong>
@@ -273,7 +284,7 @@ export default function CreatorKYC() {
             )}
 
             {status === 'rejected' && (
-              <div className="kyc-state bad">
+              <div className="cui-s-k-state bad">
                 <XCircle size={20} />
                 <div>
                   <strong>Not approved</strong>
@@ -282,254 +293,186 @@ export default function CreatorKYC() {
               </div>
             )}
 
-            {canEdit ? (
-              <form className="kyc-card" onSubmit={submit}>
-                <h2>Personal details</h2>
-                <div className="kyc-grid">
-                  <div>
-                    <label className="kyc-label">Full legal name</label>
-                    <input
-                      className="kyc-input"
-                      value={form.full_legal_name}
-                      onChange={(e) => set('full_legal_name')(e.target.value)}
-                      placeholder="As printed on your PAN"
-                    />
-                  </div>
-                  <div>
-                    <label className="kyc-label">Date of birth</label>
-                    <input
-                      className="kyc-input"
-                      type="date"
-                      max={maxDob}
-                      value={form.date_of_birth}
-                      onChange={(e) => set('date_of_birth')(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div className="kyc-grid">
-                  <div>
-                    <label className="kyc-label">Gender</label>
-                    <select className="kyc-input" value={form.gender} onChange={(e) => set('gender')(e.target.value)}>
-                      <option value="">Select…</option>
-                      <option value="male">Male</option>
-                      <option value="female">Female</option>
-                      <option value="other">Other</option>
-                      <option value="prefer_not_to_say">Prefer not to say</option>
-                    </select>
-                  </div>
-                </div>
+            <div className="cui-s-k-grid">
+              <div className="cui-s-k-main">
+                {canEdit ? (
+                  <form id="kyc-form" className="cui-s-k-form" onSubmit={submit}>
+                    <section className="cui-s-k-card">
+                      <h2>Personal details</h2>
+                      <p className="cui-s-k-sub">Exactly as printed on your PAN card.</p>
+                      <div className="cui-s-k-row">
+                        {field('Full legal name', (
+                          <input
+                            className="cui-s-k-in"
+                            value={form.full_legal_name}
+                            onChange={(e) => set('full_legal_name')(e.target.value)}
+                            placeholder="As printed on your PAN"
+                          />
+                        ))}
+                        {field('Date of birth', (
+                          <input
+                            className="cui-s-k-in"
+                            type="date"
+                            max={maxDob}
+                            value={form.date_of_birth}
+                            onChange={(e) => set('date_of_birth')(e.target.value)}
+                          />
+                        ))}
+                        {field('Gender', (
+                          <select className="cui-s-k-in" value={form.gender} onChange={(e) => set('gender')(e.target.value)}>
+                            <option value="">Select…</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="other">Other</option>
+                            <option value="prefer_not_to_say">Prefer not to say</option>
+                          </select>
+                        ))}
+                      </div>
+                    </section>
 
-                <div className="kyc-sep" />
+                    <section className="cui-s-k-card">
+                      <h2>PAN card</h2>
+                      <p className="cui-s-k-sub">Needed to pay you and for tax. Brands never see it.</p>
+                      <div className="cui-s-k-row">
+                        {field('PAN number', (
+                          <input
+                            className="cui-s-k-in mono"
+                            value={form.pan_number}
+                            maxLength={10}
+                            onChange={(e) => set('pan_number')(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+                            placeholder="ABCDE1234F"
+                          />
+                        ))}
+                        <DocUpload
+                          label="PAN card photo"
+                          hint="A clear photo or scan. All four corners visible, no glare."
+                          value={form.pan_doc_url}
+                          onChange={set('pan_doc_url')}
+                        />
+                      </div>
+                    </section>
 
-                <h2>PAN card</h2>
-                <div className="kyc-grid">
-                  <div>
-                    <label className="kyc-label">PAN number</label>
-                    <input
-                      className="kyc-input mono"
-                      value={form.pan_number}
-                      maxLength={10}
-                      onChange={(e) => set('pan_number')(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
-                      placeholder="ABCDE1234F"
-                    />
-                  </div>
-                </div>
-                <DocUpload
-                  label="PAN card photo"
-                  hint="A clear photo or scan. All four corners visible, no glare."
-                  value={form.pan_doc_url}
-                  onChange={set('pan_doc_url')}
-                />
+                    <section className="cui-s-k-card">
+                      <h2>Aadhaar card <span className="cui-s-k-opt">(optional)</span></h2>
+                      <div className="cui-s-k-row">
+                        {field('Aadhaar number', (
+                          <input
+                            className="cui-s-k-in mono"
+                            inputMode="numeric"
+                            value={groupAadhaar(form.aadhaar_number)}
+                            onChange={(e) => set('aadhaar_number')(e.target.value.replace(/\D/g, '').slice(0, 12))}
+                            placeholder="1234 5678 9012"
+                          />
+                        ))}
+                      </div>
+                      <div className="cui-s-k-row">
+                        <DocUpload
+                          label="Aadhaar - front"
+                          hint="The side with your photo."
+                          value={form.aadhaar_front_url}
+                          onChange={set('aadhaar_front_url')}
+                        />
+                        <DocUpload
+                          label="Aadhaar - back"
+                          hint="The side with your address."
+                          value={form.aadhaar_back_url}
+                          onChange={set('aadhaar_back_url')}
+                        />
+                      </div>
+                    </section>
 
-                <div className="kyc-sep" />
+                    <section className="cui-s-k-card">
+                      <h2>Residential address</h2>
+                      <div className="cui-s-k-row">
+                        <div className="cui-s-k-span">
+                          {field('Address', <input className="cui-s-k-in" value={form.address_line} onChange={(e) => set('address_line')(e.target.value)} placeholder="House / flat, street, area" />)}
+                        </div>
+                        {field('Pincode', (
+                          <input className="cui-s-k-in mono" inputMode="numeric" maxLength={6} value={form.pincode}
+                            onChange={(e) => set('pincode')(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="6 digits" />
+                        ), (
+                          <>
+                            {pinLookup === 'loading' && <small className="cui-s-k-hint">Finding city and state…</small>}
+                            {pinLookup === 'found' && <small className="cui-s-k-hint">City and state filled automatically.</small>}
+                            {pinLookup === 'not-found' && <small className="cui-s-k-hint">Pincode not found. Enter city and state manually.</small>}
+                          </>
+                        ))}
+                        <span />
+                        {field('City', <input className="cui-s-k-in" value={form.city} onChange={(e) => set('city')(e.target.value)} />)}
+                        {field('State', <input className="cui-s-k-in" value={form.state} onChange={(e) => set('state')(e.target.value)} />)}
+                      </div>
+                    </section>
 
-                <h2>Aadhaar card <span className="kyc-optional">(optional)</span></h2>
-                <div className="kyc-grid">
-                  <div>
-                    <label className="kyc-label">Aadhaar number</label>
-                    <input
-                      className="kyc-input mono"
-                      inputMode="numeric"
-                      value={groupAadhaar(form.aadhaar_number)}
-                      onChange={(e) => set('aadhaar_number')(e.target.value.replace(/\D/g, '').slice(0, 12))}
-                      placeholder="1234 5678 9012"
-                    />
-                  </div>
-                </div>
-                <div className="kyc-grid">
-                  <DocUpload
-                    label="Aadhaar - front"
-                    hint="The side with your photo."
-                    value={form.aadhaar_front_url}
-                    onChange={set('aadhaar_front_url')}
-                  />
-                  <DocUpload
-                    label="Aadhaar - back"
-                    hint="The side with your address."
-                    value={form.aadhaar_back_url}
-                    onChange={set('aadhaar_back_url')}
-                  />
-                </div>
+                    <section className="cui-s-k-card">
+                      <h2>Where should we pay you?</h2>
+                      <p className="cui-s-k-sub">Where we send your earnings after a deal completes. Choose one, in your own name.</p>
+                      <div className="cui-s-k-toggle" role="group" aria-label="Payout method">
+                        <button type="button" className={form.payout_method === 'upi' ? 'on' : ''} aria-pressed={form.payout_method === 'upi'} onClick={() => set('payout_method')('upi')}>UPI ID</button>
+                        <button type="button" className={form.payout_method === 'bank' ? 'on' : ''} aria-pressed={form.payout_method === 'bank'} onClick={() => set('payout_method')('bank')}>Bank account</button>
+                      </div>
+                      {form.payout_method === 'upi' ? (
+                        <div className="cui-s-k-row">
+                          {field('UPI ID', <input className="cui-s-k-in mono" value={form.upi_id} onChange={(e) => set('upi_id')(e.target.value.trim())} placeholder="name@bank" />)}
+                        </div>
+                      ) : (
+                        <div className="cui-s-k-row">
+                          {field('Account holder name', <input className="cui-s-k-in" value={form.account_holder_name} onChange={(e) => set('account_holder_name')(e.target.value)} />)}
+                          {field('Bank name', <input className="cui-s-k-in" value={form.bank_name} onChange={(e) => set('bank_name')(e.target.value)} />)}
+                          {field('Account number', (
+                            <input className="cui-s-k-in mono" inputMode="numeric" value={form.account_number}
+                              onChange={(e) => set('account_number')(e.target.value.replace(/\D/g, '').slice(0, 18))} />
+                          ))}
+                          {field('IFSC code', (
+                            <input className="cui-s-k-in mono" maxLength={11} value={form.ifsc_code}
+                              onChange={(e) => set('ifsc_code')(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))} placeholder="HDFC0001234" />
+                          ))}
+                        </div>
+                      )}
+                    </section>
 
-                <div className="kyc-sep" />
-
-                <h2>Residential address</h2>
-                <div className="kyc-grid">
-                  <div style={{ gridColumn: '1 / -1' }}>
-                    <label className="kyc-label">Address</label>
-                    <input className="kyc-input" value={form.address_line} onChange={(e) => set('address_line')(e.target.value)} placeholder="House / flat, street, area" />
-                  </div>
-                </div>
-                <div className="kyc-grid">
-                  <div>
-                    <label className="kyc-label">City</label>
-                    <input className="kyc-input" value={form.city} onChange={(e) => set('city')(e.target.value)} />
-                  </div>
-                  <div>
-                    <label className="kyc-label">State</label>
-                    <input className="kyc-input" value={form.state} onChange={(e) => set('state')(e.target.value)} />
-                  </div>
-                </div>
-                <div className="kyc-grid">
-                  <div>
-                    <label className="kyc-label">Pincode</label>
-                    <input className="kyc-input mono" inputMode="numeric" maxLength={6} value={form.pincode}
-                      onChange={(e) => set('pincode')(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="6 digits" />
-                    {pinLookup === 'loading' && <small className="kyc-hint">Finding city and state…</small>}
-                    {pinLookup === 'found' && <small className="kyc-hint">City and state filled automatically.</small>}
-                    {pinLookup === 'not-found' && <small className="kyc-hint">Pincode not found. Enter city and state manually.</small>}
-                  </div>
-                </div>
-
-                <div className="kyc-sep" />
-
-                <h2>Payout details</h2>
-                <p className="kyc-subnote">Where we send your earnings after a deal completes. Choose one.</p>
-                <div className="kyc-toggle">
-                  <button type="button" className={form.payout_method === 'upi' ? 'on' : ''} onClick={() => set('payout_method')('upi')}>UPI ID</button>
-                  <button type="button" className={form.payout_method === 'bank' ? 'on' : ''} onClick={() => set('payout_method')('bank')}>Bank account</button>
-                </div>
-                {form.payout_method === 'upi' ? (
-                  <div className="kyc-grid">
-                    <div>
-                      <label className="kyc-label">UPI ID</label>
-                      <input className="kyc-input mono" value={form.upi_id} onChange={(e) => set('upi_id')(e.target.value.trim())} placeholder="name@bank" />
+                    <div className="cui-s-k-foot">
+                      <button type="button" className="cui-s-k-btn" onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/dashboard/creator'))}><ArrowLeft size={16} /> Back</button>
+                      <button type="submit" className="cui-s-k-btn cui-s-k-btn--pri" disabled={saving}>
+                        {saving ? 'Submitting…' : 'Submit for verification'}
+                      </button>
                     </div>
-                  </div>
+                    <p className="cui-s-k-fine">By submitting you confirm these documents are yours. A PAN can only be linked to one account. Your ID and payout details are visible only to you and our review team - never to brands.</p>
+                  </form>
                 ) : (
-                  <>
-                    <div className="kyc-grid">
-                      <div>
-                        <label className="kyc-label">Account holder name</label>
-                        <input className="kyc-input" value={form.account_holder_name} onChange={(e) => set('account_holder_name')(e.target.value)} />
-                      </div>
-                      <div>
-                        <label className="kyc-label">Bank name</label>
-                        <input className="kyc-input" value={form.bank_name} onChange={(e) => set('bank_name')(e.target.value)} />
-                      </div>
-                    </div>
-                    <div className="kyc-grid">
-                      <div>
-                        <label className="kyc-label">Account number</label>
-                        <input className="kyc-input mono" inputMode="numeric" value={form.account_number}
-                          onChange={(e) => set('account_number')(e.target.value.replace(/\D/g, '').slice(0, 18))} />
-                      </div>
-                      <div>
-                        <label className="kyc-label">IFSC code</label>
-                        <input className="kyc-input mono" maxLength={11} value={form.ifsc_code}
-                          onChange={(e) => set('ifsc_code')(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))} placeholder="HDFC0001234" />
-                      </div>
-                    </div>
-                  </>
+                  <div className="cui-s-k-card cui-s-k-onfile">
+                    <h2>On file</h2>
+                    <div className="cui-s-k-kv"><span>Legal name</span><strong>{kyc.full_legal_name || kyc.name_on_pan || '-'}</strong></div>
+                    <div className="cui-s-k-kv"><span>PAN</span><strong className="mono">{kyc.pan_number || '-'}</strong></div>
+                    {kyc.aadhaar_number ? <div className="cui-s-k-kv"><span>Aadhaar</span><strong className="mono">{/* masked on screen: only the last 4 digits */}XXXX XXXX {String(kyc.aadhaar_number).replace(/\D/g, '').slice(-4)}</strong></div> : null}
+                    <div className="cui-s-k-kv"><span>Payout</span><strong>{kyc.payout_method === 'bank' ? 'Bank account' : kyc.payout_method === 'upi' ? 'UPI' : '-'}</strong></div>
+                    <div className="cui-s-k-kv"><span>Submitted</span><strong>{kyc.submitted_at ? new Date(kyc.submitted_at).toLocaleDateString() : '-'}</strong></div>
+                  </div>
                 )}
-
-                <button type="submit" className="kyc-submit" disabled={saving}>
-                  {saving ? 'Submitting…' : 'Submit for verification'}
-                </button>
-                <p className="kyc-foot">By submitting you confirm these documents are yours. A PAN can only be linked to one account. Your ID and payout details are visible only to you and our review team - never to brands.</p>
-              </form>
-            ) : (
-              <div className="kyc-card kyc-onfile">
-                <h2>On file</h2>
-                <div className="kyc-kv"><span>Legal name</span><strong>{kyc.full_legal_name || kyc.name_on_pan || '-'}</strong></div>
-                <div className="kyc-kv"><span>PAN</span><strong className="mono">{kyc.pan_number || '-'}</strong></div>
-                {kyc.aadhaar_number ? <div className="kyc-kv"><span>Aadhaar</span><strong className="mono">{/* masked on screen: only the last 4 digits */}XXXX XXXX {String(kyc.aadhaar_number).replace(/\D/g, '').slice(-4)}</strong></div> : null}
-                <div className="kyc-kv"><span>Payout</span><strong>{kyc.payout_method === 'bank' ? 'Bank account' : kyc.payout_method === 'upi' ? 'UPI' : '-'}</strong></div>
-                <div className="kyc-kv"><span>Submitted</span><strong>{kyc.submitted_at ? new Date(kyc.submitted_at).toLocaleDateString() : '-'}</strong></div>
               </div>
-            )}
+
+              <aside className="cui-s-k-aside">
+                <div className="cui-s-k-card">
+                  <h2>What happens next</h2>
+                  <div className="cui-s-k-prog">
+                    <div className="cui-s-k-bars" aria-hidden="true">
+                      {STAGES.map((n, i) => <span key={n} className={i <= stage ? 'on' : ''} />)}
+                    </div>
+                    <div className="cui-s-k-lbls">
+                      {STAGES.map((n, i) => <span key={n} className={i === stage ? 'now' : ''}>{n}</span>)}
+                    </div>
+                  </div>
+                  <div className="cui-s-k-steps">
+                    <div><i><FileCheck2 size={12} /></i>We check your documents within 24–48 hours</div>
+                    <div><i><FileCheck2 size={12} /></i>We notify you once it’s done</div>
+                    <div><i><FileCheck2 size={12} /></i>Then you can withdraw your earnings</div>
+                  </div>
+                </div>
+                <div className="cui-s-k-tip"><ShieldCheck size={18} /><span>Your Aadhaar and PAN are visible only to you and our review team - never to brands.</span></div>
+              </aside>
+            </div>
           </>
         )}
       </div>
-
-      <style>{`
-        .kyc-page{max-width:760px;margin:0 auto;padding:8px 0 60px;min-width:0;overflow-wrap:anywhere}
-        .kyc-grid>*{min-width:0}
-        .kyc-head>div{min-width:0}
-        .kyc-state>div{min-width:0}
-        .kyc-back{display:inline-flex;align-items:center;gap:6px;border:1px solid #e6e8f5;background:#fff;color:#5b6073;font:inherit;font-size:13px;font-weight:600;padding:7px 13px;border-radius:9px;cursor:pointer;margin-bottom:18px}
-        .kyc-back:hover{border-color:#c9cffb;color:#4452f0}
-        .kyc-head{display:flex;gap:14px;align-items:flex-start;margin-bottom:20px}
-        .kyc-head-ic{display:grid;place-items:center;width:44px;height:44px;flex:none;border-radius:12px;background:#eef0ff;color:#4452f0}
-        .kyc-head h1{margin:0 0 4px;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:24px;color:#15163a}
-        .kyc-head p{margin:0;color:#6a6f8a;font-size:13.5px;line-height:1.6;max-width:620px}
-
-        .kyc-state{display:flex;align-items:center;gap:14px;padding:16px 18px;border-radius:14px;margin-bottom:18px}
-        .kyc-state strong{display:block;font-size:14.5px;margin-bottom:2px}
-        .kyc-state p{margin:0;font-size:13px;line-height:1.55}
-        .kyc-state button{margin-left:auto;border:0;border-radius:9px;padding:8px 14px;background:#0f8a4d;color:#fff;font:inherit;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap}
-        .kyc-state.ok{background:#ecfdf3;border:1px solid #abefc6;color:#05603a}
-        .kyc-state.wait{background:#fff8ed;border:1px solid #fcd9a4;color:#93370d}
-        .kyc-state.bad{background:#fef3f2;border:1px solid #fecdca;color:#b42318}
-        /* Phone: let the CTA drop below the message. Unwrapped, the nowrap button held
-           ~120px and squeezed the status text into a tall thin column. Also trims the
-           card's 26px side padding, which cost 52px of a 360px screen. */
-        @media (max-width:620px){
-          .kyc-page{width:auto;max-width:none;min-height:calc(100dvh - var(--cmk-nav-height,72px));margin:-18px -16px calc(-96px - env(safe-area-inset-bottom));padding:14px 16px 96px;background:#fff}
-          .kyc-state{flex-wrap:wrap}
-          .kyc-state button{margin-left:0;width:100%;padding:11px 14px}
-          .kyc-page .kyc-card{padding:18px 0;border:0;border-radius:0;box-shadow:none}
-          .kyc-page .kyc-onfile{border-top:1px solid #e9ebf5}
-          .kyc-back{padding:10px 14px;min-height:44px}
-          .kyc-toggle{display:flex;width:100%}
-          .kyc-toggle button{flex:1;padding:11px 18px;min-height:44px}
-          .kyc-page .kyc-input{font-size:16px;min-height:44px}
-          .kyc-head h1{font-size:21px;overflow-wrap:anywhere}
-          .kyc-submit{min-height:48px}
-        }
-
-        .kyc-card{background:#fff;border:1px solid #e9ebf5;border-radius:18px;padding:24px 26px;box-shadow:0 4px 24px rgba(7,7,78,.05)}
-        .kyc-card h2{margin:0 0 14px;font-size:15px;color:#15163a}
-        .kyc-sep{height:1px;background:#eef0f6;margin:26px 0 22px}
-        .kyc-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px}
-        @media (max-width:620px){.kyc-grid{grid-template-columns:1fr}}
-        .kyc-label{display:block;margin-bottom:6px;font-size:12px;font-weight:700;color:#6a6f8a;text-transform:uppercase;letter-spacing:.04em}
-        .kyc-input{width:100%;border:1px solid #dfe2ee;border-radius:10px;padding:11px 13px;font:inherit;font-size:14px;color:#15163a;background:#fff}
-        .kyc-input:focus{outline:none;border-color:#5b6bff;box-shadow:0 0 0 3px rgba(91,107,255,.15)}
-        .kyc-input.mono,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.06em}
-        select.kyc-input{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236a6f8a' stroke-width='2'><path d='M6 9l6 6 6-6'/></svg>");background-repeat:no-repeat;background-position:right 12px center;padding-right:34px;cursor:pointer}
-        .kyc-optional{font-size:12px;font-weight:600;color:#9296ba;text-transform:none;letter-spacing:0}
-        .kyc-subnote{margin:-6px 0 12px;font-size:12.5px;color:#8a8fab;line-height:1.5}
-        .kyc-toggle{display:inline-flex;gap:0;border:1px solid #dfe2ee;border-radius:10px;overflow:hidden;margin-bottom:16px}
-        .kyc-toggle button{border:0;background:#fff;color:#5b6073;font:inherit;font-size:13px;font-weight:700;padding:9px 18px;cursor:pointer}
-        .kyc-toggle button.on{background:#07074e;color:#fff}
-
-        .kyc-doc{min-width:0}
-        .kyc-drop{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;border:1.5px dashed #cdd2f3;border-radius:12px;padding:16px;background:#f8f9ff;color:#4452f0;font:inherit;font-size:13.5px;font-weight:600;cursor:pointer}
-        .kyc-drop:hover{border-color:#5b6bff;background:#eef0ff}
-        .kyc-drop.has{border-style:solid;border-color:#abefc6;background:#ecfdf3;color:#05603a}
-        .kyc-hint{display:block;margin-top:6px;color:#9296b5;font-size:11.5px}
-
-        .kyc-submit{width:100%;margin-top:24px;border:0;border-radius:12px;padding:13px;background:#5b6bff;color:#fff;font:inherit;font-weight:700;font-size:14.5px;cursor:pointer}
-        .kyc-submit:hover{background:#4452f0}
-        .kyc-submit:disabled{opacity:.6;cursor:not-allowed}
-        .kyc-foot{margin:12px 0 0;text-align:center;color:#9296b5;font-size:11.5px}
-
-        .kyc-onfile .kyc-kv{display:flex;justify-content:space-between;gap:16px;padding:11px 0;border-bottom:1px solid #f1f3f9;font-size:14px}
-        .kyc-onfile .kyc-kv:last-child{border-bottom:0}
-        .kyc-onfile .kyc-kv span{color:#6a6f8a;flex:none}
-        .kyc-onfile .kyc-kv strong{color:#15163a;min-width:0;text-align:right;overflow-wrap:anywhere}
-      `}</style>
     </CreatorTopNavLayout>
   );
 }

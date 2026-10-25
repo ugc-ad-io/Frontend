@@ -108,11 +108,10 @@ describe('Campaigns list', () => {
     const { host, done } = await mount(<BrandCampaigns />);
     try {
       const text = host.textContent;
-      expect(text).toContain('Rs. 3,000 - Rs. 5,000');
-      expect(text).toContain('Rs. 4,000');
-      expect(text).not.toContain('Rs. 3,000 / Rs. 5,000');
-      expect(text).toContain('1 creator · 1 bid');
-      expect(text).toContain('2 creators · 2 bids');
+      expect(text).toContain('₹3k–5k');
+      expect(text).toContain('₹4,000');
+      expect(text).not.toContain('₹3k / ₹5k');
+      expect(text).toContain('2 bids waiting');
     } finally { await done(); }
   });
 
@@ -183,7 +182,7 @@ describe('Campaign detail: requesting a revision', () => {
     const Detail = require('./BrandCampaignDetail').default;
     const { host, done } = await mount(<Detail />);
     try {
-      await click(buttonByText(host, 'Work Review'));
+      await click(buttonByText(host, 'Work review'));
       await click([...host.querySelectorAll('.bwr-btn')].find((b) => b.textContent.includes('Request Revision')));
       expect(host.querySelector('[data-testid="video-review"]')).toBeTruthy();
       expect(host.querySelector('[data-testid="text-revision"]')).toBeNull();
@@ -195,7 +194,7 @@ describe('Campaign detail: requesting a revision', () => {
     const Detail = require('./BrandCampaignDetail').default;
     const { host, done } = await mount(<Detail />);
     try {
-      await click(buttonByText(host, 'Work Review'));
+      await click(buttonByText(host, 'Work review'));
       await click([...host.querySelectorAll('.bwr-btn')].find((b) => b.textContent.includes('Request Revision')));
       expect(host.querySelector('[data-testid="text-revision"]')).toBeTruthy();
       expect(host.querySelector('[data-testid="video-review"]')).toBeNull();
@@ -207,8 +206,8 @@ describe('Campaign detail: requesting a revision', () => {
     const Detail = require('./BrandCampaignDetail').default;
     const { host, done } = await mount(<Detail />);
     try {
-      expect(host.querySelector('.bcd-budget').textContent).toContain('Rs. 2,000');
-      expect(host.querySelector('.bcd-budget').textContent).not.toContain('/');
+      expect(host.querySelector('.bui-budget').textContent).toContain('₹2,000');
+      expect(host.querySelector('.bui-budget').textContent).not.toContain(' / ');
     } finally { await done(); }
   });
 });
@@ -289,7 +288,7 @@ describe('Reviews page polling', () => {
 
 describe('Edited modules still load', () => {
   test.each([
-    ['./PlanBrief'], ['./PostABrief'], ['./BrandCreators'], ['./BrandOverview'], ['./CreatorProfilePage'],
+    ['./PlanBrief'], ['./PostABrief'], ['./BrandCreators'], ['./BrandHome'], ['./CreatorProfilePage'],
     ['../components/ReviewModal'], ['../components/RevisionRequestModal'], ['../components/BookingCard'],
   ])('%s exports a component', (path) => {
     if (!globalThis.crypto) globalThis.crypto = require('crypto').webcrypto; // jsdom has none; PostABrief builds ids at import

@@ -1,0 +1,29 @@
+/* Invoice (board 27) */
+.bui-iv{max-width:860px;width:100%;margin:0 auto;background:#fff;border-radius:16px;box-shadow:0 24px 60px -40px rgba(7,7,78,.45),inset 0 0 0 1px var(--bui-line);padding:40px 44px;display:flex;flex-direction:column;gap:26px;font-size:14px}
+.bui-iv-top{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.bui-iv-logo{font-family:var(--bui-head);font-weight:500;font-size:22px}
+.bui-iv-logo b{font-weight:500;color:var(--bui-primary)}
+.bui-iv-seller{margin-top:10px;line-height:1.6;color:var(--bui-muted)}
+.bui-iv-meta{text-align:right;line-height:1.7}
+.bui-iv-meta span{color:var(--bui-muted)}
+.bui-iv-meta code{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;overflow-wrap:anywhere}
+.bui-iv-title{font-family:var(--bui-head);font-weight:600;font-size:22px}
+.bui-iv-na{color:var(--bui-muted);font-style:italic}
+.bui-iv-parties{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:18px 20px;border-radius:12px;background:#f6f6fd;line-height:1.6;overflow-wrap:anywhere}
+.bui-iv-parties h3{margin:0 0 2px;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--bui-muted)}
+.bui-iv-table{width:100%;border-collapse:collapse}
+.bui-iv-table th{padding:10px 0;border-bottom:1px solid var(--bui-line);text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--bui-muted)}
+.bui-iv-table th.bui-right{text-align:right}
+.bui-iv-table td{padding:14px 0;border-bottom:1px solid #eeeef6;vertical-align:top}
+.bui-iv-table .bui-iv-sub td{padding:10px 0;border-bottom:0;color:var(--bui-muted)}
+.bui-iv-table .bui-iv-total td{padding:16px 0;border-top:2px solid var(--bui-ink);border-bottom:0;font-weight:700;font-size:16px}
+.bui-iv-foot{font-size:12.5px;line-height:1.6;color:var(--bui-muted)}
+@media (max-width:640px){
+  .bui-iv{padding:24px 18px}
+  .bui-iv-meta{text-align:left}
+  .bui-iv-parties{grid-template-columns:1fr}
+}
+@media print{
+  .bui-header,.bui-cats,.bui-crumb,.bui-titlerow{display:none !important}
+  .bui-iv{box-shadow:none;padding:0}
+}

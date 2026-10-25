@@ -1,0 +1,182 @@
+/* Messages (board 15) — brand view only. Everything is scoped under `.bui-app`
+   (the brand layout root) so the creator view of the same page is untouched.
+   The new price strip inside an action card is hidden everywhere else. */
+.msg-action-card-price{display:none}
+
+.bui-app .msg-layout{
+  max-width:none;margin:28px auto 64px;width:calc(100% - 2 * clamp(16px,3vw,32px));
+  gap:18px;background:transparent;border:0;box-shadow:none;border-radius:0;overflow:visible;
+  height:clamp(560px,calc(100vh - 190px),880px);height:clamp(560px,calc(100dvh - 190px),880px);
+  font-family:'Inter',system-ui,sans-serif;color:var(--bui-ink);
+}
+.bui-app .msg-list-panel,.bui-app .msg-chat-panel{
+  background:#fff;border:1px solid var(--bui-line);border-radius:14px;overflow:hidden;box-shadow:none;
+}
+.bui-app .msg-list-panel{width:360px}
+.bui-app .msg-chat-panel{border-left:1px solid var(--bui-line)}
+.bui-app .msg-list-panel .msg-list-header{display:block;padding:18px 18px 0}
+.bui-app .msg-list-header h2{margin:0;font-family:var(--bui-head);font-size:22px;font-weight:500;letter-spacing:-.02em;color:var(--bui-ink)}
+.bui-app .msg-list-header p{display:none}
+
+/* the page wrapper must not add its own gutter */
+.bui-app main.cmk-wrap:has(> .msg-layout){max-width:none;padding:0}
+
+/* search + filters */
+.bui-app .msg-search{margin:12px 18px 0;height:40px;padding:0 12px;border:0;border-radius:10px;background:var(--bui-bg)}
+.bui-app .msg-search input{font-size:14px;color:var(--bui-ink)}
+.bui-app .msg-search input::placeholder,.bui-app .msg-search svg{color:#8484b0}
+.bui-app .msg-filters{flex-wrap:wrap;gap:6px;padding:12px 18px;border-bottom:1px solid #eeeef6}
+.bui-app .msg-filters button{height:32px;padding:0 10px;border:1px solid #d9dbf2;border-radius:999px;background:#fff;color:var(--bui-ink);font:inherit;font-size:12.5px;font-weight:600}
+.bui-app .msg-filters button:hover{background:#fff;border-color:var(--bui-ink);color:var(--bui-ink)}
+.bui-app .msg-filters button.is-active{background:var(--bui-ink);border-color:var(--bui-ink);color:#fff;font-weight:600}
+
+/* conversation rows */
+.bui-app .msg-conv-list{padding:6px}
+.bui-app .msg-conv-item{margin:0;padding:10px;border-radius:12px;gap:12px}
+.bui-app .msg-conv-item:hover{background:var(--bui-bg)}
+.bui-app .msg-conv-item.is-active{background:#eef0ff}
+.bui-app .msg-conv-top{margin-bottom:2px;align-items:center}
+.bui-app .msg-conv-top strong{font-family:'Inter',system-ui,sans-serif;font-weight:700;font-size:14.5px;color:var(--bui-ink)}
+.bui-app .msg-time-ago{font-size:12px;color:var(--bui-muted)}
+.bui-app .msg-preview{font-size:13px;color:var(--bui-muted)}
+.bui-app .msg-conv-item.is-active .msg-preview{color:var(--bui-muted)}
+.bui-app .msg-deal-status{margin-top:2px;font-size:12.5px;font-weight:600;color:#2a3ab8}
+.bui-app .msg-badge{width:auto;min-width:22px;height:22px;padding:0 7px;border-radius:999px;background:var(--bui-primary);font-size:12px;font-weight:700}
+
+/* chat header */
+.bui-app .msg-chat-header{padding:14px 18px;border-bottom:1px solid #eeeef6}
+.bui-app .msg-header-info strong{font-family:'Inter',system-ui,sans-serif;font-weight:700;font-size:16px;color:var(--bui-ink)}
+.bui-app .msg-online{font-size:13px;color:var(--bui-muted) !important}
+.bui-app .msg-chat-actions{align-items:center;gap:10px}
+.bui-app .msg-chat-actions button{width:38px;height:38px;border:1.5px solid var(--bui-line);border-radius:10px;background:#fff;color:var(--bui-ink)}
+.bui-app .msg-chat-actions button:hover,.bui-app .msg-chat-actions button.is-on{background:var(--bui-bg);color:var(--bui-ink)}
+.bui-app .msg-chat-actions button.msg-send-brief{width:auto;height:38px;padding:0 16px;border:0;border-radius:10px;background:var(--bui-ink);color:#fff;font-size:14px;font-weight:600}
+.bui-app .msg-chat-actions button.msg-send-brief:hover{background:#12124f}
+.bui-app .msg-more-menu{border:1px solid var(--bui-line);border-radius:12px;box-shadow:0 16px 40px -12px rgba(7,7,78,.28)}
+
+/* thread */
+.bui-app .msg-messages{background:#fafaff;background-image:none;padding:20px 22px;gap:14px}
+.bui-app .msg-bubble{max-width:62%;padding:11px 15px;border-radius:18px 18px 18px 6px;font-family:'Inter',system-ui,sans-serif;box-shadow:inset 0 0 0 1px var(--bui-line)}
+.bui-app .msg-bubble::before{display:none}
+.bui-app .msg-bubble p{font-size:14.5px;line-height:1.5}
+.bui-app .msg-bubble-row:not(.is-own) .msg-bubble{background:#fff;color:var(--bui-ink)}
+.bui-app .msg-bubble-row.is-own .msg-bubble{background:var(--bui-ink);color:#fff;border-radius:18px 18px 6px 18px;box-shadow:none}
+.bui-app .msg-bubble-row.is-own .msg-time{color:rgba(255,255,255,.75)}
+.bui-app .msg-bubble-row:not(.is-own) .msg-time{color:var(--bui-muted)}
+.bui-app .msg-time{font-size:11.5px;opacity:1}
+.bui-app .msg-avatar{font-family:'Inter',system-ui,sans-serif;font-weight:700}
+.bui-app .msg-typing{border:0;background:transparent;color:var(--bui-muted);font-size:12.5px;padding:0}
+.bui-app .msg-system-pill{background:#eef0ff;border:0;border-radius:14px;color:#2a3ab8;font-size:12.5px;font-weight:600;text-align:center;padding:9px 16px;width:auto;align-self:center}
+
+/* offer / action cards */
+.bui-app .msg-action-card{flex-shrink:0;width:min(380px,78%);padding:0;overflow:hidden;border:0;border-radius:18px;background:#fff;box-shadow:inset 0 0 0 1px var(--bui-line)}
+.bui-app .msg-action-card:not(.is-own){box-shadow:inset 0 0 0 1.5px var(--bui-primary),0 18px 36px -28px rgba(42,58,184,.8)}
+.bui-app .msg-action-card.is-own{border-left:0}
+.bui-app .msg-action-card-top{position:relative;overflow:hidden;padding:14px 18px;background:linear-gradient(112deg,#07074e 0%,#0f1468 55%,#2a3ab8 100%);color:#fff}
+.bui-app .msg-action-card-top::before{content:"";position:absolute;right:-50px;top:-90px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(115,135,255,.7) 0%,rgba(115,135,255,.22) 40%,rgba(115,135,255,0) 70%);pointer-events:none}
+.bui-app .msg-action-card-head{position:relative;margin-bottom:0;gap:10px}
+.bui-app .msg-action-card-head>span{display:none}
+.bui-app .msg-action-card-head strong{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#c9ceff}
+.bui-app .msg-action-card-head small{color:rgba(255,255,255,.7);font-size:12px}
+.bui-app .msg-action-card-head em{padding:3px 9px;background:rgba(255,255,255,.16);color:#fff;font-size:11px;font-weight:700;letter-spacing:.04em}
+.bui-app .msg-action-card-price{display:block;position:relative;margin-top:6px;font-family:var(--bui-head);font-weight:600;font-size:28px;font-variant-numeric:tabular-nums}
+.bui-app .msg-action-card-fields{padding:14px 18px 0;gap:8px}
+.bui-app .msg-action-card-fields p{grid-template-columns:auto 1fr;justify-content:space-between;gap:12px;font-size:13.5px}
+.bui-app .msg-action-card-fields p[data-field="price"],.bui-app .msg-action-card-fields p[data-field="budget"],.bui-app .msg-action-card-fields p[data-field="modified_price"]{display:none}
+.bui-app .msg-action-card-fields span{color:var(--bui-muted)}
+.bui-app .msg-action-card-fields strong{font-weight:700;text-align:right;color:var(--bui-ink)}
+.bui-app .msg-action-card-actions{margin:0;padding:14px 18px 0;gap:8px}
+.bui-app .msg-action-card-actions button{flex:1;height:38px;padding:0 12px;border:1.5px solid #9f9fd1;border-radius:10px;background:#fff;color:var(--bui-ink);font:inherit;font-size:13.5px;font-weight:600}
+.bui-app .msg-action-card-actions button.is-accept,.bui-app .msg-action-card-actions button.is-primary{flex:1.3;border:0;background:var(--bui-ink);color:#fff}
+.bui-app .msg-action-card-actions button:disabled{opacity:.6;cursor:default}
+.bui-app .msg-action-card-note{margin:12px 18px 0;font-size:13px;color:var(--bui-muted)}
+.bui-app .msg-action-card-decline{padding:12px 18px 0}
+.bui-app .msg-action-card-time{padding:10px 18px 14px;margin:0;color:var(--bui-muted);font-size:11.5px}
+
+/* action-card launcher, composer, input */
+.bui-app .msg-quick-actions{padding:12px 18px 0;border-top:1px solid #eeeef6}
+.bui-app .msg-quick-actions-lbl{height:38px;padding:0 14px;margin-bottom:0;border:1.5px solid #c9ceff;border-radius:10px;background:#fff;color:var(--bui-ink);font-size:13.5px;font-weight:600}
+.bui-app .msg-quick-actions-lbl:hover,.bui-app .msg-quick-actions-lbl.is-open{background:#eef0ff;color:var(--bui-ink)}
+.bui-app .msg-actions-row{margin-top:8px;padding-bottom:0}
+.bui-app .msg-action-chip{height:38px;padding:0 14px;border:1.5px solid #c9ceff;border-radius:10px;background:#fff;color:var(--bui-ink);font:inherit;font-size:13.5px;font-weight:600}
+.bui-app .msg-action-chip:hover:not(:disabled){background:#eef0ff;border-color:#c9ceff;color:var(--bui-ink)}
+.bui-app .msg-action-composer{border-color:var(--bui-line);border-radius:14px}
+.bui-app .msg-action-composer-actions button:last-child{background:var(--bui-ink);border-radius:10px}
+.bui-app .msg-input-row{padding:12px 18px 16px;border-top:0;gap:10px}
+.bui-app .msg-input{height:44px;padding:0 14px;border:1px solid #c9c9e2;border-radius:12px;background:#fff;font-size:14.5px;color:var(--bui-ink)}
+.bui-app .msg-input:focus{border-color:var(--bui-primary);box-shadow:0 0 0 3px rgba(115,135,255,.18)}
+.bui-app .msg-input-icon{width:40px;height:40px;padding:0;border-radius:10px;background:var(--bui-bg);color:var(--bui-ink)}
+.bui-app .msg-input-icon:hover{transform:none;background:#e9e9fb}
+.bui-app .msg-send{width:auto;min-width:44px;height:44px;padding:0 16px;border-radius:10px;background:var(--bui-ink);box-shadow:none}
+.bui-app .msg-send:hover:not(:disabled){transform:none;background:#12124f;box-shadow:none}
+.bui-app .msg-policy-banner{border-radius:0}
+
+/* empty state */
+.bui-app .msg-chat-panel.msg-empty{background:#fafaff}
+.bui-app .msg-empty-icon{color:var(--bui-ink);box-shadow:0 12px 30px rgba(7,7,78,.12)}
+.bui-app .msg-empty-inner h3{font-family:var(--bui-head);font-weight:500;letter-spacing:-.02em;color:var(--bui-ink)}
+
+/* low-wallet bar (above the composer) */
+.bui-app .msg-wallet-bar{position:relative;overflow:hidden;flex-shrink:0;display:flex;align-items:center;gap:14px;padding:14px 18px;background:linear-gradient(112deg,#07074e 0%,#0f1468 55%,#2a3ab8 100%);color:#fff}
+.bui-app .msg-wallet-bar::before{content:"";position:absolute;right:-40px;top:-80px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(115,135,255,.7) 0%,rgba(115,135,255,.22) 40%,rgba(115,135,255,0) 70%);pointer-events:none}
+.bui-app .msg-wallet-bar-text{position:relative;flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.bui-app .msg-wallet-bar-text strong{font-size:15px;font-weight:700}
+.bui-app .msg-wallet-bar-text span{font-size:13px;color:rgba(255,255,255,.78)}
+.bui-app .msg-wallet-bar button{position:relative;flex:none;height:44px;padding:0 18px;border:0;border-radius:10px;background:#fff;color:var(--bui-ink);font:inherit;font-size:14.5px;font-weight:600;cursor:pointer;white-space:nowrap}
+.bui-app .msg-wallet-bar button:hover{background:#eef0ff}
+
+/* right-hand column: Deal + Shared in chat (hidden below 1100px) */
+.bui-app .msg-side{width:280px;flex:none;display:flex;flex-direction:column;gap:14px;min-height:0;overflow-y:auto}
+.bui-app .msg-side-card{background:#fff;border:1px solid var(--bui-line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:6px;font-size:13.5px}
+.bui-app .msg-side-card h3{margin:0 0 2px;font-family:'Inter',system-ui,sans-serif;font-size:12.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--bui-muted)}
+.bui-app .msg-deal-title{font-size:15.5px;font-weight:700;line-height:1.35;overflow-wrap:anywhere}
+.bui-app .msg-deal-sub{color:var(--bui-muted);overflow-wrap:anywhere}
+.bui-app .msg-deal-rows{margin:8px 0 0;display:flex;flex-direction:column;gap:8px}
+.bui-app .msg-deal-rows div{display:flex;justify-content:space-between;gap:12px}
+.bui-app .msg-deal-rows dt{color:var(--bui-muted)}
+.bui-app .msg-deal-rows dd{margin:0;font-weight:700;text-align:right;overflow-wrap:anywhere}
+.bui-app .msg-shared-grid{display:flex;flex-wrap:wrap;gap:8px}
+.bui-app .msg-shared-grid:empty{display:none}
+.bui-app .msg-shared-grid a{display:block;width:56px;height:74px;border-radius:8px;overflow:hidden;background:var(--bui-bg)}
+.bui-app .msg-shared-grid img{width:100%;height:100%;object-fit:cover;display:block}
+.bui-app .msg-shared-file{display:flex;align-items:center;gap:8px;min-height:32px;color:var(--bui-ink);text-decoration:none}
+.bui-app .msg-shared-file:hover{color:var(--bui-link)}
+.bui-app .msg-shared-file span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bui-app .msg-shared-file svg{flex:none;color:var(--bui-muted)}
+
+/* compact deal strip under the chat header (narrow screens only) */
+.bui-app .msg-deal-strip{display:none;flex-shrink:0;border-bottom:1px solid #eeeef6;background:#fff;font-size:13.5px}
+.bui-app .msg-deal-strip summary{display:flex;align-items:center;gap:10px;min-height:44px;padding:0 16px;cursor:pointer;list-style:none}
+.bui-app .msg-deal-strip summary::-webkit-details-marker{display:none}
+.bui-app .msg-deal-strip summary span{flex:none;font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--bui-muted)}
+.bui-app .msg-deal-strip summary em{flex:1;min-width:0;font-style:normal;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bui-app .msg-deal-strip summary::after{content:"";flex:none;width:8px;height:8px;border-right:2px solid var(--bui-muted);border-bottom:2px solid var(--bui-muted);transform:rotate(45deg) translateY(-2px);transition:transform .15s}
+.bui-app .msg-deal-strip[open] summary::after{transform:rotate(225deg)}
+.bui-app .msg-deal-strip-body .msg-deal-title{display:none}
+.bui-app .msg-deal-strip-body{display:flex;flex-direction:column;gap:6px;padding:0 16px 14px;max-height:40vh;overflow-y:auto}
+@media (max-width:1100px){
+  .bui-app .msg-side{display:none}
+  .bui-app .msg-deal-strip{display:block}
+}
+@media (max-width:560px){
+  .bui-app .msg-chat-header{gap:8px;padding:10px 12px}
+  .bui-app .msg-header-info{flex:1;min-width:0}
+  .bui-app .msg-header-info strong,.bui-app .msg-online{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .bui-app .msg-chat-actions{flex:none;gap:8px}
+  .bui-app .msg-chat-actions button,.bui-app .msg-chat-actions button.msg-send-brief{width:44px;height:44px;padding:0;display:grid;place-items:center}
+  .bui-app .msg-chat-actions button.msg-send-brief span{display:none}
+}
+@media (max-width:768px){
+  .bui-app .msg-wallet-bar{gap:10px;padding:10px 14px}
+  .bui-app .msg-wallet-bar-text strong{font-size:14px}
+  .bui-app .msg-wallet-bar-text span{font-size:12px}
+  .bui-app .msg-wallet-bar button{padding:0 14px}
+}
+
+@media (max-width:900px){.bui-app .msg-list-panel{width:300px}}
+@media (max-width:768px){
+  .bui-app .msg-layout{width:100%;margin:0;gap:0;height:calc(100dvh - var(--cmk-nav-height,72px));min-height:460px}
+  .bui-app .msg-list-panel,.bui-app .msg-chat-panel{width:100%;border-radius:0;border-left:0;border-right:0}
+  .bui-app .msg-action-card{width:100%}
+  .bui-app .msg-bubble{max-width:82%}
+}

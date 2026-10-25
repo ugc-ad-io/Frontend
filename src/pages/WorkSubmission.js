@@ -202,7 +202,7 @@ export default function WorkSubmission() {
     <div className="error-page" style={{ flexDirection: 'column', gap: 12, padding: 16, textAlign: 'center' }}>
       <span>Campaign not found</span>
       <button type="button" className="back-btn" onClick={() => navigate('/my-active-work')}>Back to Active Work</button>
-      <style>{`.error-page{min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;color:#718096}.back-btn{display:flex;align-items:center;gap:8px;padding:12px 24px;min-height:44px;background:#fff;border:2px solid #e2e8f0;border-radius:12px;color:#4a5568;font-weight:600;cursor:pointer}`}</style>
+      <style>{`.error-page{min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;color:#6e6e96}.back-btn{display:flex;align-items:center;gap:8px;padding:0 24px;min-height:44px;background:#fff;border:0;box-shadow:inset 0 0 0 1px #e2e2f0;border-radius:12px;color:#07074e;font-weight:600;cursor:pointer}`}</style>
     </div>
   );
 
@@ -315,231 +315,52 @@ export default function WorkSubmission() {
       </div>
 
       <style>{`
-        .revision-callout {
-          max-width: 900px;
-          margin: 0 auto 24px;
-          padding: 22px 24px;
-          border-radius: 16px;
-          background: #fff8ed;
-          border: 1.5px solid #fcd9a4;
+        .work-submission-page{--ink:#07074e;--muted:#6e6e96;--line:#e2e2f0;min-height:100vh;min-height:100dvh;background:#f3f3ff;color:var(--ink);font-family:'Inter',system-ui,sans-serif;padding:32px 24px;padding-bottom:max(32px,env(safe-area-inset-bottom));box-sizing:border-box;overflow-x:hidden}
+        .loading-page,.error-page{min-height:100vh;min-height:100dvh;display:flex;align-items:center;justify-content:center;font-size:1.1rem;color:var(--muted)}
+        .page-header{max-width:760px;margin:0 auto 16px}
+        .back-btn{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 18px;background:#fff;border:0;box-shadow:inset 0 0 0 1px var(--line);border-radius:12px;color:var(--ink);font:inherit;font-weight:600;cursor:pointer}
+        .back-btn:hover{background:#eef0ff}
+        .submission-container{max-width:760px;margin:0 auto;background:#fff;padding:28px;border-radius:16px;box-shadow:inset 0 0 0 1px #e4e5f3}
+        .submission-header{margin-bottom:24px}
+        .submission-header h1{margin:0 0 4px;font-family:'Readex Pro','Plus Jakarta Sans',sans-serif;font-weight:500;font-size:1.6rem;letter-spacing:-.02em;color:var(--ink)}
+        .submission-header p{margin:0;color:var(--muted);font-size:.98rem;overflow-wrap:anywhere}
+        .submission-form{display:flex;flex-direction:column;gap:24px}
+        .upload-section{display:flex;flex-direction:column;gap:10px}
+        .upload-section h3{display:flex;align-items:center;gap:8px;margin:0;font-family:'Readex Pro','Plus Jakarta Sans',sans-serif;font-weight:500;font-size:1.1rem;color:var(--ink)}
+        .hint{margin:0;font-size:.875rem;color:var(--muted)}
+        .upload-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:44px;padding:36px 20px;background:#fafaff;border:0;box-shadow:inset 0 0 0 2px #c9ceff;border-radius:14px;color:var(--ink);font:inherit;font-weight:700;cursor:pointer}
+        .upload-btn:hover{background:#f1f2ff}
+        .files-list{padding:14px;background:#f6f6fd;border-radius:14px}
+        .files-list h4{margin:0 0 10px;font-size:.95rem;font-weight:700;color:var(--ink)}
+        .file-item{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 8px 8px 12px;background:#fff;border-radius:10px;margin-bottom:8px}
+        .file-info{display:flex;align-items:center;gap:12px;color:var(--ink);min-width:0}
+        .file-info span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .upload-btn:disabled,.btn-primary:disabled{opacity:.5;cursor:not-allowed}
+        .remove-btn{flex:none;width:44px;height:44px;background:#ffe9ea;color:#b4232a;border:0;border-radius:10px;font-size:1.4rem;cursor:pointer}
+        .remove-btn:hover{background:#ffd9db}
+        .form-group{display:flex;flex-direction:column;gap:8px}
+        .form-group label{font-weight:700;color:var(--ink);font-size:.95rem}
+        .textarea-field{width:100%;box-sizing:border-box;min-height:120px;padding:14px 16px;border:0;border-radius:14px;background:#f6f6fd;font:inherit;color:var(--ink);resize:vertical;outline:0}
+        .textarea-field:focus{box-shadow:inset 0 0 0 2px #c9ceff}
+        .btn-primary{min-height:48px;padding:0 24px;border:0;border-radius:999px;background:var(--ink);color:#fff;font:inherit;font-weight:700;cursor:pointer}
+        .btn-primary:hover:not(:disabled){background:#12124f}
+        .revision-callout{max-width:760px;margin:0 auto 20px;padding:20px 22px;border-radius:16px;background:#fff8e8;border:1px solid #fbe3b4}
+        .revision-callout-head{display:flex;align-items:center;gap:9px;color:#8a4b00;margin-bottom:12px}
+        .revision-callout-head h3{margin:0;font-size:1.02rem;color:#8a4b00}
+        .revision-callout-list{margin:0 0 14px;padding-left:20px;color:#6b3d05;line-height:1.75;font-size:.95rem}
+        .revision-callout-note label{display:block;margin-bottom:5px;font-size:.74rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#8a4b00}
+        .revision-callout-note p{margin:0;color:#5b3304;line-height:1.6;white-space:pre-wrap}
+        .revision-callout-empty{margin:0;color:#8a4b00;font-size:.92rem}
+        .revision-callout-foot{margin:14px 0 0;color:#8a4b00;font-size:.86rem}
+        @media (max-width:640px){
+          .work-submission-page{padding:16px;padding-bottom:max(24px,env(safe-area-inset-bottom))}
+          .submission-container{padding:20px 16px}
+          .submission-header h1{font-size:1.4rem;overflow-wrap:anywhere}
+          .revision-callout{padding:16px}
+          .upload-btn{padding:28px 16px}
+          .btn-primary{width:100%}
         }
-        .revision-callout-head { display: flex; align-items: center; gap: 9px; color: #b45309; margin-bottom: 12px; }
-        .revision-callout-head h3 { margin: 0; font-size: 1.02rem; color: #92400e; }
-        .revision-callout-list { margin: 0 0 14px; padding-left: 20px; color: #7c4a09; line-height: 1.75; font-size: 0.95rem; }
-        .revision-callout-note label {
-          display: block; margin-bottom: 5px; font-size: 0.74rem; font-weight: 700;
-          letter-spacing: 0.05em; text-transform: uppercase; color: #b45309;
-        }
-        .revision-callout-note p { margin: 0; color: #713f12; line-height: 1.6; white-space: pre-wrap; }
-        .revision-callout-empty { margin: 0; color: #92400e; font-size: 0.92rem; }
-        .revision-callout-foot { margin: 14px 0 0; color: #a16207; font-size: 0.86rem; }
-
-        .work-submission-page {
-          min-height: 100vh;
-          min-height: 100dvh;
-          background: linear-gradient(135deg, #f8f9ff 0%, #e8ecff 100%);
-          padding: 40px 8%;
-          padding-bottom: max(40px, env(safe-area-inset-bottom));
-          padding-left: max(8%, env(safe-area-inset-left));
-          padding-right: max(8%, env(safe-area-inset-right));
-          box-sizing: border-box;
-          overflow-x: hidden;
-        }
-
-        .loading-page,
-        .error-page {
-          min-height: 100vh;
-          min-height: 100dvh;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 1.25rem;
-          color: #718096;
-        }
-
-        .page-header {
-          max-width: 900px;
-          margin: 0 auto 24px;
-        }
-
-        .back-btn {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 12px 24px;
-          background: white;
-          border: 2px solid #e2e8f0;
-          border-radius: 12px;
-          color: #4a5568;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        }
-
-        .back-btn:hover {
-          border-color: #667eea;
-          color: #667eea;
-          transform: translateX(-4px);
-        }
-
-        .submission-container {
-          max-width: 900px;
-          margin: 0 auto;
-          background: white;
-          padding: 48px;
-          border-radius: 24px;
-          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
-        }
-
-        .submission-header {
-          text-align: center;
-          margin-bottom: 40px;
-        }
-
-        .submission-header h1 {
-          font-size: 2rem;
-          font-weight: 700;
-          color: #1a202c;
-          margin-bottom: 8px;
-        }
-
-        .submission-header p {
-          color: #718096;
-          font-size: 1.1rem;
-        }
-
-        .submission-form {
-          display: flex;
-          flex-direction: column;
-          gap: 32px;
-        }
-
-        .upload-section {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        .upload-section h3 {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 1.25rem;
-          font-weight: 600;
-          color: #2d3748;
-        }
-
-        .hint {
-          font-size: 0.875rem;
-          color: #a0aec0;
-          font-style: italic;
-        }
-
-        .upload-btn {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 12px;
-          padding: 48px 32px;
-          background: #f8f9ff;
-          border: 3px dashed #cbd5e0;
-          border-radius: 16px;
-          color: #4a5568;
-          font-weight: 600;
-          font-size: 1.05rem;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        }
-
-        .upload-btn:hover {
-          border-color: #667eea;
-          background: white;
-          color: #667eea;
-        }
-
-        .files-list {
-          padding: 20px;
-          background: #f8f9ff;
-          border-radius: 12px;
-          border: 2px solid #e2e8f0;
-        }
-
-        .files-list h4 {
-          font-size: 1rem;
-          font-weight: 600;
-          color: #2d3748;
-          margin-bottom: 12px;
-        }
-
-        .file-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 12px;
-          background: white;
-          border-radius: 8px;
-          margin-bottom: 8px;
-        }
-
-        .file-info {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          color: #4a5568;
-          min-width: 0;
-        }
-        .file-info span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .file-item { gap: 8px; }
-        .upload-btn:disabled, .btn-primary:disabled { opacity: .6; cursor: not-allowed; }
-        .textarea-field { width: 100%; box-sizing: border-box; min-height: 120px; }
-
-        .remove-btn {
-          flex: none;
-          width: 44px;
-          height: 44px;
-          background: #f8d7da;
-          color: #721c24;
-          border: none;
-          border-radius: 8px;
-          font-size: 1.5rem;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        }
-
-        .remove-btn:hover {
-          background: #f5c6cb;
-        }
-
-        .form-group {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .form-group label {
-          font-weight: 600;
-          color: #2d3748;
-          font-size: 0.95rem;
-        }
-
-        @media (max-width: 640px) {
-          .work-submission-page { padding: 16px 12px; padding-bottom: max(24px, env(safe-area-inset-bottom)); }
-          .submission-container {
-            padding: 24px 16px;
-            border-radius: 16px;
-          }
-          .submission-header { margin-bottom: 24px; }
-          .submission-header h1 { font-size: 1.5rem; overflow-wrap: anywhere; }
-          .submission-header p { font-size: 1rem; overflow-wrap: anywhere; }
-          .revision-callout { padding: 16px; }
-          .upload-btn { padding: 28px 16px; }
-          .upload-section h3 { font-size: 1.1rem; }
-          .back-btn { min-height: 44px; }
-          .btn-primary { min-height: 48px; width: 100%; }
-        }
-        @media (max-width: 768px) {
-          .submission-form textarea, .submission-form input { font-size: 16px; }
-        }
+        @media (max-width:768px){.submission-form textarea,.submission-form input{font-size:16px}}
       `}</style>
     </div>
   );

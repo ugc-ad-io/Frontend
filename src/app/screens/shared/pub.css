@@ -1,0 +1,32 @@
+/* Screens that also work logged out: Legal, NotFound, TeamAccept (classes ap-pub-*). */
+.ap-pub-doc{padding:20px 18px 24px}
+.ap-pub-doc>*:first-child{margin-top:0}
+.ap-pub-top{display:flex;flex-direction:column;gap:2px;padding:4px 2px 0}
+.ap-pub-top h1{margin:0;font-family:var(--ap-head);font-weight:500;font-size:26px;letter-spacing:-.02em;line-height:1.2;overflow-wrap:anywhere}
+.ap-pub-top p{margin:0;font-size:13px;color:var(--ap-muted)}
+.ap-pub-sec{padding:14px 0;border-top:1px solid var(--ap-line);overflow-wrap:anywhere}
+.ap-pub-sec:first-of-type{border-top:0;padding-top:0}
+.ap-pub-sec h2{margin:0 0 6px;font-size:16px;font-weight:700;line-height:1.35}
+.ap-pub-sec h5{font-size:14.5px}
+.ap-pub-doc p,.ap-pub-doc li{font-size:14px;line-height:1.65;color:#585c7e}
+.ap-pub-doc ul{list-style:disc;margin:0 0 10px;padding-left:20px}
+.ap-pub-doc li{margin-bottom:4px}
+.ap-pub-sec table{font-size:13px}
+.ap-pub-others{display:flex;flex-direction:column;gap:8px}
+.ap-pub-others .ap-chips{padding:2px 0}
+.ap-pub-foot{text-align:center;font-size:12.5px;color:var(--ap-muted);margin:0}
+
+/* centred message card (404, invite states) */
+.ap-pub-center{flex:1;display:flex;flex-direction:column;justify-content:center;gap:16px;padding:12px 0 calc(24px + env(safe-area-inset-bottom,0px))}
+.ap-pub-card{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:28px 20px;border-radius:24px}
+.ap-pub-ic{width:64px;height:64px;border-radius:20px;display:grid;place-items:center;background:linear-gradient(160deg,#fff 0%,#e8ebff 100%);box-shadow:0 10px 20px -12px rgba(7,7,78,.4),inset 0 0 0 1px rgba(115,135,255,.25);color:#2a3ab8}
+.ap-pub-code{font-family:var(--ap-head);font-weight:600;font-size:13px;letter-spacing:.14em;color:var(--ap-link)}
+.ap-pub-card h1,.ap-pub-card h2{margin:0;font-family:var(--ap-head);font-weight:500;font-size:24px;letter-spacing:-.02em;line-height:1.2;overflow-wrap:anywhere}
+.ap-pub-card p{margin:0;max-width:300px;font-size:14.5px;line-height:1.55;color:var(--ap-muted);overflow-wrap:anywhere}
+.ap-pub-card p strong{color:var(--ap-ink)}
+.ap-pub-eyebrow{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ap-muted)}
+.ap-pub-actions{display:flex;gap:10px;width:100%;margin-top:8px}
+.ap-pub-actions .ap-btn{flex:1;height:48px}
+.ap-pub-form{display:flex;flex-direction:column;gap:14px;width:100%;text-align:left;margin-top:8px}
+.ap-pub-spin{animation:ap-pub-rot 1s linear infinite}
+@keyframes ap-pub-rot{to{transform:rotate(360deg)}}

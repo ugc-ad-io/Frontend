@@ -57,14 +57,20 @@ import {
   X,
   Mail,
   Eye,
-  Pencil
+  Pencil,
+  BadgeCheck,
+  LogOut
 } from 'lucide-react';
 import DashboardLayout from '../components/DashboardLayout';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
+import CreatorPageHead from '../components/CreatorPageHead';
 import './CreatorDashboard.css';
 import './ProfileSettings.css';
 import '../styles/creator-marketplace.css';
+import '../styles/brand-ui-settings.css';
+import '../styles/brand-ui-mobile-b.css';
+import '../styles/creator-ui-settings.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -192,13 +198,6 @@ const BRAND_TABS = [
   { id: 'privacy', label: 'Privacy & Security', icon: Shield },
   // Password + 2FA panel (renderBrandPanel's fallthrough); it had no tab, so brands could not open it.
   { id: 'security', label: 'Security', icon: Lock },
-  { id: 'follow', label: 'Follow Us', icon: Heart }
-];
-
-const CREATOR_TABS = [
-  { id: 'profile', label: 'Profile', icon: User },
-  { id: 'notifications', label: 'Notifications', icon: Bell },
-  { id: 'privacy', label: 'Privacy & Security', icon: Shield },
   { id: 'follow', label: 'Follow Us', icon: Heart }
 ];
 
@@ -1168,7 +1167,7 @@ export default function ProfileSettings() {
           </div>
           <div className="bs-card-body">
             <div className="bs-ws-row">
-              <div className="bs-ws-item"><small>Active Plan</small><strong>{summary.active_plan || billing.plan_name || 'Pro'}</strong></div>
+              <div className="bs-ws-item"><small>Active Plan</small><strong>{summary.active_plan || billing.plan_name || 'Pro'}</strong><button type="button" className="bui-set-planlink" onClick={() => navigate('/dashboard/business/plans')}>See plans →</button></div>
               <div className="bs-ws-item"><small>Wallet</small><strong>{money(summary.wallet_balance)}</strong></div>
               <div className="bs-ws-item"><small>Team Count</small><strong>{summary.team_count || team.members?.length || 0} Members</strong></div>
             </div>
@@ -1348,47 +1347,111 @@ export default function ProfileSettings() {
     );
   };
 
+  // Home cards for the brand settings (design board 17): every line is read from the loaded settings, nothing invented.
+  const notifOn = ['new_creator_applications', 'deal_status_updates', 'payment_escrow_alerts', 'direct_messages', 'weekly_workspace_reports'].filter((k) => notificationPrefs[k]).length;
+  const pendingInvites = (team.members || []).filter((m) => m.status === 'invited').length;
+  const brandHomeCards = BRAND_TABS.map((tab) => {
+    const c = { id: tab.id, icon: tab.icon, title: tab.label, badge: '', lines: [], cta: 'Open' };
+    if (tab.id === 'profile') {
+      c.title = 'Brand profile'; c.cta = 'Edit profile';
+      c.lines = [[brandProfile.brand_name, brandProfile.website_url].filter(Boolean).join(' · ') || 'Add your brand name', 'Logo and contact details'];
+    } else if (tab.id === 'company') {
+      c.title = 'Company & GST'; c.cta = 'Edit details';
+      c.lines = [[company.business_type, company.city].filter(Boolean).join(' · ') || 'Business type not set', company.gst_number ? `GSTIN ${company.gst_number}` : 'GSTIN not added'];
+    } else if (tab.id === 'team') {
+      c.title = 'Team'; c.cta = 'Manage team';
+      c.badge = pendingInvites ? `${pendingInvites} pending` : '';
+      c.lines = [`${team.seats_used || team.members?.length || 0} of ${team.seat_limit || 10} seats used`, pendingInvites ? `${pendingInvites} invite${pendingInvites === 1 ? '' : 's'} waiting` : 'No invites waiting'];
+    } else if (tab.id === 'billing') {
+      c.title = 'Billing & plan'; c.cta = 'View billing';
+      c.lines = [`Wallet ${money(summary.wallet_balance)} · fee ${billing.commission_rate}%`, `${money(billing.monthly_budget_used)} spent this month`];
+    } else if (tab.id === 'notifications') {
+      c.title = 'Email alerts'; c.cta = 'Choose alerts';
+      c.lines = [`${notifOn} of 5 alerts on`, `Weekly report ${notificationPrefs.weekly_workspace_reports ? 'on' : 'off'}`];
+    } else if (tab.id === 'privacy') {
+      c.cta = 'Review privacy';
+      c.lines = [warnings ? ((warnings.warning_count || 0) === 0 ? 'Good standing · 0 warnings' : `${warnings.warning_count} active warning${warnings.warning_count === 1 ? '' : 's'}`) : 'Visibility and who can reach you', 'Legal policies and account closure'];
+    } else if (tab.id === 'security') {
+      c.title = 'Login & security'; c.cta = 'Secure account';
+      c.badge = twoFAEnabled ? '' : 'Turn on 2FA';
+      c.lines = ['Password and two-step login', `Two-step login ${twoFAEnabled ? 'on' : 'off'}`];
+    } else {
+      c.cta = 'See channels';
+      c.lines = ['UGCad.io on social media', 'Stay updated with product news'];
+    }
+    return c;
+  });
+
+  // Creator home (design board C18): grouped cards; every row opens a real section or page. Only live values are shown.
+  const openCreatorSection = (tab) => {
+    setActiveTab(tab);
+    setCreatorDetailOpen(true);
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  };
+  const KYC_LABEL = { verified: 'Verified', pending: 'Under review', rejected: 'Needs attention', not_submitted: 'Not verified yet' };
+  const creatorNotifOn = CREATOR_NOTIF_ROWS.filter(([key]) => creatorNotif[key]).length;
+  const strikeCount = warnings?.warning_count || 0;
+  const creatorHomeGroups = [
+    { title: 'Account', rows: [
+      { icon: User, title: 'Profile & photo', sub: displayName, go: () => navigate('/profile') },
+      { icon: Mail, title: 'Email', sub: user?.email || '' },
+      { icon: Lock, title: 'Password & two-step login', sub: `Two-step login ${twoFAEnabled ? 'on' : 'off'}`, go: () => openCreatorSection('privacy') },
+    ] },
+    { title: 'Money', rows: [
+      { icon: Wallet, title: 'Earnings & payouts', sub: 'Balance, withdrawals and payout method', go: () => navigate('/withdrawal') },
+      { icon: BadgeCheck, title: 'Identity verification (KYC)', sub: KYC_LABEL[user?.kyc?.status || 'not_submitted'] || 'Not verified yet', go: () => navigate('/kyc') },
+    ] },
+    { title: 'Alerts', rows: [
+      { icon: Bell, title: 'Notification preferences', sub: prefsLoaded ? `${creatorNotifOn} of ${CREATOR_NOTIF_ROWS.length} alerts on` : 'Choose what you hear about', go: () => openCreatorSection('notifications') },
+    ] },
+    { title: 'Privacy & legal', rows: [
+      { icon: Shield, title: 'Privacy & account standing', sub: warnings ? (strikeCount === 0 ? 'Good standing · 0 strikes' : `${strikeCount} active ${strikeCount === 1 ? 'strike' : 'strikes'}`) : 'Who can see and message you', go: () => openCreatorSection('privacy') },
+      { icon: ScrollText, title: 'Legal & policies', sub: 'Terms, privacy policy, creator agreement', go: () => openCreatorSection('privacy') },
+      { icon: UserX, title: 'Deactivate or delete account', sub: 'Hide or permanently remove your account', go: () => openCreatorSection('privacy') },
+    ] },
+    { title: 'Help & account', rows: [
+      { icon: Heart, title: 'Follow UGCad.io', sub: 'Product news on social media', go: () => openCreatorSection('follow') },
+      { icon: LogOut, title: 'Log out', sub: user?.email || '', go: logout },
+    ] },
+  ];
+
   if (user?.role === 'business') {
     return (
       <BrandTopNavLayout>
-        <div className="cmk-page-head cmk-rise" style={{ marginBottom: 18 }}>
-          <h1>Settings</h1>
-          <p>Manage preferences, profile, billing, and notifications</p>
-        </div>
-        <div className="bs-page bs-dashboard-page">
-          <section className="bs-left">
-            {isMobile ? (
-              brandDetailOpen ? (
-                <>
-                  <button type="button" className="bs-back" onClick={() => setBrandDetailOpen(false)}>
-                    <ChevronLeft size={18} /> <span>All settings</span>
-                  </button>
-                  {renderBrandPanel()}
-                </>
-              ) : (
-                <div className="bs-menu">
-                  {BRAND_TABS.map(tab => (
-                    <button key={tab.id} type="button" className="bs-menu-item" onClick={() => { setBrandTab(tab.id); setBrandDetailOpen(true); }}>
-                      <span className="bs-menu-ic"><tab.icon size={18} /></span>
-                      <span className="bs-menu-txt">{tab.label}</span>
-                      <ChevronRight size={18} className="bs-menu-chev" />
-                    </button>
-                  ))}
-                </div>
-              )
-            ) : (
-              <>
-                <div className="bs-tabs">
-                  {BRAND_TABS.map(tab => (
-                    <button key={tab.id} type="button" className={brandTab === tab.id ? 'active' : ''} onClick={() => setBrandTab(tab.id)}>
-                      <tab.icon size={18} /> {tab.label}
-                    </button>
-                  ))}
-                </div>
-                {renderBrandPanel()}
-              </>
-            )}
-          </section>
+        <div className="bui-main bui-main--tight bui-set">
+          <div className="bui-set-head">
+            <span className="bui-set-logo">
+              {brandHeaderImage ? <img src={brandHeaderImage} alt="" /> : getInitial(brandProfile.brand_name || displayName)}
+            </span>
+            <div>
+              <h1 className="bui-h1">Settings</h1>
+              <div className="bui-set-who">
+                {[brandProfile.brand_name || displayName, user?.email, (user?.team_role || 'owner').replace(/^./, (c) => c.toUpperCase()), summary.active_plan || billing.plan_name].filter(Boolean).join(' · ')}
+              </div>
+            </div>
+          </div>
+          {brandDetailOpen ? (
+            <div className="bui-set-detail">
+              <button type="button" className="bui-set-back" onClick={() => setBrandDetailOpen(false)}>
+                <ChevronLeft size={18} /> All settings
+              </button>
+              {renderBrandPanel()}
+            </div>
+          ) : (brandLoading || brandLoadError) ? renderBrandPanel() : (
+            <div className="bui-set-grid">
+              {brandHomeCards.map((card) => (
+                <button key={card.id} type="button" className="bui-set-card" onClick={() => { setBrandTab(card.id); setBrandDetailOpen(true); window.scrollTo({ top: 0, behavior: 'auto' }); }}>
+                  <span className="bui-set-card-top">
+                    <span className="bui-set-card-ic"><card.icon size={20} /></span>
+                    <span className="bui-set-card-t">{card.title}</span>
+                    {card.badge && <span className="bui-set-badge">{card.badge}</span>}
+                  </span>
+                  <span className="bui-set-card-lines">{card.lines.map((line) => <span key={line}>{line}</span>)}</span>
+                  <span className="bui-set-card-cta">{card.cta} →</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         {legalDoc && (
           <div className="ps-legal-overlay" onClick={() => setLegalDoc(null)}>
@@ -1428,47 +1491,36 @@ export default function ProfileSettings() {
 
   return (
     <CreatorTopNavLayout>
-      <div className="cmk-page-head cmk-rise ps-page-head" style={{ marginBottom: 18 }}>
-        <h1>Settings</h1>
-        <p>Manage your account information and security.</p>
-      </div>
+      <div className="cui-set">
+      <CreatorPageHead title="Settings" subtitle="Your account, alerts, money and privacy." hideSearch />
       <div className={`ps-content ${isMobile && creatorDetailOpen && activeTab === 'profile' ? 'ps-content-profile-full' : ''}`}>
           <div className="ps-container">
-            {isMobile && !creatorDetailOpen ? (
-              <div className="bs-menu ps-settings-menu">
-                {CREATOR_TABS.map((tab) => (
-                  <button key={tab.id} type="button" className="bs-menu-item" onClick={() => {
-                    if (tab.id === 'profile') navigate('/profile');
-                    else { setActiveTab(tab.id); setCreatorDetailOpen(true); }
-                  }}>
-                    <span className="bs-menu-ic"><tab.icon size={18} /></span>
-                    <span className="bs-menu-txt">{tab.label}</span>
-                    <ChevronRight size={18} className="bs-menu-chev" />
-                  </button>
+            {!creatorDetailOpen ? (
+              <div className="cui-set-grid">
+                {creatorHomeGroups.map((group) => (
+                  <section key={group.title} className="cui-set-card">
+                    <h2>{group.title}</h2>
+                    {group.rows.map((row) => {
+                      const inner = (
+                        <>
+                          <span className="cui-set-ic"><row.icon size={18} /></span>
+                          <span className="cui-set-txt"><strong>{row.title}</strong>{row.sub ? <small>{row.sub}</small> : null}</span>
+                          {row.go ? <ChevronRight size={18} className="cui-set-chev" /> : null}
+                        </>
+                      );
+                      return row.go
+                        ? <button key={row.title} type="button" className="cui-set-row" onClick={row.go}>{inner}</button>
+                        : <div key={row.title} className="cui-set-row is-static">{inner}</div>;
+                    })}
+                  </section>
                 ))}
               </div>
             ) : (
               <>
-                {!isMobile && (
-                  <div className="ps-tab-sidebar">
-                    {CREATOR_TABS.map((t) => (
-                      <button
-                        key={t.id}
-                        className={`ps-tab-btn ${activeTab === t.id ? 'is-active' : ''}`}
-                        onClick={() => setActiveTab(t.id)}
-                      >
-                        <t.icon size={20} /> {t.label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-
                 <div className={`ps-panel ${isMobile && activeTab === 'profile' ? 'ps-panel-profile-full' : ''}`}>
-              {isMobile && activeTab !== 'profile' && (
-                  <button type="button" className="bs-back ps-settings-back" onClick={closeCreatorSettingsDetail}>
-                    <ChevronLeft size={18} /> <span>Back</span>
+                  <button type="button" className="bs-back ps-settings-back cui-set-back" onClick={closeCreatorSettingsDetail}>
+                    <ChevronLeft size={18} /> <span>All settings</span>
                   </button>
-              )}
               {activeTab === 'profile' && user?.id && (
                 <CreatorProfileModal
                   id={user.id}
@@ -1840,7 +1892,7 @@ export default function ProfileSettings() {
 
               {activeTab === 'privacy' && (
                 <>
-                  <h2 style={{ marginTop: 28, paddingTop: 24, borderTop: '1px solid #eef0f6' }}>Privacy Preferences</h2>
+                  <h2 className="ps-privacy-prefs" style={{ marginTop: 28, paddingTop: 24, borderTop: '1px solid #eef0f6' }}>Privacy Preferences</h2>
                   <p className="ps-panel-desc">Control who can see and reach you.</p>
 
                   {renderAccountStanding()}
@@ -1915,6 +1967,7 @@ export default function ProfileSettings() {
               </>
             )}
           </div>
+      </div>
       </div>
 
       <style>{`

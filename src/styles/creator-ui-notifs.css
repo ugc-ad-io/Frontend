@@ -1,0 +1,99 @@
+/* Creator notifications (design board C19): the bell dropdown + the All notifications page.
+   Scoped under `.cui-app` (creator shell root); the brand view (`.bui-app`) lives in brand-ui-notifs.css. */
+
+/* ── bell dropdown (same markup as the brand header; tabs + CTA are hidden outside it by default) ── */
+.cui-app .notification-dropdown{width:460px;max-width:calc(100vw - 20px);margin-top:10px;border-radius:18px;background:#fff;box-shadow:0 30px 60px -24px rgba(7,7,78,.45),inset 0 0 0 1px var(--cui-line);max-height:none;color:var(--cui-ink);font-family:'Inter',system-ui,sans-serif;text-align:left}
+.cui-app .notification-header{padding:16px 16px 10px;border-bottom:0}
+.cui-app .notification-header h3{font-family:var(--cui-head);font-weight:500;font-size:18px;letter-spacing:-.01em;color:var(--cui-ink)}
+.cui-app .mark-all-read{min-height:0;padding:4px 0;gap:0;color:var(--cui-link);font:inherit;font-size:13px;font-weight:600}
+.cui-app .mark-all-read svg{display:none}
+.cui-app .mark-all-read:hover{background:none;text-decoration:underline}
+.cui-app .notification-tabs{display:flex;gap:4px;padding:0 12px 10px;overflow-x:auto;scrollbar-width:none}
+.cui-app .notification-tabs::-webkit-scrollbar{display:none}
+.cui-app .notification-tabs button{flex:none;white-space:nowrap;height:30px;padding:0 8px;border:1px solid #d9dbf2;border-radius:999px;background:#fff;color:var(--cui-ink);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
+.cui-app .notification-tabs button b{margin-left:3px;font-weight:700;opacity:.65}
+.cui-app .notification-tabs button.is-on{border-color:var(--cui-ink);background:var(--cui-ink);color:#fff}
+.cui-app .notification-list{max-height:470px}
+.cui-app .notification-item{align-items:center;gap:12px;padding:12px 16px;border-top:1px solid #f0f0f8;border-bottom:0;background:#fff}
+.cui-app .notification-item:hover{background:var(--cui-bg)}
+.cui-app .notification-item.unread{background:#f7f8ff}
+.cui-app .notification-icon{width:40px;height:40px;border-radius:12px;font-size:17px;font-weight:700}
+.cui-app .notification-item.info .notification-icon{background:#e6e8ff;color:#2a3ab8}
+.cui-app .notification-item.success .notification-icon{background:#e4f5ec;color:#13774f}
+.cui-app .notification-item.warning .notification-icon{background:#fff2dc;color:#8a4b00}
+.cui-app .notification-item.error .notification-icon{background:#fde8e8;color:#b42318}
+.cui-app .notification-content h4{margin:0;font-size:14px;font-weight:700;color:var(--cui-ink)}
+.cui-app .notification-admin-chip{background:#ececf4;border:0;border-radius:4px;color:var(--cui-muted);font-size:10.5px}
+.cui-app .notification-content p{margin:0;font-size:12.5px;line-height:1.4;color:var(--cui-muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.cui-app .notification-time{font-size:12px;color:var(--cui-muted)}
+.cui-app .notification-cta{display:inline-flex;flex:none;align-items:center;height:30px;padding:0 12px;border-radius:8px;font-size:12.5px;font-weight:600;box-shadow:inset 0 0 0 1.5px #d9dbf2;color:var(--cui-ink)}
+.cui-app .notification-item.unread .notification-cta{background:var(--cui-ink);color:#fff;box-shadow:none}
+.cui-app .mark-read-btn{min-width:28px;min-height:28px;margin:0;padding:2px;color:#9f9fd1}
+.cui-app .mark-read-btn:hover{color:var(--cui-ink)}
+.cui-app .notification-viewall{min-height:0;padding:12px;border-top:1px solid #eeeef6;color:var(--cui-link);font-size:14px}
+.cui-app .notification-viewall:hover{background:var(--cui-bg)}
+.cui-app .no-notifications{padding:36px 16px;color:var(--cui-muted)}
+
+
+
+.cui-app .notification-tabs button{height:32px}
+.cui-app .notification-dropdown{z-index:90}
+@media (max-width:900px){
+  /* phone/tablet: a sheet under the 56px top bar, clear of the 64px bottom tabs */
+  .cui-app .notification-dropdown{position:fixed;top:64px;left:10px;right:10px;width:auto;max-width:none;margin-top:0;max-height:calc(100dvh - 56px - 64px - 24px);display:flex;flex-direction:column}
+  .cui-app .notification-list{flex:1;min-height:0;max-height:none}
+  .cui-app .notification-item{padding:12px 14px}
+  .cui-app .mark-all-read,.cui-app .notification-viewall{min-height:44px}
+  .cui-app .notification-tabs button{height:36px}
+}
+
+/* ── All notifications page ── */
+.cui-n-page{display:flex;flex-direction:column;gap:22px;min-width:0}
+.cui-n-grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}
+.cui-n-card{min-width:0;background:#fff;border-radius:16px;box-shadow:inset 0 0 0 1px #e4e5f3;padding:20px 24px 10px}
+.cui-n-tabs{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.cui-n-tabs::-webkit-scrollbar{display:none}
+.cui-n-tab{flex:none;display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 14px;border:0;border-radius:999px;background:#fff;box-shadow:0 1px 2px rgba(7,7,78,.05),inset 0 0 0 1px #e9e9f6;color:var(--cui-ink);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.cui-n-tab span{min-width:18px;height:18px;padding:0 5px;box-sizing:border-box;border-radius:999px;background:var(--cui-primary);color:#fff;font-size:10.5px;font-weight:700;display:grid;place-items:center}
+.cui-n-tab.is-on{background:var(--cui-ink);color:#fff;box-shadow:none}
+.cui-n-tab.is-on span{background:#fff;color:var(--cui-ink)}
+.cui-n-gh{margin-top:18px;display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.cui-n-gh h2{margin:0;font-size:16px;font-weight:700;color:var(--cui-ink)}
+.cui-n-markall{min-height:44px;margin:-12px 0;padding:0 2px;border:0;background:none;color:var(--cui-link);font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.cui-n-markall:hover{text-decoration:underline}
+.cui-n-row{display:flex;align-items:flex-start;gap:12px;width:100%;padding:13px 0;border:0;border-top:1px solid #ededf6;background:none;text-align:left;font:inherit;color:var(--cui-ink);cursor:pointer}
+.cui-n-gh+.cui-n-row{border-top:0}
+.cui-n-ic{flex:none;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;font-size:18px;font-weight:700;background:#e6e8ff;color:#2a3ab8}
+.cui-n-ic.success{background:#e4f5ec;color:#13774f}
+.cui-n-ic.warning{background:#fff2dc;color:#8a4b00}
+.cui-n-ic.error{background:#fde8e8;color:#b42318}
+.cui-n-body{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start}
+.cui-n-title{display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-size:14px;line-height:1.4;font-weight:400;overflow-wrap:anywhere}
+.cui-n-row.is-unread .cui-n-title{font-weight:700}
+.cui-n-chip{display:inline-flex;align-items:center;height:20px;padding:0 8px;border-radius:6px;background:#ececf4;color:var(--cui-muted);font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+.cui-n-text{margin-top:2px;font-size:13.5px;line-height:1.45;color:#3a3a6a;overflow-wrap:anywhere}
+.cui-n-when{margin-top:2px;font-size:12px;color:var(--cui-muted)}
+.cui-n-cta{margin-top:8px;display:inline-flex;align-items:center;justify-content:center;height:34px;padding:0 18px;border-radius:999px;background:#eef0ff;color:var(--cui-ink);font-weight:700;font-size:14px;white-space:nowrap}
+.cui-n-row.is-unread .cui-n-cta{background:var(--cui-ink);color:#fff}
+.cui-n-dot{flex:none;width:9px;height:9px;margin-top:6px;border-radius:50%;background:transparent}
+.cui-n-row.is-unread .cui-n-dot{background:var(--cui-primary)}
+.cui-n-sk{height:64px;margin:12px 0;border-radius:12px;background:#ececf6;animation:cui-n-pulse 1.2s ease-in-out infinite}
+@keyframes cui-n-pulse{50%{opacity:.55}}
+.cui-n-empty{display:flex;flex-direction:column;align-items:center;gap:8px;padding:48px 16px;text-align:center;color:var(--cui-muted)}
+.cui-n-empty p{margin:0;font-weight:600;color:var(--cui-ink)}
+.cui-n-empty small{font-size:13.5px}
+.cui-n-side{padding:20px 22px 22px}
+.cui-n-side h2{margin:0 0 6px;font-family:var(--cui-head);font-weight:500;font-size:18px}
+.cui-n-side p{margin:0 0 16px;font-size:13.5px;line-height:1.5;color:var(--cui-muted)}
+@media (max-width:1100px){.cui-n-grid{grid-template-columns:minmax(0,1fr)}.cui-n-side{order:2}}
+@media (max-width:900px){
+  .cui-n-page{gap:14px}
+  .cui-n-card{padding:16px 16px 6px}
+  .cui-n-tab{height:44px}
+  .cui-n-row{min-height:44px}
+}
+
+/* index.css forces `main{padding-inline:var(--site-h-pad) !important}` (4px / 14px): give the page its own gutter */
+body .cui-app main.cui-main:has(> .cui-n-page){padding-left:34px !important;padding-right:34px !important}
+@media (max-width:900px){body .cui-app main.cui-main:has(> .cui-n-page){padding-left:16px !important;padding-right:16px !important}}
+.cui-n-side .cui-btn{border:1.5px solid #9f9fd1}

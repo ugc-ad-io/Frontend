@@ -26,7 +26,7 @@ test('work review loads without building every deal and keeps creator-specific r
     await act(async () => root.render(<BrandWorkReview />));
     expect(axios.get).toHaveBeenCalledTimes(1);
     expect(axios.get.mock.calls[0][0]).toContain('/business/work-review');
-    const revision = [...host.querySelectorAll('button')].find(b => b.textContent.trim() === 'Request Revision');
+    const revision = [...host.querySelectorAll('button')].find(b => b.textContent.trim() === 'Request revision');
     await act(async () => revision.click());
     expect(host.querySelector('[data-testid="revision-fees"]').textContent).toBe('0/700/700');
   } finally { await act(async () => root.unmount()); host.remove(); }
@@ -60,7 +60,7 @@ test('a revision is posted to the work endpoint with items and deadline, resolve
   const host = document.createElement('div'); document.body.appendChild(host); const root = createRoot(host);
   try {
     await act(async () => root.render(<BrandWorkReview />));
-    const revision = [...host.querySelectorAll('button')].find(b => b.textContent.trim() === 'Request Revision');
+    const revision = [...host.querySelectorAll('button')].find(b => b.textContent.trim() === 'Request revision');
     await act(async () => revision.click());
     await act(async () => host.querySelector('[data-testid="send-revision"]').click());
     expect(axios.get.mock.calls.some(([u]) => u.endsWith('/work/campaign/campaign?creator_id=creator2'))).toBe(true);
@@ -78,7 +78,7 @@ test('the campaign link uses the real campaign id, not the "<campaign>~<creator>
   const host = document.createElement('div'); document.body.appendChild(host); const root = createRoot(host);
   try {
     await act(async () => root.render(<BrandWorkReview />));
-    await act(async () => host.querySelector('.bwr-cbox-link').click());
+    await act(async () => host.querySelector('.bui-wr-camp').click());
     expect(mockNavigate).toHaveBeenCalledWith('/dashboard/business/campaign/campaign');
   } finally { await act(async () => root.unmount()); host.remove(); }
 });

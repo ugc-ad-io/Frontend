@@ -228,38 +228,41 @@ export default function MessagesPopup({ onClose }) {
 
       <style>{`
         .mpop-backdrop{position:fixed;inset:0;z-index:1199;background:transparent}
-        @media (max-width:640px){ .mpop-backdrop{background:rgba(15,22,58,.35)} }
+        @media (max-width:640px){ .mpop-backdrop{background:rgba(7,7,78,.35)} }
         .mpop{position:fixed;right:calc(24px + env(safe-area-inset-right,0px));bottom:calc(24px + env(safe-area-inset-bottom,0px));width:360px;max-width:calc(100vw - 32px);height:520px;max-height:calc(100vh - 48px);max-height:calc(100dvh - 48px);
-          background:#fff;border:1px solid #e9ebf4;border-radius:18px;box-shadow:0 28px 64px rgba(15,22,58,.32);
-          display:flex;flex-direction:column;overflow:hidden;z-index:1200;animation:mpop-in .22s cubic-bezier(.2,.7,.2,1)}
-        @keyframes mpop-in{from{transform:translateY(20px);opacity:.5}to{transform:none;opacity:1}}
+          background:#fff;border:1px solid #E2E2F0;border-radius:20px;box-shadow:0 1px 2px rgba(7,7,78,.05),0 18px 40px -14px rgba(7,7,78,.32);
+          display:flex;flex-direction:column;overflow:hidden;z-index:1200;font-family:'Inter',system-ui,sans-serif;color:#07074E;animation:mpop-in .2s ease-out}
+        @keyframes mpop-in{from{transform:translateY(12px);opacity:.6}to{transform:none;opacity:1}}
+        @media (prefers-reduced-motion:reduce){.mpop{animation:none}}
         @media (max-width:640px){
           .mpop{left:max(8px,env(safe-area-inset-left));right:max(8px,env(safe-area-inset-right));bottom:max(8px,env(safe-area-inset-bottom));width:auto;max-width:none;
             max-height:calc(100dvh - 16px - env(safe-area-inset-top,0px))}
         }
-        .mpop-retry{margin-top:10px;min-height:44px;padding:0 18px;border:1px solid #e9ebf4;border-radius:10px;background:#fff;color:#4452f0;font:inherit;font-weight:700;cursor:pointer}
-        .mpop-head{display:flex;align-items:center;padding:14px 16px;border-bottom:1px solid #eef0f6}
-        .mpop-head strong{font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:16px;color:#15163a}
-        .mpop-x{margin-left:auto;border:none;background:#f1f3fa;color:#15163a;width:40px;height:40px;border-radius:9px;cursor:pointer;display:grid;place-items:center}
-        .mpop-x:hover{background:#e7eaf5}
-        .mpop-search{display:flex;align-items:center;gap:8px;margin:12px;padding:0 12px;height:40px;flex:none;
-          background:#f5f6fc;border:1px solid #eef0f6;border-radius:12px;color:#9296ba}
-        .mpop-search input{flex:1;border:none;background:none;outline:none;font-family:inherit;font-size:13.5px;color:#15163a}
+        .mpop-retry{margin-top:10px;height:38px;padding:0 18px;border:1.5px solid #9f9fd1;border-radius:999px;background:#fff;color:#07074E;font:inherit;font-size:13.5px;font-weight:600;cursor:pointer}
+        .mpop-retry:hover{background:#F3F3FF}
+        .mpop-head{display:flex;align-items:center;padding:14px 16px;border-bottom:1px solid #EDEDF6}
+        .mpop-head strong{font-family:'Readex Pro','Plus Jakarta Sans',sans-serif;font-weight:500;font-size:18px;letter-spacing:-.01em;color:#07074E}
+        .mpop-x{margin-left:auto;border:0;background:transparent;color:#6E6E96;width:40px;height:40px;border-radius:50%;cursor:pointer;display:grid;place-items:center}
+        .mpop-x:hover{background:#F3F3FF;color:#07074E}
+        .mpop-x:focus-visible,.mpop-item:focus-visible,.mpop-retry:focus-visible{outline:2px solid #7387FF;outline-offset:2px}
+        .mpop-search{display:flex;align-items:center;gap:8px;margin:12px;padding:0 12px;height:40px;flex:none;background:#F3F3FF;border:0;border-radius:10px;color:#8484b0}
+        .mpop-search input{flex:1;min-width:0;border:none;background:none;outline:none;font-family:inherit;font-size:14px;color:#07074E}
+        .mpop-search input::placeholder{color:#8484b0}
         .mpop-list{flex:1;overflow-y:auto;padding:4px 8px 10px}
-        .mpop-sec{padding:8px 10px 4px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#9296ba}
-        .mpop-empty{margin:40px 0;text-align:center;color:#9296ba;font-size:13.5px}
-        .mpop-item{display:flex;align-items:center;gap:11px;width:100%;padding:10px;border:none;background:none;cursor:pointer;
+        .mpop-sec{padding:8px 10px 4px;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#6E6E96}
+        .mpop-empty{margin:40px 0;text-align:center;color:#6E6E96;font-size:14px}
+        .mpop-item{display:flex;align-items:center;gap:12px;width:100%;padding:10px;border:none;background:none;cursor:pointer;
           border-radius:12px;text-align:left;font-family:inherit;transition:background .15s}
-        .mpop-item:hover{background:#f5f6fc}
-        .mpop-ava{position:relative;width:40px;height:40px;flex:none;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-size:15px;overflow:hidden}
+        .mpop-item:hover{background:#F3F3FF}
+        .mpop-ava{position:relative;width:40px;height:40px;flex:none;border-radius:50%;display:grid;place-items:center;background:#ECEDFA !important;color:#4E60E6;font-weight:700;font-size:15px;overflow:hidden}
         .mpop-ava img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%}
         .mpop-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
         .mpop-top{display:flex;align-items:baseline;gap:8px}
-        .mpop-top strong{flex:1;min-width:0;font-size:14px;color:#15163a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-        .mpop-top small{flex:none;font-size:11.5px;color:#9296ba}
-        .mpop-prev{font-size:12.5px;color:#7a7fa6;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-        .mpop-badge{flex:none;min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:#5b6bff;color:#fff;
-          font-size:11.5px;font-weight:700;display:grid;place-items:center}
+        .mpop-top strong{flex:1;min-width:0;font-size:14.5px;font-weight:700;color:#07074E;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .mpop-top small{flex:none;font-size:12px;color:#6E6E96}
+        .mpop-prev{font-size:13px;color:#6E6E96;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .mpop-badge{flex:none;min-width:22px;height:22px;padding:0 7px;border-radius:999px;background:#7387FF;color:#fff;
+          font-size:12px;font-weight:700;display:grid;place-items:center}
       `}</style>
       </div>
     </>

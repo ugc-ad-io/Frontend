@@ -44,11 +44,30 @@ beforeEach(() => { jest.clearAllMocks(); mockSearch = ''; axios.get.mockResolved
 
 test('creator card shows the whole name and the price per video, never a delivered count', async () => {
   const { host, done } = await mount();
-  const names = [...host.querySelectorAll('.bc-name-top strong')].map((n) => n.textContent);
+  const names = [...host.querySelectorAll('.bui-gig-name')].map((n) => n.textContent);
   expect(names).toEqual(['Devanshika', 'Asha']);
-  const prices = [...host.querySelectorAll('.bc-price-txt')].map((n) => n.textContent);
-  expect(prices).toEqual(['Rs. 2,000 / video', 'Rate on request']);
+  const prices = [...host.querySelectorAll('.bui-gig-price')].map((n) => n.textContent);
+  expect(prices).toEqual(['From \u20b92,000', 'Rate on request']);
   expect(host.textContent).not.toMatch(/delivered/i);
+  await done();
+});
+
+test('no delivery data: no delivery text and the bar keeps the ID verified switch', async () => {
+  const { host, done } = await mount();
+  expect(host.querySelectorAll('.bui-gig-deliv')).toHaveLength(0);
+  expect(host.textContent).toContain('ID verified');
+  expect(host.textContent).not.toContain('Delivers in 3 days');
+  await done();
+});
+
+test('delivery_days on the card shows "N-day delivery" and the Delivers in 3 days switch filters', async () => {
+  axios.get.mockResolvedValue({ data: [{ ...creators[0], delivery_days: 2 }, { ...creators[1], delivery_days: 5 }] });
+  const { host, done } = await mount();
+  expect([...host.querySelectorAll('.bui-gig-deliv')].map((n) => n.textContent)).toEqual(['· 2-day delivery', '· 5-day delivery']);
+  expect(host.textContent).not.toContain('ID verified');
+  const sw = [...host.querySelectorAll('button[role="switch"]')].find((b) => b.textContent.includes('Delivers in 3 days'));
+  await act(async () => sw.click());
+  expect([...host.querySelectorAll('.bui-gig-name')].map((n) => n.textContent)).toEqual(['Devanshika']);
   await done();
 });
 
@@ -63,16 +82,16 @@ test('preferred collection page heading, subtitle and only the flagged creators'
   mockSearch = 'collection=ugcad-approved';
   const { host, done } = await mount();
   expect(host.querySelector('h1').textContent).toBe('Preferred Creators by the UGCAD Team');
-  expect(host.querySelectorAll('.bc-name-top strong')).toHaveLength(1);
+  expect(host.querySelectorAll('.bui-gig-name')).toHaveLength(1);
   expect(host.textContent).toContain('Devanshika');
   await done();
 });
 
-// Names collapsed to "D..." when the chips sat beside them: the chips now live on the
-// video's top-right corner, so the name row holds only the name (and the KYC tick).
-test('category chips sit on the video corner, not beside the name', async () => {
+// Names collapsed to "D..." when category chips sat beside them: the name row holds only
+// the name, the KYC tick and the level badge.
+test('the name row carries no category chips', async () => {
   const { host, done } = await mount();
-  expect(host.querySelectorAll('.bc-reel .bc-rate .cat-rail-reel').length).toBeGreaterThan(0);
-  expect(host.querySelectorAll('.bc-name-top .cat-rail')).toHaveLength(0);
+  expect(host.querySelectorAll('.bui-gig-who .cat-rail')).toHaveLength(0);
+  expect(host.querySelectorAll('.bui-gig-who .bui-lvl').length).toBeGreaterThan(0);
   await done();
 });

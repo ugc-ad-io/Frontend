@@ -1,0 +1,66 @@
+/* Notifications — bell dropdown (board 16) + All notifications page (board 16b).
+   The dropdown component is shared with the creator header, so everything that
+   touches it is scoped under `.bui-app` (brand layout root). */
+
+/* extra dropdown bits: hidden outside the brand header */
+.notification-tabs,.notification-cta{display:none}
+
+.bui-app .notification-dropdown{width:460px;max-width:calc(100vw - 20px);margin-top:10px;border-radius:18px;background:#fff;box-shadow:0 30px 60px -24px rgba(7,7,78,.45),inset 0 0 0 1px var(--bui-line);max-height:none;color:var(--bui-ink);font-family:'Inter',system-ui,sans-serif;text-align:left}
+.bui-app .notification-header{padding:16px 16px 10px;border-bottom:0}
+.bui-app .notification-header h3{font-family:var(--bui-head);font-weight:500;font-size:18px;letter-spacing:-.01em;color:var(--bui-ink)}
+.bui-app .mark-all-read{min-height:0;padding:4px 0;gap:0;color:var(--bui-link);font:inherit;font-size:13px;font-weight:600}
+.bui-app .mark-all-read svg{display:none}
+.bui-app .mark-all-read:hover{background:none;text-decoration:underline}
+.bui-app .notification-tabs{display:flex;gap:4px;padding:0 12px 10px;overflow-x:auto;scrollbar-width:none}
+.bui-app .notification-tabs::-webkit-scrollbar{display:none}
+.bui-app .notification-tabs button{flex:none;white-space:nowrap;height:30px;padding:0 8px;border:1px solid #d9dbf2;border-radius:999px;background:#fff;color:var(--bui-ink);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
+.bui-app .notification-tabs button b{margin-left:3px;font-weight:700;opacity:.65}
+.bui-app .notification-tabs button.is-on{border-color:var(--bui-ink);background:var(--bui-ink);color:#fff}
+.bui-app .notification-list{max-height:470px}
+.bui-app .notification-item{align-items:center;gap:12px;padding:12px 16px;border-top:1px solid #f0f0f8;border-bottom:0;background:#fff}
+.bui-app .notification-item:hover{background:var(--bui-bg)}
+.bui-app .notification-item.unread{background:#f7f8ff}
+.bui-app .notification-icon{width:40px;height:40px;border-radius:12px;font-size:17px;font-weight:700}
+.bui-app .notification-item.info .notification-icon{background:#e6e8ff;color:#2a3ab8}
+.bui-app .notification-item.success .notification-icon{background:#e4f5ec;color:#13774f}
+.bui-app .notification-item.warning .notification-icon{background:#fff2dc;color:#8a4b00}
+.bui-app .notification-item.error .notification-icon{background:#fde8e8;color:#b42318}
+.bui-app .notification-content h4{margin:0;font-size:14px;font-weight:700;color:var(--bui-ink)}
+.bui-app .notification-admin-chip{background:#ececf4;border:0;border-radius:4px;color:var(--bui-muted);font-size:10.5px}
+.bui-app .notification-content p{margin:0;font-size:12.5px;line-height:1.4;color:var(--bui-muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.bui-app .notification-time{font-size:12px;color:var(--bui-muted)}
+.bui-app .notification-cta{display:inline-flex;flex:none;align-items:center;height:30px;padding:0 12px;border-radius:8px;font-size:12.5px;font-weight:600;box-shadow:inset 0 0 0 1.5px #d9dbf2;color:var(--bui-ink)}
+.bui-app .notification-item.unread .notification-cta{background:var(--bui-ink);color:#fff;box-shadow:none}
+.bui-app .mark-read-btn{min-width:28px;min-height:28px;margin:0;padding:2px;color:#9f9fd1}
+.bui-app .mark-read-btn:hover{color:var(--bui-ink)}
+.bui-app .notification-viewall{min-height:0;padding:12px;border-top:1px solid #eeeef6;color:var(--bui-link);font-size:14px}
+.bui-app .notification-viewall:hover{background:var(--bui-bg)}
+.bui-app .no-notifications{padding:36px 16px;color:var(--bui-muted)}
+@media (max-width:768px){.bui-app .notification-dropdown{width:auto;max-width:none}}
+
+/* ── All notifications (board 16b) ───────────────────────────────────── */
+.bui-nf-tabs{margin-top:-4px}
+@media (max-width:600px){.bui-nf-tabs{gap:18px}}
+.bui-nf-groups{display:flex;flex-direction:column;gap:22px;max-width:920px}
+.bui-nf-gh{margin:0 0 10px;font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--bui-muted)}
+.bui-nf-card{background:#fff;border:1px solid var(--bui-line);border-radius:14px;overflow:hidden}
+.bui-nf-row{display:flex;align-items:center;gap:14px;width:100%;padding:16px 20px;border:0;border-top:1px solid #eeeef6;background:#fff;text-align:left;font:inherit;color:var(--bui-ink);cursor:pointer}
+.bui-nf-row:first-child{border-top:0}
+.bui-nf-row:hover{background:var(--bui-bg)}
+.bui-nf-row.is-unread{background:#f7f8ff}
+.bui-nf-ic{flex:none;width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-size:18px;font-weight:700;background:#e6e8ff;color:#2a3ab8}
+.bui-nf-ic.success{background:#e4f5ec;color:#13774f}
+.bui-nf-ic.warning{background:#fff2dc;color:#8a4b00}
+.bui-nf-ic.error{background:#fde8e8;color:#b42318}
+.bui-nf-body{flex:1;min-width:0}
+.bui-nf-title{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:700;font-size:15px;overflow-wrap:anywhere}
+.bui-nf-chip{display:inline-flex;align-items:center;height:20px;padding:0 10px;border-radius:4px;background:#ececf4;color:var(--bui-muted);font-size:10.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+.bui-nf-text{margin-top:2px;font-size:14px;color:#2b2b6a;line-height:1.45;overflow-wrap:anywhere}
+.bui-nf-when{margin-top:4px;font-size:12.5px;color:var(--bui-muted)}
+.bui-nf-cta{flex:none;display:inline-flex;align-items:center;height:36px;padding:0 14px;border-radius:10px;font-weight:600;font-size:13.5px;border:1.5px solid #9f9fd1;color:var(--bui-ink)}
+.bui-nf-row.is-unread .bui-nf-cta{background:var(--bui-ink);border-color:var(--bui-ink);color:#fff}
+.bui-nf-dot{flex:none;width:9px;height:9px;border-radius:50%;background:transparent}
+.bui-nf-row.is-unread .bui-nf-dot{background:var(--bui-primary)}
+.bui-nf-sk{height:76px;border-radius:14px;background:#ececf6;animation:bui-nf-pulse 1.2s ease-in-out infinite}
+@keyframes bui-nf-pulse{50%{opacity:.55}}
+@media (max-width:600px){.bui-nf-row{padding:14px;gap:10px}.bui-nf-cta{display:none}}

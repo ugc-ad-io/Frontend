@@ -6,8 +6,10 @@ import { apiErrorMessage } from '../utils/apiError';
 import { uploadMedia, tooLargeMessage, MAX_UPLOAD_MB } from '../utils/upload';
 import UploadProgress from '../components/UploadProgress';
 import { useAuth } from '../App';
-import { ImagePlus, ChevronDown, Check, ArrowRight, Plus, PartyPopper, Info, Instagram, CloudUpload, Upload } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { ImagePlus, Camera, Check, ArrowRight, ArrowLeft, Plus, Info, Instagram, CloudUpload, Upload, Lightbulb } from 'lucide-react';
+import CreatorOnboardBar from '../components/CreatorOnboardBar';
+import CreatorGate from '../components/CreatorGate';
+import '../styles/creator-ui-onboarding.css';
 import { NICHE_CATEGORIES, CONTENT_CATEGORIES } from '../constants/contentCategories';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -35,41 +37,6 @@ const linkError = (key, value) => {
   return key === 'instagram' ? 'Enter your full Instagram profile link (e.g. https://instagram.com/yourhandle)' : `Enter a valid ${key} link or @handle`;
 };
 
-// Dropdown-with-checkboxes used for both content pickers.
-function MultiSelect({ options, selected, onToggle, placeholder, hasError }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-  useEffect(() => {
-    if (!open) return undefined;
-    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, [open]);
-  const chosen = options.filter((o) => selected.includes(o.value)).map((o) => o.label);
-  return (
-    <div className={`ps-msel${hasError ? ' ps-msel--error' : ''}`} ref={ref}>
-      <button type="button" className={`ps-msel__btn${open ? ' is-open' : ''}`} onClick={() => setOpen((v) => !v)}>
-        <span className={chosen.length ? '' : 'ps-msel__ph'}>{chosen.length ? chosen.join(', ') : (placeholder || 'Select')}</span>
-        <ChevronDown size={18} className="ps-msel__chev" />
-      </button>
-      {open && (
-        <div className="ps-msel__menu" role="listbox">
-          {options.map((o) => {
-            const on = selected.includes(o.value);
-            return (
-              <button key={o.value} type="button" role="option" aria-selected={on}
-                className={`ps-msel__opt${on ? ' is-on' : ''}`} onClick={() => onToggle(o.value)}>
-                <span className="ps-msel__box">{on && <Check size={13} />}</span>
-                {o.label}
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function CreatorProfileSetup() {
   const navigate = useNavigate();
   const { user, setUser, logout } = useAuth();
@@ -88,6 +55,7 @@ export default function CreatorProfileSetup() {
   const [extraLinks, setExtraLinks] = useState([]); // user-added custom links: { id, url }
 
   const [addingMore, setAddingMore] = useState(false);
+  const [step, setStep] = useState(0); // 0 About you, 1 Your videos, 2 Rates
   const [data, setData] = useState({
     photoPreview: '', profilePicture: '',
     bannerPreview: '', banner: '',
@@ -143,15 +111,6 @@ export default function CreatorProfileSetup() {
     setExtraLinks(Object.entries(pr.social_links || {}).filter(([k, v]) => /^link_\d+$/.test(k) && v).map(([, v], i) => ({ id: i + 1, url: String(v) })));
     if (Array.isArray(pr.portfolio_items)) pfIdRef.current = pr.portfolio_items.length + 1;
   }, [user?.id, user?.profile]);
-
-  // Paint the backdrop the same dark navy while this page is mounted.
-  useEffect(() => {
-    const root = document.getElementById('root');
-    const targets = [document.documentElement, document.body, root].filter(Boolean);
-    const prev = targets.map((el) => el.style.background);
-    targets.forEach((el) => { el.style.background = '#0a0a16'; });
-    return () => { targets.forEach((el, i) => { el.style.background = prev[i]; }); };
-  }, []);
 
   const onPickPhoto = async (e) => {
     const file = e.target.files?.[0];
@@ -249,14 +208,27 @@ export default function CreatorProfileSetup() {
   };
   const err = (k) => showErrors && !checks[k];
 
+  // Which required fields belong to which wizard step (the final submit still checks all of them).
+  const STEP_KEYS = [['profilePicture', 'name', 'links'], ['contentStyles', 'contentCategories', 'portfolio'], ['rawPayout']];
+  const stepOk = (i) => STEP_KEYS[i].every((k) => checks[k]);
+  const scrollToError = () => setTimeout(() => {
+    document.querySelector('.cui-s .is-error')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 60);
+  const goStep = (i) => { setShowErrors(false); setStep(i); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  const goNext = () => {
+    if (!stepOk(step)) { setShowErrors(true); scrollToError(); return; }
+    goStep(step + 1);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (step < 2) { goNext(); return; } // Enter inside a field on steps 1-2 moves on instead of submitting
     if (!Object.values(checks).every(Boolean)) {
+      // jump back to the first step that still has something missing
+      const bad = STEP_KEYS.findIndex((_, i) => !stepOk(i));
+      if (bad !== step) setStep(bad);
       setShowErrors(true);
-      setTimeout(() => {
-        document.querySelector('.ps-card .ps-input--error, .ps-card .ps-upload--error, .ps-card .ps-msel--error, .ps-card .ps-pf--error, .ps-card .ps-link--error')
-          ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 60);
+      scrollToError();
       return;
     }
     setSubmitting(true);
@@ -301,431 +273,334 @@ export default function CreatorProfileSetup() {
     }
   };
 
-  return (
-    <div className="ps-root">
-      <div className="ps-bg" aria-hidden="true">
-        <div className="ps-blob ps-blob--1" />
-        <div className="ps-blob ps-blob--2" />
-        <div className="ps-grid" />
-      </div>
+  const nicheLabel = NICHE_CATEGORIES.find((c) => data.contentCategories[0] === c.value)?.label || '';
+  const money = (v) => `₹${Number(v || 0).toLocaleString('en-IN')}`;
+  const raw = Number(data.rawPayout) || 0;
+  const edit = Number(data.editingPayout) || 0;
+  const previewVideos = [...data.portfolio.map((it) => it.videoUrl), data.videoPreview].filter(Boolean).slice(0, 3);
+  const STEP_NAMES = ['About you', 'Your videos', 'Rates', 'Get paid'];
 
-      <header className="ps-topbar">
-        <button className="ps-brand" onClick={() => navigate('/')}>
-          <img src="/newlogo-tight.png" alt="UGCad.io" className="ps-brand__logo" />
-        </button>
-        <span className="ps-topbar__tag">Creator onboarding</span>
-      </header>
-
-      <main className="ps-main">
-        {submitted ? (
-          <motion.div className="ps-card ps-thanks" initial={{ opacity: 0, scale: 0.94 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4 }}>
-            <div className="ps-thanks__icon"><Check size={40} strokeWidth={3} /></div>
-            <h1 className="ps-thanks__title">Profile Submitted <PartyPopper size={24} /></h1>
-            <p className="ps-thanks__text">
-              Thanks for submitting your creator profile. Our team will review it and get back to
-              you within <strong>24-48 hours</strong>. You can start browsing briefs right away.
-            </p>
-            <div className="ps-thanks__actions">
-              <button className="ps-btn-primary ps-thanks__home" onClick={() => { logout(); }}>
-                Back to sign in <ArrowRight size={18} />
-              </button>
-            </div>
-          </motion.div>
-        ) : (
-          <motion.form className="ps-card" onSubmit={handleSubmit} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
-            <div className="ps-card__head">
-              <h1 className="ps-title">Set up your creator profile</h1>
-              <p className="ps-sub">A few essentials so brands know who they're hiring.</p>
-            </div>
-
-            <div className="ps-body">
-              <div className="ps-field">
-                <label className="ps-label">Profile photo</label>
-                <label className={`ps-upload${err('profilePicture') ? ' ps-upload--error' : ''}`}>
-                  <span className="ps-upload__icon">
-                    {data.photoPreview ? <img src={data.photoPreview} alt="" className="ps-upload__preview" /> : <ImagePlus size={22} />}
-                  </span>
-                  <span className="ps-upload__text">
-                    <span className="ps-upload__title">{photoUploading ? 'Uploading…' : (data.photoPreview ? 'Change photo' : 'Upload profile photo')}</span>
-                    <span className="ps-upload__hint">JPG or PNG, up to 5MB</span>
-                  </span>
-                  <input ref={photoRef} type="file" accept="image/*" hidden onChange={onPickPhoto} />
-                </label>
-                {err('profilePicture') && <span className="ps-error">A profile photo is required</span>}
-              </div>
-
-              <div className="ps-field">
-                <label className="ps-label">Banner image <span className="ps-muted">(Optional)</span></label>
-                <label className="ps-upload ps-upload--banner">
-                  <span className="ps-upload__icon ps-upload__icon--banner">
-                    {data.bannerPreview ? <img src={data.bannerPreview} alt="" className="ps-upload__preview" /> : <ImagePlus size={22} />}
-                  </span>
-                  <span className="ps-upload__text">
-                    <span className="ps-upload__title">{bannerUploading ? 'Uploading…' : (data.bannerPreview ? 'Change banner' : 'Upload a banner image')}</span>
-                    <span className="ps-upload__hint">Shown at the top of your profile · JPG or PNG, up to 5MB</span>
-                  </span>
-                  <input ref={bannerRef} type="file" accept="image/*" hidden onChange={onPickBanner} />
-                </label>
-              </div>
-
-              <div className="ps-field">
-                <label className="ps-label">Name</label>
-                <input
-                  className={`ps-input${err('name') ? ' ps-input--error' : ''}`}
-                  placeholder="Your full name"
-                  value={data.name}
-                  onChange={(e) => set('name', e.target.value)}
-                />
-                {err('name') && <span className="ps-error">This field is required</span>}
-              </div>
-
-              <div className="ps-field">
-                <label className="ps-label">Content style <span className="ps-muted">(Select one or more)</span></label>
-                <MultiSelect
-                  options={CONTENT_CATEGORIES}
-                  selected={data.contentStyles}
-                  onToggle={(v) => toggleIn('contentStyles', v)}
-                  placeholder="Select the content you create"
-                  hasError={err('contentStyles')}
-                />
-                {data.contentStyles.includes('custom') && (
-                  <input className="ps-input" style={{ marginTop: 10 }} placeholder="Describe your custom content style"
-                    value={data.customStyle} onChange={(e) => set('customStyle', e.target.value)} />
-                )}
-                {err('contentStyles') && <span className="ps-error">Select at least one</span>}
-              </div>
-
-              <div className="ps-field">
-                <label className="ps-label">Content category <span className="ps-muted">(Select one or more)</span></label>
-                <MultiSelect
-                  options={NICHE_CATEGORIES}
-                  selected={data.contentCategories}
-                  onToggle={(v) => toggleIn('contentCategories', v)}
-                  placeholder="Select what your content is about"
-                  hasError={err('contentCategories')}
-                />
-                {err('contentCategories') && <span className="ps-error">Select at least one</span>}
-              </div>
-
-              <div className="ps-field">
-                <label className="ps-label">Instagram profile <span className="ps-muted">(Required)</span></label>
-                <div className="ps-links">
-                  {PLATFORMS.map(({ key, label, badge, Icon, color }) => {
-                    const lerr = showErrors && linkError(key, data.links[key]);
-                    return (
-                      <div key={key}>
-                        <div className={`ps-link${lerr ? ' ps-link--error' : ''}`}>
-                          <span className="ps-link__badge" style={{ background: color }}>
-                            {Icon ? <Icon size={17} /> : badge}
-                          </span>
-                          <input
-                            ref={(el) => { linkRefs.current[key] = el; }}
-                            className="ps-link__input"
-                            placeholder={key === 'instagram' ? 'https://instagram.com/yourhandle' : `${label} profile`}
-                            value={data.links[key]}
-                            onChange={(e) => setLink(key, e.target.value)}
-                          />
-                          <button type="button" className="ps-link__add" onClick={() => linkRefs.current[key]?.focus()}>
-                            +Add social link
-                          </button>
-                        </div>
-                        {lerr && <span className="ps-error ps-link-err">{lerr}</span>}
-                      </div>
-                    );
-                  })}
-                  {extraLinks.map((l) => (
-                    <div key={l.id} className="ps-link">
-                      <span className="ps-link__badge" style={{ background: '#6d7bff' }}><Info size={16} /></span>
-                      <input
-                        className="ps-link__input"
-                        placeholder="Website or custom link"
-                        value={l.url}
-                        onChange={(e) => setExtraLinks((ls) => ls.map((x) => (x.id === l.id ? { ...x, url: e.target.value } : x)))}
-                      />
-                      <button type="button" className="ps-link__remove" onClick={() => setExtraLinks((ls) => ls.filter((x) => x.id !== l.id))}>×</button>
-                    </div>
-                  ))}
-                </div>
-                <button type="button" className="ps-addlink" onClick={() => setExtraLinks((ls) => [...ls, { id: Date.now(), url: '' }])}>
-                  <Plus size={15} /> Add another social link
-                </button>
-                {err('links') && <span className="ps-error">Add your full Instagram profile link</span>}
-              </div>
-
-              <div className="ps-field">
-                <label className="ps-label">Upload your best video</label>
-                <p className="ps-fieldsub">UGC, brand ads, reels, or speaking samples work best.</p>
-                {(data.portfolio.length === 0 || addingMore) && <div className={`ps-pf${err('videoUrl') ? ' ps-pf--error' : ''}`}>
-                  {data.videoPreview ? (
-                    <div className="ps-pf-preview">
-                      <video src={data.videoPreview} className="ps-pf-vid" muted controls />
-                      <button type="button" className="ps-pf-change" onClick={() => videoRef.current?.click()}>
-                        {videoUploading ? 'Uploading…' : 'Change video'}
-                      </button>
-                      <UploadProgress percent={videoUploading ? videoProgress : null} />
-                    </div>
-                  ) : (
-                    <div
-                      className={`ps-pf-drop${videoDragOver ? ' is-over' : ''}`}
-                      onClick={() => videoRef.current?.click()}
-                      onDragOver={(e) => { e.preventDefault(); setVideoDragOver(true); }}
-                      onDragLeave={() => setVideoDragOver(false)}
-                      onDrop={onVideoDrop}
-                    >
-                      <CloudUpload size={26} className="ps-pf-cloud" />
-                      <strong>{videoUploading ? 'Uploading…' : 'Drag & drop video'}</strong>
-                      <span className="ps-pf-upload-cta"><Upload size={13} /> Upload</span>
-                      <span className="ps-pf-max">(max {MAX_UPLOAD_MB} MB)</span>
-                      <UploadProgress percent={videoUploading ? videoProgress : null} />
-                    </div>
-                  )}
-                  <input ref={videoRef} type="file" accept="video/*" hidden onChange={onPickVideo} />
-                  <div className="ps-pf-fields">
-                    <input className="ps-input" placeholder="Price" inputMode="numeric" value={data.pfPrice} onChange={(e) => set('pfPrice', e.target.value)} />
-                    <input className="ps-input" placeholder="Delivery time (days)" inputMode="numeric" value={data.pfDelivery} onChange={(e) => set('pfDelivery', e.target.value)} />
-                    <select className="ps-input" value={data.pfCategory} onChange={(e) => set('pfCategory', e.target.value)}>
-                      <option value="" disabled>Category</option>
-                      {NICHE_CATEGORIES.map((c) => <option key={c.value} value={c.label}>{c.label}</option>)}
-                    </select>
-<p className="ps-fieldsub">Your video is added automatically once price, delivery time and category are filled.</p>
-                  </div>
-                </div>}
-                {data.portfolio.length > 0 && !addingMore && <button type="button" className="ps-btn-primary ps-pf-add" onClick={() => setAddingMore(true)}>+ Add More Videos</button>}
-                {err('portfolio') && <span className="ps-error">Add at least one video to your profile</span>}
-
-                {data.portfolio.length > 0 && (
-                  <div className="ps-pf-list">
-                    {data.portfolio.map((it) => (
-                      <div className="ps-pf-card" key={it.id}>
-                        <video src={it.videoUrl} className="ps-pf-card__vid" muted controls />
-                        <div className="ps-pf-card__body">
-                          <strong>{it.category}</strong>
-                          <span>₹{it.price} · Delivered in {it.delivery} {/\d/.test(it.delivery) && !/day/i.test(it.delivery) ? 'day(s)' : ''}</span>
-                        </div>
-                        <button type="button" className="ps-pf-card__del" onClick={() => removePortfolioItem(it.id)}>Remove</button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="ps-note"><Info size={15} /> You can edit this anytime from your profile settings.</div>
-            </div>
-
-            <div className="ps-field">
-              <label className="ps-label" htmlFor="raw-payout">Raw video payout per video (₹)</label>
-              <input id="raw-payout" className="ps-input" type="number" min="1" required value={data.rawPayout} onChange={e => set('rawPayout', e.target.value)} />
-            </div>
-            <div className="ps-field">
-              <label className="ps-label" htmlFor="editing-payout">Additional editing payout per video (₹)</label>
-              <input id="editing-payout" className="ps-input" type="number" min="0" value={data.editingPayout} onChange={e => set('editingPayout', e.target.value)} />
-            </div>
-            <div className="ps-actions">
-              <button type="submit" className="ps-btn-primary" disabled={submitting || photoUploading || videoUploading}>
-                {submitting ? <><span className="ps-spin" /> Submitting…</> : <>Submit Profile <ArrowRight size={18} /></>}
-              </button>
-            </div>
-          </motion.form>
+  if (submitted) {
+    return (
+      <CreatorGate
+        icon={Check}
+        chip="In review"
+        title="Profile submitted"
+        lead="Thanks for submitting your creator profile. Our team will review it and get back to you within 24-48 hours."
+        stage={1}
+        actions={(
+          <>
+            <button type="button" className="cui-s-btn cui-s-btn--ink" onClick={() => navigate('/kyc')}>Add payout details</button>
+            <button type="button" className="cui-s-btn" onClick={() => { logout(); }}>
+              Back to sign in <ArrowRight size={16} />
+            </button>
+          </>
         )}
-      </main>
+      />
+    );
+  }
 
-      <style>{`
-        .ps-root {
-          --ps-purple: #6d7bff;
-          min-height: 100vh;
-          min-height: 100dvh;
-          background: #0a0a16;
-          color: #6d7bff;
-          font-family: var(--font-body);
-          position: relative;
-          overflow-x: hidden;
-        }
-        .ps-root *, .ps-root *::before, .ps-root *::after { box-sizing: border-box; }
-        .ps-root::before { content: ''; position: fixed; inset: 0; background: #0a0a16; z-index: -1; }
-        .ps-topbar, .ps-main { background: transparent; }
+  // Live "how brands see you" card, built from what the creator has entered so far.
+  const sidePreview = (
+    <div className="cui-s-card">
+      <div className="cui-s-side-h">HOW BRANDS SEE YOU</div>
+      <div className="cui-s-pv">
+        <div className="cui-s-pv-v">
+          {previewVideos.length
+            ? previewVideos.map((u, i) => <video key={`${u}-${i}`} src={u} muted playsInline preload="metadata" />)
+            : <span>Your videos show here</span>}
+        </div>
+        <div className="cui-s-pv-r">
+          <span className="cui-s-pv-a">{data.photoPreview ? <img src={data.photoPreview} alt="" /> : (data.name.trim().charAt(0).toUpperCase() || '?')}</span>
+          <div className="cui-s-pv-n">
+            <b>{data.name.trim() || 'Your name'}</b>
+            <span>{nicheLabel || 'Your niche'}</span>
+          </div>
+          {raw > 0 && (
+            <div className="cui-s-pv-p"><small>From</small><strong>{money(raw)}</strong></div>
+          )}
+        </div>
+      </div>
+      {step === 2 && raw > 0 && (
+        <div className="cui-s-sum">
+          <div><span>Raw video</span><span>{money(raw)}</span></div>
+          {edit > 0 && <div><span>With your edit</span><span>{money(raw + edit)}</span></div>}
+        </div>
+      )}
+    </div>
+  );
+  const TIPS = [
+    'Use your real name and a clear face photo - brands pick creators they can trust.',
+    'Put your strongest hook in the first 3 seconds of each video.',
+    'You can change your rates any time from your profile settings.',
+  ];
 
-        .ps-bg { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
-        .ps-blob { position: absolute; border-radius: 50%; filter: blur(100px); opacity: 0.45;
-          background: linear-gradient(135deg, #1c2570, #11103f); }
-        .ps-blob--1 { width: 520px; height: 520px; top: -12%; left: -6%; }
-        .ps-blob--2 { width: 460px; height: 460px; bottom: -14%; right: -4%;
-          background: linear-gradient(135deg, #1f2a72, #0c0c33); }
-        .ps-grid { position: absolute; inset: 0; opacity: 0.25;
-          background-image: radial-gradient(rgba(7,7,78,0.10) 1px, transparent 1px);
-          background-size: 26px 26px; mask-image: radial-gradient(120% 80% at 50% 0%, #000, transparent 70%); }
+  return (
+    <div className="cui-s">
+      <CreatorOnboardBar right={<span>Step {step + 1} of 4</span>} />
 
-        .ps-topbar { position: relative; z-index: 1; display: flex; align-items: center; gap: 16px;
-          padding: 20px 7%; border-bottom: 1px solid rgba(255,255,255,0.08); }
-        .ps-brand { display: inline-flex; align-items: center; gap: 10px; background: none; border: none; cursor: pointer; padding: 0; }
-        .ps-brand__logo { height: 28px; width: auto; display: block; }
-        .ps-topbar__tag { margin-left: auto; font-size: 0.82rem; font-weight: 500; letter-spacing: 0.02em;
-          color: rgba(255,255,255,0.6); padding: 6px 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.18); }
+      <div className="cui-s-wrap">
+        <div className="cui-s-steps" aria-label="Profile setup progress">
+          {STEP_NAMES.map((name, i) => (
+            <span key={name} style={{ display: 'contents' }}>
+              {i > 0 && <span className={`cui-s-line${i <= step ? ' is-done' : ''}`} />}
+              <div className={`cui-s-step${i === step ? ' is-now' : ''}${i < step ? ' is-done' : ''}`} aria-current={i === step ? 'step' : undefined}>
+                <span className="cui-s-dot">{i < step ? <Check size={15} /> : i + 1}</span>
+                <span>{name}</span>
+              </div>
+            </span>
+          ))}
+        </div>
 
-        .ps-main { position: relative; z-index: 1; max-width: 660px; margin: 0 auto; padding: 26px 5% 80px; }
+        <form onSubmit={handleSubmit}>
+          <div className="cui-s-grid">
+            <div className="cui-s-col">
+              {step === 0 && (
+                <>
+                  <div className="cui-s-card">
+                    <h1 className="cui-s-h">About you</h1>
+                    <p className="cui-s-sub">Brands see this on your card and profile.</p>
+                    <div className="cui-s-body">
+                      <div className="cui-s-field">
+                        <label className={`cui-s-pick${err('profilePicture') ? ' is-error' : ''}`}>
+                          <span className="cui-s-avatar">
+                            {data.photoPreview ? <img src={data.photoPreview} alt="" /> : <ImagePlus size={24} />}
+                            <b><Camera size={13} /></b>
+                          </span>
+                          <span>
+                            <strong>{photoUploading ? 'Uploading…' : (data.photoPreview ? 'Change photo' : 'Upload profile photo')}</strong>
+                            <small>JPG or PNG, up to 5MB</small>
+                          </span>
+                          <input ref={photoRef} type="file" accept="image/*" hidden onChange={onPickPhoto} />
+                        </label>
+                        {err('profilePicture') && <span className="cui-s-err">A profile photo is required</span>}
+                      </div>
 
-        .ps-card { position: relative; border-radius: 18px; padding: 26px 28px 22px;
-          background: rgba(18,18,26,0.72);
-          -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
-          border: 1px solid rgba(255,255,255,0.10);
-          box-shadow: 0 30px 70px rgba(0,0,0,0.55); overflow: hidden; }
-        .ps-card::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-          background: linear-gradient(90deg, transparent, rgba(109,123,255,0.55), transparent); }
-        .ps-card__head { margin-bottom: 18px; }
-        .ps-title { font-family: var(--font-head); font-size: var(--fs-h2); font-weight: var(--fw-head); margin: 0; color: #ffffff; letter-spacing: -0.01em; }
-        .ps-sub { font-size: 0.85rem; color: rgba(255,255,255,0.66); margin: 6px 0 0; }
-        .ps-body { display: flex; flex-direction: column; gap: 18px; }
+                      <div className="cui-s-field">
+                        <label className="cui-s-pick">
+                          <span className="cui-s-avatar is-wide">
+                            {data.bannerPreview ? <img src={data.bannerPreview} alt="" /> : <ImagePlus size={22} />}
+                          </span>
+                          <span>
+                            <strong>{bannerUploading ? 'Uploading…' : (data.bannerPreview ? 'Change banner' : 'Banner image')} <em style={{ fontStyle: 'normal', fontWeight: 500, color: '#9a9ac0' }}>(Optional)</em></strong>
+                            <small>Shown at the top of your profile · JPG or PNG, up to 5MB</small>
+                          </span>
+                          <input ref={bannerRef} type="file" accept="image/*" hidden onChange={onPickBanner} />
+                        </label>
+                      </div>
 
-        .ps-upload { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
-          padding: 16px 18px; border-radius: 16px; cursor: pointer;
-          border: 1px dashed rgba(255,255,255,0.20); background: rgba(255,255,255,0.04); transition: all 0.2s; }
-        .ps-upload:hover { background: rgba(255,255,255,0.07); border-color: #6d7bff; }
-        .ps-upload--error { border-color: #ef4444 !important; }
-        .ps-upload__icon { width: 54px; height: 54px; border-radius: 14px; flex-shrink: 0; overflow: hidden;
-          display: flex; align-items: center; justify-content: center;
-          background: rgba(109,123,255,0.14); border: 1px solid rgba(109,123,255,0.32); color: #6d7bff; }
-        .ps-upload__preview { width: 100%; height: 100%; object-fit: cover; }
-        .ps-upload__text { display: flex; flex-direction: column; gap: 3px; }
-        .ps-upload__title { font-size: 0.98rem; font-weight: 600; color: #ffffff; }
-        .ps-upload__hint { font-size: 0.8rem; color: rgba(255,255,255,0.6); }
-        .ps-upload__icon--banner { width: 84px; height: 54px; border-radius: 10px; }
+                      <div className="cui-s-field">
+                        <label className="cui-s-label" htmlFor="ps-name">Name brands see</label>
+                        <div className={`cui-s-inp${err('name') ? ' is-error' : ''}`}>
+                          <input id="ps-name" placeholder="Your full name" autoComplete="name" value={data.name} onChange={(e) => set('name', e.target.value)} />
+                        </div>
+                        {err('name') && <span className="cui-s-err">This field is required</span>}
+                      </div>
 
-        .ps-field { display: flex; flex-direction: column; gap: 7px; }
-        .ps-label { font-size: 0.88rem; font-weight: 600; color: #ffffff; }
-        .ps-muted { font-weight: 500; color: rgba(255,255,255,0.5); }
-        .ps-input { width: 100%; padding: 10px 13px; border-radius: 10px; font-size: 0.88rem;
-          color: #ffffff; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.14);
-          outline: none; transition: border-color 0.2s, box-shadow 0.2s, background 0.2s; font-family: inherit; }
-        .ps-input::placeholder { color: rgba(255,255,255,0.4); }
-        .ps-input:focus { border-color: #6d7bff; background: rgba(255,255,255,0.06);
-          box-shadow: 0 0 0 4px rgba(109,123,255,0.18); }
-        .ps-input--error { border-color: #ef4444 !important; box-shadow: 0 0 0 3px rgba(239,68,68,0.16) !important; }
-        /* Native <select> popup ignores the dark theme by default - the browser
-           renders its own white dropdown, and our white input text on that white
-           background is invisible. Force dark rows so the options are readable. */
-        select.ps-input { cursor: pointer; }
-        select.ps-input option { background-color: #17171f; color: #eef; }
-        select.ps-input option:disabled { color: rgba(238, 238, 255, 0.45); }
+                      <div className="cui-s-field">
+                        <label className="cui-s-label">Instagram profile <em>(Required)</em></label>
+                        <div className="cui-s-links">
+                          {PLATFORMS.map(({ key, label, Icon, color }) => {
+                            const lerr = showErrors && linkError(key, data.links[key]);
+                            return (
+                              <div key={key}>
+                                <div className={`cui-s-link${lerr || err('links') ? ' is-error' : ''}`}>
+                                  <span className="cui-s-link-b" style={{ background: color }}><Icon size={18} /></span>
+                                  <input
+                                    ref={(el) => { linkRefs.current[key] = el; }}
+                                    aria-label={`${label} profile link`}
+                                    placeholder={key === 'instagram' ? 'https://instagram.com/yourhandle' : `${label} profile`}
+                                    value={data.links[key]}
+                                    onChange={(e) => setLink(key, e.target.value)}
+                                  />
+                                </div>
+                                {lerr && <span className="cui-s-err">{lerr}</span>}
+                              </div>
+                            );
+                          })}
+                          {extraLinks.map((l) => (
+                            <div key={l.id} className="cui-s-link">
+                              <span className="cui-s-link-b" style={{ background: '#7387ff' }}><Info size={17} /></span>
+                              <input
+                                aria-label="Website or custom link"
+                                placeholder="Website or custom link"
+                                value={l.url}
+                                onChange={(e) => setExtraLinks((ls) => ls.map((x) => (x.id === l.id ? { ...x, url: e.target.value } : x)))}
+                              />
+                              <button type="button" className="cui-s-link-x" aria-label="Remove link" onClick={() => setExtraLinks((ls) => ls.filter((x) => x.id !== l.id))}>×</button>
+                            </div>
+                          ))}
+                        </div>
+                        <button type="button" className="cui-s-textbtn" onClick={() => setExtraLinks((ls) => [...ls, { id: Date.now(), url: '' }])}>
+                          <Plus size={15} /> Add another social link
+                        </button>
+                        {err('links') && <span className="cui-s-err">Add your full Instagram profile link</span>}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
 
-        .ps-msel { position: relative; }
-        .ps-msel__btn { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px;
-          padding: 11px 13px; border-radius: 10px; font-size: 0.88rem; color: #ffffff; text-align: left;
-          background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.14); cursor: pointer; font-family: inherit; transition: all 0.2s; }
-        .ps-msel__btn.is-open { border-color: #6d7bff; box-shadow: 0 0 0 4px rgba(109,123,255,0.18); }
-        .ps-msel__btn > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .ps-msel__ph { color: rgba(255,255,255,0.45); }
-        .ps-msel--error .ps-msel__btn { border-color: #ef4444; }
-        .ps-msel__chev { flex-shrink: 0; color: rgba(255,255,255,0.5); transition: transform 0.2s; }
-        .ps-msel__btn.is-open .ps-msel__chev { transform: rotate(180deg); }
-        .ps-msel__menu { position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 30; max-height: 260px; overflow-y: auto;
-          padding: 6px; border-radius: 12px; background: #17171f; border: 1px solid rgba(255,255,255,0.14);
-          box-shadow: 0 20px 50px rgba(0,0,0,0.55); display: flex; flex-direction: column; gap: 2px; }
-        .ps-msel__opt { display: flex; align-items: center; gap: 10px; padding: 9px 11px; border-radius: 9px; cursor: pointer;
-          font-family: inherit; font-size: 0.88rem; color: #eef; background: none; border: none; text-align: left; }
-        .ps-msel__opt:hover { background: rgba(255,255,255,0.07); }
-        .ps-msel__opt.is-on { background: rgba(109,123,255,0.20); color: #ffffff; }
-        .ps-msel__box { flex-shrink: 0; width: 18px; height: 18px; border-radius: 5px; display: grid; place-items: center;
-          border: 1.5px solid rgba(255,255,255,0.4); color: #fff; }
-        .ps-msel__opt.is-on .ps-msel__box { background: #6d7bff; border-color: #6d7bff; }
+              {step === 1 && (
+                <>
+                  <div className="cui-s-card">
+                    <h1 className="cui-s-h">Your best videos</h1>
+                    <p className="cui-s-sub">UGC, brand ads, reels, or speaking samples work best. These show first on your card.</p>
+                    <div className="cui-s-body">
+                      {data.portfolio.length > 0 && (
+                        <div className="cui-s-vids">
+                          {data.portfolio.map((it) => (
+                            <div className="cui-s-vid" key={it.id}>
+                              <video src={it.videoUrl} muted playsInline preload="metadata" />
+                              <button type="button" className="cui-s-vid-x" onClick={() => removePortfolioItem(it.id)} aria-label={`Remove ${it.category} video`}>Remove</button>
+                              <div className="cui-s-vid-m">
+                                {it.category}
+                                <span>₹{it.price} · {it.delivery} {/\d/.test(it.delivery) && !/day/i.test(it.delivery) ? 'day(s)' : ''}</span>
+                              </div>
+                            </div>
+                          ))}
+                          {!addingMore && (
+                            <button type="button" className="cui-s-addv" onClick={() => setAddingMore(true)}>
+                              <Plus size={22} />+ Add more videos<small>or drag here</small>
+                            </button>
+                          )}
+                        </div>
+                      )}
 
-        /* Portfolio video: drag & drop on the left, price/delivery/category on the right */
-        .ps-fieldsub { font-size: 0.8rem; color: rgba(255,255,255,0.55); margin: -3px 0 2px; }
-        .ps-pf { display: flex; gap: 16px; flex-wrap: wrap; padding: 16px; border-radius: 16px;
-          border: 1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.02); }
-        .ps-pf--error .ps-pf-drop { border-color: #ef4444; }
-        .ps-pf-drop { flex: none; width: 190px; height: 190px; border-radius: 14px; border: 2px dashed rgba(109,123,255,0.5);
-          background: rgba(109,123,255,0.06); color: #ffffff; cursor: pointer;
-          display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; text-align: center; padding: 10px; }
-        .ps-pf-drop:hover, .ps-pf-drop.is-over { background: rgba(109,123,255,0.14); border-color: #6d7bff; }
-        .ps-pf-cloud { color: #6d7bff; }
-        .ps-pf-drop strong { font-size: 0.92rem; font-weight: 600; }
-        .ps-pf-upload-cta { display: inline-flex; align-items: center; gap: 5px; font-size: 0.8rem; font-weight: 600; color: #6d7bff; margin-top: 4px; }
-        .ps-pf-max { font-size: 0.74rem; color: rgba(255,255,255,0.5); }
-        .ps-pf-preview { flex: none; width: 190px; display: flex; flex-direction: column; gap: 8px; }
-        .ps-pf-vid { width: 100%; aspect-ratio: 1/1; border-radius: 12px; object-fit: cover; background: #000; }
-        .ps-pf-change { border: 1px solid rgba(255,255,255,0.18); background: rgba(255,255,255,0.05); color: #fff;
-          border-radius: 9px; padding: 7px 10px; font-size: 12.5px; font-weight: 700; cursor: pointer; font-family: inherit; }
-        .ps-pf-change:hover { border-color: #6d7bff; color: #6d7bff; }
-        .ps-pf-fields { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 10px; }
-        .ps-pf-list { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
-        .ps-pf-card { display: grid; grid-template-columns: 90px 1fr auto; align-items: center; gap: 12px;
-          padding: 10px 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.03); }
-        .ps-pf-card__vid { width: 90px; height: 64px; border-radius: 8px; object-fit: cover; background: #000; }
-        .ps-pf-card__body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-        .ps-pf-card__body strong { color: #ffffff; font-size: 0.9rem; }
-        .ps-pf-card__body span { color: rgba(255,255,255,0.6); font-size: 0.82rem; }
-        .ps-pf-card__del { flex-shrink: 0; padding: 7px 14px; border-radius: 9px; cursor: pointer; font-family: inherit;
-          font-size: 0.8rem; font-weight: 600; color: #f06d6d; background: none; border: 1px solid rgba(240,109,109,0.4); }
-        .ps-pf-card__del:hover { background: rgba(240,109,109,0.1); }
+                      {(data.portfolio.length === 0 || addingMore) && (
+                        <div className={`cui-s-draft${err('portfolio') ? ' is-error' : ''}`}>
+                          {data.videoPreview ? (
+                            <div className="cui-s-prev">
+                              <video src={data.videoPreview} muted controls playsInline />
+                              <button type="button" className="cui-s-btn is-sm" onClick={() => videoRef.current?.click()}>
+                                {videoUploading ? 'Uploading…' : 'Change video'}
+                              </button>
+                              <UploadProgress percent={videoUploading ? videoProgress : null} />
+                            </div>
+                          ) : (
+                            <div
+                              className={`cui-s-drop${videoDragOver ? ' is-over' : ''}`}
+                              role="button"
+                              tabIndex={0}
+                              onClick={() => videoRef.current?.click()}
+                              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); videoRef.current?.click(); } }}
+                              onDragOver={(e) => { e.preventDefault(); setVideoDragOver(true); }}
+                              onDragLeave={() => setVideoDragOver(false)}
+                              onDrop={onVideoDrop}
+                            >
+                              <CloudUpload size={28} />
+                              <strong>{videoUploading ? 'Uploading…' : 'Add video'}</strong>
+                              <span className="cui-s-up"><Upload size={14} /> Upload</span>
+                              <span>or drag here (max {MAX_UPLOAD_MB} MB)</span>
+                              <UploadProgress percent={videoUploading ? videoProgress : null} />
+                            </div>
+                          )}
+                          <input ref={videoRef} type="file" accept="video/*" hidden onChange={onPickVideo} />
+                          <div className="cui-s-draft-f">
+                            <div className="cui-s-inp"><input placeholder="Price" aria-label="Price" inputMode="numeric" value={data.pfPrice} onChange={(e) => set('pfPrice', e.target.value)} /></div>
+                            <div className="cui-s-inp"><input placeholder="Delivery time (days)" aria-label="Delivery time in days" inputMode="numeric" value={data.pfDelivery} onChange={(e) => set('pfDelivery', e.target.value)} /></div>
+                            <div className="cui-s-inp">
+                              <select aria-label="Category" value={data.pfCategory} onChange={(e) => set('pfCategory', e.target.value)}>
+                                <option value="" disabled>Category</option>
+                                {NICHE_CATEGORIES.map((c) => <option key={c.value} value={c.label}>{c.label}</option>)}
+                              </select>
+                            </div>
+                            <p className="cui-s-hint">Your video is added automatically once price, delivery time and category are filled.</p>
+                          </div>
+                        </div>
+                      )}
+                      {err('portfolio') && <span className="cui-s-err">Add at least one video to your profile</span>}
+                    </div>
+                  </div>
 
-        /* Social platform rows */
-        .ps-links { display: flex; flex-direction: column; gap: 10px; }
-        .ps-link { display: flex; align-items: center; gap: 12px; padding: 8px 8px 8px 12px; border-radius: 14px;
-          border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.03); }
-        .ps-link--error { border-color: #ef4444; }
-        .ps-link__badge { width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0; color: #fff;
-          display: flex; align-items: center; justify-content: center; font-size: 0.95rem; font-weight: 700; }
-        .ps-link__input { flex: 1; min-width: 0; background: none; border: none; outline: none; color: #ffffff;
-          font-family: inherit; font-size: 0.95rem; }
-        .ps-link__input::placeholder { color: rgba(255,255,255,0.4); }
-        .ps-link__add { flex-shrink: 0; padding: 8px 14px; border-radius: 9px; cursor: pointer; font-family: inherit;
-          font-size: 0.8rem; font-weight: 700; color: #ffffff; background: rgba(109,123,255,0.9); border: none; white-space: nowrap; }
-        .ps-link__add:hover { background: #6d7bff; }
-        .ps-link__remove { flex-shrink: 0; display: flex; background: none; border: none; cursor: pointer;
-          color: rgba(255,255,255,0.5); padding: 6px; font-size: 1.1rem; }
-        .ps-link__remove:hover { color: #fff; }
-        .ps-link-err { margin-top: -4px; margin-left: 12px; }
-        .ps-addlink { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; margin-top: 4px;
-          background: none; border: none; cursor: pointer; font-family: inherit; font-size: 0.88rem; font-weight: 600; color: #6d7bff; }
+                  <div className="cui-s-card">
+                    <h2 className="cui-s-h">What you make best</h2>
+                    <p className="cui-s-sub">We use this to match you with briefs.</p>
+                    <div className="cui-s-body">
+                      <div className="cui-s-label">Content style <em>(Select one or more)</em></div>
+                      <div className={`cui-s-chips${err('contentStyles') ? ' is-error' : ''}`}>
+                        {CONTENT_CATEGORIES.map((o) => {
+                          const on = data.contentStyles.includes(o.value);
+                          return (
+                            <button key={o.value} type="button" className={`cui-s-chip${on ? ' is-on' : ''}`} aria-pressed={on} onClick={() => toggleIn('contentStyles', o.value)}>
+                              {on && <Check size={14} />}{o.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {data.contentStyles.includes('custom') && (
+                        <div className="cui-s-inp"><input placeholder="Describe your custom content style" aria-label="Custom content style" value={data.customStyle} onChange={(e) => set('customStyle', e.target.value)} /></div>
+                      )}
+                      {err('contentStyles') && <span className="cui-s-err">Select at least one</span>}
 
-        @media (max-width: 560px) {
-          .ps-pf-drop, .ps-pf-preview { width: 100%; }
-        }
+                      <div className="cui-s-label">Content category <em>(Select one or more)</em></div>
+                      <div className={`cui-s-chips${err('contentCategories') ? ' is-error' : ''}`}>
+                        {NICHE_CATEGORIES.map((o) => {
+                          const on = data.contentCategories.includes(o.value);
+                          return (
+                            <button key={o.value} type="button" className={`cui-s-chip${on ? ' is-on' : ''}`} aria-pressed={on} onClick={() => toggleIn('contentCategories', o.value)}>
+                              {on && <Check size={14} />}{o.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {err('contentCategories') && <span className="cui-s-err">Select at least one</span>}
+                    </div>
+                  </div>
+                </>
+              )}
 
-        .ps-note { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; line-height: 1.5;
-          color: rgba(255,255,255,0.6); padding: 12px 14px;
-          border-radius: 12px; border: 1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.03); }
-        .ps-note svg { flex-shrink: 0; }
+              {step === 2 && (
+                <div className="cui-s-card">
+                  <h1 className="cui-s-h">Price per video</h1>
+                  <p className="cui-s-sub">You can change these any time from your profile settings.</p>
+                  <div className="cui-s-body">
+                    <div className="cui-s-rate">
+                      <div>
+                        <label htmlFor="raw-payout"><b>Raw video payout per video</b></label>
+                        <small>The brand edits it</small>
+                      </div>
+                      <span className={`cui-s-money${err('rawPayout') ? ' is-error' : ''}`}>
+                        ₹<input id="raw-payout" type="number" min="1" required inputMode="numeric" value={data.rawPayout} onChange={(e) => set('rawPayout', e.target.value)} />
+                      </span>
+                    </div>
+                    {err('rawPayout') && <span className="cui-s-err">Enter a payout above 0</span>}
+                    <div className="cui-s-rate">
+                      <div>
+                        <label htmlFor="editing-payout"><b>Additional editing payout per video</b></label>
+                        <small>Extra if you also edit it (optional)</small>
+                      </div>
+                      <span className="cui-s-money">
+                        +₹<input id="editing-payout" type="number" min="0" inputMode="numeric" value={data.editingPayout} onChange={(e) => set('editingPayout', e.target.value)} />
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
 
-        .ps-error { font-size: 0.82rem; color: #f06d6d; margin-top: 2px; }
+            <div className="cui-s-col cui-s-aside">
+              {sidePreview}
+              <div className="cui-s-tip"><Lightbulb size={18} /><span>{TIPS[step]}</span></div>
+            </div>
+          </div>
 
-        .ps-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-top: 24px;
-          padding-top: 18px; border-top: 1px solid rgba(255,255,255,0.08); }
-        .ps-btn-primary { display: inline-flex; align-items: center; gap: 8px; padding: 10px 26px; border-radius: 999px;
-          font-size: 0.9rem; font-weight: 600; color: #ffffff; cursor: pointer; border: none; font-family: inherit;
-          background: #6d7bff; transition: all 0.2s; width: 100%; justify-content: center; }
-        .ps-btn-primary:hover { background: #5a63f5; transform: translateY(-2px); }
-        .ps-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-        .ps-btn-primary.ps-pf-add { width: auto; align-self: flex-start; padding: 9px 22px; }
-        .ps-spin { width: 15px; height: 15px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.4);
-          border-top-color: #ffffff; animation: psSpin 0.7s linear infinite; }
-        @keyframes psSpin { to { transform: rotate(360deg); } }
-
-        .ps-thanks { text-align: center; padding: 48px 36px; display: flex; flex-direction: column; align-items: center; }
-        .ps-thanks__icon { width: 84px; height: 84px; border-radius: 50%; display: flex; align-items: center;
-          justify-content: center; color: #22c55e; margin-bottom: 22px;
-          background: rgba(34,197,94,0.15); box-shadow: 0 0 0 10px rgba(34,197,94,0.10), 0 16px 40px rgba(34,197,94,0.22); }
-        .ps-thanks__title { display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-head); font-size: var(--fs-h2); font-weight: var(--fw-head); color: #ffffff; margin: 0 0 12px; }
-        .ps-thanks__text { font-size: 0.95rem; line-height: 1.6; color: rgba(255,255,255,0.66); max-width: 420px; margin: 0 0 28px; }
-        .ps-thanks__text strong { color: #ffffff; }
-        .ps-thanks__actions { display: flex; flex-direction: column; align-items: center; gap: 12px; width: 100%; max-width: 260px; }
-
-        @media (max-width: 560px) {
-          .ps-card { padding: 26px 22px; }
-        }
-        /* Phone QA: 16px fields stop the iOS focus-zoom; 44px targets; notch / home-bar padding. */
-        @media (max-width: 768px) {
-          .ps-input, .ps-msel__btn, .ps-pf-field input { font-size: 16px; min-height: 44px; }
-          .ps-btn-primary { min-height: 48px; }
-          .ps-topbar { padding-top: max(20px, env(safe-area-inset-top)); }
-          .ps-main { padding-bottom: max(80px, calc(40px + env(safe-area-inset-bottom))); }
-          .ps-topbar__tag { white-space: nowrap; }
-        }
-        @media (max-width: 400px) {
-          .ps-card { padding: 20px 16px; }
-          .ps-thanks { padding: 32px 16px; }
-          .ps-topbar { padding-left: 16px; padding-right: 16px; }
-        }
-      `}</style>
+          <div className="cui-s-foot">
+            {step > 0
+              ? <button type="button" className="cui-s-btn" onClick={() => goStep(step - 1)}><ArrowLeft size={16} /> Back</button>
+              : <span />}
+            {step < 2 ? (
+              <button type="button" className="cui-s-btn cui-s-btn--pri" onClick={goNext} disabled={photoUploading || bannerUploading || videoUploading}>
+                {step === 0 ? 'Next: your videos' : 'Next: your rates'} <ArrowRight size={16} />
+              </button>
+            ) : (
+              <button type="submit" className="cui-s-btn cui-s-btn--pri" disabled={submitting || photoUploading || videoUploading}>
+                {submitting ? <><span className="cui-s-spin" /> Submitting…</> : <>Submit profile <ArrowRight size={16} /></>}
+              </button>
+            )}
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

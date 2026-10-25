@@ -1,50 +1,36 @@
 import React from 'react';
+import '../styles/brand-ui-states.css';
+import '../styles/brand-ui-mobile-b.css';
 
 /**
- * App-wide loading indicator — plays /public/loading.webm instead of a text/CSS spinner.
+ * App-wide loading indicator: the four interlocking clips of the UGCad mark light up in turn.
  *
- *  <Loader />                         full-screen overlay (route / page loads)
- *  <Loader fullscreen={false} />      inline, centred in its container (panels, cards)
- *  <Loader size={64} label="…" />     custom size + optional caption
+ *  <Loader />                         full-screen navy app loader (route / app loads)
+ *  <Loader fullscreen={false} />      light inline loader, centred in its container (panels, cards)
+ *  <Loader size={64} label="…" />     custom mark size (inline) + optional caption
  */
 export default function Loader({ fullscreen = true, size = 120, label }) {
-  const wrapStyle = fullscreen
-    ? {
-        position: 'fixed',
-        inset: 0,
-        zIndex: 9999,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 14,
-        background: '#0a0a12',
-      }
-    : {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 12,
-        padding: '40px 0',
-        width: '100%',
-      };
+  const clips = (h, white) => (
+    <div className={`bui-clips${white ? ' bui-clips--white' : ''}`} style={{ '--h': `${h}px` }} aria-hidden="true">
+      {[0, 1, 2, 3].map((i) => <span key={i} className="bui-clip" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-logo.png)` }} />)}
+    </div>
+  );
+
+  if (fullscreen) {
+    return (
+      <div className="bui-load-app" role="status" aria-live="polite" aria-label={label || 'Loading'}>
+        {clips(54, true)}
+        <div className="bui-load-word"><b>UGC</b>ad.io</div>
+        <div className="bui-load-label">{label || 'Getting your dashboard ready…'}</div>
+      </div>
+    );
+  }
 
   return (
-    <div style={wrapStyle} role="status" aria-live="polite" aria-label={label || 'Loading'}>
-      <video
-        src="/loading.webm"
-        autoPlay
-        loop
-        muted
-        playsInline
-        style={{ width: size, height: size, objectFit: 'contain' }}
-      />
-      {(
-        <span style={{ fontSize: '0.9rem', fontWeight: 500, color: 'rgba(255,255,255,0.7)' }}>
-          {label || 'Loading...'}
-        </span>
-      )}
+    <div className="bui-load-page" role="status" aria-live="polite" aria-label={label || 'Loading'}>
+      {clips(Math.max(24, Math.round(size * 0.37)), false)}
+      <div className="bui-load-label">{label || 'Loading…'}</div>
+      <div className="bui-load-bar" aria-hidden="true"><span /></div>
     </div>
   );
 }

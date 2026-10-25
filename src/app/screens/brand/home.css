@@ -1,0 +1,82 @@
+/* Brand app Home (boards M0 Home, M1 new-brand). Prefix ap-home-. */
+.ap-home-hero{display:flex;gap:10px;margin:0 -16px;padding:0 16px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding:0 16px;scrollbar-width:none}
+.ap-home-hero::-webkit-scrollbar{display:none}
+.ap-home-hc{position:relative;overflow:hidden;flex:none;width:100%;scroll-snap-align:start;padding:18px 20px;border-radius:22px;background:var(--ap-grad);color:#fff;display:flex;flex-direction:column;min-height:158px}
+.ap-home-hero.is-multi .ap-home-hc{width:min(318px,84%)}
+.ap-home-hero.is-multi::after{content:'';flex:none;width:6px}
+.ap-home-hero-sk{flex:none;width:100%;height:158px;border-radius:22px}
+.ap-home-glow{position:absolute;right:-60px;top:-80px;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(115,135,255,.7) 0%,rgba(115,135,255,.22) 40%,rgba(115,135,255,0) 70%);pointer-events:none}
+.ap-home-hc>*{position:relative}
+.ap-home-hc>.ap-home-glow{position:absolute}
+.ap-home-eyebrow{font-size:11.5px;font-weight:700;letter-spacing:.06em;color:#c9ceff}
+.ap-home-hc h2{margin:6px 0 0;font-family:var(--ap-head);font-weight:600;font-size:21px;line-height:1.25}
+.ap-home-hc p{margin:4px 0 14px;font-size:13px;line-height:1.45;color:#c9ceff}
+.ap-home-hc .ap-btn{margin-top:auto;align-self:flex-start;height:44px}
+.ap-home-dots{display:flex;justify-content:center;gap:6px;margin-top:-6px}
+.ap-home-dots span{width:6px;height:6px;border-radius:999px;background:#c9cbe6;transition:width .2s}
+.ap-home-dots span.on{width:18px;background:var(--ap-ink)}
+
+.ap-home-err{display:flex;align-items:center;gap:12px;color:var(--ap-danger)}
+.ap-home-err div{flex:1;min-width:0;color:var(--ap-ink)}
+.ap-home-err b{display:block;font-size:14.5px}
+.ap-home-err p{margin:2px 0 0;font-size:12.5px;color:var(--ap-muted)}
+
+.ap-home-sh{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 2px 10px;min-height:28px}
+.ap-home-sh h2{margin:0;font-size:17px;font-weight:700}
+.ap-home-sh .ap-link{min-height:44px;padding:0 4px}
+
+.ap-home-row{width:100%;background:none;border:0;border-top:1px solid var(--ap-line);font:inherit;color:inherit;text-align:left;cursor:pointer;min-height:64px}
+.ap-home-row:first-of-type{border-top:0}
+.ap-home-ic{flex:none;width:42px;height:42px;border-radius:50%;background:#eef0ff;color:var(--ap-link);display:grid;place-items:center;font-weight:700;font-size:15px}
+.ap-home-row .ap-btn{pointer-events:none}
+.ap-home-skrows{display:flex;flex-direction:column;gap:10px;padding:8px 0 12px}
+.ap-home-skrows .ap-skel{height:44px}
+.ap-home-caught{display:flex;align-items:center;gap:8px;margin:0;padding:8px 0 12px;font-size:14px;color:var(--ap-muted)}
+.ap-home-caught svg{color:var(--ap-ok);flex:none}
+.ap-home-caught--card{padding:14px 16px}
+
+.ap-home-list{display:flex;flex-direction:column;gap:12px}
+.ap-home-camp{display:flex;flex-direction:column;gap:10px}
+.ap-home-camp-top{display:flex;gap:12px;align-items:flex-start}
+.ap-home-thumb{flex:none;width:52px;height:52px;border-radius:12px;background:#ececfa;overflow:hidden}
+.ap-home-thumb img{width:100%;height:100%;object-fit:cover}
+.ap-home-camp .ap-row-t{display:flex;flex-direction:column;gap:2px;align-items:flex-start}
+.ap-home-camp .ap-row-t b{font-size:15px}
+.ap-home-bar5{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.ap-home-bar5 span{height:5px;border-radius:999px;background:#e4e5f5}
+.ap-home-bar5 span.on{background:var(--ap-primary)}
+.ap-home-camp-foot{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ap-home-camp-foot small{font-size:12.5px;color:var(--ap-muted)}
+
+.ap-home-hscroll{display:flex;gap:12px;margin:0 -16px;padding:0 16px;overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none}
+.ap-home-hscroll::-webkit-scrollbar{display:none}
+.ap-home-hs-item{flex:none;width:150px;scroll-snap-align:start}
+.ap-home-cksk{flex:none;width:150px;aspect-ratio:9/16;border-radius:14px}
+.ap-home-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
+.ap-home-gsk{aspect-ratio:9/16;border-radius:14px}
+
+/* new-brand checklist */
+.ap-home-start{padding:16px}
+.ap-home-start-h{display:flex;align-items:center;gap:12px;padding-bottom:12px;margin-bottom:8px;border-bottom:1px solid var(--ap-line)}
+.ap-home-start-h h2{margin:0;font-family:var(--ap-head);font-weight:600;font-size:18px}
+.ap-home-start-h small{font-size:12.5px;color:var(--ap-muted)}
+.ap-home-ring{flex:none;width:52px;height:52px;border-radius:50%;display:grid;place-items:center}
+.ap-home-ring span{width:42px;height:42px;border-radius:50%;background:#fff;display:grid;place-items:center;font-size:13px;font-weight:700}
+.ap-home-steps{list-style:none;margin:0;padding:0}
+.ap-home-steps li{position:relative;display:flex;gap:12px;padding:6px 0}
+.ap-home-steps li:not(:last-child)::before{content:'';position:absolute;left:13px;top:30px;bottom:-6px;width:2px;background:#e2e3f3}
+.ap-home-steps li.is-done:not(:last-child)::before{background:var(--ap-primary)}
+.ap-home-dot{position:relative;z-index:1;flex:none;width:28px;height:28px;border-radius:50%;background:#fff;box-shadow:inset 0 0 0 2px #dadbee;color:#a3a3c0;display:grid;place-items:center;font-size:12.5px;font-weight:700}
+.is-done .ap-home-dot{background:var(--ap-primary);color:#fff;box-shadow:none}
+.is-now .ap-home-dot{background:var(--ap-ink);color:#fff;box-shadow:0 0 0 4px #dde1ff}
+.ap-home-st{flex:1;min-width:0}
+.ap-home-st b{display:block;font-weight:600;font-size:14px}
+.ap-home-st small{display:block;font-size:12px;color:var(--ap-muted)}
+.is-done .ap-home-st b{color:var(--ap-muted)}
+.is-done .ap-home-st small{color:#a3a3c0}
+.ap-home-next{flex:1;min-width:0;padding:12px;margin-top:-6px;border-radius:16px;background:#eef0ff}
+.ap-home-next small{font-size:11px;font-weight:700;letter-spacing:.06em;color:#2a3ab8}
+.ap-home-next b{display:block;font-weight:700;font-size:15px;margin-top:2px}
+.ap-home-next p{margin:2px 0 0;font-size:12.5px;line-height:1.4;color:#3a3a6a}
+.ap-home-next .ap-btn{margin-top:10px;height:44px}
+.ap-home-grad{background:var(--ap-grad)}

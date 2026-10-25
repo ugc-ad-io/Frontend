@@ -191,9 +191,9 @@ export default function ChatPopup({ user, onClose, dealId = null, title = '' }) 
       </div>
 
       <div className="cpop-body">
-        <div className="cpop-note">🔒 To protect both parties, avoid sharing contact details until the brief is shared.</div>
+        <div className="cpop-note">To protect both parties, avoid sharing contact details until the brief is shared.</div>
         {messages.length === 0 ? (
-          <div className="cpop-empty">Say hello to start the conversation 👋</div>
+          <div className="cpop-empty">Say hello to start the conversation</div>
         ) : (
           messages.map((m, i) => {
             // Show offer / invitation / counter cards too — the brand's popup used to
@@ -244,88 +244,60 @@ export default function ChatPopup({ user, onClose, dealId = null, title = '' }) 
       )}
 
       <style>{`
-        .cpop-tools{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 14px;border-bottom:1px solid #eef0f6}
-        .cpop-tool{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;border:1px solid #e9ebf4;background:#fff;color:#15163a;border-radius:10px;padding:9px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit;transition:.15s}
-        .cpop-tool.primary{background:linear-gradient(100deg,#12124f,#07074e);border-color:transparent;color:#fff;box-shadow:0 12px 26px -12px rgba(7,7,78,.7)}
-        .cpop-tool:hover{border-color:#cdd2f3}
-        .cpop-tool.primary:hover{filter:brightness(1.06)}
-        .cpop-prof-ov{position:fixed;inset:0;background:rgba(15,22,58,.55);z-index:1300;display:flex;align-items:center;justify-content:center;padding:20px}
-        .cpop-prof{width:min(340px,100%);background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 24px 60px rgba(15,22,58,.4)}
-        .cpop-prof-media{position:relative;aspect-ratio:3/4;background:#0b1020}
-        .cpop-prof-media video,.cpop-prof-media img,.cpop-prof-fb{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-        .cpop-prof-fb{display:grid;place-items:center;color:#fff;font-size:46px;font-weight:800;background:linear-gradient(135deg,#5b6bff,#23236a)}
-        .cpop-prof-x{position:absolute;top:10px;right:10px;width:32px;height:32px;border-radius:50%;border:none;background:rgba(0,0,0,.5);color:#fff;cursor:pointer;display:grid;place-items:center;z-index:2}
-        .cpop-prof-body{padding:16px 18px}
-        .cpop-prof-body h3{margin:0 0 4px;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:18px;color:#15163a}
-        .cpop-prof-body p{margin:0;color:#585c7e;font-size:13.5px;text-transform:capitalize}
-        .cpop-prof-bio{display:block;margin-top:10px;color:#585c7e;font-size:13px;line-height:1.5}
+        .cpop-tools{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px 14px;border-bottom:1px solid #EDEDF6}
+        .cpop-tools:has(> :only-child){grid-template-columns:1fr}
+        .cpop-tool{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:38px;border:1.5px solid #9f9fd1;background:#fff;color:#07074E;border-radius:999px;padding:0 14px;font-weight:600;font-size:13.5px;cursor:pointer;font-family:'Inter',system-ui,sans-serif;transition:background .15s}
+        .cpop-tool.primary{background:#07074E;border-color:#07074E;color:#fff}
+        .cpop-tool:hover{background:#F3F3FF}
+        .cpop-tool.primary:hover{background:#12124f}
+        .cpop-tool:focus-visible,.cpop-x:focus-visible,.cpop-input button:focus-visible{outline:2px solid #7387FF;outline-offset:2px}
 
         .cpop{position:fixed;right:calc(24px + env(safe-area-inset-right,0px));bottom:calc(24px + env(safe-area-inset-bottom,0px));width:400px;max-width:calc(100vw - 32px);height:560px;max-height:calc(100vh - 48px);max-height:calc(100dvh - 48px);
-          background:#fff;border:1px solid #e9ebf4;border-radius:18px;box-shadow:0 28px 64px rgba(15,22,58,.32);
-          display:flex;flex-direction:column;overflow:hidden;z-index:1200;animation:cpop-in .22s cubic-bezier(.2,.7,.2,1)}
+          background:#fff;border:1px solid #E2E2F0;border-radius:20px;box-shadow:0 1px 2px rgba(7,7,78,.05),0 18px 40px -14px rgba(7,7,78,.32);
+          display:flex;flex-direction:column;overflow:hidden;z-index:1200;font-family:'Inter',system-ui,sans-serif;color:#07074E;animation:cpop-in .2s ease-out}
         .cpop.is-behind{z-index:900}
         /* Phones: a full-width sheet pinned to the bottom (above the home bar), never wider than the screen. */
         @media (max-width:640px){
           .cpop{left:max(8px,env(safe-area-inset-left));right:max(8px,env(safe-area-inset-right));bottom:max(8px,env(safe-area-inset-bottom));width:auto;max-width:none;
             max-height:calc(100dvh - 16px - env(safe-area-inset-top,0px))}
         }
-        @keyframes cpop-in{from{transform:translateY(20px);opacity:.5}to{transform:none;opacity:1}}
-        .cpop-head{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid #eef0f6}
-        .cpop-ava{width:38px;height:38px;border-radius:50%;flex:none;overflow:hidden;display:grid;place-items:center;
-          background:linear-gradient(135deg,#5b6bff,#23236a);color:#fff;font-weight:800}
+        @media (prefers-reduced-motion:reduce){.cpop{animation:none}}
+        @keyframes cpop-in{from{transform:translateY(12px);opacity:.6}to{transform:none;opacity:1}}
+        .cpop-head{display:flex;align-items:center;gap:12px;padding:14px 16px;border-bottom:1px solid #EDEDF6}
+        .cpop-ava{width:40px;height:40px;border-radius:50%;flex:none;overflow:hidden;display:grid;place-items:center;background:#ECEDFA;color:#4E60E6;font-weight:700}
         .cpop-ava img{width:100%;height:100%;object-fit:cover}
         .cpop-head-id{min-width:0}
-        .cpop-head-id strong{display:block;font-size:14.5px;color:#15163a;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-        .cpop-head-id small{color:#9296ba;font-size:12px;display:flex;align-items:center;gap:5px}
-        .cpop-dot{width:7px;height:7px;border-radius:50%;background:#22c55e;display:inline-block}
-        .cpop-note{background:#eef0ff;border:1px solid #dfe2ff;color:#4452f0;font-size:11.5px;line-height:1.4;padding:8px 11px;border-radius:10px}
-        .cpop-x{margin-left:auto;border:none;background:#f1f3fa;color:#15163a;width:40px;height:40px;border-radius:9px;cursor:pointer;display:grid;place-items:center}
-        .cpop-body{flex:1;min-width:0;overflow-y:auto;overflow-x:hidden;padding:16px;display:flex;flex-direction:column;gap:10px;background:#fafbff}
-        .cpop-empty{margin:auto;color:#9296ba;font-size:13.5px;text-align:center}
-        /* System notices are two very different things sharing one style: one-liners like
-           "Both shipping addresses received", and the full campaign brief, which runs to
-           dozens of lines. As a centre-aligned 999px pill the brief became an unreadable
-           ragged blob on desktop - and text-align:center plus collapsed whitespace threw
-           away the line breaks the message is actually written with.
-           Left-aligned, pre-wrap, and a block radius. Short notices still read as a neat
-           rounded box; long ones are legible. */
-        /* No card, no pill, no curve. A system notice carries the full campaign brief -
-           dozens of lines - and wrapping that in a rounded box made a tall arch of colour
-           that swallowed the text. Flat block instead: it reads as text, and a long brief
-           looks the same as a short notice.
-           align-self:stretch + min-width:0 are what stop it forcing the popup to scroll
-           sideways; a brief with an unbroken 40-character word had been widening the whole
-           column. overflow-wrap:anywhere breaks that word instead. */
-        /* A card, but a RECTANGLE. The 999px radius was the whole problem: on a notice
-           carrying the full campaign brief - dozens of lines tall - a pill radius bends the
-           sides into an arch and eats the text at the corners. 12px keeps the card and
-           squares it off, so it looks the same whether it holds one line or fifty.
-           pre-wrap keeps the line breaks the brief is written with; overflow-wrap breaks an
-           unbroken 40-character word instead of widening the column and forcing the popup
-           to scroll sideways. */
+        .cpop-head-id strong{display:block;font-family:'Readex Pro','Plus Jakarta Sans',sans-serif;font-weight:500;font-size:16px;color:#07074E;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+        .cpop-head-id small{color:#6E6E96;font-size:12.5px;display:flex;align-items:center;gap:5px}
+        .cpop-note{background:#F3F3FF;color:#6E6E96;font-size:12px;line-height:1.45;padding:9px 12px;border-radius:12px}
+        .cpop-x{margin-left:auto;border:0;background:transparent;color:#6E6E96;width:40px;height:40px;border-radius:50%;cursor:pointer;display:grid;place-items:center}
+        .cpop-x:hover{background:#F3F3FF;color:#07074E}
+        .cpop-body{flex:1;min-width:0;overflow-y:auto;overflow-x:hidden;padding:16px;display:flex;flex-direction:column;gap:10px;background:#FAFAFF}
+        .cpop-empty{margin:auto;color:#6E6E96;font-size:14px;text-align:center}
+        /* System notices can carry a whole campaign brief: flat rectangle, pre-wrap, never wider than the column. */
         .cpop-sys{align-self:stretch;width:100%;min-width:0;max-width:100%;box-sizing:border-box;
           text-align:left;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;
-          background:#eef0ff;border:1px solid #e0e4ff;border-radius:12px;
-          color:#4a4f63;font-size:12.5px;line-height:1.6;padding:12px 14px;margin:2px 0}
-        .cpop-card{align-self:stretch;background:#f7f8ff;border:1px solid #e5e8fb;border-radius:12px;padding:12px 14px;margin:2px 0}
-        .cpop-card-h{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:800;color:#15163a;font-size:12.5px;margin-bottom:8px}
-        .cpop-card-badge{text-transform:capitalize;font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:#eef0f6;color:#585c7e}
-        .cpop-card-badge.accepted{background:#ecfdf3;color:#067647}
-        .cpop-card-badge.open,.cpop-card-badge.pending{background:#fff8ed;color:#b45309}
-        .cpop-card-badge.rejected,.cpop-card-badge.declined{background:#fef3f2;color:#b42318}
-        .cpop-card-row{display:flex;justify-content:space-between;gap:12px;font-size:12px;padding:3px 0}
-        .cpop-card-row label{color:#8a90a6;text-transform:capitalize}
-        .cpop-card-row span{color:#1a202c;font-weight:600;text-align:right;word-break:break-word}
+          background:#EEF0FF;border-radius:14px;color:#2A3AB8;font-size:12.5px;line-height:1.6;padding:12px 14px;margin:2px 0}
+        .cpop-card{align-self:stretch;background:#fff;border:1px solid #E2E2F0;border-radius:16px;padding:12px 14px;margin:2px 0}
+        .cpop-card-h{display:flex;align-items:center;justify-content:space-between;gap:8px;font-weight:700;color:#07074E;font-size:12px;letter-spacing:.04em;text-transform:uppercase;margin-bottom:8px}
+        .cpop-card-badge{text-transform:capitalize;letter-spacing:0;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:#ECEDFA;color:#4E60E6}
+        .cpop-card-badge.accepted{background:#E3F6EE;color:#14774F}
+        .cpop-card-badge.open,.cpop-card-badge.pending{background:#FFF1DE;color:#A8590B}
+        .cpop-card-badge.rejected,.cpop-card-badge.declined{background:#FDE8E9;color:#B8272C}
+        .cpop-card-row{display:flex;justify-content:space-between;gap:12px;font-size:13px;padding:3px 0}
+        .cpop-card-row label{color:#6E6E96;text-transform:capitalize}
+        .cpop-card-row span{color:#07074E;font-weight:600;text-align:right;word-break:break-word}
         .cpop-row{display:flex}
         .cpop-row.own{justify-content:flex-end}
-        .cpop-bub{max-width:78%;min-width:0;overflow-wrap:anywhere;white-space:pre-wrap;padding:9px 13px;border-radius:14px;font-size:13.5px;line-height:1.45;background:#fff;border:1px solid #eef0f6;color:#15163a}
-        .cpop-row.own .cpop-bub{background:linear-gradient(100deg,#5b6bff,#4452f0);color:#fff;border-color:transparent}
-        .cpop-input{display:flex;gap:8px;padding:12px 12px max(12px,env(safe-area-inset-bottom));border-top:1px solid #eef0f6}
-        .cpop-input input{min-width:0}
-        .cpop-input input{flex:1;border:1px solid #e9ebf4;border-radius:30px;padding:10px 16px;font-family:inherit;font-size:14px;outline:none;color:#15163a}
-        .cpop-input input:focus{border-color:#c3cbff}
-        .cpop-input button{width:44px;height:44px;flex:none;border:none;border-radius:50%;background:linear-gradient(100deg,#12124f,#07074e);color:#fff;cursor:pointer;display:grid;place-items:center}
-        .cpop-input button:disabled{opacity:.5;cursor:not-allowed}
+        .cpop-bub{max-width:78%;min-width:0;overflow-wrap:anywhere;white-space:pre-wrap;padding:9px 14px;border-radius:18px 18px 18px 6px;font-size:14px;line-height:1.5;background:#fff;box-shadow:inset 0 0 0 1px #E2E2F0;color:#07074E}
+        .cpop-row.own .cpop-bub{background:#07074E;color:#fff;box-shadow:none;border-radius:18px 18px 6px 18px}
+        .cpop-input{display:flex;gap:8px;padding:12px 12px max(12px,env(safe-area-inset-bottom));border-top:1px solid #EDEDF6}
+        .cpop-input input{flex:1;min-width:0;height:44px;border:1px solid #c3c3de;border-radius:999px;padding:0 16px;font-family:inherit;font-size:14px;outline:none;color:#07074E;background:#fff}
+        .cpop-input input::placeholder{color:#8484b0}
+        .cpop-input input:focus{border-color:#7387FF;box-shadow:0 0 0 3px rgba(115,135,255,.18)}
+        .cpop-input button{width:44px;height:44px;flex:none;border:0;border-radius:50%;background:#07074E;color:#fff;cursor:pointer;display:grid;place-items:center}
+        .cpop-input button:hover:not(:disabled){background:#12124f}
+        .cpop-input button:disabled{opacity:.45;cursor:not-allowed}
       `}</style>
     </>
   );

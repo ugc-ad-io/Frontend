@@ -1,0 +1,281 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   Brand UI — mobile / tablet pass A (header shell, Home, Creators, Saved,
+   Profile, Campaigns, Campaign detail, Compare bids, Work review).
+   Media queries only. Loaded last from BrandTopNavLayout so it wins ties.
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* ── Header + mobile menu ────────────────────────────────────────────── */
+@media (max-width:900px){
+  .bui-hamburger{width:44px;height:44px;margin-left:-10px;place-items:center}
+  .bui-hamburger{display:inline-grid}
+  .bui-header-in{gap:8px 12px}
+  .bui-search input{font-size:16px}
+  /* fixed offset, NOT --cmk-nav-height: the menu sits inside the header, so that would feed back into itself */
+  .bui-mobile{max-height:calc(100vh - 170px);max-height:calc(100dvh - 170px);overflow-y:auto;overscroll-behavior:contain}
+  .bui-mobile button{min-height:48px}
+  .bui-mobile button svg{flex:none;color:var(--bui-muted)}
+  .bui-mobile button.is-active svg{color:var(--bui-link)}
+  .bui-mobile .bui-mobile-post{justify-content:center;margin:6px 0 8px;border:0;border-radius:10px;background:var(--bui-ink);color:#fff;font-weight:600}
+  .bui-mobile .bui-mobile-post svg{color:#fff}
+  .bui-mobile-bal{margin-left:auto;font-style:normal;font-size:13.5px;font-weight:600;padding:4px 10px;border-radius:999px;background:#ececfa;color:var(--bui-ink)}
+  .bui-menu{max-height:calc(100vh - 90px);max-height:calc(100dvh - 90px);overflow-y:auto;min-width:min(240px,calc(100vw - 32px))}
+  .bui-menu button{min-height:44px}
+}
+@media (max-width:720px){
+  .bui-header-in{flex-wrap:wrap;padding:6px 16px 10px;gap:4px 0}
+  .bui-logo{margin-right:auto;margin-left:2px}
+  .bui-nav{margin-left:0;flex:none;gap:0}
+  .bui-nav .bui-iconbtn,.bui-nav .notification-bell-button{width:42px}
+  .bui-avatar{margin-left:6px;width:38px;height:38px}
+  .bui-search{order:3;flex:1 1 100%;max-width:none;height:46px}
+  .bui-cats-in{gap:22px;padding:0 16px}
+  .bui-cats-in button{min-height:44px;padding:0}
+  .bui-main{padding:20px 16px 56px;gap:30px}
+  .bui-main--tight{padding-top:16px;gap:18px}
+  .bui-h1{font-size:26px}
+  .bui-sub{font-size:15px}
+  .bui-modal-ov{padding:12px;align-items:end}
+  .bui-modal{max-height:calc(100vh - 24px);max-height:calc(100dvh - 24px);border-radius:18px}
+  .bui-modal-body{padding:16px 18px 20px}
+  .bui-modal-h{padding:18px 56px 0 18px}
+  .bui-modal-x{width:40px;height:40px}
+  .bui-btn,.bui-cta,.bui-fbtn,.bui-toggle{min-height:44px}
+  .bui-chip{min-height:40px}
+  .bui-modal-foot .bui-btn{flex:1}
+}
+@media (max-width:375px){
+  .bui-nav>button[aria-label="Saved creators"]{display:none}
+}
+
+/* ── Home ────────────────────────────────────────────────────────────── */
+@media (max-width:720px){
+  .bui-hero{padding:24px 20px;gap:18px}
+  .bui-hero-copy h1{font-size:28px}
+  .bui-hero-cta{width:100%}
+  .bui-hero-cta>*{flex:1 1 150px;justify-content:center}
+  .bui-hero .bui-btn--light,.bui-btn--outline{height:46px}
+  .bui-two{gap:28px}
+  .bui-needs,.bui-active{flex-basis:100%}
+  .bui-card--pad{padding:18px 16px}
+  .bui-row{flex-wrap:wrap;padding:14px 0}
+  .bui-row-tx{flex:1 1 calc(100% - 52px)}
+  .bui-row-tx small{white-space:normal}
+  .bui-row .bui-pillbtn{flex:1 1 calc(100% - 48px);margin-left:48px;justify-content:center;height:44px}
+  .bui-order{padding:14px}
+  .bui-order-main{flex-basis:100%}
+  .bui-order-tx b{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .bui-order-prog{flex:1 1 100%;min-width:0}
+  .bui-order>.bui-btn{flex:1 1 100%;height:44px}
+  .bui-sec-head{flex-wrap:wrap;row-gap:4px}
+  .bui-h2{font-size:21px}
+  .bui-link{padding:10px 0}
+  .bui-promo{padding:22px 18px;gap:16px}
+  .bui-promo-h{font-size:22px}
+  .bui-promo-cta{width:100%;align-items:stretch;text-align:center}
+  .bui-promo-cta a{justify-content:center}
+  .bui-edit{padding:18px;flex-direction:column;align-items:stretch}
+  .bui-edit .bui-btn{width:100%;height:44px}
+  .bui-start-list li{flex-wrap:wrap;gap:8px 14px}
+  .bui-start-tx{flex:1 1 calc(100% - 44px)}
+  .bui-start-list li>.bui-btn{flex:1 1 calc(100% - 42px);margin-left:42px;height:44px}
+  .bui-start-list li>.bui-start-done{margin-left:42px}
+  .bui-help .bui-btn--block{height:46px}
+  .bui-trust>div{padding:14px}
+}
+/* Choice becomes a horizontal snap scroller (intro card first, then creators) */
+@media (max-width:600px){
+  .bui-choice{margin:0 -16px;padding:20px 0 20px 16px;border-radius:20px}
+  .bui-choice .bui-reel-grid{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:0 16px 8px 0;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .bui-choice .bui-reel-grid::-webkit-scrollbar{display:none}
+  .bui-choice .bui-reel-grid>*{flex:0 0 min(62vw,240px);scroll-snap-align:start}
+  .bui-choice-intro{aspect-ratio:auto;align-self:stretch;padding:22px 18px}
+  .bui-choice-intro h2{font-size:25px}
+}
+
+/* ── 9:16 creator cards, 2 columns on phones ─────────────────────────── */
+@media (max-width:600px){
+  .bui-reel-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 12px}
+  .bui-reel-media{border-radius:14px}
+  .bui-reel-top{top:18px;left:8px;right:8px}
+  .bui-reel-bars{top:8px;left:8px;right:8px}
+  .bui-badge{height:24px;padding:0 8px;font-size:11px}
+  .bui-reel-save{width:34px;height:34px}
+  .bui-reel-glass{left:6px;right:6px;bottom:6px;padding:6px 8px;gap:7px;border-radius:11px}
+  .bui-reel-ava{width:28px;height:28px;font-size:12px}
+  .bui-reel-who{overflow:hidden}
+  .bui-reel-name{font-size:13px}
+  .bui-reel-meta{font-size:11.5px}
+  .bui-reel-dur{bottom:58px;right:8px}
+  .bui-reel-foot{flex-wrap:wrap;gap:8px}
+  .bui-reel-price{flex:1 1 100%}
+  .bui-reel-msg{width:44px;height:44px}
+  .bui-reel-invite{flex:1;justify-content:center;height:44px}
+}
+
+/* ── Creators / Saved / No results ───────────────────────────────────── */
+@media (max-width:760px){
+  .bui-filterbar{position:static;flex-wrap:nowrap;overflow-x:auto;gap:8px;margin:0 -16px;padding:10px 16px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .bui-filterbar::-webkit-scrollbar{display:none}
+  .bui-filterbar>*{flex:none}
+  .bui-filterbar .bui-grow{display:none}
+  .bui-fbtn{height:44px}
+  .bui-countrow{flex-direction:column;align-items:flex-start;gap:4px}
+  .bui-countrow .bui-link:not(.bc-approved-link){padding:6px 0}
+  .bui-countrow .bc-approved-link{min-height:44px;align-self:flex-start}
+  .bui-crumb{flex-wrap:wrap}
+}
+@media (max-width:600px){
+  .bui-gig-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 12px}
+  .bui-gig{gap:8px}
+  .bui-gig-save{width:40px;height:40px;top:8px;right:8px}
+  .bui-gig-dur{left:8px;bottom:8px}
+  .bui-gig-who{min-height:36px;gap:6px;flex-wrap:wrap}
+  .bui-gig-title{font-size:14px}
+  .bui-gig-rate{flex-wrap:wrap;font-size:13px}
+  .bui-gig-deliv{margin-left:0;font-size:12px}
+  .bui-gig-foot{flex-wrap:wrap;gap:2px 8px}
+  .bui-gig-invite{min-height:44px;padding:0 6px 0 0}
+  .bui-pill{height:44px}
+  .bui-nr-bar{font-size:15px;padding:0 12px}
+  .bui-nr-hero{padding:18px}
+  .bui-nr-h{font-size:23px}
+  .bui-nr-chip{height:44px}
+  .bui-nr-side .bui-btn{width:100%}
+}
+
+/* ── Creator profile: keep the fixed bottom bar from covering the last section ── */
+@media (max-width:900px){
+  .bui-main.bui-pf{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
+}
+
+/* ── Campaigns table -> stacked cards (td data-label pattern, BrandCampaigns.js) ── */
+@media (max-width:900px){
+  .bui-tablewrap:has(.bui-table--camp){background:none;border:0;border-radius:0;overflow:visible}
+  .bui-table--camp{min-width:0;display:block}
+  .bui-table--camp thead{display:none}
+  .bui-table--camp tbody{display:block}
+  .bui-table--camp tr{display:block}
+  .bui-table--camp tr.bui-tr{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 14px;align-items:start;background:#fff;border:1px solid var(--bui-line);border-bottom:0;border-radius:14px 14px 0 0;padding:14px 16px 0}
+  .bui-table--camp td{padding:0 !important;border:0 !important;min-width:0}
+  .bui-table--camp td:nth-child(1){grid-column:1 / 3;grid-row:1}
+  .bui-table--camp td:nth-child(5){grid-column:3;grid-row:1;justify-self:end}
+  .bui-table--camp td:nth-child(2){grid-column:1;grid-row:2}
+  .bui-table--camp td:nth-child(3){grid-column:2;grid-row:2}
+  .bui-table--camp td:nth-child(4){grid-column:3;grid-row:2;justify-self:end;text-align:right}
+  .bui-table--camp td:nth-child(6){grid-column:1 / -1;grid-row:3;text-align:left;padding:2px 0 14px !important;display:flex;gap:8px}
+  .bui-table--camp td[data-label]::before{content:attr(data-label);display:block;margin-bottom:4px;color:var(--bui-muted);font-size:11.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+  .bui-table--camp td:nth-child(5)::before{content:none}
+  .bui-table--camp td:nth-child(6) .bui-cta{flex:1;justify-content:center;height:44px}
+  .bui-table--camp td:nth-child(6) .bui-iconghost{flex:none;width:44px;height:44px;margin:0}
+  .bui-table--camp .bui-cell-t{overflow-wrap:anywhere}
+  .bui-table--camp tr:not(.bui-tr){margin-bottom:14px;background:#fff;border:1px solid var(--bui-line);border-top:0;border-radius:0 0 14px 14px}
+  .bui-table--camp .bui-trackcell{display:block;padding:12px 16px 16px !important;margin:0 16px 0;padding-left:0 !important;padding-right:0 !important;border-top:1px dashed var(--bui-line)}
+  .bui-table--camp .bui-track6{max-width:none;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 8px}
+}
+@media (max-width:560px){
+  .bui-table--camp tr.bui-tr{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .bui-table--camp td:nth-child(1){grid-column:1 / -1}
+  .bui-table--camp td:nth-child(5){grid-column:1;grid-row:2;justify-self:start}
+  .bui-table--camp td:nth-child(5)::before{content:"Status";display:block}
+  .bui-table--camp td:nth-child(2){grid-column:1 / -1;grid-row:3}
+  .bui-table--camp td:nth-child(3){grid-column:1;grid-row:4}
+  .bui-table--camp td:nth-child(4){grid-column:2;grid-row:4}
+  .bui-table--camp td:nth-child(6){grid-row:5}
+  .bui-titlerow{align-items:stretch}
+  .bui-searchbox{min-width:0;width:100%;height:46px}
+  .bui-searchbox input{font-size:16px}
+}
+
+/* ── Campaign detail ─────────────────────────────────────────────────── */
+@media (max-width:760px){
+  .bui-main--detail{padding-top:16px;gap:18px}
+  .bui-dhead{align-items:stretch;gap:14px}
+  .bui-dhead-l{gap:14px}
+  .bui-dhead-r{width:100%;gap:10px}
+  .bui-dhead-r .bui-budget{flex:1 1 100%;margin:0}
+  .bui-dhead-r .bui-btn{flex:1 1 140px}
+  .bui-h1--detail{overflow-wrap:anywhere}
+  .bui-panel{padding:18px 16px;border-radius:14px}
+  .bui-panel--tight{padding:16px}
+  .bui-panel-h{flex-wrap:wrap}
+  .bui-turn{padding:12px}
+  .bui-turn-tx{min-width:0;flex:1 1 calc(100% - 60px)}
+  .bui-turn .bui-btn{flex:1 1 100%}
+  .bui-btnrow{flex-wrap:wrap}
+  .bui-btnrow .bui-btn{flex:1 1 130px}
+  .bui-bid{grid-template-columns:36px minmax(0,1fr)}
+  .bui-bid-act{grid-column:1 / -1;justify-content:space-between}
+  .bui-script-h,.bui-script-b{padding:18px 16px}
+  .bui-script-t{font-size:21px}
+  .bui-script-lines{max-height:320px}
+  .bui-script-line{flex-direction:column;gap:4px;padding:12px}
+  .bui-field textarea{font-size:16px}
+  /* deal chat + "view details" drawer (styles are inline in BrandCampaignDetail.js) */
+  .bui-app .bcd-dmsg{max-width:88%}
+  .bui-app .bcd-dchat-input input{font-size:16px;min-height:44px}
+  .bui-app .bcd-dchat-input button{width:46px;min-height:44px}
+  .bui-app .bcd-drawer-head{padding:14px 16px}
+  .bui-app .bcd-drawer-body{padding:16px}
+  .bui-app .bcd-drawer-close{width:44px;height:44px}
+  .bui-app .bcd-revcard-head{flex-wrap:wrap}
+}
+@media (max-width:560px){
+  .bui-track6{gap:4px}
+  .bui-track6 em{font-size:11px;letter-spacing:-.01em}
+  .bui-kv4{gap:12px}
+  .bui-dhead-meta{gap:6px 10px}
+  .bui-tab{padding:0 2px}
+  .bui-tabs{gap:20px}
+}
+@media (max-width:400px){
+  .bui-hired{flex-direction:column}
+  .bui-hired-poster{width:120px}
+}
+
+/* ── Compare bids ────────────────────────────────────────────────────── */
+@media (max-width:900px){
+  .bui-tabs--bare{overflow-x:auto;max-width:100%;gap:22px;scrollbar-width:none}
+  .bui-tabs--bare::-webkit-scrollbar{display:none}
+  .bui-tabrow{gap:0 12px}
+  .bui-campsel select{height:48px;font-size:16px}
+  .bui-bidhero{padding:22px 18px}
+  .bui-bidhero-t{font-size:22px}
+  .bui-bid-row{padding:14px}
+}
+@media (max-width:560px){
+  .bui-bidhero-l{gap:14px}
+  .bui-bidhero-thumb{width:48px;height:64px;font-size:20px}
+  .bui-bidhero-r{width:100%}
+  .bui-bidhero-r .bui-btn{flex:1}
+  .bui-bid-row{grid-template-columns:64px minmax(0,1fr);gap:12px}
+  .bui-bid-side-top{align-items:center}
+  .bui-bid-btns .bui-btn{flex:1}
+  .bui-sort{height:44px}
+  .bui-sort select{height:42px;font-size:16px}
+  .bui-star{width:44px;height:44px}
+  .bui-bid-links button{min-height:44px}
+}
+
+/* ── Work review ─────────────────────────────────────────────────────── */
+@media (max-width:560px){
+  .bui-wr{padding:14px;gap:14px}
+  .bui-wr-thumb{max-width:min(240px,100%)}
+  .bui-wr-actions .bui-btn{flex:1 1 140px}
+  .bui-iconbtn-sq{width:44px;height:44px}
+  .bui-fchip{min-height:32px}
+}
+
+/* Tablet header: top row = hamburger | logo | icons + Post, search full width on its own row. */
+@media (min-width:721px) and (max-width:900px){
+  .bui-header-in{flex-wrap:wrap;gap:6px 12px;padding-bottom:12px}
+  .bui-logo{margin-right:auto}
+  .bui-nav{margin-left:0}
+  .bui-search{order:3;flex:1 1 100%;max-width:none}
+  .bui-post{margin-left:6px}
+}
+
+/* Filter-modal chips can hold long creator-written text: wrap instead of overflowing a fixed height. */
+.bui-chip{border-radius:18px;height:auto;min-height:36px;max-width:100%;padding-top:6px;padding-bottom:6px;line-height:1.3;text-align:left;overflow-wrap:anywhere}
+
+/* Phones: the two-row header (+ search + category strip) is too tall to keep pinned. */
+@media (max-width:720px){ body .bui-header{position:relative} }

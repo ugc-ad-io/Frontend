@@ -1,0 +1,108 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   Creator UI — "new-ui" redesign of the creator side (shell + shared bits).
+   Ported from the design board (boards C01-C26). Classes are prefixed `cui-`
+   so the brand side (`bui-`) and legacy `cmk-`/`pcd-` styles never collide.
+   ───────────────────────────────────────────────────────────────────────── */
+.cui-app{
+  --cui-ink:#07074e;
+  --cui-muted:#6e6e96;
+  --cui-soft:#5a5a8c;
+  --cui-primary:#7387ff;
+  --cui-link:#4e60e6;
+  --cui-bg:#f3f3ff;
+  --cui-card:#fff;
+  --cui-line:#e2e2f0;
+  --cui-line-soft:#e9e9f6;
+  --cui-side:#0b0b3b;
+  --cui-danger:#e5484d;
+  --cui-ok:#1da06a;
+  --cui-head:'Readex Pro','Plus Jakarta Sans',sans-serif;
+  display:flex;align-items:stretch;min-height:100vh;
+  background:var(--cui-bg);background-attachment:scroll;color:var(--cui-ink);
+  font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;
+}
+:where(.cui-app) a{color:inherit;text-decoration:none}
+
+/* ── Sidebar ─────────────────────────────────────────────────────────── */
+.cui-side{flex:none;width:248px;position:sticky;top:0;align-self:flex-start;height:100vh;overflow-y:auto;background:var(--cui-side);color:#fff;padding:26px 18px;box-sizing:border-box;display:flex;flex-direction:column;gap:24px;scrollbar-width:none}
+.cui-side::-webkit-scrollbar{display:none}
+.cui-logo{display:flex;align-items:center;gap:9px;padding:0 8px;background:none;border:0;color:#fff;cursor:pointer}
+.cui-logo-mark{display:block;width:23px;height:30px;flex:none;background-repeat:no-repeat;background-position:-23px 0;background-size:70px auto;filter:brightness(0) invert(1)}
+.cui-logo-mark--dark{filter:none}
+.cui-logo-word{font-family:var(--cui-head);font-weight:500;font-size:20px;line-height:1}
+.cui-logo-word b{font-weight:500;color:#9faeff}
+.cui-logo-word--dark{color:var(--cui-ink)}
+.cui-logo-word--dark b{color:var(--cui-primary)}
+.cui-tag{margin:-14px 8px 0;align-self:flex-start;height:22px;padding:0 8px;border-radius:6px;background:rgba(159,174,255,.18);color:#c9ceff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;letter-spacing:.06em}
+.cui-nav{display:flex;flex-direction:column;gap:4px}
+.cui-nav-item{display:flex;align-items:center;gap:12px;height:44px;padding:0 12px;border-radius:12px;font:inherit;font-weight:500;font-size:14.5px;color:#b7bae8;background:none;border:0;cursor:pointer;text-align:left}
+.cui-nav-item span{flex:1}
+.cui-nav-item:hover{background:rgba(255,255,255,.06);color:#fff}
+.cui-nav-item.is-on{font-weight:700;color:#fff;background:rgba(255,255,255,.1)}
+.cui-nav-item i{min-width:22px;height:20px;padding:0 6px;box-sizing:border-box;border-radius:999px;background:var(--cui-primary);color:#fff;font-size:11px;font-weight:700;font-style:normal;display:grid;place-items:center}
+.cui-level{margin-top:auto;padding:16px;border-radius:16px;background:rgba(255,255,255,.07)}
+.cui-level small{display:block;font-size:12px;color:#b7bae8}
+.cui-level b{display:block;margin-top:4px;font-weight:700;font-size:15px}
+.cui-level-bar{margin:10px 0 8px;height:6px;border-radius:999px;background:rgba(255,255,255,.14)}
+.cui-level-bar span{display:block;height:100%;border-radius:999px;background:var(--cui-primary)}
+.cui-out{display:flex;align-items:center;gap:10px;height:40px;padding:0 12px;border-radius:12px;background:none;border:0;color:#b7bae8;font:inherit;font-size:14px;cursor:pointer}
+.cui-out:hover{background:rgba(255,255,255,.06);color:#fff}
+
+/* ── Main column ─────────────────────────────────────────────────────── */
+.cui-main{flex:1;min-width:0;padding:26px 34px 60px;display:flex;flex-direction:column;gap:24px}
+.cui-main--flush{padding:0}
+.cui-head{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.cui-head-t{flex:1;min-width:220px}
+.cui-head-t h1{margin:0;font-family:var(--cui-head);font-weight:500;font-size:28px;letter-spacing:-.02em;line-height:1.15;color:var(--cui-ink)}
+.cui-head-t p{margin:2px 0 0;font-size:14.5px;color:var(--cui-muted)}
+.cui-search{display:flex;align-items:center;gap:10px;width:300px;height:44px;padding:0 14px;border-radius:12px;background:#fff;box-shadow:inset 0 0 0 1px var(--cui-line);color:#8484b0;font-size:14px}
+.cui-search input{flex:1;min-width:0;border:0;outline:0;background:transparent;font:inherit;color:var(--cui-ink)}
+.cui-bell .notification-bell-container{position:relative}
+.cui-bell .notification-bell-button{position:relative;width:44px;height:44px;border-radius:12px;background:#fff;box-shadow:inset 0 0 0 1px var(--cui-line);border:0;display:grid;place-items:center;color:var(--cui-ink);cursor:pointer;padding:0}
+.cui-bell .notification-badge{position:absolute;top:10px;right:11px;min-width:8px;width:8px;height:8px;padding:0;border-radius:50%;background:var(--cui-danger);font-size:0;color:transparent;border:0;line-height:0}
+.cui-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 16px;border-radius:12px;background:var(--cui-ink);color:#fff;font:inherit;font-weight:600;font-size:14.5px;border:0;cursor:pointer;white-space:nowrap}
+.cui-btn:hover{background:#12124f}
+.cui-btn--ghost{background:#fff;color:var(--cui-ink);box-shadow:inset 0 0 0 1.5px #9f9fd1}
+.cui-btn--ghost:hover{background:var(--cui-bg)}
+
+/* KYC banner */
+.cui-kyc{width:100%;display:flex;align-items:center;gap:12px;text-align:left;border:1px solid;border-radius:14px;padding:12px 16px;cursor:pointer;font:inherit;font-size:13.5px}
+.cui-kyc.warn{background:#fff8e8;border-color:#fbe3b4;color:#92600a}
+.cui-kyc.info{background:#eef0ff;border-color:#d7dbff;color:#3730a3}
+.cui-kyc span{flex:1;font-weight:600;line-height:1.4}
+.cui-kyc em{display:inline-flex;align-items:center;gap:4px;font-style:normal;font-weight:700;white-space:nowrap}
+
+/* ── Phone chrome: hidden on desktop ─────────────────────────────────── */
+.cui-top,.cui-tabs,.cui-drawer,.cui-backdrop{display:none}
+.cui-iconbtn{width:44px;height:44px;display:grid;place-items:center;background:none;border:0;color:var(--cui-ink);cursor:pointer;padding:0}
+.cui-top-logo{display:inline-flex;align-items:center;gap:8px;background:none;border:0;padding:0;cursor:pointer;margin-right:auto}
+.cui-avatar{width:36px;height:36px;border-radius:50%;background:var(--cui-ink);color:#fff;display:grid;place-items:center;font-weight:600;font-size:14px;border:0;cursor:pointer;overflow:hidden;padding:0}
+.cui-avatar img{width:100%;height:100%;object-fit:cover}
+
+@media (max-width:900px){
+  .cui-app{display:block;padding-bottom:calc(64px + env(safe-area-inset-bottom,0px))}
+  .cui-side{display:none}
+  .cui-top{position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:6px;height:56px;padding:0 10px 0 4px;background:#fff;border-bottom:1px solid var(--cui-line)}
+  .cui-backdrop{display:block;position:fixed;inset:0;z-index:70;background:rgba(7,7,78,.45)}
+  .cui-drawer{display:flex;flex-direction:column;gap:20px;position:fixed;top:0;bottom:0;left:0;z-index:80;width:min(300px,86vw);background:var(--cui-side);color:#fff;padding:22px 16px;box-sizing:border-box;overflow-y:auto}
+  .cui-main{padding:16px 16px 28px;gap:18px}
+  .cui-main--flush{padding:0}
+  .cui-head-t h1{font-size:24px}
+  .cui-search{width:100%;order:3}
+  .cui-tabs{position:fixed;left:0;right:0;bottom:0;z-index:60;display:grid;grid-template-columns:repeat(5,1fr);background:#fff;border-top:1px solid var(--cui-line);padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px))}
+  .cui-tabs button{display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:0;color:var(--cui-soft);font:inherit;cursor:pointer;min-height:48px;padding:2px 0}
+  .cui-tabs button small{font-size:11px;font-weight:600}
+  .cui-tabs button.is-on{color:var(--cui-ink)}
+  .cui-tabs button.is-on small{font-weight:700}
+  .cui-tab-ic{position:relative;display:grid;place-items:center}
+  .cui-tab-ic i{position:absolute;top:-4px;right:-9px;min-width:16px;height:16px;padding:0 4px;box-sizing:border-box;border-radius:999px;background:var(--cui-primary);color:#fff;font-size:10px;font-weight:700;font-style:normal;display:grid;place-items:center}
+}
+
+/* index.css forces main{padding-inline:var(--site-h-pad)!important}: restore the shell gutters for every creator page. */
+body .cui-app main.cui-main{padding-left:34px !important;padding-right:34px !important}
+body .cui-app main.cui-main.cui-main--flush{padding-left:0 !important;padding-right:0 !important}
+@media (max-width:900px){
+  body .cui-app main.cui-main{padding-left:16px !important;padding-right:16px !important}
+}
+/* ghost button: a real border (the inset ring was being overridden by shared button resets) */
+.cui-btn--ghost{border:1.5px solid #9f9fd1;box-shadow:none}

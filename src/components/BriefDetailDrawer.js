@@ -1,14 +1,20 @@
-import { X, Send, Wallet, Clock, Star, Target, Download } from 'lucide-react';
+import { useEffect } from 'react';
+import { ArrowLeft, Check, X, Download, Play } from 'lucide-react';
 import briefDeliveryLabel from '../utils/briefDeliveryLabel';
+import { creatorsWanted, slotsLeft } from '../utils/campaignCreators';
+import { maxCampaignBid } from '../utils/bidBudget';
+import { BriefLogo, briefPay, bidCount, inr } from './briefUi';
+import '../styles/creator-ui-briefs.css';
+import '../styles/creator-ui-apply.css';
 
-// Full campaign-brief detail drawer. Shared by Browse Campaigns and Saved
-// Campaigns so both open the same view in place instead of redirecting.
+// Full brief detail (design board C03). Shared by Find briefs and Saved briefs.
 //
 // Expects a normalized brief (see normalizeBrief) that still carries the raw
 // campaign object on `.campaign` — that's where the structured brief lives.
+// `applyPanel` (optional) replaces the default "Apply" card in the right column
+// (Find briefs passes the bid form there once the bid gates are passed).
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
-const getInitial = (name) => (name || 'B').trim().charAt(0).toUpperCase();
 
 // Force a real download. The bare `download` attribute is IGNORED cross-origin
 // (uploads are served from the backend host, not the app host), so the browser
@@ -33,35 +39,20 @@ const downloadFile = async (url, suggestedName) => {
   }
 };
 
-// Map a niche/tag to a consistent colour class so each category reads distinctly.
-const CAT_MAP = [
-  [/beauty|skin|makeup|cosmet/i, 'c-beauty'],
-  [/tech|gadget|electronic|app|software/i, 'c-tech'],
-  [/fashion|apparel|cloth|style|jewel/i, 'c-fashion'],
-  [/life ?style|home|decor|interior/i, 'c-lifestyle'],
-  [/food|snack|beverage|drink|recipe|cook/i, 'c-food'],
-  [/fit|gym|health|wellness|yoga|sport/i, 'c-fitness'],
-  [/travel|trip|tour|hotel|destination/i, 'c-travel'],
-  [/game|gaming|esport/i, 'c-gaming'],
-  [/finance|fintech|bank|invest|money/i, 'c-finance'],
-];
-const catClass = (tag) => (CAT_MAP.find(([re]) => re.test(String(tag || '')))?.[1]) || 'c-default';
-
-// Render the newline-separated brief into a readable definition list.
+// Render the newline-separated brief into readable lines.
 const renderBrief = (text) => {
-  const lines = String(text || '').split('\n');
   const out = [];
-  lines.forEach((line, i) => {
+  String(text || '').split('\n').forEach((line, i) => {
     const t = line.trim();
     if (!t) return;
     const idx = t.indexOf(':');
     if (idx > 0 && idx <= 28) {
-      out.push(<p key={i} className="bb-bl"><span className="bb-blab">{t.slice(0, idx)}:</span> {t.slice(idx + 1).trim()}</p>);
+      out.push(<p key={i} className="cui-b-line"><b>{t.slice(0, idx)}:</b> {t.slice(idx + 1).trim()}</p>);
     } else {
-      out.push(<p key={i} className="bb-bl">{t}</p>);
+      out.push(<p key={i} className="cui-b-line">{t}</p>);
     }
   });
-  return out.length ? out : <p className="bb-bl">No brief details provided.</p>;
+  return out.length ? out : <p className="cui-b-line">No brief details provided.</p>;
 };
 
 // The brief form stores the CTA's destination in ONE field (cta_link), but what it
@@ -75,7 +66,23 @@ const CTA_LINK_LABEL = {
   'Follow brand': 'Brand handle to follow',
 };
 
-export default function BriefDetailDrawer({ brief, onClose, onBid }) {
+const fmtDay = (d) => {
+  const ms = d ? new Date(d).getTime() : NaN;
+  return Number.isFinite(ms) ? new Date(ms).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '';
+};
+
+export default function BriefDetailDrawer({ brief, onClose, onBid, applyPanel }) {
+  // Esc closes; the page behind stops scrolling while the detail is open.
+  const isOpen = Boolean(brief);
+  useEffect(() => {
+    if (!isOpen) return undefined;
+    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', onKey);
+    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = prev; };
+  }, [isOpen, onClose]);
+
   if (!brief) return null;
 
   const b = brief;
@@ -85,7 +92,7 @@ export default function BriefDetailDrawer({ brief, onClose, onBid }) {
   const deliverables = Array.isArray(c.deliverable_items) ? c.deliverable_items : [];
 
   // Full structured brief — grouped sections, empty rows filtered out.
-  const detailSections = [
+  const groups = [
     { h: 'Product', rows: [
       ['Product', c.product_name],
       ['Product type', [c.product_type, c.product_type_detail].filter(Boolean).join(' - ')],
@@ -110,28 +117,6 @@ export default function BriefDetailDrawer({ brief, onClose, onBid }) {
       ['Gender preference', c.gender_preference],
       ['Location', c.city_filter || 'Any location'],
     ] },
-    { h: 'Must include', rows: [
-      ['Product visible', c.product_visible ? `${c.product_visible_seconds || ''}s minimum` : ''],
-      ['Verbal mention', c.verbal_mention ? (c.verbal_mention_text || 'Yes') : ''],
-      ['Required phrases', listVal(c.required_phrases)],
-      ['Required shots', listVal(c.required_shots)],
-      ['Call to action', c.call_to_action],
-      // The CTA destination itself — without this the creator was told to add a CTA
-      // but never given the URL/handle to point it at. Blank rows self-filter below.
-      [CTA_LINK_LABEL[c.call_to_action] || 'CTA link', c.cta_link],
-      ['Promo code', c.promo_code],
-      ['Hashtags', c.hashtags],
-      ['Brand tag', c.brand_handle_tag ? 'Yes' : ''],
-    ] },
-    { h: 'Must avoid', rows: [
-      ['Competitors', c.no_competitors ? (c.competitors_text || 'No competitor brands') : ''],
-      ['Other products', c.no_other_products ? 'Not allowed' : ''],
-      ['Profanity', c.no_profanity ? 'Not allowed' : ''],
-      ['Political/religious', c.no_political ? 'Not allowed' : ''],
-      ['Filters/effects', c.avoid_filters ? (c.filter_types_text || 'Avoid') : ''],
-      ['Other', c.avoid_text],
-    ] },
-    // Mood board renders as a thumbnail gallery below, not as a text row.
     { h: 'Style guidance', rows: [
       ['Tone', listVal(c.tone_tags)],
       ['Pacing', c.pacing],
@@ -145,13 +130,39 @@ export default function BriefDetailDrawer({ brief, onClose, onBid }) {
       ['Whitelisting', c.whitelisting ? 'Yes' : ''],
       ['Modification', c.modification_rights],
     ] },
-    { h: 'Timeline', rows: [
-      ['Ship by', c.product_shipping_by],
-      ['Final delivery', c.due_date || c.deadline],
-      ['Revisions included', c.revision_limit],
-    ] },
-  ].map((s) => ({ ...s, rows: s.rows.filter(([, v]) => v !== undefined && v !== null && String(v).trim() !== '') }))
-   .filter((s) => s.rows.length);
+  ];
+  const mustInclude = [
+    ['Product visible', c.product_visible ? `${c.product_visible_seconds || ''}s minimum` : ''],
+    ['Verbal mention', c.verbal_mention ? (c.verbal_mention_text || 'Yes') : ''],
+    ['Required phrases', listVal(c.required_phrases)],
+    ['Required shots', listVal(c.required_shots)],
+    ['Call to action', c.call_to_action],
+    // The CTA destination itself — without this the creator was told to add a CTA
+    // but never given the URL/handle to point it at. Blank rows self-filter below.
+    [CTA_LINK_LABEL[c.call_to_action] || 'CTA link', c.cta_link],
+    ['Promo code', c.promo_code],
+    ['Hashtags', c.hashtags],
+    ['Brand tag', c.brand_handle_tag ? 'Yes' : ''],
+  ];
+  const mustAvoid = [
+    ['Competitors', c.no_competitors ? (c.competitors_text || 'No competitor brands') : ''],
+    ['Other products', c.no_other_products ? 'Not allowed' : ''],
+    ['Profanity', c.no_profanity ? 'Not allowed' : ''],
+    ['Political/religious', c.no_political ? 'Not allowed' : ''],
+    ['Filters/effects', c.avoid_filters ? (c.filter_types_text || 'Avoid') : ''],
+    ['Other', c.avoid_text],
+  ];
+  const filled = (rows) => rows.filter(([, v]) => v !== undefined && v !== null && String(v).trim() !== '');
+  const sections = groups.map((s) => ({ ...s, rows: filled(s.rows) })).filter((s) => s.rows.length);
+  const include = filled(mustInclude);
+  const avoid = filled(mustAvoid);
+
+  // Real dates the brief states, in order. (No invented "apply by" date.)
+  const dates = [
+    ['Product ships by', c.product_shipping_by],
+    ['First draft', c.draft_delivery_by],
+    ['Final delivery', c.final_delivery_by || c.due_date || c.deadline],
+  ].map(([k, v]) => [k, fmtDay(v)]).filter(([, v]) => v);
 
   // Mood board references the brand uploaded. Legacy campaigns stored bare file
   // names (never real uploads), so keep only entries that are actual URLs.
@@ -169,179 +180,154 @@ export default function BriefDetailDrawer({ brief, onClose, onBid }) {
       return { hosted, url: raw.startsWith('http') || !hosted ? raw : `${BACKEND_URL}${raw}` };
     });
 
+  const needed = creatorsWanted(c);
+  const open = slotsLeft(c);
+  const deliv = deliverables.length ? b.deliverables : '';
+  const length = deliverables.map((d) => d?.duration).find(Boolean) || '';
+  const lang = Array.isArray(c.language) ? c.language.join(' / ') : c.language;
+  const n = bidCount(b);
+  const maximum = maxCampaignBid(b);
+  const pay = briefPay(b);
+  const cta = b.hasBid ? 'View your bid' : 'Apply now';
+
   return (
-    <div className="bb-drawer-overlay" onClick={onClose}>
-      <aside className="bb-drawer" onClick={(e) => e.stopPropagation()}>
-        <div className="bb-d-head">
-          <span className="bb-d-logo">
-            {b.logo ? <img src={b.logo.startsWith('http') ? b.logo : `${BACKEND_URL}${b.logo}`} alt="" /> : getInitial(b.brand)}
-          </span>
-          <div className="bb-d-id">
-            <strong>{b.title}</strong>
-            <small>{b.brand}</small>
-          </div>
-          <div className="bb-d-head-actions">
-            <span className="bb-d-head-match"><Star size={14} /> <span>Match</span> <strong>{b.matchScore}%</strong></span>
-            <button type="button" className="bb-drawer-close" aria-label="Close" onClick={onClose}><X size={20} /></button>
-          </div>
-        </div>
+    <div className="cui-b-detail" role="dialog" aria-modal="true" aria-label={b.title}>
+      <div className="cui-b-dtop">
+        <button type="button" className="cui-b-back" onClick={onClose} aria-label="Back to briefs">
+          <ArrowLeft size={20} /><span>Find briefs</span>
+        </button>
+        <span className="cui-b-crumb" aria-hidden="true">›</span>
+        <span className="cui-b-dtitle">{b.title}</span>
+      </div>
 
-        <div className="bb-d-body">
-          <div className="bb-d-stats">
-            <div><span className="bb-d-ic"><Wallet size={16} /></span><div><label>Budget</label><strong>{b.budget}</strong></div></div>
-            <div><span className="bb-d-ic"><Clock size={16} /></span><div><label>Delivery</label><strong>{b.deliveryLabel}</strong></div></div>
-          </div>
+      <div className="cui-b-dgrid">
+        <div className="cui-b-dmain">
+          <section className="cui-b-dcard cui-b-dhead">
+            <div className="cui-b-dbrand">
+              <BriefLogo name={b.brand} src={b.logo} className="cui-b-logo cui-b-logo--lg" />
+              <div><strong>{b.brand}</strong>{b.industryType ? <small>{b.industryType}</small> : null}</div>
+              {c.requires_shipment ? <span className="cui-b-flag">Product shipped</span> : null}
+            </div>
+            <h2>{b.title}</h2>
+            {b.description && b.description !== 'Create engaging UGC content for this brand.' ? <p className="cui-b-lead">{b.description}</p> : null}
+            <div className="cui-b-dstats">
+              <div><small>Pay per video</small><b>{pay}</b></div>
+              {(deliv || length) && <div><small>Make</small><b>{[deliv, length].filter(Boolean).join(' · ')}</b></div>}
+              {lang ? <div><small>Language</small><b>{lang}</b></div> : null}
+              <div><small>Creators</small><b>{open < needed ? `${open} of ${needed} open` : `${needed} needed`}</b></div>
+            </div>
+            {objectives.length > 0 && <div className="cui-b-tags">{objectives.map((o, i) => <span key={i}>{o}</span>)}</div>}
+          </section>
 
-          {b.tags?.length > 0 && (
-            <div className="bb-d-tags">{b.tags.map((t) => <span key={t} className={catClass(t)}>{t}</span>)}</div>
+          {dates.length > 0 && (
+            <section className="cui-b-dcard">
+              <h3>Dates</h3>
+              <ol className="cui-b-dates">
+                {dates.map(([k, v], i) => (
+                  <li key={k}><span className={`cui-b-dot${i === 0 ? ' is-first' : ''}`} /><small>{k}</small><b>{v}</b></li>
+                ))}
+              </ol>
+              {c.revision_limit ? <p className="cui-b-foot-note">Revisions included: {c.revision_limit}</p> : null}
+            </section>
           )}
 
-          {b.description && b.description !== 'Create engaging UGC content for this brand.' && (
-            <div className="bb-d-sec">
-              <h4>Campaign Brief</h4>
-              <div className="bb-d-brief">{renderBrief(b.description)}</div>
+          {(include.length > 0 || avoid.length > 0) && (
+            <div className="cui-b-two">
+              {include.length > 0 && (
+                <section className="cui-b-dcard">
+                  <h3>What the brand wants</h3>
+                  <ul className="cui-b-list">
+                    {include.map(([k, v]) => (
+                      <li key={k}><span className="cui-b-ic"><Check size={12} strokeWidth={3} /></span><span><b>{k}:</b> {String(v)}</span></li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+              {avoid.length > 0 && (
+                <section className="cui-b-dcard">
+                  <h3>Please don’t</h3>
+                  <ul className="cui-b-list is-bad">
+                    {avoid.map(([k, v]) => (
+                      <li key={k}><span className="cui-b-ic"><X size={12} strokeWidth={3} /></span><span><b>{k}:</b> {String(v)}</span></li>
+                    ))}
+                  </ul>
+                </section>
+              )}
             </div>
           )}
 
-          {objectives.length > 0 && (
-            <div className="bb-d-sec">
-              <h4><Target size={15} /> Objectives</h4>
-              <div className="bb-d-chips">{objectives.map((o, i) => <span key={i}>{o}</span>)}</div>
-            </div>
-          )}
-
-          {moodImages.length > 0 && (
-            <div className="bb-d-sec">
-              <h4>Mood board</h4>
-              <div className="bb-d-mood">
-                {moodImages.map((src, i) => (
-                  <div className="bb-d-moodit" key={`${src}-${i}`}>
-                    <a href={src} target="_blank" rel="noreferrer"><img src={src} alt={`Mood board ${i + 1}`} /></a>
-                    <button type="button" className="bb-d-dl" aria-label="Download image" title="Download image" onClick={() => downloadFile(src, `moodboard-${i + 1}.jpg`)}><Download size={13} /></button>
+          {(moodImages.length > 0 || refVideos.length > 0) && (
+            <section className="cui-b-dcard">
+              <h3>Example videos <small>shared by the brand</small></h3>
+              {refVideos.length > 0 && (
+                <div className="cui-b-media">
+                  {refVideos.map(({ hosted, url }, i) => (
+                    hosted ? (
+                      <div className="cui-b-vid" key={`${url}-${i}`}>
+                        <video src={url} controls preload="metadata" playsInline />
+                        <button type="button" className="cui-b-dl" aria-label="Download video" title="Download video" onClick={() => downloadFile(url, `reference-${i + 1}.mp4`)}><Download size={14} /></button>
+                      </div>
+                    ) : (
+                      // External links (YouTube/Drive) can't be embedded or downloaded — open them out.
+                      <a key={`${url}-${i}`} href={url} target="_blank" rel="noreferrer" className="cui-b-reflink"><Play size={14} /> {url}</a>
+                    )
+                  ))}
+                </div>
+              )}
+              {moodImages.length > 0 && (
+                <>
+                  {refVideos.length > 0 && <h4>Mood board</h4>}
+                  <div className="cui-b-media is-mood">
+                    {moodImages.map((src, i) => (
+                      <div className="cui-b-mood" key={`${src}-${i}`}>
+                        <a href={src} target="_blank" rel="noreferrer"><img src={src} alt={`Mood board ${i + 1}`} /></a>
+                        <button type="button" className="cui-b-dl" aria-label="Download image" title="Download image" onClick={() => downloadFile(src, `moodboard-${i + 1}.jpg`)}><Download size={14} /></button>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </div>
+                </>
+              )}
+            </section>
           )}
 
-          {refVideos.length > 0 && (
-            <div className="bb-d-sec">
-              <h4>Reference videos</h4>
-              <div className="bb-d-refvid">
-                {refVideos.map(({ hosted, url }, i) => (
-                  hosted ? (
-                    <div className="bb-d-refvidit" key={`${url}-${i}`}>
-                      <video src={url} controls preload="metadata" playsInline />
-                      <button
-                        type="button"
-                        className="bb-d-dl bb-d-dl--vid"
-                        aria-label="Download video"
-                        title="Download video"
-                        onClick={() => downloadFile(url, `reference-${i + 1}.mp4`)}
-                      >
-                        <Download size={13} />
-                      </button>
-                    </div>
-                  ) : (
-                    // External links (YouTube/Drive) can't be embedded or downloaded — open them out.
-                    <a key={`${url}-${i}`} href={url} target="_blank" rel="noreferrer" className="bb-d-reflink">{url}</a>
-                  )
-                ))}
-              </div>
-            </div>
-          )}
-
-          {detailSections.map((s) => (
-            <div className="bb-d-sec" key={s.h}>
-              <h4>{s.h}</h4>
-              <div className="bb-d-rows">
+          {sections.map((s) => (
+            <section className="cui-b-dcard" key={s.h}>
+              <h3>{s.h}</h3>
+              <div className="cui-b-rows">
                 {s.rows.map(([label, value]) => (
-                  <div className="bb-d-row" key={label}>
-                    <span className="bb-d-row-k">{label}</span>
-                    <span className="bb-d-row-v">{String(value)}</span>
+                  <div className="cui-b-drow" key={label}>
+                    <span>{label}</span>
+                    <span>{String(value)}</span>
                   </div>
                 ))}
               </div>
-            </div>
+            </section>
           ))}
+
+          {sections.length === 0 && !include.length && !avoid.length && b.description ? (
+            <section className="cui-b-dcard"><h3>Brief</h3><div>{renderBrief(b.description)}</div></section>
+          ) : null}
         </div>
 
-        <div className="bb-d-foot">
-          <button type="button" className="bb-d-ghost" onClick={onClose}>Close</button>
-          <button type="button" className="bb-d-primary" onClick={() => onBid(b)}>
-            <Send size={16} /> {b.hasBid ? 'View Your Bid' : 'Submit Your Bid'}
-          </button>
-        </div>
-      </aside>
+        <aside className="cui-b-dside">
+          {applyPanel || (
+            <div className="cui-b-apply cui-b-apply--intro">
+              <h2>{b.hasBid ? 'You applied to this brief' : 'Apply to this brief'}</h2>
+              <p className="cui-b-sub">{n != null ? `${n} ${n === 1 ? 'creator' : 'creators'} applied` : 'Send your price and a short pitch'}</p>
+              <div className="cui-b-payrow"><span>Pay per video</span><b>{pay}</b></div>
+              {maximum ? <p className="cui-b-hint">Set your own price when you apply — up to {inr(maximum)} per video.</p> : null}
+              <button type="button" className="cui-b-cta" onClick={() => onBid(b)}>{cta}</button>
+            </div>
+          )}
+        </aside>
+      </div>
 
-      <style>{`
-        .bb-drawer-overlay{position:fixed;inset:0;z-index:10000;background:rgba(15,22,58,.5);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;padding:24px}
-        .bb-drawer{position:relative;width:min(680px,100%);max-height:88vh;height:auto;background:#fff;display:flex;flex-direction:column;border-radius:20px;overflow:hidden;box-shadow:0 30px 70px rgba(15,22,58,.42);animation:bb-pop .24s ease}
-        @keyframes bb-pop{from{transform:translateY(14px) scale(.98);opacity:0}to{transform:none;opacity:1}}
-        .bb-d-head{display:flex;align-items:center;gap:12px;padding:20px 22px;border-bottom:1px solid #e9ebf4}
-        .bb-d-logo{width:44px;height:44px;flex:none;border-radius:12px;overflow:hidden;display:grid;place-items:center;background:linear-gradient(135deg,#5b6bff,#23236a);color:#fff;font-weight:800;font-size:17px}
-        .bb-d-logo img{width:100%;height:100%;object-fit:cover}
-        .bb-d-id{flex:1;min-width:0}
-        .bb-d-id strong{display:block;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:17px;color:#15163a;line-height:1.25}
-        .bb-d-id small{color:#9296ba;font-size:13px}
-        .bb-d-head-actions{flex:none;display:flex;align-items:center;gap:8px}
-        .bb-d-head-match{display:inline-flex;align-items:center;gap:5px;color:#5b6bff;font-size:12px;font-weight:700;white-space:nowrap}
-        .bb-d-head-match strong{color:#15163a;font-size:14px}
-        .bb-drawer-close{flex:none;width:34px;height:34px;border-radius:0;border:none;background:transparent;color:#15163a;cursor:pointer;display:grid;place-items:center;padding:0}
-        .bb-drawer-close:hover{background:transparent;color:#5b6bff}
-        .bb-d-body{flex:1;overflow-y:auto;overflow-x:hidden;padding:20px 24px;display:flex;flex-direction:column;gap:20px}
-        .bb-d-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-        .bb-d-stats>div{display:flex;align-items:center;gap:9px;background:#f6f7fc;border:1px solid #e9ebf4;border-radius:12px;padding:11px 12px}
-        .bb-d-ic{flex:none;width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:#eef0ff;color:#5b6bff}
-        .bb-d-stats label{display:block;color:#9296ba;font-size:11px;font-weight:600}
-        .bb-d-stats strong{color:#15163a;font-size:14px;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif)}
-        .bb-d-tags{display:flex;flex-wrap:wrap;gap:7px}
-        .bb-d-tags span{font-size:12px;font-weight:700;padding:4px 11px;border-radius:20px;background:#eef0ff;color:#5b6bff;text-transform:capitalize}
-        .bb-d-sec h4{margin:0 0 9px;font-size:13px;font-weight:800;color:#5b6bff;text-transform:uppercase;letter-spacing:.4px;display:flex;align-items:center;gap:6px}
-        .bb-d-mood{display:flex;flex-wrap:wrap;gap:9px}
-        .bb-d-moodit{position:relative;width:96px;height:96px;border-radius:12px;overflow:hidden;background:#f1f3fa;border:1px solid #e9ebf4}
-        .bb-d-moodit img{width:100%;height:100%;object-fit:cover;display:block}
-        .bb-d-dl{position:absolute;bottom:5px;right:5px;width:24px;height:24px;border:0;padding:0;cursor:pointer;border-radius:8px;display:grid;place-items:center;background:rgba(21,22,58,.72);color:#fff}
-        /* Touch: 24px over a 96px thumbnail is effectively untappable, and 34px is
-           still under the ~44px finger minimum. */
-        @media (max-width:620px){
-          .bb-d-dl{width:36px;height:36px;bottom:6px;right:6px}
-          .bb-drawer-close{width:42px;height:42px}
-        }
-        .bb-d-dl:hover{background:#5b6bff}
-        .bb-d-refvid{display:flex;flex-direction:column;gap:10px}
-        .bb-d-refvidit{position:relative}
-        .bb-d-refvid video{width:100%;max-height:280px;border-radius:12px;background:#000;display:block}
-        .bb-d-dl--vid{top:8px;right:8px;bottom:auto;width:28px;height:28px}
-        .bb-d-reflink{display:block;padding:10px 12px;border-radius:10px;background:#f6f7fc;border:1px solid #e9ebf4;color:#5b6bff;font-size:13px;word-break:break-all}
-        .bb-d-reflink:hover{background:#eef0ff}
-        .bb-d-brief{display:flex;flex-direction:column;gap:7px}
-        .bb-bl{margin:0;color:#585c7e;font-size:14px;line-height:1.6;overflow-wrap:anywhere}
-        .bb-blab{color:#15163a;font-weight:700}
-        .bb-d-chips{display:flex;flex-wrap:wrap;gap:7px}
-        .bb-d-chips span{background:#f1f3fa;color:#585c7e;font-size:12.5px;font-weight:600;padding:5px 12px;border-radius:20px}
-        .bb-d-rows{display:flex;flex-direction:column;gap:8px}
-        .bb-d-row{display:grid;grid-template-columns:150px 1fr;gap:14px;font-size:14px;line-height:1.5}
-        .bb-d-row-k{color:#9296ba;font-weight:600}
-        .bb-d-row-v{color:#15163a;overflow-wrap:anywhere}
-        @media (max-width:560px){.bb-d-row{grid-template-columns:120px 1fr;gap:10px}}
-        .bb-d-foot{display:flex;gap:10px;padding:16px 22px;border-top:1px solid #e9ebf4}
-        .bb-d-ghost,.bb-d-primary{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:46px;border-radius:14px;font-family:inherit;font-weight:700;font-size:14.5px;cursor:pointer;border:1px solid transparent}
-        .bb-d-ghost{background:#fff;border-color:#e9ebf4;color:#15163a}
-        .bb-d-ghost:hover{border-color:#d3d7f0}
-        .bb-d-primary{background:linear-gradient(100deg,#12124f,#07074e);color:#fff;box-shadow:0 12px 26px -12px rgba(7,7,78,.7)}
-        .bb-d-primary:hover{transform:translateY(-1px)}
-        @media (max-width:520px){
-          .bb-d-head{gap:9px;padding:18px 16px}
-          .bb-d-id strong{font-size:15px}
-          .bb-d-head-match{display:none}
-          .bb-d-head-actions{gap:3px}
-          .bb-d-stats{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
-          .bb-d-stats>div{padding:10px 8px;gap:7px}
-          .bb-d-ic{width:28px;height:28px}
-          .bb-d-stats strong{font-size:13px;white-space:nowrap}
-        }
-      `}</style>
+      {!applyPanel && (
+        <div className="cui-b-dbar">
+          <div><small>Pay per video</small><b>{pay}</b></div>
+          <button type="button" className="cui-b-cta" onClick={() => onBid(b)}>{cta}</button>
+        </div>
+      )}
     </div>
   );
 }

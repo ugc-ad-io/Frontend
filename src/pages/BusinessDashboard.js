@@ -9,7 +9,7 @@ import { apiErrorMessage } from '../utils/apiError';
 import { digitsOnly, blockNonDigitKey } from '../utils/inputValidators';
 import { firstName } from '../utils/displayName';
 import { isOpenForBids, selectedCreators, creatorsWanted, slotsLeft, bidSplitLabel } from '../utils/campaignCreators';
-import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, Clock3, FileText, ExternalLink, Download, AlertCircle, UserCheck, Filter, MapPin, Languages, Image as ImageIcon, Send, IndianRupee, Zap, Copy, ArrowDownLeft, ArrowUpRight, X, ChevronDown } from 'lucide-react';
+import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, Clock3, FileText, ExternalLink, Download, AlertCircle, UserCheck, Filter, MapPin, Languages, Image as ImageIcon, Send, IndianRupee, Zap, Copy, ArrowDownLeft, ArrowUpRight, X, ChevronDown, BadgeCheck, Star, Clock } from 'lucide-react';
 import PostABrief from './PostABrief';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import { Skeleton } from '../components/Skeleton';
@@ -25,11 +25,18 @@ import { payWithRazorpay, isPaymentCancelled } from '../utils/razorpay';
 import { hireUnfunded, showUnfundedHire, escrowHeldText } from '../utils/hireFunding';
 import '../styles/creator-marketplace.css';
 import '../styles/brand-mobile.css';
+import '../styles/brand-ui.css';
+import '../styles/brand-ui-pages.css';
+import '../styles/brand-ui-bids.css';
+import '../styles/brand-ui-wallet.css';
+import '../styles/brand-ui-mobile-b.css';
 import { downloadWalletStatement } from '../utils/walletStatement';
 import PhotoOrInitial from '../components/PhotoOrInitial';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
+// Dashboard tabs that now render with the new brand UI (own title + container).
+const RESTYLED_TABS = ['pending-bids', 'wallet', 'shipments', 'sent-briefs', 'post-brief'];
 const budgetColors = ['#5b6bff', '#9296ba', '#07074E', '#27AE60', '#F59E0B'];
 // No fabricated demo months — an empty performance series renders the real
 // "no data yet" state instead of fake Jan–May numbers for new brands.
@@ -124,7 +131,7 @@ const buildCampaignPerformance = (campaign, baseData) => {
 
 const formatMoney = (value) => {
   const amount = Number(value || 0);
-  return `Rs. ${amount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+  return `₹${amount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
 };
 
 // Show a single value when the budget is fixed (min === max), otherwise a range.
@@ -136,33 +143,22 @@ const formatBudget = (min, max) => {
   return `${formatMoney(lo)} - ${formatMoney(hi)}`;
 };
 
-// Creator Bids review block for a single campaign — header + filter tabs + bid rows.
-function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile, onFinishHiring }) {
+// Compare bids for a single campaign (design board 06): campaign banner, filter tabs, sort, bid rows.
+function BidsCampaignCard({ campaign, creatorsById = {}, onAccept, onViewCampaign, onViewProfile, onFinishHiring }) {
   // On a multi-creator brief, hired creators stay in campaign.bids — keep them
-  // visible under their own "Accepted" tab (rather than dropping them entirely)
-  // so the brand can still see who they picked, same as "Declined" stays visible.
+  // visible under their own "Accepted" tab so the brand can still see who they picked.
   const hiredIds = selectedCreators(campaign);
   const bids = campaign.bids || [];
   const isHired = (b) => hiredIds.includes(String(b.creator_id));
   const [tab, setTab] = useState('all');
   const [shortlist, setShortlist] = useState(() => new Set());
-  // Seed from the persisted bid status so a decline survives a page refresh —
-  // it used to be UI-only state that reset on reload, making declines "come back".
+  // Seed from the persisted bid status so a decline survives a page refresh.
   const [declined, setDeclined] = useState(
     () => new Set(bids.filter((b) => b.status === 'declined').map((b) => b.id ?? b.creator_id))
   );
-  const [filtersOpen, setFiltersOpen] = useState(false);
   const [sort, setSort] = useState('match'); // match | price-low | price-high | delivery-fast
-  // Mobile: a bid row collapses to name + star + arrow; the arrow expands it to
-  // reveal the pitch, price/delivery, and actions.
-  const [expandedIds, setExpandedIds] = useState(() => new Set());
-  const toggleExpanded = (id) => setExpandedIds((prev) => {
-    const next = new Set(prev);
-    if (next.has(id)) next.delete(id); else next.add(id);
-    return next;
-  });
-  // Show at most 3 bids by default; "View all" reveals the rest.
-  const [showAllBids, setShowAllBids] = useState(false);
+  // The accept / decline confirmation pop-up: { kind: 'accept' | 'decline', bid }
+  const [confirm, setConfirm] = useState(null);
 
   const idOf = (b) => b.id ?? b.creator_id;
   const hasResponded = (b) => !!(b.proposal && b.proposal.trim());
@@ -176,7 +172,7 @@ function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile, o
   };
 
   const TABS = [
-    { id: 'all', label: 'All Bids' },
+    { id: 'all', label: 'All bids' },
     { id: 'shortlisted', label: 'Shortlisted' },
     { id: 'responded', label: 'Responded' },
     { id: 'accepted', label: 'Accepted' },
@@ -215,14 +211,13 @@ function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile, o
 
   const SORTS = [
     { id: 'match', label: 'Best match' },
-    { id: 'price-low', label: 'Price: Low to High' },
-    { id: 'price-high', label: 'Price: High to Low' },
+    { id: 'price-low', label: 'Price: low to high' },
+    { id: 'price-high', label: 'Price: high to low' },
     { id: 'delivery-fast', label: 'Fastest delivery' },
   ];
 
   const declineBid = async (id) => {
-    // Optimistic: hide it immediately, then persist. Revert if the call fails so
-    // the row doesn't silently reappear on the next refresh.
+    // Optimistic: hide it immediately, then persist. Revert if the call fails.
     setDeclined(prev => new Set(prev).add(id));
     try {
       await axios.post(`${API}/campaigns/${campaign.id}/bids/${encodeURIComponent(id)}/decline`);
@@ -241,7 +236,6 @@ function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile, o
   // A raw 24-char hex string is a Mongo ObjectId, not a real handle — never show it.
   const isObjectId = (s) => /^[0-9a-f]{24}$/i.test(String(s || ''));
   const realName = (b) => {
-    // Prefer the creator's REAL name over the auto-generated @handle, and strip "@".
     const n = String(b.creator_name || b.creator_nickname || b.public_creator_id || '').replace(/^@+/, '').trim();
     return isObjectId(n) ? '' : n;
   };
@@ -249,122 +243,164 @@ function BidsCampaignCard({ campaign, onAccept, onViewCampaign, onViewProfile, o
   // First name only — no surname (e.g. "Meet Jain" → "Meet").
   const handleOf = (b) => String(realName(b) || 'Creator').replace(/^@/, '').trim().split(/\s+/)[0] || 'Creator';
   const initialOf = (b) => (String(nameOf(b)).replace(/[^A-Za-z0-9]/g, '').charAt(0) || 'C').toUpperCase();
+  const dirOf = (b) => creatorsById[String(b.creator_id)] || {};
+  const posterOf = (b) => {
+    const d = dirOf(b);
+    const prev = d.portfolio_preview && !/\.(mp4|webm|mov|m4v)(\?|$)/i.test(d.portfolio_preview) ? d.portfolio_preview : '';
+    return prev || b.creator_photo || b.profile_photo || d.profile_photo || '';
+  };
+  const photoOf = (b) => b.creator_photo || b.profile_photo || dirOf(b).profile_photo || '';
+  const img = (u) => (!u ? '' : (/^https?:\/\//i.test(u) ? u : `${BACKEND_URL}/${String(u).replace(/^\//, '')}`));
+  const LEVEL = { new: 'New', verified: 'Verified', l1: 'Level 1', l2: 'Level 2', elite: 'Elite' };
+
+  const openCount = counts.all;
+  const confirmAmount = confirm ? Number(confirm.bid.amount || 0) : 0;
+  const confirmFee = Math.round(confirmAmount * 0.2);
 
   return (
-    <article className="cb-card">
-      <div className="cb-campaign">
-        <div className="cb-campaign-thumb">{(campaign.title || 'C').trim().charAt(0).toUpperCase()}</div>
-        <div className="cb-campaign-info">
-          <h3>{campaign.title || 'Untitled Campaign'}</h3>
-          <p>Budget: {formatBudget(campaign.budget_min, campaign.budget_max)} • {bids.length} Application{bids.length === 1 ? '' : 's'} • Hired {hiredIds.length} of {creatorsWanted(campaign)}</p>
+    <>
+      <section className="bui-bidhero">
+        <span className="bui-hero-glow" aria-hidden="true" />
+        <div className="bui-bidhero-in">
+          <div className="bui-bidhero-l">
+            <span className="bui-bidhero-thumb">{(campaign.title || 'C').trim().charAt(0).toUpperCase()}</span>
+            <div>
+              <div className="bui-bidhero-t">{campaign.title || 'Untitled Campaign'}</div>
+              <div className="bui-bidhero-m">
+                <span>Budget {formatBudget(campaign.budget_min, campaign.budget_max)} / video</span>
+                <span>{bids.length} application{bids.length === 1 ? '' : 's'}</span>
+                <span>Hired {hiredIds.length} of {creatorsWanted(campaign)}</span>
+              </div>
+            </div>
+          </div>
+          <div className="bui-bidhero-r">
+            <button type="button" className="bui-btn bui-btn--outline-w" onClick={() => onViewCampaign(campaign.id)}>View campaign</button>
+            {hiredIds.length > 0 && slotsLeft(campaign) > 0 && onFinishHiring && (
+              <button type="button" className="bui-btn bui-btn--light" onClick={() => onFinishHiring(campaign)}>Finish hiring</button>
+            )}
+          </div>
         </div>
-        {hiredIds.length > 0 && slotsLeft(campaign) > 0 && onFinishHiring && (
-          <button type="button" className="cb-view-campaign" onClick={() => onFinishHiring(campaign)}>Finish hiring with {hiredIds.length}</button>
-        )}
-        <button type="button" className="cb-view-campaign" onClick={() => onViewCampaign(campaign.id)}>View Campaign</button>
-      </div>
+      </section>
 
-      <div className="cb-tabs-row">
-        <div className="cb-tabs">
+      <div className="bui-tabrow">
+        <div className="bui-tabs bui-tabs--bare" role="tablist" aria-label="Filter bids">
           {TABS.map(t => (
-            <button key={t.id} type="button" className={tab === t.id ? 'active' : ''} onClick={() => { setTab(t.id); setShowAllBids(false); }}>
-              {t.label} ({counts[t.id]})
+            <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} className={`bui-tab${tab === t.id ? ' is-on' : ''}`} onClick={() => setTab(t.id)}>
+              {t.label}<span>{counts[t.id]}</span>
             </button>
           ))}
         </div>
-        <div className="cb-filters-wrap">
-          <button type="button" className={`cb-filters ${sort !== 'match' ? 'on' : ''}`} onClick={() => setFiltersOpen(o => !o)}>
-            <Filter size={16} /> Filters{sort !== 'match' && <span className="cb-filters-dot" />}
-          </button>
-          {filtersOpen && (
-            <>
-              <div className="cb-filters-backdrop" onClick={() => setFiltersOpen(false)} />
-              <div className="cb-filters-menu" role="menu">
-                <span className="cb-filters-head">Sort bids by</span>
-                {SORTS.map(s => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    className={`cb-filters-opt ${sort === s.id ? 'sel' : ''}`}
-                    onClick={() => { setSort(s.id); setFiltersOpen(false); }}
-                  >
-                    {s.label}
-                    {sort === s.id && <CheckCircle size={15} />}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
+        <label className="bui-sort">
+          Sort:
+          <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort bids">
+            {SORTS.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
+          </select>
+        </label>
       </div>
 
-      <div className="cb-bid-list">
+      <div className="bui-bidlist">
         {visible.length === 0 ? (
-          <div className="cb-empty">No bids in this view.</div>
-        ) : (showAllBids ? visible : visible.slice(0, 3)).map((bid, idx) => {
+          <div className="bui-empty-row">No bids here yet.</div>
+        ) : visible.map((bid, idx) => {
           const id = idOf(bid);
-          const isTop = idx === 0 && tab === 'all' && sort === 'match';
+          const d = dirOf(bid);
+          const isTop = idx === 0 && tab === 'all' && sort === 'match' && openCount > 1;
           const isShort = shortlist.has(id);
-          const isOpen = expandedIds.has(id);
+          const poster = posterOf(bid);
+          const avatar = photoOf(bid);
+          const lvl = d.ugcad_approved ? 'UGCAD.IO Choice' : (LEVEL[String(d.level || '').toLowerCase()] || '');
+          const rating = Number(d.avg_rating || 0);
+          const reviews = Number(d.review_count || 0);
           return (
-            <div key={id} className={`cb-bid${isOpen ? ' is-open' : ''}`}>
-              <div className="cb-bid-avatar">{initialOf(bid)}</div>
-              <div className="cb-bid-main">
-                <div className="cb-bid-name">
-                  <strong>{handleOf(bid)}</strong>
-                  {isTop && <span className="cb-top-match">TOP MATCH</span>}
+            <article key={id} className="bui-bid-row">
+              <div className="bui-bid-poster">
+                {poster ? <img src={img(poster)} alt="" /> : <b>{initialOf(bid)}</b>}
+              </div>
+              <div className="bui-bid-body">
+                <div className="bui-bid-who2">
+                  <span className="bui-ava34">{avatar ? <img src={img(avatar)} alt="" /> : initialOf(bid)}</span>
+                  <b>{handleOf(bid)}</b>
+                  {d.kyc_verified && <BadgeCheck size={16} className="bui-gig-kyc" aria-label="Identity verified" />}
+                  {lvl && <span className={`bui-lvl${d.ugcad_approved ? ' bui-lvl--elite' : ''}`}>{lvl}</span>}
+                  {isTop && <span className="bui-status bui-status--top">Top match</span>}
+                </div>
+                {(rating > 0 && reviews > 0) || bid.category || campaign.category ? (
+                  <div className="bui-bid-line">
+                    {rating > 0 && reviews > 0 && (<><Star size={13} fill="currentColor" /><strong>{rating.toFixed(1)}</strong>({reviews})</>)}
+                    {(bid.category || campaign.category) && <>{rating > 0 && reviews > 0 && <span aria-hidden="true">&middot;</span>}{bid.category || campaign.category}</>}
+                  </div>
+                ) : null}
+                <div className="bui-bid-pitch">{bid.proposal ? `“${bid.proposal}”` : 'No proposal message provided.'}</div>
+                <div className="bui-bid-links">
+                  <button type="button" onClick={() => onViewProfile(campaign.id, bid)}>View profile</button>
+                </div>
+              </div>
+              <div className="bui-bid-side">
+                <div className="bui-bid-side-top">
+                  <div>
+                    <small>Bid</small>
+                    <div className="bui-bid-price">{formatMoney(bid.amount)}<span> / video</span></div>
+                    {bidSplitLabel(bid) && <small>{bidSplitLabel(bid)}</small>}
+                  </div>
                   <button
                     type="button"
-                    className={`cb-star ${isShort ? 'on' : ''}`}
+                    className={`bui-star${isShort ? ' is-on' : ''}`}
                     aria-label={isShort ? 'Remove from shortlist' : 'Shortlist'}
-                    title={isShort ? 'Shortlisted' : 'Add to shortlist'}
+                    aria-pressed={isShort}
                     onClick={() => toggleShortlist(id)}
-                  >★</button>
-                  {/* Mobile only: collapses everything below to just name + star by default. */}
-                  <button
-                    type="button"
-                    className="cb-expand"
-                    aria-label={isOpen ? 'Collapse bid' : 'Expand bid'}
-                    aria-expanded={isOpen}
-                    onClick={() => toggleExpanded(id)}
-                  ><ChevronDown size={18} /></button>
+                  ><Star size={16} fill={isShort ? 'currentColor' : 'none'} /></button>
                 </div>
-                <div className="cb-bid-collapsible">
-                  {(bid.category || campaign.category) && <span className="cb-bid-cat">{bid.category || campaign.category}</span>}
-                  <p className="cb-bid-pitch">{bid.proposal || 'No proposal message provided.'}</p>
-                </div>
-              </div>
-              <div className="cb-bid-collapsible cb-bid-stat">
-                <strong>{formatMoney(bid.amount)}</strong>
-                <span>Price / video</span>
-                {bidSplitLabel(bid) && <span>{bidSplitLabel(bid)}</span>}
-              </div>
-              <div className="cb-bid-collapsible cb-bid-stat">
-                <strong>{bid.estimated_delivery_days ? `${bid.estimated_delivery_days} Days` : '-'}</strong>
-                <span>Delivery</span>
-              </div>
-              <div className="cb-bid-collapsible cb-bid-actions">
-                <button type="button" className="cb-view-profile" onClick={() => onViewProfile(campaign.id, bid)}>View Profile</button>
+                <div className="bui-bid-deliv"><Clock size={15} /> Delivers in <strong>{bid.estimated_delivery_days ? `${bid.estimated_delivery_days} day${Number(bid.estimated_delivery_days) === 1 ? '' : 's'}` : '—'}</strong></div>
                 {/* A hired or declined bid can't be acted on again — show its state. */}
                 {isHired(bid) ? (
-                  <span className="cb-accepted-tag">Accepted</span>
+                  <span className="bui-status bui-status--ok bui-status--block">Accepted</span>
                 ) : declined.has(id) ? (
-                  <span className="cb-declined-tag">Declined</span>
-                ) : (<>
-                  <button type="button" className="cb-accept" onClick={() => onAccept(campaign.id, bid.creator_id)}>Accept</button>
-                  <button type="button" className="cb-decline" onClick={() => declineBid(id)}>Decline</button>
-                </>)}
+                  <span className="bui-status bui-status--bad bui-status--block">Declined</span>
+                ) : (
+                  <div className="bui-bid-btns">
+                    <button type="button" className="bui-btn bui-btn--ghost bui-btn--grow" onClick={() => setConfirm({ kind: 'decline', bid })}>Decline</button>
+                    <button type="button" className="bui-btn bui-btn--grow2" onClick={() => setConfirm({ kind: 'accept', bid })}>Accept</button>
+                  </div>
+                )}
               </div>
-            </div>
+            </article>
           );
         })}
       </div>
-      {!showAllBids && visible.length > 3 && (
-        <button type="button" className="cb-view-all" onClick={() => setShowAllBids(true)}>
-          View all {visible.length} bids <ChevronDown size={15} />
-        </button>
+
+      <p className="bui-fee-note"><CheckCircle size={16} /> Accepting holds the bid plus the 20% platform fee in escrow. It&rsquo;s released to the creator only after you approve the video.</p>
+
+      {confirm && (
+        <div className="bui-modal-ov" onClick={() => setConfirm(null)}>
+          <div className="bui-modal" role="dialog" aria-modal="true" aria-label={confirm.kind === 'accept' ? 'Accept this bid' : 'Decline this bid'} onClick={(e) => e.stopPropagation()}>
+            <button type="button" className="bui-modal-x" aria-label="Close" onClick={() => setConfirm(null)}>&#10005;</button>
+            <h2 className="bui-modal-h">{confirm.kind === 'accept' ? `Accept ${handleOf(confirm.bid)}’s bid?` : `Decline ${handleOf(confirm.bid)}’s bid?`}</h2>
+            <div className="bui-modal-body">
+              {confirm.kind === 'accept' ? (
+                <>
+                  <div className="bui-sum">
+                    <div><span>Bid</span><b>{formatMoney(confirmAmount)}</b></div>
+                    <div><span>Platform fee (20%)</span><b>{formatMoney(confirmFee)}</b></div>
+                    <div className="bui-sum-t"><span>Held in escrow</span><b>{formatMoney(confirmAmount + confirmFee)}</b></div>
+                  </div>
+                  <p className="bui-muted-p">The money moves from your wallet into escrow and is released to the creator only after you approve the video.</p>
+                </>
+              ) : (
+                <p className="bui-muted-p">{handleOf(confirm.bid)} will be told their bid wasn&rsquo;t picked. Nothing leaves your wallet.</p>
+              )}
+              <div className="bui-modal-foot">
+                <button type="button" className="bui-btn bui-btn--ghost" onClick={() => setConfirm(null)}>Cancel</button>
+                {confirm.kind === 'accept' ? (
+                  <button type="button" className="bui-btn" onClick={() => { const b = confirm.bid; setConfirm(null); onAccept(campaign.id, b.creator_id); }}>Accept &amp; hire</button>
+                ) : (
+                  <button type="button" className="bui-btn bui-btn--danger" onClick={() => { const b = confirm.bid; setConfirm(null); declineBid(idOf(b)); }}>Decline bid</button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
-    </article>
+    </>
   );
 }
 
@@ -583,17 +619,24 @@ export default function BusinessDashboard({ page = 'overview' }) {
   const [chatWith, setChatWith] = useState(null); // opens the in-page chat popup
   const [modalView, setModalView] = useState(null); // { type: 'campaign'|'review'|'shipment', id } -> opens a page in a modal
   const [bidCampaignId, setBidCampaignId] = useState(null); // Creator Bids: which campaign's bids are shown
+  const [creatorsById, setCreatorsById] = useState({}); // creator id -> directory profile (photo, level, rating) for the bid rows
+  useEffect(() => {
+    if (page !== 'pending-bids') return undefined;
+    let live = true;
+    axios.get(`${API}/business/creator-directory`, { params: { discovery_only: true } })
+      .then((r) => {
+        const list = Array.isArray(r.data) ? r.data : (r.data?.creators || []);
+        if (live) setCreatorsById(Object.fromEntries(list.map((c) => [String(c.id), c])));
+      })
+      .catch(() => {});
+    return () => { live = false; };
+  }, [page]);
   const [profileView, setProfileView] = useState(null); // { id, name, photo } -> opens a creator profile modal
   const [shipmentsMap, setShipmentsMap] = useState({}); // campaignId -> shipment record (for the shipments table)
   const [shipTab, setShipTab] = useState('all'); // all | transit | delivered
   const [briefs, setBriefs] = useState([]); // sent briefs/offers (private/custom/counter) + their status
   const [briefsLoading, setBriefsLoading] = useState(false);
   const [briefFilter, setBriefFilter] = useState('all'); // all | sent | accepted | declined | countered | expired
-  const [briefFilterOpen, setBriefFilterOpen] = useState(false); // mobile filter menu
-  const [briefFilterExpanded, setBriefFilterExpanded] = useState(false); // desktop: click PINS options open
-  const [briefFilterHover, setBriefFilterHover] = useState(false);       // desktop: hover opens transiently
-  const briefFilterRef = useRef(null);
-  const cfBriefRef = useRef(null);
   const [selectedCreatorInvite, setSelectedCreatorInvite] = useState(null);
   const [inviteForm, setInviteForm] = useState(emptyInviteForm);
   const [sendingInvite, setSendingInvite] = useState(false);
@@ -672,21 +715,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
     }
   }, [user?.id, page]);
 
-  // Close the mobile Sent-Briefs filter menu on any outside click.
-  useEffect(() => {
-    if (!briefFilterOpen) return undefined;
-    const onDoc = (e) => { if (briefFilterRef.current && !briefFilterRef.current.contains(e.target)) setBriefFilterOpen(false); };
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, [briefFilterOpen]);
 
-  // Desktop: a click PINS the Sent-Briefs filter open — close on an outside click.
-  useEffect(() => {
-    if (!briefFilterExpanded) return undefined;
-    const onDoc = (e) => { if (cfBriefRef.current && !cfBriefRef.current.contains(e.target)) setBriefFilterExpanded(false); };
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, [briefFilterExpanded]);
 
   const fetchBriefs = async () => {
     setBriefsLoading(true);
@@ -1295,17 +1324,20 @@ export default function BusinessDashboard({ page = 'overview' }) {
     return <MoreInfoGate user={user} kind="business" onLogout={handleLogout} />;
   }
 
+  // Tabs already moved to the new brand UI render their own title and container.
+  const restyled = RESTYLED_TABS.includes(activeTab);
+
   return (
     <BrandTopNavLayout>
-      <main className="business-main bd-topnav-main">
-        {activeTab !== 'overview' && (
+      <main className={restyled ? 'bui-dash-bare' : 'business-main bd-topnav-main'}>
+        {activeTab !== 'overview' && !restyled && (
           <div className="brand-page-title bd-topnav-title">
             <h1>{pageTitle}</h1>
             <p>{pageDescription}</p>
           </div>
         )}
 
-        <div className={`dashboard-content ${activeTab !== 'overview' ? 'dashboard-content-page' : ''} ${activeTab === 'post-brief' ? 'post-brief-shell' : ''} ${['all-campaigns', 'browse-creator', 'pending-bids', 'shipments', 'work-review', 'wallet', 'sent-briefs'].includes(activeTab) ? 'transparent-tab-shell' : ''}`}>
+        <div className={restyled ? 'bui-dash-bare-in' : `dashboard-content ${activeTab !== 'overview' ? 'dashboard-content-page' : ''} ${activeTab === 'post-brief' ? 'post-brief-shell' : ''} ${['all-campaigns', 'browse-creator', 'pending-bids', 'shipments', 'work-review', 'wallet', 'sent-briefs'].includes(activeTab) ? 'transparent-tab-shell' : ''}`}>
         {activeTab === 'overview' && (
           <>
             <div className="brand-metrics-grid">
@@ -1683,27 +1715,14 @@ export default function BusinessDashboard({ page = 'overview' }) {
           )}
 
           {activeTab === 'sent-briefs' && (() => {
-            // Compact row action (View Deal / Open Chat) — the global .btn-primary is a
-            // full-size CTA, far too chunky sitting inside a list row.
-            const COMPACT_ACTION_BTN = {
-              // Keep the icon + label on ONE row — the global .btn-primary lets its
-              // flex items wrap, so in a narrow column they stacked vertically.
-              display: 'inline-flex', flexDirection: 'row', flexWrap: 'nowrap',
-              alignItems: 'center', justifyContent: 'center',
-              whiteSpace: 'nowrap', padding: '8px 14px', fontSize: 13,
-              borderRadius: 10, gap: 6, boxShadow: 'none', minWidth: 0, width: 'auto',
-              // Parent is a column flex (align-items: stretch), which squeezed the
-              // button to the column width — size it to its own content instead.
-              alignSelf: 'flex-start',
-            };
-            // Color + label for each lifecycle status the backend buckets briefs into.
+            // Tone + label for each lifecycle status the backend buckets briefs into.
             const STATUS_META = {
-              sent:      { label: 'Sent',      color: '#b45309', bg: '#fffbeb', border: '#fde68a' },
-              accepted:  { label: 'Accepted',  color: '#15803d', bg: '#f0fdf4', border: '#bbf7d0' },
-              declined:  { label: 'Declined',  color: '#b91c1c', bg: '#fef2f2', border: '#fecaca' },
-              countered: { label: 'Countered', color: '#4338ca', bg: '#eef2ff', border: '#c7d2fe' },
-              expired:   { label: 'Expired',   color: '#4b5563', bg: '#f9fafb', border: '#e5e7eb' },
-              revoked:   { label: 'Withdrawn', color: '#4b5563', bg: '#f9fafb', border: '#e5e7eb' },
+              sent:      { label: 'Sent',      tone: 'info' },
+              accepted:  { label: 'Accepted',  tone: 'ok' },
+              declined:  { label: 'Declined',  tone: 'bad' },
+              countered: { label: 'Countered', tone: 'warn' },
+              expired:   { label: 'Expired',   tone: 'muted' },
+              revoked:   { label: 'Withdrawn', tone: 'muted' },
             };
             const DECLINE_LABELS = {
               not_my_niche: 'Not my niche', budget: 'Budget too low',
@@ -1724,178 +1743,86 @@ export default function BusinessDashboard({ page = 'overview' }) {
               ? briefs
               : briefs.filter(b => (briefFilter === 'expired' ? ['expired', 'revoked'] : [briefFilter]).includes(b.status_bucket));
             const briefAmount = (b) => {
-              if (b.amount == null || b.amount === '') return '-';
+              if (b.amount == null || b.amount === '') return '—';
               const s = String(b.amount);
               return /^[₹\s]*[\d,.\s]+$/.test(s) ? formatMoney(s.replace(/[₹,\s]/g, '')) : s;
             };
             const briefDate = (v) => {
               if (!v) return '';
               const d = new Date(v);
-              return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+              return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
             };
             return (
-            <div className="all-campaigns-section">
-              {/* Title/description live in the page header above — this row only
-                  carries the actions so the heading isn't duplicated. */}
-              <div className="sent-briefs-actions-row" style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 16 }}>
-                <div className="sent-briefs-hero-actions" style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-                  {/* Mobile only: replaces the tab strip below with a dropdown. */}
-                  <div className="wr-filter-wrap" ref={briefFilterRef}>
-                    <button type="button" className="wr-filter-btn" onClick={() => setBriefFilterOpen((v) => !v)} aria-haspopup="menu" aria-expanded={briefFilterOpen}>
-                      <Filter size={16} /> Filter
-                    </button>
-                    {briefFilterOpen && (
-                      <div className="wr-filter-menu" role="menu">
-                        {FILTERS.map(f => (
-                          <button
-                            key={f.key}
-                            type="button"
-                            role="menuitemradio"
-                            aria-checked={briefFilter === f.key}
-                            className={briefFilter === f.key ? 'is-active' : ''}
-                            onClick={() => { setBriefFilter(f.key); setBriefFilterOpen(false); }}
-                          >
-                            {f.label} <em>({countFor(f.key)})</em>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+            <div className="bui-main bui-main--tight">
+              <div className="bui-titlerow">
+                <div>
+                  <h1 className="bui-h1">Sent briefs</h1>
+                  <p className="bui-sub">Private briefs, invites and offers you sent straight to creators.</p>
                 </div>
+                <button type="button" className="bui-btn" onClick={() => navigate('/dashboard/business/browse-creator')}>Invite a creator</button>
               </div>
 
-              {/* Desktop: "Filter" expands its status options left→right on hover/click.
-                  Hidden on mobile (the actions-row Filter is used there). */}
-              <div
-                ref={cfBriefRef}
-                className={`cf-filter-row sent-briefs-tabs${(briefFilterExpanded || briefFilterHover) ? ' is-open' : ''}`}
-                onMouseEnter={() => setBriefFilterHover(true)}
-                onMouseLeave={() => setBriefFilterHover(false)}
-              >
-                <button type="button" className="cf-filter-btn" onClick={() => setBriefFilterExpanded((v) => !v)} aria-expanded={briefFilterExpanded || briefFilterHover}>
-                  <Filter size={16} /> Filter
-                </button>
-                <div className="cf-options">
-                  <div className="cf-options-inner">
-                    {FILTERS.map(f => (
-                      <button key={f.key} type="button" className={briefFilter === f.key ? 'is-active' : ''} onClick={() => setBriefFilter(f.key)}>
-                        {f.label} <em>({countFor(f.key)})</em>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+              <div className="bui-tabs" role="tablist" aria-label="Brief status">
+                {FILTERS.map(f => (
+                  <button key={f.key} type="button" role="tab" aria-selected={briefFilter === f.key} className={`bui-tab${briefFilter === f.key ? ' is-on' : ''}`} onClick={() => setBriefFilter(f.key)}>
+                    {f.label}<span>{countFor(f.key)}</span>
+                  </button>
+                ))}
               </div>
 
               {briefsLoading ? (
-                <div style={{ display: 'grid', gap: 12 }}>
+                <div className="bui-sblist">
                   {Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} aria-hidden="true" style={{
-                      display: 'flex', gap: 14, alignItems: 'flex-start', padding: 16,
-                      background: '#fff', border: '1px solid #eef0f5', borderRadius: 14,
-                    }}>
-                      {/* 44px avatar — matches the creator photo/initial */}
-                      <Skeleton width={44} height={44} radius="50%" style={{ flexShrink: 0 }} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        {/* name + type chip + status pill (pill pushed right) */}
-                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
-                          <Skeleton width={120} height={14} />
-                          <Skeleton width={60} height={16} radius={6} />
-                          <Skeleton width={80} height={18} radius={999} style={{ marginLeft: 'auto' }} />
-                        </div>
-                        {/* campaign name */}
-                        <Skeleton width="55%" height={14} style={{ marginBottom: 10 }} />
-                        {/* meta row: amount / timeline / sent date */}
-                        <div style={{ display: 'flex', gap: 14 }}>
-                          <Skeleton width={70} height={12} />
-                          <Skeleton width={70} height={12} />
-                          <Skeleton width={90} height={12} />
-                        </div>
-                      </div>
-                      {/* action button (View Deal / Open Chat) */}
-                      <Skeleton width={110} height={36} radius={8} style={{ flexShrink: 0 }} />
-                    </div>
+                    <div key={i} className="bui-sb" aria-hidden="true"><Skeleton width="100%" height={46} radius={12} /></div>
                   ))}
                 </div>
               ) : briefsError && briefs.length === 0 ? (
-                <div className="all-campaigns-empty">
-                  <span><AlertCircle size={48} /></span>
-                  <h3>Couldn't load sent briefs</h3>
+                <div className="bui-empty">
+                  <h3>Couldn&rsquo;t load sent briefs</h3>
                   <p>{briefsError}</p>
-                  <button className="btn-primary" onClick={() => fetchBriefs()}>Try again</button>
+                  <button type="button" className="bui-btn" onClick={() => fetchBriefs()}>Try again</button>
                 </div>
               ) : briefs.length === 0 ? (
-                <div className="all-campaigns-empty">
-                  <span><Send size={48} /></span>
+                <div className="bui-empty">
                   <h3>No briefs sent yet</h3>
                   <p>When you invite a creator or send a custom/counter offer, it will show up here with its status.</p>
-                  <button className="btn-primary" onClick={() => navigate('/dashboard/business/browse-creator')}>Browse Creators</button>
+                  <button type="button" className="bui-btn" onClick={() => navigate('/dashboard/business/browse-creator')}>Browse creators</button>
                 </div>
               ) : visible.length === 0 ? (
-                <div className="all-campaigns-empty">
-                  <span><Filter size={48} /></span>
-                  <h3>No {briefFilter} briefs</h3>
-                  <p>Try a different status filter.</p>
-                </div>
+                <div className="bui-empty-row">No {briefFilter} briefs. Try a different status filter.</div>
               ) : (
-                <div style={{ display: 'grid', gap: 12 }}>
+                <div className="bui-sblist">
                   {visible.map(b => {
                     const meta = STATUS_META[b.status_bucket] || STATUS_META.sent;
                     const initial = (b.creator_name || 'C').trim().charAt(0).toUpperCase();
+                    const photo = b.creator_photo ? (b.creator_photo.startsWith('http') ? b.creator_photo : `${BACKEND_URL}${b.creator_photo.startsWith('/') ? '' : '/'}${b.creator_photo}`) : '';
+                    const note = b.status_bucket === 'declined' && b.decline_reason
+                      ? `Declined — ${DECLINE_LABELS[b.decline_reason] || b.decline_reason}${b.response_note ? `: “${b.response_note}”` : ''}`
+                      : (b.response_note || b.note || '');
                     return (
-                      <div key={b.id} data-testid={`brief-${b.id}`} className="sb-row" style={{
-                        display: 'flex', gap: 14, alignItems: 'flex-start', padding: 16,
-                        background: '#fff', border: '1px solid #eef0f5', borderRadius: 14,
-                      }}>
-                        <div style={{ position: 'relative', width: 44, height: 44, flexShrink: 0 }}>
-                          {/* Initial sits underneath as the fallback; the photo overlays it
-                              and, if it fails to load, hides to reveal the initial again. */}
-                          <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: '#07074E', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700 }}>{initial}</div>
-                          {b.creator_photo && (
-                            <img
-                              src={b.creator_photo.startsWith('http') ? b.creator_photo : `${BACKEND_URL}${b.creator_photo.startsWith('/') ? '' : '/'}${b.creator_photo}`}
-                              alt=""
-                              onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                              style={{ position: 'absolute', inset: 0, width: 44, height: 44, borderRadius: '50%', objectFit: 'cover' }}
-                            />
-                          )}
-                        </div>
-                        <div className="sb-main" style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginBottom: 4 }}>
-                            <strong style={{ fontSize: 15, color: '#07074E' }}>{String(b.creator_name || 'Creator').trim().split(/\s+/)[0]}</strong>
-                            <span style={{ fontSize: 11, fontWeight: 600, color: '#5b6bff', background: '#eef0ff', padding: '2px 8px', borderRadius: 6 }}>{b.type_label}</span>
+                      <article key={b.id} data-testid={`brief-${b.id}`} className="bui-sb">
+                        <div className="bui-sb-who">
+                          <span className="bui-ava46">
+                            <span>{initial}</span>
+                            {photo && <img src={photo} alt="" onError={(e) => { e.currentTarget.style.display = 'none'; }} />}
+                          </span>
+                          <div className="bui-sb-who-t">
+                            <div><strong>{String(b.creator_name || 'Creator').trim().split(/\s+/)[0]}</strong><span className="bui-kind">{b.type_label}</span></div>
+                            <small>{b.campaign_name || b.deliverable_summary || 'Untitled brief'}</small>
                           </div>
-                          <div style={{ fontSize: 14, color: '#111827', fontWeight: 600, marginBottom: 6 }}>
-                            {b.campaign_name || b.deliverable_summary || 'Untitled brief'}
-                          </div>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, fontSize: 13, color: '#6b7280' }}>
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><IndianRupee size={13} /> {briefAmount(b)}</span>
-                            {b.timeline && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Clock3 size={13} /> {b.timeline}</span>}
-                            {b.created_at && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><FileText size={13} /> Sent {briefDate(b.created_at)}</span>}
-                          </div>
-                          {b.status_bucket === 'declined' && b.decline_reason && (
-                            <div style={{ marginTop: 8, fontSize: 12.5, color: '#b91c1c', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                              <AlertCircle size={13} /> Declined: {DECLINE_LABELS[b.decline_reason] || b.decline_reason}{b.response_note ? ` - "${b.response_note}"` : ''}
-                            </div>
-                          )}
                         </div>
-                        <div className="sb-side" style={{ display: 'flex', flexDirection: 'column', gap: 20, flexShrink: 0, alignItems: 'flex-end' }}>
-                          {/* Status pill lives here (not in the name row) so it doesn't
-                              wrap to its own line and push "Video" + the meta down. */}
-                          <span style={{
-                            fontSize: 11, fontWeight: 700, color: meta.color, background: meta.bg,
-                            border: `1px solid ${meta.border}`, padding: '2px 10px', borderRadius: 999, whiteSpace: 'nowrap',
-                          }}>{meta.label}</span>
-                          {b.status_bucket === 'accepted' && b.deal_campaign_id ? (
-                            <button type="button" className="btn-primary" style={COMPACT_ACTION_BTN} onClick={() => setModalView({ type: 'campaign', id: b.deal_campaign_id })}>
-                              <Eye size={14} /> View Deal
-                            </button>
-                          ) : (
-                            <button type="button" className="btn-secondary" style={COMPACT_ACTION_BTN} onClick={() => navigate(`/messages?conv=${b.creator_id}`)}>
-                              <MessageSquare size={14} /> Open Chat
-                            </button>
-                          )}
+                        <div className="bui-sb-note">{note}</div>
+                        <div className="bui-sb-amt"><b>{briefAmount(b)}</b><small>{b.timeline || ' '}</small></div>
+                        <div className="bui-sb-st">
+                          <span className={`bui-status bui-status--${meta.tone}`}>{meta.label}</span>
+                          {b.created_at && <small>Sent {briefDate(b.created_at)}</small>}
                         </div>
-                      </div>
+                        {b.status_bucket === 'accepted' && b.deal_campaign_id ? (
+                          <button type="button" className="bui-cta" onClick={() => navigate(`/dashboard/business/campaign/${b.deal_campaign_id}`)}>View deal</button>
+                        ) : (
+                          <button type="button" className={`bui-cta${b.status_bucket === 'countered' ? '' : ' bui-cta--ghost'}`} onClick={() => navigate(`/messages?conv=${b.creator_id}`)}>{b.status_bucket === 'countered' ? 'Reply in chat' : 'Open chat'}</button>
+                        )}
+                      </article>
                     );
                   })}
                 </div>
@@ -1907,28 +1834,20 @@ export default function BusinessDashboard({ page = 'overview' }) {
           {activeTab === 'pending-bids' && (() => {
             // A multi-creator brief keeps taking bids for its open slots after the
             // first hire — filtering out anything with ANY selected_creator hid the
-            // whole campaign (and every other creator's pending bid with it) the
-            // moment the brand accepted just one of several creators.
+            // whole campaign the moment the brand accepted just one of several creators.
             const bidCampaigns = campaigns.filter(c => c.bids && c.bids.length > 0 && isOpenForBids(c));
-            const current = bidCampaigns.find(c => c.id === bidCampaignId) || bidCampaigns[0];
+            const hasOpenBids = (c) => (c.bids || []).some(b => !selectedCreators(c).includes(String(b.creator_id)));
+            const current = bidCampaigns.find(c => c.id === bidCampaignId) || bidCampaigns.find(hasOpenBids) || bidCampaigns[0];
             return (
-            <div className="cb-section">
-              {bidCampaigns.length === 0 && campaignsError ? (
-                <div className="empty-state">
-                  <AlertCircle size={64} />
-                  <p>{campaignsError}</p>
-                  <button type="button" className="btn-primary" onClick={() => fetchCampaigns()}>Try again</button>
+            <div className="bui-main bui-main--tight">
+              <div className="bui-titlerow">
+                <div>
+                  <h1 className="bui-h1">Compare bids</h1>
+                  <p className="bui-sub">Pick the creators you want. Money only leaves your wallet when you accept.</p>
                 </div>
-              ) : bidCampaigns.length === 0 ? (
-                <div className="empty-state">
-                  <Users size={64} />
-                  <p>No pending bids at the moment</p>
-                </div>
-              ) : (
-                <>
-                {bidCampaigns.length > 1 && (
-                  <div className="cb-campaign-filter">
-                    <span>Campaign</span>
+                {bidCampaigns.length > 1 && current && (
+                  <label className="bui-campsel">
+                    Campaign
                     <select value={current.id} onChange={(e) => setBidCampaignId(e.target.value)}>
                       {bidCampaigns.map(c => {
                         const hired = selectedCreators(c);
@@ -1938,36 +1857,47 @@ export default function BusinessDashboard({ page = 'overview' }) {
                         );
                       })}
                     </select>
-                  </div>
+                  </label>
                 )}
-                <div className="cb-list">
-                  {current && (
-                    <BidsCampaignCard
-                      key={current.id}
-                      campaign={current}
-                      onAccept={handleAcceptBid}
-                      onFinishHiring={async (c) => {
-                        const hired = selectedCreators(c).length;
-                        if (!window.confirm(`Stop hiring with ${hired} creator(s)? The budget for the ${slotsLeft(c)} unfilled slot(s) is refunded to your wallet.`)) return;
-                        try {
-                          await axios.post(`${API}/campaigns/${c.id}/finish-hiring`);
-                          toast.success('Hiring closed. Unused budget refunded to your wallet.');
-                          fetchCampaigns();
-                          fetchWallet();
-                        } catch (error) {
-                          toast.error(error?.response?.data?.detail || 'Failed to finish hiring');
-                        }
-                      }}
-                      onViewCampaign={(id) => setModalView({ type: 'campaign', id })}
-                      onViewProfile={(id, bid) => {
-                        const creatorId = bid?.creator_id || bid?.public_creator_id || bid?.id;
-                        if (!creatorId) { toast.error('Creator profile unavailable for this bid.'); return; }
-                        setProfileView({ id: creatorId, name: bid?.creator_nickname || bid?.public_creator_id, photo: bid?.creator_photo || bid?.profile_photo });
-                      }}
-                    />
-                  )}
+              </div>
+              {bidCampaigns.length === 0 && campaignsError ? (
+                <div className="bui-empty">
+                  <h3>Couldn&rsquo;t load your bids</h3>
+                  <p>{campaignsError}</p>
+                  <button type="button" className="bui-btn" onClick={() => fetchCampaigns()}>Try again</button>
                 </div>
-                </>
+              ) : bidCampaigns.length === 0 ? (
+                <div className="bui-empty">
+                  <h3>No pending bids at the moment</h3>
+                  <p>When creators bid on your campaigns, you&rsquo;ll compare them here.</p>
+                </div>
+              ) : (
+                current && (
+                  <BidsCampaignCard
+                    key={current.id}
+                    campaign={current}
+                    creatorsById={creatorsById}
+                    onAccept={handleAcceptBid}
+                    onFinishHiring={async (c) => {
+                      const hired = selectedCreators(c).length;
+                      if (!window.confirm(`Stop hiring with ${hired} creator(s)? The budget for the ${slotsLeft(c)} unfilled slot(s) is refunded to your wallet.`)) return;
+                      try {
+                        await axios.post(`${API}/campaigns/${c.id}/finish-hiring`);
+                        toast.success('Hiring closed. Unused budget refunded to your wallet.');
+                        fetchCampaigns();
+                        fetchWallet();
+                      } catch (error) {
+                        toast.error(error?.response?.data?.detail || 'Failed to finish hiring');
+                      }
+                    }}
+                    onViewCampaign={(id) => navigate(`/dashboard/business/campaign/${id}`)}
+                    onViewProfile={(id, bid) => {
+                      const creatorId = bid?.creator_id || bid?.public_creator_id || bid?.id;
+                      if (!creatorId) { toast.error('Creator profile unavailable for this bid.'); return; }
+                      navigate(`/dashboard/business/creator/${creatorId}`);
+                    }}
+                  />
+                )
               )}
             </div>
             );
@@ -2187,66 +2117,69 @@ export default function BusinessDashboard({ page = 'overview' }) {
             </div>
           )}
 
-          {activeTab === 'wallet' && (
-            <div className="wallet-section">
-              <div className="wallet-main-column">
-                <section className="wallet-hero-card">
-                  <div>
-                    <span className="wallet-kicker"><Wallet size={18} /> Brand Wallet • UGCad</span>
-                    {/* Chat-status sits on the SAME line as the "Available Balance"
-                        label (right-aligned), rather than below the amount. */}
-                    <div className="wallet-bal-line">
-                      <p>Available Balance</p>
-                      {/* Don't show the locked/unlocked status until the balance has
-                          actually loaded — otherwise the default 0 makes it read
-                          "minimum required" for a moment. */}
-                      {!walletLoading && (
-                        <small className={`wallet-chat-status ${walletData.chat_unlocked ? 'is-unlocked' : ''}`}>{walletData.chat_unlocked ? 'Platform chat unlocked' : `${formatMoney(walletData.minimum_chat_balance)} minimum balance required to unlock platform chat`}</small>
-                      )}
-                    </div>
-                    <h2>{walletLoading ? <span className="wallet-bal-loading">Loading…</span> : formatMoney(walletData.available_balance)}</h2>
-                  </div>
-                  {/* The side panel's only remaining row (Platform chat · Unlocked) now
-                      duplicates the inline status next to Available Balance, so it's
-                      removed — leaving the hero as a single clean balance block. */}
-                </section>
+          {activeTab === 'wallet' && (() => {
+            // Header numbers are derived from the transaction list the wallet endpoint already returns.
+            const tx = walletData.transactions || [];
+            const sum = (list) => list.reduce((s, t) => s + Number(t.amount || 0), 0);
+            const nowD = new Date();
+            const heldInEscrow = sum(tx.filter((t) => t.direction === 'debit' && String(t.status).toLowerCase() === 'held'));
+            const spentThisMonth = sum(tx.filter((t) => {
+              const d = new Date(t.date);
+              return t.direction === 'debit' && !Number.isNaN(d.getTime()) && d.getMonth() === nowD.getMonth() && d.getFullYear() === nowD.getFullYear()
+                && ['released', 'success'].includes(String(t.status).toLowerCase());
+            }));
+            const bonusEarned = sum(tx.filter((t) => t.direction === 'credit' && /bonus/i.test(String(t.type))));
+            const lastRecharge = tx.find((t) => t.direction === 'credit' && /recharge/i.test(String(t.type)) && !/bonus/i.test(String(t.type)));
+            const typed = Number(walletAmount || 0);
+            const bonusPct = walletBonusTiers.reduce((best, tier) => (typed >= Number(tier.amount) ? Math.max(best, Number(tier.bonus_percent || 0)) : best), 0);
+            const youGet = typed + Math.round((typed * bonusPct) / 100);
+            const counts = {
+              all: tx.length,
+              credits: tx.filter((t) => t.direction === 'credit').length,
+              debits: tx.filter((t) => t.direction === 'debit').length,
+            };
+            return (
+            <div className="bui-main bui-main--tight">
+              <div>
+                <h1 className="bui-h1">Wallet</h1>
+                <p className="bui-sub">Add funds once, then hire creators in a click. Money is held safely until you approve.</p>
+              </div>
 
-                {!walletLoading && !walletData.chat_unlocked && (
-                  <section className="wallet-warning">
-                    <AlertCircle size={18} />
-                    <div>
-                      <strong>{formatMoney(walletData.minimum_chat_balance)} minimum recharge required to unlock platform chat.</strong>
-                      <p>Wallet credits are non-refundable. Add funds to activate messaging with creators.</p>
+              <section className="bui-whero">
+                <span className="bui-hero-glow" aria-hidden="true" />
+                <div className="bui-whero-l">
+                  <small>Available balance</small>
+                  <div className="bui-whero-bal">{walletLoading ? <span className="wallet-bal-loading">Loading&hellip;</span> : formatMoney(walletData.available_balance)}</div>
+                  {!walletLoading && (
+                    <div className="bui-whero-chips">
+                      <span className={walletData.chat_unlocked ? 'is-ok' : ''}>
+                        {walletData.chat_unlocked ? <><CheckCircle size={13} /> Platform chat unlocked</> : `${formatMoney(walletData.minimum_chat_balance)} minimum to unlock platform chat`}
+                      </span>
                     </div>
-                    <button type="button" onClick={() => setWalletAmount(String(walletData.minimum_chat_balance))}>Add Funds</button>
-                  </section>
-                )}
-
-                <section className="wallet-panel wallet-bonus-tiers">
-                  <div>
-                    <h2>Recharge Bonus</h2>
-                    <p>Bigger recharges earn a bigger instant bonus.</p>
+                  )}
+                  <div className="bui-whero-stats">
+                    <div><small>Held in escrow</small><b>{formatMoney(heldInEscrow)}</b></div>
+                    <div><small>Spent this month</small><b>{formatMoney(spentThisMonth)}</b></div>
+                    <div><small>Bonus earned</small><b>{formatMoney(bonusEarned)}</b></div>
                   </div>
-                  <div className="wallet-tier-grid">
-                    {walletBonusTiers.map((tier) => (
-                      <button key={tier.amount} type="button" onClick={() => setWalletAmount(String(tier.amount))}>
-                        <strong>{tier.label || formatMoney(tier.amount)}</strong>
-                        <small>+{tier.bonus_percent}% bonus</small>
+                  <div className="bui-whero-foot">
+                    <span>{lastRecharge ? `Last added ${formatMoney(lastRecharge.amount)} on ${formatWalletDate(lastRecharge.date)}` : 'No recharges yet'}</span>
+                    <a href="#wallet-history" className="bui-whero-link" onClick={(e) => { e.preventDefault(); document.getElementById('wallet-history')?.scrollIntoView({ behavior: 'smooth' }); }}>View history &rarr;</a>
+                  </div>
+                </div>
+
+                <div className="bui-addfunds" id="wallet-recharge">
+                  <div className="bui-addfunds-h"><b>Add funds</b><small>Bigger top-ups get a bonus</small></div>
+                  <div className="bui-tiers">
+                    {(walletBonusTiers.length ? walletBonusTiers : walletPresetAmounts.map((a) => ({ amount: a, bonus_percent: 0 }))).slice(0, 3).map((tier) => (
+                      <button key={tier.amount} type="button" className={`bui-tier${Number(walletAmount) === Number(tier.amount) ? ' is-on' : ''}`} onClick={() => setWalletAmount(String(tier.amount))}>
+                        <b>{tier.label || formatMoney(tier.amount).replace(',000', 'K')}</b>
+                        {tier.bonus_percent ? <small>+{tier.bonus_percent}% bonus</small> : <small>&nbsp;</small>}
                       </button>
                     ))}
                   </div>
-                </section>
-
-              </div>
-
-              <aside className="wallet-side-column">
-                <section className="wallet-panel wallet-recharge-card" id="wallet-recharge">
-                  <div className="wallet-side-title">
-                    <h2>Quick Recharge</h2>
-                  </div>
-                  <label htmlFor="wallet-amount">Enter Amount</label>
-                  <div className="wallet-amount-input">
-                    <IndianRupee size={18} />
+                  <label className="bui-amt" htmlFor="wallet-amount">
+                    <span>&#8377;</span>
                     <input
                       id="wallet-amount"
                       type="number"
@@ -2256,140 +2189,123 @@ export default function BusinessDashboard({ page = 'overview' }) {
                       onChange={(event) => setWalletAmount(event.target.value)}
                       placeholder="Enter amount"
                     />
-                  </div>
-                  <div className="wallet-presets">
-                    {walletPresetAmounts.map((amount) => (
-                      <button key={amount} type="button" onClick={() => setWalletAmount(String(amount))}>{formatMoney(amount).replace(',000', 'K')}</button>
-                    ))}
-                  </div>
-                  <button
-                    type="button"
-                    className="wallet-add-funds"
-                    onClick={() => handleWalletRecharge()}
-                    disabled={rechargingWallet}
-                  >
-                    <Zap size={18} /> {rechargingWallet ? 'Creating Order...' : 'Add Funds'}
+                    <em>or type any amount</em>
+                  </label>
+                  {typed > 0 && (
+                    <div className="bui-youget"><span>You&rsquo;ll get in your wallet</span><b>{formatMoney(youGet)}</b></div>
+                  )}
+                  <button type="button" className="bui-btn bui-btn--tall bui-btn--block" onClick={() => handleWalletRecharge()} disabled={rechargingWallet}>
+                    {rechargingWallet ? 'Creating order…' : typed > 0 ? `Add ${formatMoney(typed)}` : 'Add funds'}
                   </button>
-                  <small>Minimum {formatMoney(walletData.minimum_chat_balance || 2500)} • Instant credit after payment verification</small>
-                </section>
-              </aside>
+                  <small className="bui-addfunds-f">Minimum {formatMoney(walletData.minimum_chat_balance || 2500)} &middot; instant credit after payment</small>
+                </div>
+              </section>
 
-              <section className="wallet-panel wallet-history wallet-history-full" id="wallet-history">
-                <div className="wallet-history-head">
-                  <div>
-                    <h2>Transaction History</h2>
-                    <p>All wallet activity across recharges, escrow, and fees.</p>
-                  </div>
-                  <div className="wallet-filter-tabs">
+              <section className="bui-card bui-history" id="wallet-history">
+                <div className="bui-history-h">
+                  <h2 className="bui-panel-t">Transaction history</h2>
+                  <div className="bui-tabs bui-tabs--bare">
                     {['all', 'credits', 'debits'].map((filter) => (
-                      <button
-                        key={filter}
-                        type="button"
-                        className={walletFilter === filter ? 'active' : ''}
-                        onClick={() => { setWalletFilter(filter); setWalletShown(8); }}
-                      >
-                        {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                      <button key={filter} type="button" className={`bui-tab${walletFilter === filter ? ' is-on' : ''}`} onClick={() => { setWalletFilter(filter); setWalletShown(8); }}>
+                        {filter.charAt(0).toUpperCase() + filter.slice(1)}<span>{counts[filter]}</span>
                       </button>
                     ))}
                   </div>
                 </div>
 
                 {walletError ? (
-                  <div className="wallet-empty">{walletError}</div>
+                  <div className="bui-empty-row bui-empty-row--flat">{walletError}</div>
                 ) : walletLoading ? (
-                  <div className="wallet-table" aria-hidden="true">
-                    <div className="wallet-row wallet-head">
-                      <span>Date</span><span>Type</span><span>Reference</span><span>Amount</span><span>Status</span>
-                    </div>
+                  <div className="bui-trows" aria-hidden="true">
                     {Array.from({ length: 6 }).map((_, i) => (
-                      <div className="wallet-row" key={i}>
-                        <Skeleton width="70%" height={12} />
-                        <Skeleton width="55%" height={12} />
-                        <Skeleton width="60%" height={12} />
-                        <Skeleton width="45%" height={12} />
-                        <Skeleton width={64} height={18} radius={999} />
-                      </div>
+                      <div className="bui-trow" key={i}><Skeleton width="70%" height={12} /><Skeleton width="55%" height={12} /><Skeleton width="60%" height={12} /><Skeleton width="45%" height={12} /><Skeleton width={64} height={18} radius={999} /></div>
                     ))}
                   </div>
                 ) : walletTransactions.length === 0 ? (
-                  <div className="wallet-empty">No wallet transactions yet.</div>
+                  <div className="bui-empty-row bui-empty-row--flat">No wallet transactions yet.</div>
                 ) : (
-                  <div className="wallet-table">
-                    <div className="wallet-row wallet-head">
-                      <span>Date</span>
-                      <span>Type</span>
-                      <span>Reference</span>
-                      <span>Amount</span>
-                      <span>Status</span>
+                  <div className="bui-ttable">
+                    <div className="bui-trow bui-trow--head">
+                      <span>Date</span><span>Type</span><span>Reference</span><span className="bui-tr-r">Amount</span><span>Status</span>
                     </div>
                     {walletTransactions.slice(0, walletShown).map((transaction) => (
-                      <div className={`wallet-row wallet-row--clickable wallet-row--${transaction.direction === 'debit' ? 'out' : 'in'}`} key={transaction.id}
-                        role="button" tabIndex={0}
+                      <div
+                        className="bui-trow bui-trow--click"
+                        key={transaction.id}
+                        role="button"
+                        tabIndex={0}
                         onClick={() => setTxnDetail(transaction)}
                         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setTxnDetail(transaction); } }}
-                        title="View details">
-                        {/* Icon column — desktop hides it (the table has no icon column);
-                            mobile shows the reference-style circular in/out badge. */}
-                        <span className="wallet-row-ic" aria-hidden="true">
-                          {transaction.direction === 'debit' ? <ArrowUpRight size={17} /> : <ArrowDownLeft size={17} />}
-                        </span>
+                        title="View details"
+                      >
                         <span data-label="Date">{formatWalletDate(transaction.date)}</span>
-                        <strong data-label="Type">{transaction.type}</strong>
-                        <span data-label="Reference">{transaction.reference || '-'}</span>
-                        <strong data-label="Amount" className={transaction.direction === 'debit' ? 'wallet-debit' : 'wallet-credit'}>
-                          {transaction.direction === 'debit' ? '-' : '+'}{formatMoney(transaction.amount)}
-                        </strong>
-                        <span data-label="Status" className={`wallet-status ${transaction.status}`}>{transaction.status || 'success'}</span>
+                        <span data-label="Type" className="bui-ttype">
+                          <i className={transaction.direction === 'debit' ? 'out' : 'in'}>{transaction.direction === 'debit' ? '−' : '+'}</i>
+                          <b>{transaction.type}</b>
+                        </span>
+                        <span data-label="Reference" className="bui-tref">{transaction.reference || '—'}</span>
+                        <b data-label="Amount" className={`bui-tr-r bui-tamt ${transaction.direction === 'debit' ? 'out' : 'in'}`}>
+                          {transaction.direction === 'debit' ? '−' : '+'}{formatMoney(transaction.amount)}
+                        </b>
+                        <span data-label="Status"><em className={`bui-tstatus bui-tstatus--${String(transaction.status || 'success').toLowerCase()}`}>{transaction.status || 'success'}</em></span>
                       </div>
                     ))}
-                    {walletTransactions.length > walletShown && (
-                      <button type="button" className="wallet-more" onClick={() => setWalletShown((n) => n + 20)}>
-                        Show more ({walletTransactions.length - walletShown} older)
-                      </button>
-                    )}
-                    {/* No invoice / receipt download exists for brands (a recharge receipt is only emailed),
-                        so the statement is the one record a brand can save. Hidden inside the mobile app's
-                        WebView, which cannot save a blob download. */}
-                    {!window.ReactNativeWebView && (
-                      <button type="button" className="wallet-more wallet-export" onClick={() => downloadWalletStatement(walletTransactions)}>
-                        <Download size={15} /> Download statement (CSV)
-                      </button>
-                    )}
+                    <div className="bui-tfoot">
+                      {walletTransactions.length > walletShown && (
+                        <button type="button" className="bui-btn bui-btn--ghost bui-btn--sm" onClick={() => setWalletShown((n) => n + 20)}>
+                          Show more ({walletTransactions.length - walletShown} older)
+                        </button>
+                      )}
+                      {/* Hidden inside the mobile app's WebView, which cannot save a blob download. */}
+                      {!window.ReactNativeWebView && (
+                        <button type="button" className="bui-btn bui-btn--ghost bui-btn--sm" onClick={() => downloadWalletStatement(walletTransactions)}>
+                          <Download size={15} /> Download statement (CSV)
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
               </section>
 
               {txnDetail && (
-                <div className="txn-overlay" onClick={() => setTxnDetail(null)}>
-                  <div className="txn-modal" onClick={(e) => e.stopPropagation()}>
-                    <button type="button" className="txn-close" aria-label="Close" onClick={() => setTxnDetail(null)}><X size={18} /></button>
-                    <span className={`txn-amt ${txnDetail.direction === 'debit' ? 'out' : 'in'}`}>
-                      {txnDetail.direction === 'debit' ? '-' : '+'}{formatMoney(txnDetail.amount)}
-                    </span>
-                    <strong className="txn-type">{txnDetail.type}</strong>
-                    <span className={`wallet-status ${txnDetail.status}`}>{txnDetail.status || 'success'}</span>
-                    <div className="txn-rows">
-                      <div className="txn-r"><span>Direction</span><strong>{txnDetail.direction === 'debit' ? 'Debit (out)' : 'Credit (in)'}</strong></div>
-                      <div className="txn-r"><span>Date</span><strong>{formatWalletDate(txnDetail.date)}</strong></div>
-                      {txnDetail.reference && <div className="txn-r"><span>Campaign / Ref</span><strong>{txnDetail.reference}</strong></div>}
-                      <div className="txn-r"><span>Transaction ID</span><strong className="txn-mono">{txnDetail.id}</strong></div>
+                <div className="bui-modal-ov" onClick={() => setTxnDetail(null)}>
+                  <div className="bui-modal bui-modal--sm" role="dialog" aria-modal="true" aria-label="Transaction details" onClick={(e) => e.stopPropagation()}>
+                    <button type="button" className="bui-modal-x" aria-label="Close" onClick={() => setTxnDetail(null)}><X size={15} /></button>
+                    <h2 className="bui-modal-h">{txnDetail.type}</h2>
+                    <div className="bui-modal-body">
+                      <div className="bui-txn-amt">
+                        <span className={`bui-tamt ${txnDetail.direction === 'debit' ? 'out' : 'in'}`}>{txnDetail.direction === 'debit' ? '−' : '+'}{formatMoney(txnDetail.amount)}</span>
+                        <em className={`bui-tstatus bui-tstatus--${String(txnDetail.status || 'success').toLowerCase()}`}>{txnDetail.status || 'success'}</em>
+                      </div>
+                      <div className="bui-sum">
+                        <div><span>Direction</span><b>{txnDetail.direction === 'debit' ? 'Debit (out)' : 'Credit (in)'}</b></div>
+                        <div><span>Date</span><b>{formatWalletDate(txnDetail.date)}</b></div>
+                        {txnDetail.reference && <div><span>Campaign / ref</span><b>{txnDetail.reference}</b></div>}
+                        <div><span>Transaction ID</span><b className="bui-mono">{txnDetail.id}</b></div>
+                      </div>
+                      {txnDetail.direction === 'credit' && /recharge/i.test(String(txnDetail.type)) && (
+                        <p className="bui-muted-p">A payment receipt for this recharge was emailed to your account email when the payment succeeded.</p>
+                      )}
+                      <div className="bui-modal-foot">
+                        <button type="button" className="bui-btn bui-btn--ghost" onClick={() => { const id = txnDetail.id; setTxnDetail(null); navigate(`/dashboard/business/invoice/${encodeURIComponent(id)}`); }}>View invoice</button>
+                        {txnDetail.reference && /^[0-9a-f-]{8,}$/i.test(String(txnDetail.reference)) && (
+                          <button type="button" className="bui-btn" onClick={() => { setTxnDetail(null); navigate(`/dashboard/business/campaign/${txnDetail.reference}`); }}>View campaign</button>
+                        )}
+                      </div>
                     </div>
-                    {txnDetail.direction === 'credit' && /recharge/i.test(String(txnDetail.type)) && (
-                      <p className="txn-note">A payment receipt for this recharge was emailed to your account email when the payment succeeded.</p>
-                    )}
-                    {txnDetail.reference && /^[0-9a-f-]{8,}$/i.test(String(txnDetail.reference)) && (
-                      <button type="button" className="txn-open" onClick={() => { setTxnDetail(null); setModalView({ type: 'campaign', id: txnDetail.reference }); }}>
-                        View campaign
-                      </button>
-                    )}
                   </div>
                 </div>
               )}
             </div>
-          )}
+            );
+          })()}
 
           {activeTab === 'shipments' && (
-            <div className="shipments-section">
+            <div className="bui-main bui-main--tight">
+              <div>
+                <h1 className="bui-h1">Shipments</h1>
+                <p className="bui-sub">Products you send to creators for filming, with live tracking.</p>
+              </div>
               {(() => {
                 const shipCampaigns = campaigns.filter((c) => c.requires_shipment || c.shipment_option === 'yes');
                 // One row per hired creator (a multi-creator brief ships to each of them).
@@ -2410,7 +2326,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
                   transit: ship.filter((c) => statusOf(c) === 'transit').length,
                   delivered: ship.filter((c) => statusOf(c) === 'delivered').length,
                 };
-                const TABS = [['all', 'All Shipments'], ['transit', 'In Transit'], ['delivered', 'Delivered']];
+                const TABS = [['all', 'All shipments'], ['transit', 'In transit'], ['delivered', 'Delivered']];
                 const rows = ship.filter((c) => (shipTab === 'all' ? true : statusOf(c) === shipTab));
                 const cr = (id) => creatorDirectory.find((x) => x.id === id) || {};
                 // creatorDirectory holds NORMALISED items ({ handle, avatar }), not raw profiles, and the hired
@@ -2419,76 +2335,88 @@ export default function BusinessDashboard({ page = 'overview' }) {
                 const cname = (r) => { const nm = String(cr(r.creatorId).handle || bidOf(r).creator_name || bidOf(r).creator_nickname || (r.creatorId ? 'Creator' : 'Not selected')).replace(/^@+/, '').trim(); return r.creatorId ? (nm.split(/\s+/)[0] || nm) : nm; };
                 const cinit = (r) => (cname(r).replace('@', '')[0] || 'C').toUpperCase();
                 const cphoto = (r) => cr(r.creatorId).avatar || bidOf(r).creator_photo || bidOf(r).profile_photo;
+                const toShip = ship.filter((r) => r.creatorId && statusOf(r) === 'pending');
+                const open = (r, st) => setModalView({ type: 'shipment', id: r.c.id, creatorId: selectedCreators(r.c).length > 1 ? r.creatorId : undefined, ship: st !== 'delivered' && st !== 'transit' });
 
                 if (campaignsError && campaigns.length === 0) {
                   return (
-                    <div className="empty-state">
-                      <AlertCircle size={64} />
+                    <div className="bui-empty">
+                      <h3>Couldn&rsquo;t load your shipments</h3>
                       <p>{campaignsError}</p>
-                      <button type="button" className="btn-primary" onClick={() => fetchCampaigns()}>Try again</button>
+                      <button type="button" className="bui-btn" onClick={() => fetchCampaigns()}>Try again</button>
                     </div>
                   );
                 }
                 if (ship.length === 0) {
                   return (
-                    <div className="empty-state">
-                      <Package size={64} />
-                      <p>No campaigns requiring shipment</p>
-                      <p className="hint">Campaigns with shipment requirements will appear here</p>
+                    <div className="bui-empty">
+                      <h3>No campaigns requiring shipment</h3>
+                      <p>Campaigns with shipment requirements will appear here.</p>
                     </div>
                   );
                 }
 
                 return (
                   <>
-                    <div className="ship-toolbar">
-                      <div className="ship-tabs">
-                        {TABS.map(([k, l]) => (
-                          <button key={k} type="button" className={shipTab === k ? 'on' : ''} onClick={() => setShipTab(k)}>
-                            {l} <em>({counts[k]})</em>
-                          </button>
-                        ))}
+                    {toShip.length > 0 && (
+                      <div className="bui-shipbanner">
+                        <span className="bui-turn-ic"><Package size={18} /></span>
+                        <div className="bui-turn-tx">
+                          <b>{toShip.length} product{toShip.length === 1 ? '' : 's'} waiting to ship</b>
+                          <small>{cname(toShip[0])} can start filming as soon as the product arrives.</small>
+                        </div>
+                        <button type="button" className="bui-btn" onClick={() => open(toShip[0], 'pending')}>Ship now</button>
                       </div>
+                    )}
+
+                    <div className="bui-tabs" role="tablist">
+                      {TABS.map(([k, l]) => (
+                        <button key={k} type="button" role="tab" aria-selected={shipTab === k} className={`bui-tab${shipTab === k ? ' is-on' : ''}`} onClick={() => setShipTab(k)}>
+                          {l}<span>{counts[k]}</span>
+                        </button>
+                      ))}
                     </div>
+
                     {/* A tab with no rows used to leave a header-only table (desktop) or a blank gap (phone). */}
                     {rows.length === 0 ? (
-                      <div className="empty-state-small">Nothing in “{TABS.find(([k]) => k === shipTab)[1]}” yet.</div>
+                      <div className="bui-empty-row">Nothing in &ldquo;{TABS.find(([k]) => k === shipTab)[1]}&rdquo; yet.</div>
                     ) : (
-                    <div className="ship-table-card">
-                      <table className="ship-table">
-                        <thead>
-                          <tr><th>Creator</th><th>Campaign</th><th>Courier</th><th>Tracking ID</th><th>Status</th><th>Est. Delivery</th><th>Action</th></tr>
-                        </thead>
-                        <tbody>
-                          {rows.map((r) => {
-                            const c = r.c;
-                            const s = shipmentsMap[r.key];
-                            const st = statusOf(r);
-                            const photo = cphoto(r);
-                            return (
-                              <tr key={r.key} data-testid={`shipment-${r.key}`}>
-                                <td data-label="Creator">
-                                  <span className="ship-cr">
-                                    <span className="ship-ava"><PhotoOrInitial src={photo ? (photo.startsWith('http') ? photo : `${BACKEND_URL}${photo}`) : ''} initial={cinit(r)} /></span>
-                                    {cname(r)}
-                                  </span>
-                                </td>
-                                <td data-label="Campaign" className="ship-strong">{c.title}</td>
-                                <td data-label="Courier">{s?.courier || s?.courier_name || '-'}</td>
-                                <td data-label="Tracking ID">{s?.tracking_number || '-'}</td>
-                                <td data-label="Status"><span className={`ship-status ${st === 'delivered' || st === 'transit' ? st : (r.creatorId ? 'ready' : 'awaiting')}`}>{st === 'delivered' ? 'Delivered' : st === 'transit' ? 'In Transit' : (r.creatorId ? 'Ready to Ship' : 'Awaiting Creator')}</span></td>
-                                <td data-label="Est. Delivery" className="ship-muted">{s?.expected_delivery ? formatDate(s.expected_delivery) : '-'}</td>
-                                <td className="ship-action">
-                                  {r.creatorId
-                                    ? <button type="button" onClick={() => setModalView({ type: 'shipment', id: c.id, creatorId: selectedCreators(c).length > 1 ? r.creatorId : undefined, ship: st !== 'delivered' && st !== 'transit' })}>{st === 'delivered' ? 'View' : st === 'transit' ? 'Track' : 'Ship'}</button>
-                                    : <button type="button" onClick={() => setModalView({ type: 'campaign', id: c.id })}>Select</button>}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
+                      <div className="bui-card bui-tablewrap">
+                        <table className="bui-table bui-table--ship">
+                          <thead>
+                            <tr><th>Creator</th><th>Campaign</th><th>Courier</th><th>Tracking ID</th><th>Status</th><th>Est. delivery</th><th><span className="bui-sr">Action</span></th></tr>
+                          </thead>
+                          <tbody>
+                            {rows.map((r) => {
+                              const c = r.c;
+                              const s = shipmentsMap[r.key];
+                              const st = statusOf(r);
+                              const photo = cphoto(r);
+                              const pill = st === 'delivered' ? { t: 'Delivered', tone: 'ok' } : st === 'transit' ? { t: 'In transit', tone: 'info' } : (r.creatorId ? { t: 'Ready to ship', tone: 'warn' } : { t: 'Awaiting creator', tone: 'muted' });
+                              return (
+                                <tr key={r.key} className="bui-tr" data-testid={`shipment-${r.key}`}>
+                                  <td data-label="Creator">
+                                    <span className="bui-cell bui-cell--sm">
+                                      <span className="bui-ava30"><PhotoOrInitial src={photo ? (photo.startsWith('http') ? photo : `${BACKEND_URL}${photo}`) : ''} initial={cinit(r)} /></span>
+                                      <b>{cname(r)}</b>
+                                    </span>
+                                  </td>
+                                  <td data-label="Campaign"><span className="bui-cell-t">{c.title}</span></td>
+                                  <td data-label="Courier">{s?.courier || s?.courier_name || '—'}</td>
+                                  <td data-label="Tracking ID" className="bui-nowrap">{s?.tracking_number || '—'}</td>
+                                  <td data-label="Status"><span className={`bui-status bui-status--${pill.tone}`}>{pill.t}</span></td>
+                                  <td data-label="Est. delivery" className="bui-nowrap">{s?.expected_delivery ? formatDate(s.expected_delivery) : '—'}</td>
+                                  <td className="bui-right">
+                                    {r.creatorId
+                                      ? <button type="button" className={`bui-cta${st === 'pending' ? '' : ' bui-cta--ghost'}`} onClick={() => open(r, st)}>{st === 'delivered' ? 'View' : st === 'transit' ? 'Track' : 'Ship'}</button>
+                                      : <button type="button" className="bui-cta bui-cta--ghost" onClick={() => setModalView({ type: 'campaign', id: c.id })}>Select</button>}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
                     )}
                   </>
                 );

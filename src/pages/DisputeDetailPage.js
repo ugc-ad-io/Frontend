@@ -1,14 +1,17 @@
 import { useLiveEffect } from '../lib/liveUpdates';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { uploadMedia } from '../utils/upload';
 import { toast } from 'sonner';
-import { AlertTriangle, ArrowLeft, Clock, Paperclip, X, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { Paperclip, X, Info } from 'lucide-react';
 import { useAuth } from '../App';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import { apiErrorMessage } from '../utils/apiError';
+import '../styles/brand-ui.css';
+import '../styles/brand-ui-dispute.css';
+import '../styles/brand-ui-mobile-b.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -29,6 +32,7 @@ const STATUS_LABELS = {
   appealed: 'Appealed',
 };
 const fmtDate = (v) => (v ? new Date(v).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '-');
+const fmtDay = (v) => (v ? new Date(v).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '-');
 const assetUrl = (u) => (!u ? '' : (/^https?:\/\//i.test(u) ? u : `${BACKEND_URL}${String(u).startsWith('/') ? '' : '/'}${u}`));
 
 // Hours left until the 72h response window closes (negative once overdue).
@@ -107,18 +111,37 @@ export default function DisputeDetailPage() {
 
   const awaiting = dispute?.awaiting_my_response;
   const hrs = hoursLeft(dispute?.info_request_due_at);
+  const overdue = hrs != null && hrs < 0;
+  const goBack = () => (window.history.length > 1 ? navigate(-1) : navigate('/my-deals'));
+
+  // Progress bar is derived from the real status: info_requested = both sides replying,
+  // open/appealed = the team is deciding, resolved/closed = done.
+  const stage = !dispute ? 1 : ({ info_requested: 1, open: 2, appealed: 2, resolved: 3, closed: 3 }[dispute.status] ?? 1);
+  const STEPS = ['Dispute opened', 'Both sides reply', 'UGCad decides', 'Resolved'];
+  const stepState = (i) => (stage === 3 || i <= stage - 1 ? 'done' : i === stage ? 'now' : 'todo');
+
+  const chip = !dispute ? null
+    : awaiting ? ['dd-chip--warn', 'Your reply needed']
+    : dispute.status === 'info_requested' ? ['dd-chip--muted', 'Waiting on the other side']
+    : ['resolved', 'closed'].includes(dispute.status) ? ['dd-chip--ok', STATUS_LABELS[dispute.status]]
+    : ['', STATUS_LABELS[dispute.status] || dispute.status];
 
   return (
     <Layout notifications={0}>
-      <div className="dd-wrap">
-        <button type="button" className="dd-back" onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/my-deals'))}><ArrowLeft size={16} /> Back</button>
+      <div className="bui-main bui-main--tight dd-wrap">
+        <nav className="dd-crumb" aria-label="Breadcrumb">
+          <button type="button" onClick={goBack}>Back</button>
+          <span aria-hidden="true">/</span>
+          {dispute?.campaign_title && <><span>{dispute.campaign_title}</span><span aria-hidden="true">/</span></>}
+          <strong aria-current="page">Dispute</strong>
+        </nav>
 
         {loading ? (
           <div className="dd-empty">Loading dispute…</div>
         ) : loadError && !dispute ? (
           <div className="dd-empty">
             <p>{loadError}</p>
-            <button type="button" className="dd-submit" style={{ maxWidth: 220 }} onClick={() => { setLoading(true); load(); }}>Retry</button>
+            <button type="button" className="dd-submit" onClick={() => { setLoading(true); load(); }}>Retry</button>
           </div>
         ) : notFound || !dispute ? (
           <div className="dd-empty">This dispute doesn’t exist or you don’t have access to it.</div>
@@ -126,155 +149,144 @@ export default function DisputeDetailPage() {
           <>
             <div className="dd-head">
               <div>
-                <h1>Dispute</h1>
-                <p>{DTYPE_LABELS[dispute.dispute_type] || 'Dispute'} · Deal {dispute.deal_id || '-'}{dispute.campaign_title ? ` · ${dispute.campaign_title}` : ''}</p>
+                <div className="dd-meta">
+                  <span className={`dd-chip ${chip[0]}`}>{chip[1]}</span>
+                  <small>{DTYPE_LABELS[dispute.dispute_type] || 'Dispute'} · opened {fmtDay(dispute.created_at)}{dispute.deal_id ? ` · Deal ${dispute.deal_id}` : ''}</small>
+                </div>
+                <h1 className="dd-h1">{dispute.campaign_title || 'Dispute'}</h1>
               </div>
-              <span className={`dd-status dd-status--${dispute.status}`}>{STATUS_LABELS[dispute.status] || dispute.status}</span>
             </div>
 
-            {/* The admin's open information request — the whole reason this page exists. */}
-            {awaiting && (
-              <section className="dd-req">
-                <div className="dd-req-head">
-                  <span className="dd-req-ic"><ShieldAlert size={18} /></span>
-                  <div>
-                    <strong>The platform team needs more information</strong>
-                    {dispute.info_request_due_at && (
-                      <p className={`dd-due ${hrs != null && hrs < 0 ? 'over' : ''}`}>
-                        <Clock size={13} /> {hrs != null && hrs < 0
-                          ? `Response window closed ${Math.abs(hrs)}h ago - please still reply`
-                          : `Please respond within 72 hours (about ${hrs}h left)`}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                {dispute.info_request_message && (
-                  <blockquote className="dd-req-msg">“{dispute.info_request_message}”</blockquote>
+            <section className="dd-card" aria-label="Dispute progress">
+              <div className="dd-steps" role="list">
+                {STEPS.map((label, i) => (
+                  <div key={label} role="listitem" className={`dd-step is-${stepState(i)}`}><i aria-hidden="true" /><span>{label}</span></div>
+                ))}
+              </div>
+            </section>
+
+            <div className="dd-grid">
+              <div className="dd-col">
+                {/* The admin's open information request — the whole reason this page exists. */}
+                {awaiting && (
+                  <>
+                    <section className="dd-hero">
+                      <div className="dd-hero-top">
+                        <div>
+                          <div className="dd-hero-eyebrow">UGCad needs your side of the story</div>
+                          {dispute.info_request_due_at && (
+                            <div className={`dd-hero-title${overdue ? ' over' : ''}`}>
+                              {overdue
+                                ? `Response window closed ${Math.abs(hrs)}h ago - please still reply`
+                                : `Please respond within 72 hours (about ${hrs}h left)`}
+                            </div>
+                          )}
+                        </div>
+                        {dispute.info_request_due_at && <span className="dd-hero-pill">by {fmtDate(dispute.info_request_due_at)}</span>}
+                      </div>
+                      {dispute.info_request_message && (
+                        <div className="dd-hero-msg">
+                          <b>U</b>
+                          <div><strong>UGCad support</strong><br />“{dispute.info_request_message}”</div>
+                        </div>
+                      )}
+                    </section>
+
+                    <section className="dd-card">
+                      <h2>Tell us what happened</h2>
+                      <label className="dd-label" htmlFor="dd-response">Your response</label>
+                      <textarea
+                        id="dd-response"
+                        className="dd-textarea"
+                        rows={5}
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                        placeholder="Explain your side and add any details the team asked for…"
+                      />
+                      <h2>Add proof <small>optional</small></h2>
+                      <div className="dd-evidence">
+                        {evidence.map((u, i) => (
+                          <span key={u} className="dd-file">
+                            <Paperclip size={14} /> Attachment {i + 1}
+                            <button type="button" onClick={() => setEvidence((prev) => prev.filter((x) => x !== u))} aria-label="Remove"><X size={14} /></button>
+                          </span>
+                        ))}
+                        <label className="dd-upload">
+                          <Paperclip size={15} /> {uploading ? 'Uploading…' : 'Add photo, video or PDF'}
+                          <input type="file" multiple accept="image/*,video/*,.pdf" onChange={onPickFiles} hidden disabled={uploading} />
+                        </label>
+                      </div>
+                      <div className="dd-foot">
+                        <small>Your reply goes to the UGCad team.</small>
+                        <button type="button" className="dd-submit" onClick={submit} disabled={submitting || uploading}>
+                          {submitting ? 'Submitting…' : 'Submit response'}
+                        </button>
+                      </div>
+                    </section>
+                  </>
                 )}
 
-                <label className="dd-label">Your response</label>
-                <textarea
-                  className="dd-textarea"
-                  rows={5}
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Explain your side and add any details the team asked for…"
-                />
+                {!awaiting && dispute.status === 'info_requested' && (
+                  <section className="dd-note">The platform team has asked the other party for more information. Nothing is needed from you right now.</section>
+                )}
 
-                <div className="dd-evidence">
-                  {evidence.map((u, i) => (
-                    <span key={u} className="dd-file">
-                      <Paperclip size={13} /> Attachment {i + 1}
-                      <button type="button" onClick={() => setEvidence((prev) => prev.filter((x) => x !== u))} aria-label="Remove"><X size={13} /></button>
-                    </span>
-                  ))}
-                  <label className="dd-upload">
-                    <Paperclip size={15} /> {uploading ? 'Uploading…' : 'Attach evidence'}
-                    <input type="file" multiple accept="image/*,video/*,.pdf" onChange={onPickFiles} hidden disabled={uploading} />
-                  </label>
-                </div>
+                {/* Any responses already submitted. */}
+                {Array.isArray(dispute.info_responses) && dispute.info_responses.length > 0 && (
+                  <section className="dd-card">
+                    <h2>What happened so far</h2>
+                    <div className="dd-tl">
+                      {dispute.info_responses.map((r) => {
+                        const mine = r.party === dispute.my_party;
+                        const who = mine ? 'You' : r.party;
+                        return (
+                          <div key={r.id} className={`dd-tl-item${mine ? ' me' : ''}`}>
+                            <b>{String(who || '?').charAt(0).toUpperCase()}</b>
+                            <div>
+                              <div className="dd-tl-who">{who}<small>· {fmtDate(r.at)}</small></div>
+                              <p>{r.message}</p>
+                              {Array.isArray(r.evidence_urls) && r.evidence_urls.length > 0 && (
+                                <div className="dd-evidence">
+                                  {r.evidence_urls.map((u, i) => (
+                                    <a key={u} className="dd-file" href={assetUrl(u)} target="_blank" rel="noreferrer"><Paperclip size={14} /> Attachment {i + 1}</a>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </section>
+                )}
+              </div>
 
-                <button type="button" className="dd-submit" onClick={submit} disabled={submitting || uploading}>
-                  {submitting ? 'Submitting…' : 'Submit response'}
-                </button>
-              </section>
-            )}
-
-            {!awaiting && dispute.status === 'info_requested' && (
-              <section className="dd-note">The platform team has asked the other party for more information. Nothing is needed from you right now.</section>
-            )}
-
-            {/* Any responses already submitted. */}
-            {Array.isArray(dispute.info_responses) && dispute.info_responses.length > 0 && (
-              <section className="dd-card">
-                <h3>Responses submitted</h3>
-                {dispute.info_responses.map((r) => (
-                  <div key={r.id} className="dd-resp">
-                    <div className="dd-resp-head"><CheckCircle2 size={14} /> {r.party === dispute.my_party ? 'You' : r.party} · {fmtDate(r.at)}</div>
-                    <p>{r.message}</p>
-                    {Array.isArray(r.evidence_urls) && r.evidence_urls.length > 0 && (
-                      <div className="dd-evidence">
-                        {r.evidence_urls.map((u, i) => (
-                          <a key={u} className="dd-file" href={assetUrl(u)} target="_blank" rel="noreferrer"><Paperclip size={13} /> Attachment {i + 1}</a>
-                        ))}
-                      </div>
-                    )}
+              <aside className="dd-col">
+                {/* Read-only context: what the dispute is about. */}
+                <section className="dd-card">
+                  <h2>What this dispute is about</h2>
+                  {dispute.description && <p className="dd-desc">{dispute.description}</p>}
+                  <div>
+                    <div className="dd-kv"><span>Type</span><strong>{DTYPE_LABELS[dispute.dispute_type] || dispute.dispute_type || '-'}</strong></div>
+                    {dispute.desired_outcome && <div className="dd-kv"><span>Requested outcome</span><strong>{String(dispute.desired_outcome).replace(/_/g, ' ')}</strong></div>}
+                    <div className="dd-kv"><span>Raised</span><strong>{fmtDate(dispute.created_at)}</strong></div>
                   </div>
-                ))}
-              </section>
-            )}
-
-            {/* Read-only context: what the dispute is about. */}
-            <section className="dd-card">
-              <h3>What this dispute is about</h3>
-              {dispute.description && <p className="dd-desc">{dispute.description}</p>}
-              <div className="dd-kv"><span>Type</span><strong>{DTYPE_LABELS[dispute.dispute_type] || dispute.dispute_type || '-'}</strong></div>
-              {dispute.desired_outcome && <div className="dd-kv"><span>Requested outcome</span><strong>{String(dispute.desired_outcome).replace(/_/g, ' ')}</strong></div>}
-              <div className="dd-kv"><span>Raised</span><strong>{fmtDate(dispute.created_at)}</strong></div>
-              {Array.isArray(dispute.evidence_urls) && dispute.evidence_urls.length > 0 && (
-                <div className="dd-evidence">
-                  {dispute.evidence_urls.map((u, i) => (
-                    <a key={u} className="dd-file" href={assetUrl(u)} target="_blank" rel="noreferrer"><Paperclip size={13} /> Evidence {i + 1}</a>
-                  ))}
+                  {Array.isArray(dispute.evidence_urls) && dispute.evidence_urls.length > 0 && (
+                    <div className="dd-evidence">
+                      {dispute.evidence_urls.map((u, i) => (
+                        <a key={u} className="dd-file" href={assetUrl(u)} target="_blank" rel="noreferrer"><Paperclip size={14} /> Evidence {i + 1}</a>
+                      ))}
+                    </div>
+                  )}
+                </section>
+                <div className="dd-next">
+                  <Info size={18} />
+                  <span><strong>What happens next:</strong> once both sides reply, UGCad reviews everything and decides.</span>
                 </div>
-              )}
-            </section>
+              </aside>
+            </div>
           </>
         )}
       </div>
-
-      <style>{`
-        .dd-wrap{max-width:760px;margin:0 auto;padding:8px 4px 40px;min-width:0;overflow-wrap:anywhere}
-        .dd-head>div{min-width:0}
-        .dd-kv strong{min-width:0;text-align:right}
-        .dd-back{min-height:44px}
-        .dd-file button{min-width:28px;min-height:28px}
-        .dd-upload{min-height:44px}
-        @media (max-width:560px){
-          .dd-head{flex-wrap:wrap}
-          .dd-head h1{font-size:21px}
-          .dd-req,.dd-card{padding:16px}
-          .dd-wrap .dd-textarea{font-size:16px}
-          .dd-submit{min-height:48px}
-        }
-        .dd-back{display:inline-flex;align-items:center;gap:6px;background:none;border:none;color:#5b6bff;font:inherit;font-weight:600;cursor:pointer;margin-bottom:14px}
-        .dd-empty{padding:60px 20px;text-align:center;color:#6b7094;font-size:14.5px}
-        .dd-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:20px}
-        .dd-head h1{margin:0 0 4px;font-family:var(--font-head,'Plus Jakarta Sans',sans-serif);font-size:24px;color:#15163a}
-        .dd-head p{margin:0;color:#6b7094;font-size:13.5px}
-        .dd-status{flex:none;font-size:12px;font-weight:700;padding:6px 12px;border-radius:999px;background:#eef0ff;color:#5b6bff;white-space:nowrap}
-        .dd-status--info_requested{background:#fff4e5;color:#b45309}
-        .dd-status--resolved,.dd-status--closed{background:#e9f9ef;color:#15803d}
-        .dd-req{border:1px solid #ffe0b3;background:#fffaf2;border-radius:16px;padding:20px;margin-bottom:18px}
-        .dd-req-head{display:flex;gap:12px;align-items:flex-start;margin-bottom:14px}
-        .dd-req-ic{flex:none;width:36px;height:36px;border-radius:10px;display:grid;place-items:center;background:#ffedd5;color:#b45309}
-        .dd-req-head strong{display:block;color:#15163a;font-size:15.5px}
-        .dd-due{margin:4px 0 0;display:flex;align-items:center;gap:5px;color:#b45309;font-size:12.5px;font-weight:600}
-        .dd-due.over{color:#dc2626}
-        .dd-req-msg{margin:0 0 16px;padding:12px 14px;border-left:3px solid #f0b866;background:#fff;border-radius:8px;color:#4a4d6a;font-size:14px;line-height:1.55}
-        .dd-label{display:block;font-size:12.5px;font-weight:700;color:#5b6573;margin-bottom:6px}
-        .dd-textarea{width:100%;border:1px solid #e6e8f3;border-radius:12px;padding:12px 14px;font:inherit;font-size:14px;color:#15163a;resize:vertical;outline:none;background:#fff}
-        .dd-textarea:focus{border-color:#5b6bff;box-shadow:0 0 0 3px rgba(91,107,255,.14)}
-        .dd-evidence{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
-        .dd-file{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:#4a4d6a;background:#f1f3fa;border:1px solid #e6e8f3;border-radius:9px;padding:6px 10px;text-decoration:none}
-        .dd-file button{border:none;background:none;cursor:pointer;color:#9296ba;display:grid;place-items:center;padding:0}
-        .dd-upload{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#5b6bff;background:#eef0ff;border:1px dashed #b9c0ff;border-radius:9px;padding:7px 12px;cursor:pointer}
-        .dd-submit{margin-top:16px;width:100%;border:none;border-radius:12px;padding:13px;background:#12124f;color:#fff;font:inherit;font-weight:700;font-size:14.5px;cursor:pointer}
-        .dd-submit:hover:not(:disabled){background:#07074e}
-        .dd-submit:disabled{opacity:.55;cursor:not-allowed}
-        .dd-note{border:1px solid #dfe3f2;background:#f7f8fc;border-radius:14px;padding:16px 18px;color:#5b6573;font-size:13.5px;margin-bottom:18px}
-        .dd-card{border:1px solid #eef0f6;border-radius:16px;padding:18px 20px;margin-bottom:16px;background:#fff}
-        .dd-card h3{margin:0 0 12px;font-size:14px;font-weight:800;color:#15163a}
-        .dd-desc{margin:0 0 14px;color:#4a4d6a;font-size:14px;line-height:1.6}
-        .dd-kv{display:flex;justify-content:space-between;gap:16px;padding:7px 0;border-top:1px solid #f3f4f9;font-size:13.5px}
-        .dd-kv:first-of-type{border-top:none}
-        .dd-kv span{color:#9296ba}
-        .dd-kv strong{color:#15163a;text-transform:capitalize}
-        .dd-resp{padding:12px 0;border-top:1px solid #f3f4f9}
-        .dd-resp:first-of-type{border-top:none}
-        .dd-resp-head{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:#15803d;margin-bottom:5px}
-        .dd-resp p{margin:0;color:#4a4d6a;font-size:14px;line-height:1.55}
-      `}</style>
     </Layout>
   );
 }

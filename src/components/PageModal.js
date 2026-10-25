@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { X } from 'lucide-react';
+import '../styles/ui-popups.css';
 
 /**
  * Full-screen overlay that renders a page component in-place (no route change).

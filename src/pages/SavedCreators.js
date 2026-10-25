@@ -1,15 +1,15 @@
 import { useLiveEffect } from '../lib/liveUpdates';
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Bookmark, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import '../styles/creator-marketplace.css';
 import '../styles/brand-mobile.css';
-import EmptyState from '../components/EmptyState';
+import '../styles/brand-ui-saved.css';
 import { ReelCard } from './BrandCreators';
-import { removeSavedCreator, useSavedCreatorIds, loadSavedCreators, isSavedCreatorsLoaded } from '../utils/savedCreators';
+import { useSavedCreatorIds, loadSavedCreators, isSavedCreatorsLoaded } from '../utils/savedCreators';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -29,16 +29,7 @@ export default function SavedCreators() {
   const [dirFailed, setDirFailed] = useState(false);   // creator details (video, name) did not load
   const [attempt, setAttempt] = useState(0);
   const [videoCard, setVideoCard] = useState(null);   // expanded reel modal
-  const [isPhone, setIsPhone] = useState(false);
-
-  // Track phone width so the cloned loop tail only mounts where the sideways track exists.
-  useEffect(() => {
-    const mq = window.matchMedia('(max-width: 620px)');
-    const update = () => setIsPhone(mq.matches);
-    update();
-    mq.addEventListener('change', update);
-    return () => mq.removeEventListener('change', update);
-  }, []);
+  const [cat, setCat] = useState('all');   // category chip filter
 
   // Pull the same directory Browse Creators uses, so a saved creator renders with
   // their real reel and identical card. One call, cached in a { id: creator } map.
@@ -71,85 +62,16 @@ export default function SavedCreators() {
     [saved, dir]
   );
 
-  // Phone layout is count-driven: ≤2 → a single row; 3–4 → two rows that still fit
-  // one screen; >4 → two rows that overflow and auto-scroll. The cloned tail (for the
-  // seamless loop) is therefore only needed past 4.
-  const cloneTail = useMemo(
-    () => (isPhone && cards.length > 4 ? cards.slice(0, Math.min(6, cards.length)) : []),
-    [isPhone, cards]
-  );
-
-  // Auto-scroll drift for the phone two-row track (ported from BrandCreators). It
-  // creeps left at ~27px/s, wraps invisibly at the clone seam, and pauses 3s on any
-  // touch/wheel/drag so it never fights the user. `data-clone-start` sits on the
-  // .scr-reel WRAPPER (a direct grid child) so its offsetLeft measures the loop width.
-  const gridRef = useRef(null);
-  useEffect(() => {
-    const el = gridRef.current;
-    if (!el || !cards.length) return undefined;
-    const mq = window.matchMedia('(max-width: 620px)');
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
-    let raf = 0; let paused = false; let resumeTimer;
-    let pos = 0; let loopWidth = 0;
-
-    const measure = () => {
-      const clone = el.querySelector('[data-clone-start]');
-      loopWidth = clone ? clone.offsetLeft : 0;
-    };
-    const step = () => {
-      if (!paused) {
-        pos += 0.45;
-        if (loopWidth > 0) {
-          if (pos >= loopWidth) pos -= loopWidth;
-        } else {
-          const max = el.scrollWidth - el.clientWidth;
-          if (pos > max) pos = max;
-        }
-        el.scrollLeft = pos;   // assign from the float accumulator, never += (rounds to 0)
-      }
-      raf = requestAnimationFrame(step);
-    };
-    const pause = () => {
-      paused = true;
-      clearTimeout(resumeTimer);
-      resumeTimer = setTimeout(() => { pos = el.scrollLeft; paused = false; }, 3000);
-    };
-    const opts = { passive: true };
-    const start = () => {
-      if (raf || !mq.matches || reduce.matches) return;
-      measure();
-      pos = el.scrollLeft;
-      el.addEventListener('touchstart', pause, opts);
-      el.addEventListener('wheel', pause, opts);
-      el.addEventListener('pointerdown', pause);
-      raf = requestAnimationFrame(step);
-    };
-    const stop = () => {
-      if (raf) cancelAnimationFrame(raf);
-      raf = 0;
-      clearTimeout(resumeTimer);
-      el.removeEventListener('touchstart', pause, opts);
-      el.removeEventListener('wheel', pause, opts);
-      el.removeEventListener('pointerdown', pause);
-    };
-    const onChange = () => { stop(); start(); };
-    const onResize = () => measure();
-    start();
-    mq.addEventListener('change', onChange);
-    window.addEventListener('resize', onResize, opts);
-    return () => {
-      stop();
-      mq.removeEventListener('change', onChange);
-      window.removeEventListener('resize', onResize, opts);
-    };
-  }, [cards.length, cloneTail.length]);
-
-  const unsave = async (e, c) => {
-    e.stopPropagation();
-    // The hook updates optimistically; on failure the util rolls back and toasts.
-    const stillSaved = await removeSavedCreator(c.id);
-    if (!stillSaved) toast.success('Removed from saved');
-  };
+  // Category chips are built from the saved creators' own categories (no fixed list).
+  const catKeys = (c) => (c.categories?.length ? c.categories : [c.primary_category])
+    .map((v) => String(v || '').trim().toLowerCase()).filter(Boolean);
+  const catCounts = useMemo(() => {
+    const m = new Map();
+    cards.forEach((c) => new Set(catKeys(c)).forEach((k) => m.set(k, (m.get(k) || 0) + 1)));
+    return [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6);
+  }, [cards]);
+  const shown = cat === 'all' ? cards : cards.filter((c) => catKeys(c).includes(cat));
+  const label = (k) => k.replace(/_/g, ' ').replace(/^./, (m) => m.toUpperCase());
 
   const viewProfile = (c) => {
     if (c.id) navigate(`/dashboard/business/creator/${c.id}`);
@@ -158,59 +80,59 @@ export default function SavedCreators() {
 
   return (
     <BrandTopNavLayout>
-      <div className="cmk-page-head">
-        <h1>Saved Creators</h1>
-        <p>Creators you bookmarked to revisit or invite to a campaign.</p>
-      </div>
-
-      {!ready ? (
-        <p className="scr-note">Loading saved creators...</p>
-      ) : loadFailed ? (
-        <div className="scr-note" role="alert">
-          Could not load your saved creators. Check your connection and try again.{' '}
-          <button type="button" onClick={() => { setReady(false); setAttempt((n) => n + 1); }}>Retry</button>
+      <div className="bui-main bui-main--tight">
+        <div className="bui-titlerow">
+          <div>
+            <h1 className="bui-h1">Saved creators</h1>
+            <p className="bui-sub">
+              {ready && !loadFailed && cards.length
+                ? `${cards.length} creator${cards.length === 1 ? '' : 's'} you bookmarked. Open a profile to send a brief.`
+                : 'Creators you bookmarked to revisit or invite to a campaign.'}
+            </p>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+            <button type="button" className="bui-btn bui-btn--ghost" onClick={() => navigate('/dashboard/business/multi-brief')}>Brief several at once</button>
+            <button type="button" className="bui-btn bui-btn--ghost" onClick={() => navigate('/dashboard/business/browse-creator')}>Browse creators</button>
+          </div>
         </div>
-      ) : cards.length ? (
-        <>
-        {dirFailed && (
-          <div className="scr-note" role="status">
-            Creator details could not be loaded, so some cards may look blank.{' '}
+
+        {!ready ? (
+          <p className="bui-note">Loading saved creators...</p>
+        ) : loadFailed ? (
+          <div className="bui-note" role="alert">
+            Could not load your saved creators. Check your connection and try again.{' '}
             <button type="button" onClick={() => { setReady(false); setAttempt((n) => n + 1); }}>Retry</button>
           </div>
+        ) : cards.length ? (
+          <>
+            {dirFailed && (
+              <div className="bui-note" role="status">
+                Creator details could not be loaded, so some cards may look blank.{' '}
+                <button type="button" onClick={() => { setReady(false); setAttempt((n) => n + 1); }}>Retry</button>
+              </div>
+            )}
+            {catCounts.length > 0 && (
+              <div className="bui-chips" role="group" aria-label="Filter by category">
+                <button type="button" className={`bui-pill${cat === 'all' ? ' is-on' : ''}`} onClick={() => setCat('all')}>All {cards.length}</button>
+                {catCounts.map(([k, n]) => (
+                  <button key={k} type="button" className={`bui-pill${cat === k ? ' is-on' : ''}`} onClick={() => setCat(k)}>{label(k)} {n}</button>
+                ))}
+              </div>
+            )}
+            <div className="bui-reel-grid bui-reel-grid--saved">
+              {shown.map((c) => (
+                <ReelCard key={c.id} c={c} onView={viewProfile} onExpand={setVideoCard} />
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="bui-empty">
+            <h3>No saved creators yet</h3>
+            <p>Tap the heart on any creator card or profile to save them here for later.</p>
+            <button type="button" className="bui-btn" onClick={() => navigate('/dashboard/business/browse-creator')}>Browse Creators</button>
+          </div>
         )}
-        <div className={`bc-grid scr-saved${cards.length <= 2 ? ' scr-onerow' : ''}`} ref={gridRef}>
-          {cards.map((c) => (
-            <div key={c.id} className="scr-reel">
-              {/* Unsave sits top-right of the reel — the tier badge is top-left and
-                  the mute/expand controls are along the bottom, so it never clashes. */}
-              <button
-                type="button"
-                className="scr-unsave"
-                onClick={(e) => unsave(e, c)}
-                aria-label="Remove from saved"
-                title="Saved - click to remove"
-              >
-                <Bookmark size={15} fill="currentColor" />
-              </button>
-              <ReelCard c={c} onView={viewProfile} onExpand={setVideoCard} />
-            </div>
-          ))}
-          {/* Phone-only cloned tail the loop wraps into (decorative duplicates, no
-              unsave). The first one carries data-clone-start for the wrap measurement. */}
-          {cloneTail.map((c, i) => (
-            <div key={`loop-${c.id}-${i}`} className="scr-reel" data-clone-start={i === 0 ? 'true' : undefined} aria-hidden="true">
-              <ReelCard c={c} onView={viewProfile} onExpand={setVideoCard} />
-            </div>
-          ))}
-        </div>
-        </>
-      ) : (
-        <EmptyState
-          title="No saved creators yet"
-          message="Tap the bookmark on any creator's profile to save them here for later."
-          action={{ label: 'Browse Creators', onClick: () => navigate('/dashboard/business/browse-creator') }}
-        />
-      )}
+      </div>
 
       {/* Expanded reel — same overlay markup/styles as Browse Creators. */}
       {videoCard && (
@@ -222,32 +144,6 @@ export default function SavedCreators() {
           </div>
         </div>
       )}
-
-      <style>{`
-        /* Breathing room between the page header and the reel cards. */
-        .bc-grid.scr-saved { margin-top: 22px; }
-        .scr-note { margin-top: 22px; color: #6b7280; }
-        .scr-note button { color: #4452f0; font-weight: 600; background: none; border: 0; cursor: pointer; padding: 8px; min-height: 44px; }
-        /* Wrapper just hosts the unsave overlay; the card itself is the shared ReelCard. */
-        .scr-reel { position: relative; width: 100%; min-width: 0; }
-        .scr-unsave {
-          position: absolute; top: 10px; right: 10px; z-index: 4;
-          width: 32px; height: 32px; border-radius: 50%;
-          border: 1px solid rgba(255,255,255,.75); background: rgba(255,255,255,.92);
-          color: #4452f0; cursor: pointer; display: grid; place-items: center;
-          box-shadow: 0 4px 12px -4px rgba(15,22,58,.4); transition: background .15s;
-        }
-        .scr-unsave:hover { background: #fff; }
-
-        @media (max-width: 620px) {
-          /* Count-driven rows. The base .bc-grid phone rule lays out a two-row
-             sideways track (grid-auto-flow:column, 2 rows). With ≤2 saved creators
-             that stacked them into one column - collapse to a SINGLE row instead so
-             they sit side by side. 3+ keep the two-row track; >4 overflows it and the
-             auto-scroll drift + cloned tail take over. */
-          .bc-grid.scr-onerow { grid-template-rows: auto; }
-        }
-      `}</style>
     </BrandTopNavLayout>
   );
 }

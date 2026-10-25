@@ -215,45 +215,44 @@ export default function BookingCard({ deal, role, onDone }) {
       )}
 
       <style>{`
-        .bkc { background:#fff; border:1.5px solid #e8ecff; border-left:4px solid #4452f0; border-radius:14px; padding:18px 20px; margin-bottom:16px; box-shadow:0 8px 24px -18px rgba(15,23,42,.4); }
-        .bkc-head h2 { margin:6px 0 4px; font-size:1.05rem; color:#07074e; }
-        .bkc-head p { margin:0; font-size:.85rem; color:#64748b; line-height:1.5; }
-        .bkc-tag { display:inline-block; font-size:.68rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase; color:#4452f0; background:#eef0ff; border-radius:999px; padding:3px 9px; }
-        .bkc-tag.warn { color:#b45309; background:#fff7ed; }
-        .bkc-tag.ok { color:#15803d; background:#e6f6ec; }
-        .bkc-quote { margin:8px 0 0; font-style:italic; color:#475569; font-size:.85rem; }
-        .bkc-facts { margin:14px 0; border:1px solid #eef0f6; border-radius:10px; padding:10px 14px; display:flex; flex-direction:column; gap:6px; }
-        .bkc-row { display:flex; justify-content:space-between; font-size:.84rem; color:#64748b; }
-        .bkc-row b { color:#07074e; }
-        .bkc-row b.big { font-size:1rem; }
+        .bkc { background:#fff; border-radius:20px; padding:20px 22px; margin-bottom:16px; box-shadow:0 1px 2px rgba(7,7,78,.05),0 10px 26px -18px rgba(7,7,78,.28); color:#07074e; font-family:'Inter',system-ui,sans-serif; }
+        .bkc-head h2 { margin:8px 0 4px; font-family:'Readex Pro','Plus Jakarta Sans',sans-serif; font-weight:500; font-size:18px; letter-spacing:-.01em; color:#07074e; }
+        .bkc-head p { margin:0; font-size:14px; color:#6e6e96; line-height:1.5; }
+        .bkc-tag { display:inline-flex; align-items:center; height:24px; font-size:11.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:#2a3ab8; background:#e6e8ff; border-radius:6px; padding:0 10px; }
+        .bkc-tag.warn { color:#8a4b00; background:#fff2dc; }
+        .bkc-tag.ok { color:#13774f; background:#e4f5ec; }
+        .bkc-quote { margin:8px 0 0; color:#5a5a8c; font-size:14px; }
+        .bkc-facts { margin:14px 0; border-radius:16px; background:#f6f6fd; padding:12px 16px; display:flex; flex-direction:column; gap:8px; }
+        .bkc-row { display:flex; justify-content:space-between; font-size:14px; color:#6e6e96; }
+        .bkc-row b { color:#07074e; font-weight:600; }
+        .bkc-row b.big { font-size:16px; font-weight:700; }
         .bkc-form { margin-top:12px; display:flex; flex-direction:column; gap:10px; }
-        .bkc-form label { display:flex; flex-direction:column; gap:5px; font-size:.8rem; font-weight:700; color:#2d3748; }
-        .bkc-form input, .bkc-form textarea { padding:10px 12px; border:1.5px solid #e2e8f0; border-radius:9px; font-family:inherit; font-size:.9rem; resize:vertical; }
-        .bkc-form input:focus, .bkc-form textarea:focus { outline:none; border-color:#4452f0; }
-        .bkc-hint { margin:0; font-size:.75rem; color:#94a3b8; }
+        .bkc-form label { display:flex; flex-direction:column; gap:6px; font-size:13px; font-weight:700; color:#07074e; }
+        .bkc-form input, .bkc-form textarea { padding:11px 14px; border:1.5px solid transparent; background:#f6f6fd; border-radius:16px; font-family:inherit; font-size:14px; color:#07074e; resize:vertical; font-weight:400; }
+        .bkc-form input:focus, .bkc-form textarea:focus { outline:none; background:#fff; border-color:#7387ff; box-shadow:0 0 0 3px rgba(115,135,255,.2); }
+        .bkc-hint { margin:0; font-size:12.5px; color:#6e6e96; }
         .bkc-actions { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; margin-top:12px; }
-        .bkc-btn { display:inline-flex; align-items:center; gap:6px; border-radius:9px; padding:9px 16px; font-weight:700; font-size:.85rem; cursor:pointer; border:1.5px solid transparent; }
-        .bkc-btn:disabled { opacity:.6; cursor:not-allowed; }
-        .bkc-btn.go { background:#16a34a; color:#fff; }
-        .bkc-btn.go:hover:not(:disabled) { background:#128a3e; }
-        .bkc-btn.primary { background:#4452f0; color:#fff; }
-        .bkc-btn.ghost { background:#f1f2f9; color:#4a5568; }
-        .bkc-btn.ghost:hover:not(:disabled) { background:#e2e8f0; }
-        .bkc-btn.danger { background:#d64545; color:#fff; }
-        .bkc-btn.danger-ghost { background:#fff; color:#b91c1c; border-color:#fecaca; }
-        .bkc-btn.danger-ghost:hover:not(:disabled) { background:#fef2f2; }
-        .bkc-wait { display:flex; align-items:center; gap:9px; font-size:.85rem; color:#475569; line-height:1.5; }
+        .bkc-btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; height:44px; border-radius:999px; padding:0 20px; font-family:inherit; font-weight:700; font-size:14px; cursor:pointer; border:1px solid transparent; }
+        .bkc-btn:disabled { opacity:.55; cursor:not-allowed; }
+        .bkc-btn.go, .bkc-btn.primary { background:#07074e; color:#fff; }
+        .bkc-btn.go:hover:not(:disabled), .bkc-btn.primary:hover:not(:disabled) { background:#12124f; }
+        .bkc-btn.ghost { background:#fff; color:#07074e; border-color:#c9cbea; }
+        .bkc-btn.ghost:hover:not(:disabled) { background:#f3f3ff; }
+        .bkc-btn.danger { background:#e5484d; color:#fff; }
+        .bkc-btn.danger-ghost { background:#fff; color:#b42318; border-color:#f3c1c1; }
+        .bkc-btn.danger-ghost:hover:not(:disabled) { background:#fde8e8; }
+        .bkc-wait { display:flex; align-items:center; gap:10px; font-size:14px; color:#5a5a8c; line-height:1.5; }
         .bkc-wait b { color:#07074e; }
-        .bkc-wait svg { flex:none; }
+        .bkc-wait svg { flex:none; color:#4e60e6; }
         .bkc-row { gap:12px; }
         .bkc-row b { text-align:right; overflow-wrap:anywhere; }
         @media (max-width:768px) {
           .bkc { padding:16px 14px; }
           .bkc-actions { justify-content:stretch; }
-          .bkc-btn { flex:1 1 150px; justify-content:center; min-height:44px; }
+          .bkc-btn { flex:1 1 150px; }
           .bkc-form input, .bkc-form textarea { font-size:16px; }
         }
-      `}</style>
+        `}</style>
     </section>
   );
 }

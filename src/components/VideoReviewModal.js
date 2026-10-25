@@ -166,7 +166,7 @@ export default function VideoReviewModal({
               onEnded={() => setPlaying(false)}
             />
             {watermark && <span className="vrm-wm" aria-hidden="true" />}
-            {videoError && <button type="button" style={{ position: 'absolute', zIndex: 3, inset: '40% 20%', background: '#fff', borderRadius: 12 }} onClick={() => { setVideoError(false); videoRef.current?.load(); }}>Video could not load. Tap to retry</button>}
+            {videoError && <button type="button" style={{ position: 'absolute', zIndex: 3, inset: '40% 20%', background: '#fff', color: '#07074e', border: 0, fontWeight: 600, borderRadius: 12 }} onClick={() => { setVideoError(false); videoRef.current?.load(); }}>Video could not load. Tap to retry</button>}
           </div>
 
           {/* The one and only scrub bar: click anywhere to seek, dots are comments. */}
@@ -256,7 +256,7 @@ export default function VideoReviewModal({
             </div>
           ) : (
           <div className="vrm-compose">
-            <div className="vrm-cap" data-testid="vrm-counter" style={itemCount > MAX_REVISION_ITEMS ? { color: '#ff8085' } : undefined}>
+            <div className="vrm-cap" data-testid="vrm-counter" style={itemCount > MAX_REVISION_ITEMS ? { color: '#b42318' } : undefined}>
               {itemCount}/{MAX_REVISION_ITEMS} changes{notes.trim() ? ' (your note counts as one)' : ''}
               {itemCount > MAX_REVISION_ITEMS ? ' - remove one to send' : atCap ? ' - limit reached' : ''}
             </div>
@@ -313,12 +313,13 @@ export default function VideoReviewModal({
         </div>
 
         <style>{`
-          .vrm-ov{position:fixed;inset:0;background:rgba(8,10,26,.72);backdrop-filter:blur(4px);z-index:1600;display:flex;align-items:center;justify-content:center;padding:20px}
-          .vrm{display:flex;width:min(1180px,100%);height:min(760px,92vh);height:min(760px,92dvh);background:#0f1120;border-radius:18px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.55)}
-          .vrm-left{flex:1;min-width:0;display:flex;flex-direction:column;background:#0b0d18}
-          .vrm-lhead{display:flex;align-items:center;gap:9px;padding:14px 18px;color:#e8eaf6;font-size:13.5px;border-bottom:1px solid rgba(255,255,255,.07)}
-          .vrm-lhead strong{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-          .vrm-stage{position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center;background:#000;overflow:hidden}
+          .vrm-ov{position:fixed;inset:0;background:rgba(7,7,78,.45);backdrop-filter:blur(3px);z-index:1600;display:flex;align-items:center;justify-content:center;padding:20px;overscroll-behavior:contain}
+          .vrm{display:flex;width:min(1120px,100%);height:min(720px,92vh);height:min(720px,92dvh);background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 40px 80px -30px rgba(7,7,78,.6);font-family:'Inter',system-ui,sans-serif;color:#07074e}
+          .vrm-left{flex:1;min-width:0;display:flex;flex-direction:column;background:#f6f6fd;padding:0 20px 18px}
+          .vrm-lhead{display:flex;align-items:center;gap:9px;padding:18px 0 14px;color:#07074e;font-family:'Readex Pro','Plus Jakarta Sans',sans-serif;font-size:16px}
+          .vrm-lhead svg{color:#4e60e6;flex:none}
+          .vrm-lhead strong{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+          .vrm-stage{position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center;background:#07074e;border-radius:18px;overflow:hidden}
           /* Fill the stage and letterbox with object-fit:contain so the WHOLE frame
              is always visible (a portrait clip no longer overflows and gets its
              bottom cropped) - no fullscreen needed. */
@@ -330,75 +331,78 @@ export default function VideoReviewModal({
           .vrm-stage video::-webkit-media-controls-enclosure,
           .vrm-stage video::-webkit-media-controls-panel{display:none !important;-webkit-appearance:none !important}
           .vrm-wm{position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(-30deg,rgba(255,255,255,.09) 0 2px,transparent 2px 190px)}
-          .vrm-track{padding:12px 18px 16px;border-top:1px solid rgba(255,255,255,.07)}
-          .vrm-track-bar{position:relative;height:6px;border-radius:6px;background:rgba(255,255,255,.14);margin-bottom:10px;cursor:pointer}
+          .vrm-track{padding:16px 2px 0}
+          .vrm-track-bar{position:relative;height:6px;border-radius:999px;background:#e4e4f2;margin-bottom:12px;cursor:pointer}
           .vrm-track-bar::before{content:'';position:absolute;inset:-9px 0;}/* bigger click target */
-          .vrm-track-played{position:absolute;left:0;top:0;bottom:0;border-radius:6px;background:#5b6bff;pointer-events:none}
-          .vrm-marker{position:absolute;top:50%;transform:translate(-50%,-50%);width:19px;height:19px;border-radius:50%;border:2px solid #0b0d18;background:#e5484d;color:#fff;font-size:10px;font-weight:800;cursor:pointer;display:grid;place-items:center;padding:0;z-index:1}
+          .vrm-track-played{position:absolute;left:0;top:0;bottom:0;border-radius:999px;background:#7387ff;pointer-events:none}
+          .vrm-marker{position:absolute;top:50%;transform:translate(-50%,-50%);width:18px;height:18px;border-radius:50%;border:0;box-shadow:0 0 0 3px #f6f6fd;background:#07074e;color:#fff;font-size:10px;font-weight:700;cursor:pointer;display:grid;place-items:center;padding:0;z-index:1}
           .vrm-ctrls{display:flex;align-items:center;gap:12px}
-          .vrm-play,.vrm-full{border:none;background:rgba(255,255,255,.09);color:#e8eaf6;width:32px;height:32px;border-radius:9px;cursor:pointer;display:grid;place-items:center;flex:none}
-          .vrm-play:hover,.vrm-full:hover{background:rgba(255,255,255,.18)}
-          .vrm-full{margin-left:auto}
-          .vrm-track-time{color:#8b90b5;font-size:12px;font-variant-numeric:tabular-nums}
-          .vrm-right{width:370px;flex:none;display:flex;flex-direction:column;background:#141728;border-left:1px solid rgba(255,255,255,.07)}
-          .vrm-rhead{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;color:#e8eaf6;font-size:14px;border-bottom:1px solid rgba(255,255,255,.07)}
-          .vrm-rhead b{color:#8b90b5;font-weight:600;margin-left:4px}
-          .vrm-x{width:32px;height:32px;border-radius:9px;border:none;background:rgba(255,255,255,.07);color:#e8eaf6;cursor:pointer;display:grid;place-items:center}
-          .vrm-x:hover{background:rgba(255,255,255,.14)}
-          .vrm-fee,.vrm-free,.vrm-warn{margin:12px 16px 0;padding:9px 12px;border-radius:9px;font-size:12.5px;font-weight:600;line-height:1.4}
-          .vrm-fee{background:rgba(245,165,36,.14);color:#f5a524}
-          .vrm-free{background:rgba(34,165,101,.15);color:#4ade80}
-          .vrm-warn{display:flex;gap:8px;align-items:flex-start;background:rgba(229,72,77,.15);color:#ff8085}
+          .vrm-play,.vrm-full{border:none;background:#fff;box-shadow:inset 0 0 0 1px #e2e2f0;color:#07074e;width:32px;height:32px;border-radius:50%;cursor:pointer;display:grid;place-items:center;flex:none}
+          .vrm-play:hover,.vrm-full:hover{background:#eef0ff}
+          .vrm-full{margin-left:auto;border-radius:9px}
+          .vrm-track-time{color:#5a5a8c;font-size:12.5px;font-variant-numeric:tabular-nums}
+          .vrm-right{width:380px;flex:none;display:flex;flex-direction:column;background:#fff;border-left:1px solid #e2e2f0}
+          .vrm-rhead{display:flex;align-items:center;justify-content:space-between;padding:16px 16px 14px 18px;color:#07074e;font-family:'Readex Pro','Plus Jakarta Sans',sans-serif;font-weight:500;font-size:17px;border-bottom:1px solid #edeef6}
+          .vrm-rhead b{color:#6e6e96;font-family:'Inter',system-ui,sans-serif;font-size:13px;font-weight:600;margin-left:8px}
+          .vrm-x{width:32px;height:32px;border-radius:9px;border:none;background:#f6f6fd;color:#07074e;cursor:pointer;display:grid;place-items:center}
+          .vrm-x:hover{background:#eef0ff}
+          .vrm-fee,.vrm-free,.vrm-warn{margin:12px 16px 0;padding:9px 12px;border-radius:12px;font-size:12.5px;font-weight:600;line-height:1.4}
+          .vrm-fee{background:#fff2dc;color:#8a4b00}
+          .vrm-free{background:#e4f5ec;color:#13774f}
+          .vrm-warn{display:flex;gap:8px;align-items:flex-start;background:#fde8e8;color:#b42318}
           .vrm-warn svg{flex:none;margin-top:1px}
-          .vrm-cap{margin:0 0 8px;color:#9ba0c9;font-size:11.5px;font-weight:700}
-          .vrm-list{flex:1;min-height:0;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
-          .vrm-empty{margin:auto;text-align:center;color:#6f74a0;padding:20px}
-          .vrm-empty p{display:flex;align-items:center;justify-content:center;gap:8px;margin:0 0 6px;color:#9ba0c9;font-weight:600;font-size:14px}
-          .vrm-empty small{font-size:12px;line-height:1.5;display:block}
-          .vrm-c{display:flex;gap:9px;align-items:flex-start;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:11px;padding:10px}
-          .vrm-c-ts{flex:none;border:none;background:rgba(91,107,255,.2);color:#a5b0ff;font-size:11.5px;font-weight:800;padding:3px 8px;border-radius:6px;cursor:pointer;font-variant-numeric:tabular-nums}
-          .vrm-c-ts:hover{background:rgba(91,107,255,.34);color:#fff}
-          .vrm-c-ts--general{background:rgba(255,255,255,.08);color:#9ba0c9;cursor:default}
+          .vrm-cap{margin:0 0 8px;color:#6e6e96;font-size:12px;font-weight:600}
+          .vrm-list{flex:1;min-height:0;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+          .vrm-empty{margin:auto;text-align:center;color:#6e6e96;padding:20px}
+          .vrm-empty p{display:flex;align-items:center;justify-content:center;gap:8px;margin:0 0 6px;color:#07074e;font-weight:600;font-size:14.5px}
+          .vrm-empty small{font-size:13px;line-height:1.5;display:block}
+          .vrm-c{display:flex;gap:10px;align-items:flex-start;background:#fff;box-shadow:inset 0 0 0 1px #e2e2f0;border-radius:12px;padding:11px 12px}
+          .vrm-c-ts{flex:none;border:none;background:#07074e;color:#fff;font-size:12px;font-weight:700;height:24px;padding:0 9px;border-radius:6px;cursor:pointer;font-variant-numeric:tabular-nums;display:inline-flex;align-items:center}
+          .vrm-c-ts:hover{background:#12124f}
+          .vrm-c-ts--general{background:#ecedfa;color:#5a5a8c;cursor:default}
           .vrm-c-body{flex:1;min-width:0}
-          .vrm-c-body p{margin:0;color:#dfe2f5;font-size:13px;line-height:1.45;word-break:break-word}
-          .vrm-c-del{flex:none;border:none;background:none;color:#6f74a0;cursor:pointer;padding:2px}
+          .vrm-c-body p{margin:0;color:#07074e;font-size:14px;line-height:1.5;word-break:break-word}
+          .vrm-c-del{flex:none;border:none;background:none;color:#9f9fd1;cursor:pointer;padding:2px}
           .vrm-c-del:hover{color:#e5484d}
-          .vrm-compose{border-top:1px solid rgba(255,255,255,.07);padding:12px 16px 14px}
-          .vrm-time button{border:1px solid rgba(255,255,255,.12);background:transparent;color:#9ba0c9;border-radius:20px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
-          .vrm-time button.on{background:rgba(91,107,255,.22);border-color:#5b6bff;color:#c3caff}
-          .vrm-input{display:flex;align-items:flex-start;gap:8px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:11px;padding:8px}
-          .vrm-input:focus-within{border-color:#5b6bff}
-          .vrm-at{flex:none;background:rgba(245,165,36,.18);color:#f5a524;font-size:11.5px;font-weight:800;padding:3px 7px;border-radius:6px;font-variant-numeric:tabular-nums;margin-top:2px}
-          .vrm-input textarea{flex:1;min-width:0;border:none;background:none;color:#e8eaf6;font-family:inherit;font-size:13px;resize:none;outline:none;padding:2px 0}
-          .vrm-input textarea::placeholder{color:#6f74a0}
-          .vrm-send{flex:none;border:none;background:#5b6bff;color:#fff;width:32px;height:32px;border-radius:9px;cursor:pointer;display:grid;place-items:center}
+          .vrm-compose{border-top:1px solid #edeef6;padding:14px 16px 16px}
+          .vrm-time button{border:1px solid #c9cbea;background:#fff;color:#07074e;border-radius:999px;padding:6px 13px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit}
+          .vrm-time button:hover{background:#f3f3ff}
+          .vrm-time button.on{background:#07074e;border-color:#07074e;color:#fff}
+          .vrm-input{display:flex;align-items:flex-start;gap:8px;background:#f6f6fd;border:1.5px dashed #9f9fd1;border-radius:12px;padding:8px}
+          .vrm-input:focus-within{background:#fff;border-style:solid;border-color:#7387ff;box-shadow:0 0 0 3px rgba(115,135,255,.2)}
+          .vrm-at{flex:none;background:#07074e;color:#fff;font-size:12px;font-weight:700;height:24px;display:inline-flex;align-items:center;padding:0 8px;border-radius:6px;font-variant-numeric:tabular-nums;margin-top:1px}
+          .vrm-input textarea{flex:1;min-width:0;border:none;background:none;color:#07074e;font-family:inherit;font-size:14px;resize:none;outline:none;padding:3px 0}
+          .vrm-input textarea::placeholder{color:#9f9fd1}
+          .vrm-send{flex:none;border:none;background:#07074e;color:#fff;width:32px;height:32px;border-radius:50%;cursor:pointer;display:grid;place-items:center}
           .vrm-send:disabled{opacity:.4;cursor:not-allowed}
           .vrm-more{margin:10px 0}
-          .vrm-more summary{color:#9ba0c9;font-size:12.5px;cursor:pointer;user-select:none}
-          .vrm-notes{width:100%;box-sizing:border-box;margin-top:8px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:#e8eaf6;border-radius:9px;padding:8px 10px;font-family:inherit;font-size:12.5px;resize:none;outline:none}
+          .vrm-more summary{color:#4e60e6;font-size:13px;font-weight:600;cursor:pointer;user-select:none}
+          .vrm-notes{width:100%;box-sizing:border-box;margin-top:8px;border:1.5px solid transparent;background:#f6f6fd;color:#07074e;border-radius:12px;padding:9px 12px;font-family:inherit;font-size:13.5px;resize:none;outline:none}
+          .vrm-notes:focus{background:#fff;border-color:#7387ff;box-shadow:0 0 0 3px rgba(115,135,255,.2)}
           .vrm-time{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
           .vrm-deadline{margin-top:2px}
-          .vrm-deadline > label{display:block;color:#9ba0c9;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.4px}
-          .vrm-deadline-input{margin-top:8px;width:100%;box-sizing:border-box;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:#e8eaf6;border-radius:9px;padding:8px 10px;font-family:inherit;font-size:12.5px;outline:none;color-scheme:dark}
-          .vrm-deadline-input:focus{border-color:#5b6bff}
-          .vrm-submit{width:100%;margin-top:10px;border:none;background:#5b6bff;color:#fff;border-radius:11px;padding:11px;font-family:inherit;font-size:13.5px;font-weight:800;cursor:pointer}
-          .vrm-submit:hover:not(:disabled){background:#4452f0}
-          .vrm-submit:disabled{opacity:.45;cursor:not-allowed}
+          .vrm-deadline > label{display:block;color:#07074e;font-size:13px;font-weight:700}
+          .vrm-deadline-input{margin-top:8px;width:100%;box-sizing:border-box;border:1.5px solid transparent;background:#f6f6fd;color:#07074e;border-radius:12px;padding:9px 12px;font-family:inherit;font-size:13.5px;outline:none}
+          .vrm-deadline-input:focus{background:#fff;border-color:#7387ff;box-shadow:0 0 0 3px rgba(115,135,255,.2)}
+          .vrm-submit{width:100%;margin-top:10px;border:none;background:#07074e;color:#fff;border-radius:999px;height:48px;padding:0 20px;font-family:inherit;font-size:14.5px;font-weight:700;cursor:pointer}
+          .vrm-submit:hover:not(:disabled){background:#12124f}
+          .vrm-submit:disabled{opacity:.55;cursor:not-allowed}
           @media (max-width:900px){
             .vrm{flex-direction:column;height:94vh;height:94dvh}
             /* The right panel is a scroll container on small screens, otherwise the compose form
                (deadline + Send Changes) was clipped under the video on short phones. */
-            .vrm-right{width:auto;border-left:none;border-top:1px solid rgba(255,255,255,.07);max-height:58%;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
+            .vrm-right{width:auto;border-left:none;border-top:1px solid #e2e2f0;max-height:58%;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
             .vrm-list{flex:0 0 auto;max-height:150px;min-height:60px}
             .vrm-compose{flex:none}
-            .vrm-left{max-height:42%;flex:1 1 0}
+            .vrm-left{max-height:42%;flex:1 1 0;padding:0 14px 12px}
+            .vrm-lhead{padding:12px 0 10px}
+            .vrm-track{padding-top:12px}
           }
           @media (max-width:768px){
             .vrm-ov{padding:max(10px,env(safe-area-inset-top,0px)) 10px max(10px,env(safe-area-inset-bottom,0px))}
             .vrm-input textarea,.vrm-notes,.vrm-deadline-input{font-size:16px}
             .vrm-x,.vrm-play,.vrm-full,.vrm-send{width:44px;height:44px}
             .vrm-time button{min-height:44px;padding:0 14px}
-            .vrm-submit{min-height:48px}
             .vrm-more summary{padding:10px 0}
             .vrm-marker{width:26px;height:26px;font-size:11px}
             button.vrm-c-ts{min-width:56px;min-height:44px}

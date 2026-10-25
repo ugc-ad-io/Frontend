@@ -15,5 +15,5 @@ test('flex-gap containers do not double their spacing with child margins', () =>
 });
 
 test('Manage Shipment: a tab with no rows shows a message instead of a header-only table / blank gap', () => {
-  expect(src).toMatch(/rows\.length === 0 \? \(\s*<div className="empty-state-small">Nothing in /);
+  expect(src).toMatch(/rows\.length === 0 \? \(\s*<div className="bui-empty-row">Nothing in /);
 });

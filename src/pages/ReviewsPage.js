@@ -1,16 +1,18 @@
 import { useLiveEffect } from '../lib/liveUpdates';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../App';
 import axios from 'axios';
-import { Star, Trophy, MessagesSquare, TrendingUp, Briefcase, ArrowRight } from 'lucide-react';
+import { Star, Check } from 'lucide-react';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
-import '../styles/creator-marketplace.css';
+import CreatorPageHead from '../components/CreatorPageHead';
 import EmptyState from '../components/EmptyState';
 import { Skeleton } from '../components/Skeleton';
+import { resolveLevelKey } from '../utils/creatorLevel';
+import '../styles/creator-ui-reviews.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
-const AVA_COLORS = ['#111827', '#ef6f6f', '#22a565', '#f0931d', '#5b6bff', '#23236a', '#2f8de0'];
+const AVA_COLORS = ['#07074E', '#2A3AB8', '#9D174D', '#0F766E', '#B45309', '#7C3AED', '#0369A1'];
 const avaColor = (name) => AVA_COLORS[(String(name || 'B').toUpperCase().charCodeAt(0) || 0) % AVA_COLORS.length];
 const relTime = (d) => {
   if (!d) return 'Recent';
@@ -23,11 +25,22 @@ const relTime = (d) => {
   const y = Math.floor(days / 365); return `${y} year${y > 1 ? 's' : ''} ago`;
 };
 
+// Level ladder (same five tiers the backend uses: creator_features.py CREATOR_LEVELS).
+// The top step is "UGCAD.IO Choice" - shown as reached for the backend's top tier or an admin-approved creator.
+// `days` = how long after approval the payout is released at that level (PAYOUT_DELAY_DAYS_BY_LEVEL).
+const LADDER = [
+  { key: 'new', label: 'New', sub: 'Sign up', days: 12 },
+  { key: 'verified', label: 'Verified', sub: 'ID verified', days: 7 },
+  { key: 'l1', label: 'Level 1', sub: 'Rising', days: 5 },
+  { key: 'l2', label: 'Pro', sub: 'Level 2', days: 3 },
+  { key: 'elite', label: 'UGCAD.IO Choice', sub: 'Picked by our team', days: 2 },
+];
+
 function Stars({ rating = 0 }) {
   return (
-    <span className="cmk-rev-stars">
+    <span className="cui-r-stars" aria-label={`${rating} out of 5`}>
       {Array.from({ length: 5 }).map((_, i) => (
-        <Star key={i} size={16} className={i < rating ? '' : 'empty'} />
+        <Star key={i} size={15} fill={i < rating ? '#F5A524' : 'none'} color={i < rating ? '#F5A524' : '#D3D4EA'} />
       ))}
     </span>
   );
@@ -83,162 +96,139 @@ export default function ReviewsPage() {
   const fiveStars = reviews.filter((r) => (r.rating || 0) >= 5).length;
   const uniqueBrands = new Set(reviews.map((r) => r.reviewer_id).filter(Boolean)).size;
 
+  // Level ladder state
+  const levelKey = resolveLevelKey(user?.level ?? user?.level_key ?? user?.level_label);
+  const levelIdx = LADDER.findIndex((s) => s.key === levelKey);
+  const isChoice = Boolean(user?.ugcad_approved) || levelKey === 'elite';
+  const cur = isChoice ? LADDER.length - 1 : Math.max(0, levelIdx);
+  const levelTitle = levelKey === 'elite' ? 'UGCAD.IO Choice' : `${LADDER[Math.max(0, levelIdx)].label}${isChoice ? ' · UGCAD.IO Choice' : ''}`;
+  const payoutDays = LADDER[Math.max(0, levelIdx)].days;
+  const next = LADDER[cur + 1];
+
   return (
     <CreatorTopNavLayout>
-      <div className="cmk-page-head cmk-rise">
-        <h1>Reviews</h1>
-        <p>See what brands think about your work and build your reputation.</p>
-      </div>
+      <CreatorPageHead title="Reviews & level" subtitle="What brands say about you, and your level." hideSearch />
+
+      <section className="cui-r-card cui-r-level">
+        <div className="cui-r-level-h">
+          <div>
+            <small>Your level</small>
+            <h2>{levelTitle}</h2>
+          </div>
+          <span className="cui-r-pill">
+            {next
+              ? <><strong>Next: {next.label}</strong> · payout {payoutDays} days after approval</>
+              : <><strong>Top level reached</strong> · payout {payoutDays} days after approval</>}
+          </span>
+        </div>
+        <ol className="cui-r-ladder" aria-label="Creator levels">
+          <span className="cui-r-line" aria-hidden="true"><i style={{ width: `${(cur / (LADDER.length - 1)) * 100}%` }} /></span>
+          {LADDER.map((s, i) => (
+            <li key={s.key} className={i < cur ? 'is-done' : i === cur ? 'is-cur' : ''} aria-current={i === cur ? 'step' : undefined}>
+              <span className={`cui-r-dot${i === LADDER.length - 1 ? ' is-top' : ''}`}>
+                {i < cur ? <Check size={18} strokeWidth={3} /> : i === LADDER.length - 1 ? <Star size={17} fill="#fff" color="#fff" /> : i + 1}
+              </span>
+              <b>{s.label}</b>
+              <small>{s.sub}</small>
+            </li>
+          ))}
+        </ol>
+      </section>
 
       {loading ? (
-        <>
-          <div className="cmk-rev-top">
-            <div className="cmk-stats cmk-stats-sm cmk-stats-2l cmk-rev-stats cmk-rev-stats-2x2" aria-hidden="true">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div className="cmk-stat" key={i}>
-                  <div className="cmk-stat-head">
-                    <Skeleton width={38} height={38} radius={12} />
-                    <Skeleton width={100} height={12} />
-                  </div>
-                  <div className="cmk-stat-row" style={{ marginTop: 12 }}>
-                    <Skeleton width={70} height={26} />
-                    <Skeleton width={90} height={12} />
-                  </div>
-                </div>
-              ))}
-            </div>
-            <section className="cmk-rev-panel cmk-rev-top-breakdown" aria-hidden="true">
-              <Skeleton width={150} height={16} style={{ marginBottom: 16 }} />
-              <div className="cmk-rb-list">
-                {[5, 4, 3, 2, 1].map((s) => (
-                  <div key={s} className="cmk-rb-row" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <Skeleton width={54} height={12} />
-                    <Skeleton height={8} radius={999} style={{ flex: 1 }} />
-                    <Skeleton width={50} height={12} />
-                  </div>
-                ))}
+        <div className="cui-r-grid" aria-hidden="true">
+          <section className="cui-r-card">
+            <Skeleton width={140} height={44} style={{ marginBottom: 16 }} />
+            {[1, 2, 3].map((i) => (
+              <div key={i} style={{ display: 'flex', gap: 12, padding: '14px 0' }}>
+                <Skeleton width={34} height={34} radius={10} style={{ flex: 'none' }} />
+                <div style={{ flex: 1 }}><Skeleton width="40%" height={14} style={{ marginBottom: 8 }} /><Skeleton width="90%" height={12} /></div>
               </div>
-            </section>
-          </div>
-          <section className="cmk-rev-panel cmk-rev-recent" aria-hidden="true">
-            <Skeleton width={150} height={16} style={{ marginBottom: 16 }} />
-            <div className="cmk-rr-list">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <article className="cmk-rr-item" key={i} style={{ display: 'flex', gap: 14 }}>
-                  <Skeleton width={44} height={44} radius="50%" style={{ flex: 'none' }} />
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 8 }}>
-                      <Skeleton width={110} height={14} />
-                      <Skeleton width={90} height={14} />
-                    </div>
-                    <Skeleton width="100%" height={12} style={{ marginBottom: 6 }} />
-                    <Skeleton width="75%" height={12} />
-                  </div>
-                </article>
-              ))}
-            </div>
+            ))}
           </section>
-        </>
+          <section className="cui-r-card"><Skeleton width={160} height={16} style={{ marginBottom: 16 }} /><Skeleton height={60} /></section>
+        </div>
       ) : loadError && !reviews.length ? (
-        <EmptyState title="Could not load reviews" message={loadError} action={{ label: 'Retry', onClick: () => { setLoading(true); fetchData(); } }} />
+        <div className="cui-r-card">
+          <EmptyState title="Could not load reviews" message={loadError} action={{ label: 'Retry', onClick: () => { setLoading(true); fetchData(); } }} />
+        </div>
       ) : (
-      <>
-      <div className="cmk-rev-top">
-      <div className="cmk-stats cmk-stats-sm cmk-stats-2l cmk-rev-stats cmk-rev-stats-2x2">
-        <div className="cmk-stat">
-          <div className="cmk-stat-head"><div className="cmk-ic cmk-ic-orange"><Star size={20} /></div><div className="cmk-stat-lbl">Average Rating</div></div>
-          <div className="cmk-stat-row">
-            <div className="cmk-stat-val">{avg ? avg.toFixed(1) : '-'}<span style={{ fontSize: 15, color: '#9296ba' }}> / 5</span></div>
-            <div className="cmk-stat-meta"><Stars rating={Math.round(avg)} /></div>
-          </div>
-        </div>
-        <div className="cmk-stat">
-          <div className="cmk-stat-head"><div className="cmk-ic cmk-ic-indigo"><MessagesSquare size={20} /></div><div className="cmk-stat-lbl">Total Reviews</div></div>
-          <div className="cmk-stat-row">
-            <div className="cmk-stat-val">{count}</div>
-            <div className="cmk-stat-meta"><span>From completed campaigns</span></div>
-          </div>
-        </div>
-        <div className="cmk-stat">
-          <div className="cmk-stat-head"><div className="cmk-ic cmk-ic-green"><Trophy size={20} /></div><div className="cmk-stat-lbl">5-Star Reviews</div></div>
-          <div className="cmk-stat-row">
-            <div className="cmk-stat-val">{fiveStars}</div>
-            <div className="cmk-stat-meta cmk-up"><TrendingUp size={14} /> {count ? Math.round((fiveStars / count) * 100) : 0}% <span>of all reviews</span></div>
-          </div>
-        </div>
-        <div className="cmk-stat">
-          <div className="cmk-stat-head"><div className="cmk-ic cmk-ic-blue"><Briefcase size={20} /></div><div className="cmk-stat-lbl">Brands Reviewed</div></div>
-          <div className="cmk-stat-row">
-            <div className="cmk-stat-val">{uniqueBrands}</div>
-            <div className="cmk-stat-meta"><span>{uniqueBrands === 1 ? 'Brand worked with' : 'Brands worked with'}</span></div>
-          </div>
-        </div>
-      </div>
-
-          <section className="cmk-rev-panel cmk-rev-top-breakdown">
-            <h3 className="cmk-rev-h">Rating Breakdown</h3>
-            <div className="cmk-rb-list">
-              {[5, 4, 3, 2, 1].map((star) => {
-                const c = reviews.filter((r) => Math.round(r.rating || 0) === star).length;
-                const pct = count ? Math.round((c / count) * 100) : 0;
-                return (
-                  <div key={star} className="cmk-rb-row">
-                    <span className="cmk-rb-label">{star} {star === 1 ? 'Star' : 'Stars'}</span>
-                    <span className="cmk-rb-track"><i style={{ width: `${pct}%` }} /></span>
-                    <span className="cmk-rb-val">{c} ({pct}%)</span>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-      </div>
-
-          {/* Recent Reviews (full width, below) */}
-          <section className="cmk-rev-panel cmk-rev-recent">
-            <div className="cmk-rev-phead">
-              <h3 className="cmk-rev-h">Recent Reviews</h3>
-              {count > 3 && (
-                <button type="button" className="cmk-rev-all" onClick={() => setShowAll((v) => !v)}>
-                  {showAll ? 'Show recent' : 'View all reviews'} <ArrowRight size={15} />
-                </button>
-              )}
+        <div className="cui-r-grid">
+          <section className="cui-r-card cui-r-main">
+            <div className="cui-r-sum">
+              <div className="cui-r-avg">
+                <b>{avg ? avg.toFixed(1) : '-'}</b>
+                <Stars rating={Math.round(avg)} />
+                <small>{count} review{count === 1 ? '' : 's'}</small>
+              </div>
+              <div className="cui-r-bars">
+                {[5, 4, 3, 2, 1].map((star) => {
+                  const c = reviews.filter((r) => Math.round(r.rating || 0) === star).length;
+                  const pct = count ? Math.round((c / count) * 100) : 0;
+                  return (
+                    <div key={star} className="cui-r-bar">
+                      <span>{star}★</span>
+                      <span className="cui-r-track"><i style={{ width: `${pct}%` }} /></span>
+                      <span className="cui-r-n" title={`${pct}%`}>{c}</span>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
             {count === 0 ? (
               <EmptyState icon={Star} title="No reviews yet" message="Complete campaigns and deliver great work to start earning reviews from brands." />
             ) : (
-              <div className="cmk-rr-list">
-                {(showAll ? reviews : reviews.slice(0, 3)).map((review) => {
-                  const reviewText = review.review || review.review_text || review.comment || '';
-                  const reviewer = reviewers[review.reviewer_id];
-                  const campaign = campaigns[review.campaign_id];
-                  const campaignTitle = campaign?.title || 'Campaign';
-                  const businessName = reviewer?.nickname || reviewer?.full_name || 'Brand';
-                  const photo = reviewer?.profile_photo ? (reviewer.profile_photo.startsWith('http') ? reviewer.profile_photo : `${BACKEND_URL}${reviewer.profile_photo}`) : '';
-                  return (
-                    <article key={review.id} className="cmk-rr-item">
-                      <span className="cmk-rr-ava" style={{ background: photo ? 'transparent' : avaColor(businessName) }}>
-                        {photo ? <img src={photo} alt="" /> : businessName.charAt(0).toUpperCase()}
-                      </span>
-                      <div className="cmk-rr-main">
-                        <div className="cmk-rr-top">
-                          <strong>{businessName}</strong>
-                          <span className="cmk-rr-verified">Verified</span>
+              <>
+                <div className="cui-r-list">
+                  {(showAll ? reviews : reviews.slice(0, 3)).map((review) => {
+                    const reviewText = review.review || review.review_text || review.comment || '';
+                    const reviewer = reviewers[review.reviewer_id];
+                    const campaign = campaigns[review.campaign_id];
+                    const campaignTitle = campaign?.title || 'Campaign';
+                    const businessName = reviewer?.nickname || reviewer?.full_name || 'Brand';
+                    const photo = reviewer?.profile_photo ? (reviewer.profile_photo.startsWith('http') ? reviewer.profile_photo : `${BACKEND_URL}${reviewer.profile_photo}`) : '';
+                    return (
+                      <article key={review.id} className="cui-r-item">
+                        <div className="cui-r-item-h">
+                          <span className="cui-r-ava" style={{ background: photo ? 'transparent' : avaColor(businessName) }}>
+                            {photo ? <img src={photo} alt="" /> : businessName.charAt(0).toUpperCase()}
+                          </span>
+                          <div>
+                            <strong>{businessName}</strong>
+                            <small>{campaignTitle} · {relTime(review.created_at)}</small>
+                          </div>
+                          <Stars rating={Math.round(review.rating || 0)} />
                         </div>
-                        <div className="cmk-rr-rating"><Stars rating={review.rating} /> <b>{(review.rating || 0).toFixed(1)}</b></div>
-                        {reviewText && <p className="cmk-rr-text">{reviewText}</p>}
-                        <div className="cmk-rr-camp">
-                          <span>Campaign: {campaignTitle}</span>
-                          <span className="cmk-rr-time">{relTime(review.created_at)}</span>
-                        </div>
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
+                        {reviewText && <p>{reviewText}</p>}
+                      </article>
+                    );
+                  })}
+                </div>
+                {count > 3 && (
+                  <button type="button" className="cui-r-all" onClick={() => setShowAll((v) => !v)}>
+                    {showAll ? 'Show recent' : `View all ${count} reviews`}
+                  </button>
+                )}
+              </>
             )}
           </section>
-      </>
+
+          <aside className="cui-r-card cui-r-side">
+            <h2>At a glance</h2>
+            <dl>
+              <div><dt>Average rating</dt><dd>{avg ? `${avg.toFixed(1)} / 5` : '-'}</dd></div>
+              <div><dt>Total reviews</dt><dd>{count}</dd></div>
+              <div><dt>5-star reviews</dt><dd>{fiveStars} <em>({count ? Math.round((fiveStars / count) * 100) : 0}%)</em></dd></div>
+              <div><dt>{uniqueBrands === 1 ? 'Brand worked with' : 'Brands worked with'}</dt><dd>{uniqueBrands}</dd></div>
+            </dl>
+            <p className="cui-r-tip">
+              {isChoice
+                ? <>You&apos;re at the top level. <strong>Keep delivering on time</strong> and keep great reviews coming in to stay UGCAD.IO Choice.</>
+                : <>Great reviews and on-time delivery help you move up. <strong>Your payout is released {payoutDays} days after approval</strong> at your level.</>}
+            </p>
+          </aside>
+        </div>
       )}
     </CreatorTopNavLayout>
   );

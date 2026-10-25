@@ -1,0 +1,291 @@
+/* Brand UI - phone / tablet pass B (wallet, shipments, sent briefs, post a campaign, reviews,
+   messages, notifications, settings, plans, add-on, invoice, gates, auth, dispute, states).
+ Media queries only; every selector is prefixed with `body ` so it out-ranks the page sheets whatever order their chunks load in. Desktop (>1000px) is untouched. */
+
+/* ── Page wrappers: stop stacking 14+14+16+16px of gutters on a 360px screen ── */
+@media (max-width:640px){
+  /* index.css forces `main{padding-inline:var(--site-h-pad) !important}` - beat it where .bui-main supplies the gutter */
+  body .bui-app main.cmk-wrap:has(> .bui-dash-bare),body .bui-app main.cmk-wrap:has(> .bui-main),body .bui-app main.bui-dash-bare{padding-left:0 !important;padding-right:0 !important}
+  body .bui-app .bui-dash-bare-in .tab-content{padding:0;background:transparent}
+  body .bui-app .bui-main{padding-left:16px;padding-right:16px;padding-bottom:calc(48px + env(safe-area-inset-bottom,0px));gap:24px}
+  body .bui-app .bui-main--tight{padding-top:16px;gap:16px}
+  body .bui-app .bui-h1{font-size:28px}
+}
+
+/* ── Wallet ── */
+@media (max-width:1000px){body .bui-whero{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:640px){
+  body .bui-whero{grid-template-columns:minmax(0,1fr);padding:20px 16px;gap:20px;border-radius:16px}
+  body .bui-whero-l{min-width:0}
+  body .bui-whero-bal{font-size:clamp(34px,11vw,44px)}
+  body .bui-whero-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+  body .bui-whero-stats div{padding:12px 10px}
+  body .bui-whero-stats small{font-size:11.5px}
+  body .bui-whero-stats b{font-size:clamp(14px,4.4vw,18px);overflow-wrap:anywhere}
+  body .bui-whero-foot{flex-direction:column;gap:6px}
+  body .bui-whero-link{display:inline-flex;align-items:center;min-height:44px}
+  body .bui-addfunds{padding:16px}
+  body .bui-amt{height:48px}
+  body .bui-amt input{font-size:16px;align-self:stretch}
+  body .bui-tier{min-height:56px}
+  body .bui-history{padding:16px 14px}
+  body .bui-history-h .bui-tabs,body .bui-history-h .bui-chips{max-width:100%;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}
+  body .bui-history-h .bui-tabs::-webkit-scrollbar,body .bui-history-h .bui-chips::-webkit-scrollbar{display:none}
+  body .bui-tfoot .bui-btn,body .bui-tfoot .bui-cta{flex:1 1 100%}
+  body .bui-tref{white-space:normal;overflow-wrap:anywhere}
+  body .bui-txn-amt .bui-tamt{font-size:24px}
+}
+
+/* transaction rows -> 2-line cards: type + amount / date + status, reference underneath */
+@media (max-width:900px){
+  body .bui-ttable .bui-trow--head{display:none}
+  body .bui-ttable .bui-trow:not(.bui-trow--head){
+    grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"type amt" "date st" "ref ref";
+    gap:4px 12px;align-items:center;padding:14px 4px;min-height:44px;
+  }
+  body .bui-ttable .bui-trow>[data-label]::before{content:none}
+  body .bui-ttable .bui-trow>[data-label="Type"]{grid-area:type;justify-content:flex-start}
+  body .bui-ttable .bui-trow>[data-label="Amount"]{grid-area:amt;justify-content:flex-end;text-align:right;font-size:16px}
+  body .bui-ttable .bui-trow>[data-label="Date"]{grid-area:date;justify-content:flex-start;font-size:13px;color:var(--bui-muted)}
+  body .bui-ttable .bui-trow>[data-label="Status"]{grid-area:st;justify-content:flex-end}
+  body .bui-ttable .bui-trow>[data-label="Reference"]{grid-area:ref;justify-content:flex-start;font-size:12px;color:var(--bui-muted);overflow-wrap:anywhere;white-space:normal}
+  body .bui-ttype b{white-space:normal;overflow-wrap:anywhere}
+}
+
+/* ── Shipments / sent briefs ── */
+@media (max-width:760px){
+  body .bui-table--ship td .bui-cta{min-height:44px}
+  body .bui-table--ship td{overflow-wrap:anywhere}
+  body .bui-table--ship td.bui-right{justify-content:flex-start;flex-wrap:wrap}
+}
+@media (max-width:640px){
+  body .bui-sb{grid-template-columns:minmax(0,1fr);gap:12px;padding:14px}
+  body .bui-sb-who{grid-column:auto}
+  body .bui-sb .bui-cta{height:44px;width:100%}
+  body .bui-sb-who-t>div{flex-wrap:wrap}
+}
+
+/* ── Post a campaign (page + brief modal) ── */
+body .bui-pb-submit-total{display:none}
+@media (max-width:1000px){
+  body .bui-pb-submit{position:sticky;bottom:0;z-index:20;align-items:center;justify-content:space-between;gap:14px;padding:12px 14px calc(12px + env(safe-area-inset-bottom,0px));background:#fff;border:1px solid #E2E2F0;border-radius:14px;box-shadow:0 -10px 26px -14px rgba(7,7,78,.45)}
+  body .bui-pb-submit-total{display:flex;flex-direction:column;line-height:1.25;min-width:0}
+  body .bui-pb-submit-total small{font-size:12px;color:#5A5A8C}
+  body .bui-pb-submit-total b{font-size:17px;font-variant-numeric:tabular-nums;color:#07074E}
+  body .bui-pb-submit .bui-pb-btn{flex:1 1 auto;width:auto;max-width:260px}
+}
+@media (max-width:768px){
+  body .bui-dash-bare-in .bui-pb{padding:16px 16px 24px;gap:16px}
+  body .bui-pb-back{min-height:44px;margin-bottom:0}
+  body .bui-pb-btn{min-height:44px}
+  body .bui-pb-chip{min-height:44px}
+  body .bui-pb-chips.tight{flex-wrap:wrap}
+  body .bui-pb-chips.scroll{max-height:none}
+  body .bui-pb-icon-btn{width:44px;height:48px}
+  body .bui-pb-upload{height:48px}
+  body .bui-pb-input{min-height:48px}
+  body .bui-pb-input.sm{min-height:44px}
+  body .bui-pb-mode button{height:40px;padding:0 14px}
+  body .bui-pb-check{min-height:44px}
+  body .bui-pb-link{min-height:44px}
+  body .bui-pb-ghead{min-height:64px}
+  body .bui-pb-head h1{font-size:28px}
+  body .bui-pb-head-act .bui-pb-btn{flex:none}
+  body .bui-pb-list-row{flex-wrap:wrap}
+  body .bui-pb-list-row .bui-pb-input{flex:1 1 160px}
+  body .bui-pb-range{flex-wrap:wrap}
+  body .bui-pb-range .bui-pb-money{flex:1 1 130px}
+  body .bui-pb-confirm-bg{padding:12px 12px max(12px,env(safe-area-inset-bottom,0px))}
+  body .bui-pb-confirm{border-radius:16px}
+  body .bui-pb-confirm-head,body .bui-pb-confirm-body{padding-left:18px;padding-right:18px}
+  body .bui-pb-confirm-body .row{flex-wrap:wrap;gap:4px 16px}
+  body .bui-pb-confirm-body .actions{flex-direction:column-reverse}
+  body .bui-pb-confirm-body .actions .bui-pb-btn{flex:none;width:100%}
+  body .cmk-brief-modal:has(.bui-pb){padding:20px 14px calc(24px + env(safe-area-inset-bottom,0px));border-radius:16px}
+}
+
+/* ── Reviews ── */
+@media (max-width:560px){
+  body .bui-rv-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  body .bui-rv-hero{padding:18px 16px}
+  body .bui-rv-big b{font-size:38px}
+  body .bui-rv-stat{padding:16px}
+  body .bui-rv-stat b{font-size:28px}
+  body .bui-rv-stat:last-child{grid-column:1/-1}
+  body .bui-rv-panel{padding:18px 16px}
+  body .bui-rv-bar>:last-child{width:64px}
+  body .bui-rv-item{gap:12px}
+  body .bui-rv-name,body .bui-rv-more{min-height:44px;display:inline-flex;align-items:center}
+}
+
+/* ── Messages (brand): single pane, 44px targets, 16px composer so iOS does not zoom ── */
+@media (max-width:768px){
+  body .bui-app main.cmk-wrap:has(> .msg-layout){padding-left:0 !important;padding-right:0 !important}
+  body .bui-app .msg-filters{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding:10px 12px}
+  body .bui-app .msg-filters::-webkit-scrollbar{display:none}
+  body .bui-app .msg-filters button{flex:none;height:40px;padding:0 14px;font-size:13.5px}
+  body .bui-app .msg-search{margin:12px 12px 0;height:44px}
+  body .bui-app .msg-search input{font-size:16px}
+  body .bui-app .msg-conv-item{min-height:64px;padding:10px 12px}
+  body .bui-app .msg-back-btn{width:44px;height:44px}
+  body .bui-app .msg-chat-header{padding:8px 8px 8px 4px}
+  body .bui-app .msg-messages{padding:16px 12px 12px}
+  body .bui-app .msg-input{font-size:16px;height:48px}
+  body .bui-app .msg-input-icon,body .bui-app .msg-send{width:44px;min-width:44px;height:44px}
+  body .bui-app .msg-input-row{padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));background:#fff;border-top:1px solid #eeeef6}
+  body .bui-app .msg-quick-actions{padding:10px 12px 0}
+  body .bui-app .msg-quick-actions-lbl,body .bui-app .msg-action-chip{height:44px}
+  body .bui-app .msg-actions-row{flex-wrap:wrap}
+  body .bui-app .msg-action-card-actions{flex-wrap:wrap}
+  body .bui-app .msg-action-card-actions button{height:44px;flex:1 1 120px}
+  body .bui-app .msg-action-card-top,body .bui-app .msg-action-card-fields,body .bui-app .msg-action-card-actions{padding-left:14px;padding-right:14px}
+  body .bui-app .msg-action-card-price{font-size:24px}
+  body .bui-app .msg-action-composer{margin:0 12px 10px}
+  body .bui-app .msg-deal-strip summary{min-height:48px}
+}
+
+/* ── Bell dropdown: full-width panel under the header, scrolls inside 70vh ── */
+@media (max-width:768px){
+  body .bui-app .notification-dropdown{display:flex;flex-direction:column;margin-top:0;border-radius:16px;max-height:min(70vh,calc(100vh - var(--cmk-nav-height,64px) - 20px));max-height:min(70dvh,calc(100dvh - var(--cmk-nav-height,64px) - 20px))}
+  body .bui-app .notification-list{flex:1 1 auto;min-height:0;max-height:none;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+  body .bui-app .notification-tabs button{height:36px;padding:0 12px}
+  body .bui-app .mark-all-read{min-height:44px;padding:0 4px}
+  body .bui-app .mark-read-btn{min-width:44px;min-height:44px}
+  body .bui-app .notification-viewall{min-height:48px;display:flex;align-items:center;justify-content:center}
+  body .bui-app .notification-item{min-height:64px}
+  body .bui-app .notification-cta{display:none}
+}
+@media (max-width:600px){
+  body .bui-nf-row{min-height:64px}
+  body .bui-nf-groups{gap:18px}
+}
+@media (max-width:768px){
+  body .bui-app .notification-header,body .bui-app .notification-tabs,body .bui-app .notification-viewall{flex:none}
+}
+
+/* ── Settings (brand) ── */
+@media (max-width:640px){
+  body .bui-set .bs-card{padding:18px 14px}
+  body .bui-set-back{height:44px}
+  body .bui-set-planlink{min-height:44px;align-items:center}
+  body .bui-set .bs-primary,body .bui-set .bs-ghost,body .bui-set .bs-primary.small,body .bui-set .bs-billing-tabs button{height:44px}
+  body .bui-set .bs-danger-outline,body .bui-set .bs-danger-solid{min-height:44px}
+  body .bui-set .bs-logo-block button{min-height:44px;padding:0 4px}
+  body .bui-set .bs-card-actions{flex-wrap:wrap}
+  body .bui-set .bs-card-actions>button{flex:1 1 140px}
+  body .bui-set .bs-toggle-row>button{position:relative}
+  body .bui-set .bs-toggle-row>button::before{content:"";position:absolute;inset:-10px -4px}
+  body .bui-set .bs-field input,body .bui-set .bs-field textarea,body .bui-set .bs-field select,body .bui-set .bs-security-box input{font-size:16px}
+  body .bui-set-head{gap:12px}
+  body .bui-set-logo{width:52px;height:52px;border-radius:14px}
+}
+
+/* ── Plans / editing add-on / invoice ── */
+@media (max-width:640px){
+  body .bui-pl-seg{display:flex;width:100%}
+  body .bui-pl-seg button{flex:1 1 0;min-height:44px;padding:0 10px}
+  body .bui-pl-card{padding:22px 18px;border-radius:18px}
+  body .bui-pl-price b{font-size:34px}
+  body .bui-pl-cta{height:48px}
+  body .bui-pl-calc{padding:18px 16px;gap:18px}
+  body .bui-pl-save{flex-wrap:wrap}
+  body .bui-pl-faq div{padding:16px}
+  body .bui-ad-hero{padding:22px 16px}
+  body .bui-ad-hero h1{font-size:28px}
+  body .bui-ad-demo{max-width:260px}
+  body .bui-ad-row{min-height:64px;padding:10px}
+  body .bui-ad-row-t b{white-space:normal;overflow-wrap:anywhere}
+  body .bui-ad-pick{padding:6px 14px 10px}
+  body .bui-ad-pick-h{flex-wrap:wrap}
+  body .bui-ad-sum-b .bui-btn{height:48px}
+  body .bui-iv{border-radius:12px;gap:20px}
+  body .bui-iv-top{flex-direction:column}
+  body .bui-iv-table{font-size:13.5px}
+  body .bui-iv-table th:nth-child(n+2),body .bui-iv-table td:nth-child(n+2){padding-left:8px}
+  body .bui-iv-table td:first-child{overflow-wrap:anywhere}
+  body .bui-iv-table td:nth-child(2){white-space:nowrap;font-size:12.5px}
+  body .bui-iv .bui-btn,body .bui-iv .bui-cta{min-height:44px}
+}
+
+/* ── Wallet transaction modal ── */
+@media (max-width:640px){
+  body .bui-modal .bui-sum>div{flex-wrap:wrap;gap:2px 12px}
+  body .bui-modal .bui-sum b{min-width:0;overflow-wrap:anywhere}
+  body .bui-modal .bui-mono{text-align:left;flex:1 1 100%}
+  body .bui-modal-foot{flex-wrap:wrap;padding-bottom:env(safe-area-inset-bottom,0px)}
+  body .bui-modal-foot .bui-btn{min-height:44px}
+}
+
+@media (max-width:768px){
+  body .bui-crumb a{display:inline-flex;align-items:center;min-height:44px}
+}
+
+/* ── Auth ── */
+@media (max-width:900px){
+  body .ap-left{padding:72px 16px calc(32px + env(safe-area-inset-bottom,0px))}
+  body .ap-card{max-width:none}
+  body .ap-back{width:44px;height:44px}
+}
+@media (max-width:640px){
+  body .ap-tabs{display:flex;align-self:stretch}
+  body .ap-tab{flex:1 1 0;min-height:44px;padding:0 10px}
+  body .ap-input,body .ap-dial{font-size:16px;min-height:48px}
+  body .ap-eye{width:44px;height:44px;right:2px}
+  body .ap-input-wrap .ap-input{padding-right:50px}
+  body .ap-submit{height:52px}
+  body .ap-role-btn{min-height:64px}
+  body .ap-forgot-link,body .ap-toggle{min-height:44px;display:inline-flex;align-items:center}
+  body .ap-title{font-size:26px}
+}
+@media (max-width:360px){
+  body .ap-role-options{grid-template-columns:1fr}
+}
+
+/* ── Sign-up form + approval gates ── */
+@media (max-width:900px){
+  body .bg-head-in{padding:12px 16px}
+}
+@media (max-width:640px){
+  body .su-main{padding:16px 16px calc(40px + env(safe-area-inset-bottom,0px));gap:20px}
+  body .su-card{padding:20px 16px;border-radius:12px}
+  body .su-input{font-size:16px;height:48px}
+  body .su-dial{font-size:16px}
+  body .su-menu{width:min(240px,calc(100vw - 48px))}
+  body .su-submit{height:52px}
+  body .su-hero{padding:20px 18px}
+  body .gt-main{padding:24px 16px calc(40px + env(safe-area-inset-bottom,0px))}
+  body .gt-card h1{font-size:26px}
+  body .gt-actions{width:100%;flex-direction:column}
+  body .gt-actions .bui-btn{width:100%;min-height:48px}
+  body .gt-todo{min-height:44px}
+  body .gt-alt a{display:inline-flex;align-items:center;min-height:44px}
+  body .bg-help a{display:inline-flex;align-items:center;min-height:44px}
+}
+
+/* ── Dispute ── */
+@media (max-width:640px){
+  body .dd-crumb button{min-height:44px}
+  body .dd-card{padding:16px 14px}
+  body .dd-hero-pill{width:100%;box-sizing:border-box}
+  body .dd-step span{font-size:11px}
+  body .dd-submit,body .dd-upload{min-height:48px}
+  body .dd-file button{min-width:44px;min-height:44px}
+  body .dd-kv{flex-wrap:wrap;gap:2px 16px}
+  body .dd-kv strong{text-align:left}
+}
+
+/* ── Loaders / empty / error states ── */
+@media (max-width:640px){
+  body .bui-load-app{padding:env(safe-area-inset-top,0px) 16px env(safe-area-inset-bottom,0px)}
+  body .bui-clips{--h:44px}
+  body .bui-load-page{min-height:200px;border-radius:16px}
+  body .cmk-emptystate.bui-es{margin:12px 16px;padding:24px 18px 26px;max-width:none}
+  body .bui-es .cmk-emptystate-btn{height:44px}
+  body .bui-err{padding-left:16px;padding-right:16px}
+  body .bui-err-actions{flex-direction:column;width:100%}
+  body .bui-err-btn{width:100%}
+}
+
+@media (max-width:768px){
+  body .bui-chip{min-height:44px}
+}

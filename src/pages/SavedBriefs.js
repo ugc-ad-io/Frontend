@@ -1,21 +1,19 @@
 import { useLiveEffect } from '../lib/liveUpdates';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Bookmark } from 'lucide-react';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
-import '../styles/creator-marketplace.css';
+import CreatorPageHead from '../components/CreatorPageHead';
+import BriefCard, { BriefCardSkeleton } from '../components/BriefCard';
 import EmptyState from '../components/EmptyState';
 import BriefDetailDrawer from '../components/BriefDetailDrawer';
-import { Skeleton } from '../components/Skeleton';
-import normalizeBrief, { timeAgo } from '../utils/normalizeBrief';
+import normalizeBrief from '../utils/normalizeBrief';
 import { getSavedBriefs, toggleSavedBrief, hydrateSavedFromServer } from '../utils/savedBriefs';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
-const getInitial = (name) => (name || 'B').trim().charAt(0).toUpperCase();
 
 export default function SavedBriefs() {
   const navigate = useNavigate();
@@ -37,12 +35,6 @@ export default function SavedBriefs() {
     return () => window.removeEventListener('ugc-saved-changed', sync);
   }, []);
 
-  const unsave = (e, brief) => {
-    e.stopPropagation();
-    toggleSavedBrief(brief);
-    toast.success('Removed from saved');
-  };
-
   // Open the full brief right here rather than bouncing to Browse Campaigns.
   // The saved snapshot drops the heavy raw campaign, so re-fetch it — that also
   // means the drawer always shows the brand's current brief, not a stale copy.
@@ -63,83 +55,32 @@ export default function SavedBriefs() {
 
   return (
     <CreatorTopNavLayout notifications={0}>
-      <div className="cmk-page-head saved-campaigns-head">
-        <h1>Saved Campaigns</h1>
-        <p>Campaigns you bookmarked to review or apply to later.</p>
-      </div>
+      <CreatorPageHead title="Saved briefs" subtitle="Briefs you bookmarked to review or apply to later." />
 
       {saved.length ? (
-        <div className="cmk-bb-grid">
-          {saved.map((b) => (
-            <article
+        <div className="cui-b-grid">
+          {/* briefs synced from the server arrive as raw campaigns: normalize them for the card */}
+          {saved.map((b) => (b.brand ? b : normalizeBrief(b))).map((b) => (
+            <BriefCard
               key={b.id}
-              className={`cmk-bb-card cmk-rise${opening === b.id ? ' is-loading' : ''}`}
-              onClick={() => openDetail(b)}
-            >
-              <div className="cmk-bb-top">
-                <span className="cmk-bb-logo">
-                  {b.logo ? <img src={b.logo.startsWith('http') ? b.logo : `${BACKEND_URL}${b.logo}`} alt="" /> : getInitial(b.brand)}
-                </span>
-                <button
-                  type="button"
-                  className="cmk-bb-save is-saved"
-                  onClick={(e) => unsave(e, b)}
-                  aria-label="Remove from saved"
-                >
-                  <Bookmark size={16} fill="currentColor" />
-                </button>
-              </div>
-              <div className="cmk-bb-head">
-                <div className="cmk-bb-brandrow">
-                  <strong className="cmk-bb-brand">{b.brand}</strong>
-                  {b.createdAt ? <span className="cmk-bb-time">{timeAgo(b.createdAt)}</span> : null}
-                </div>
-                <h3 className="cmk-bb-title">{b.title}</h3>
-              </div>
-              <div className="cmk-bb-tags">
-                {[...(b.tags || []).slice(0, 2), b.deliveryLabel].filter(Boolean).map((t, i) => (
-                  <span className="cmk-bb-pill" key={i}>{t}</span>
-                ))}
-              </div>
-              <div className="cmk-bb-divider" />
-              <div className="cmk-bb-foot">
-                <div className="cmk-bb-price">{b.budget}<small>{b.matchScore}% match</small></div>
-                <button type="button" className="cmk-bb-apply" onClick={(e) => { e.stopPropagation(); openDetail(b); }}>
-                  View
-                </button>
-              </div>
-            </article>
+              brief={b}
+              saved
+              busy={opening === b.id}
+              cta="View"
+              onOpen={openDetail}
+              onToggleSave={(brief) => { toggleSavedBrief(brief); toast.success('Removed from saved'); }}
+            />
           ))}
         </div>
       ) : hydrating ? (
-        <div className="cmk-bb-grid">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <article className="cmk-bb-card" key={i} aria-hidden="true">
-              <div className="cmk-bb-top">
-                <Skeleton width={46} height={46} radius={13} />
-                <Skeleton width={34} height={34} radius={10} />
-              </div>
-              <div className="cmk-bb-head">
-                <Skeleton width="45%" height={12} />
-                <Skeleton width="80%" height={16} style={{ marginTop: 6 }} />
-              </div>
-              <div className="cmk-bb-tags">
-                <Skeleton width={64} height={24} radius={8} />
-                <Skeleton width={74} height={24} radius={8} />
-              </div>
-              <div className="cmk-bb-divider" />
-              <div className="cmk-bb-foot">
-                <Skeleton width={84} height={22} />
-                <Skeleton width={92} height={38} radius={11} />
-              </div>
-            </article>
-          ))}
+        <div className="cui-b-grid">
+          {Array.from({ length: 6 }).map((_, i) => <BriefCardSkeleton key={i} />)}
         </div>
       ) : (
         <EmptyState
-          title="No saved campaigns yet"
-          message="Tap the bookmark on any campaign in Browse Campaigns to save it here for later."
-          action={{ label: 'Browse Campaigns', onClick: () => navigate('/browse-briefs') }}
+          title="No saved briefs yet"
+          message="Tap the bookmark on any brief in Find briefs to save it here for later."
+          action={{ label: 'Find briefs', onClick: () => navigate('/browse-briefs') }}
         />
       )}
 

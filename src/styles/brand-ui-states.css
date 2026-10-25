@@ -1,0 +1,52 @@
+/* Brand UI: loading, empty and error states (boards 21 / 28 / 29).
+   Hard-coded tokens: these components render in the creator shell and outside any shell too. */
+
+/* ── Interlocking-clips mark (the loader's "four clips") ─────────────── */
+.bui-clips{--h:54px;display:flex;align-items:center;justify-content:center;padding:8px 0}
+.bui-clip{display:block;flex:none;height:var(--h);width:calc(var(--h) * .7667);margin-left:calc(var(--h) * -.2222);background-repeat:no-repeat;background-size:calc(var(--h) * 2.3333) auto;background-position:calc(var(--h) * -.7667) 0;animation:bui-clipLink 1.2s ease-in-out infinite;--r:0deg}
+.bui-clip:first-child{margin-left:0}
+.bui-clip:nth-child(2n){--r:180deg;animation-delay:.15s}
+.bui-clip:nth-child(3){animation-delay:.3s}
+.bui-clip:nth-child(4){animation-delay:.45s}
+.bui-clips--white .bui-clip{filter:brightness(0) invert(1)}
+@keyframes bui-clipLink{0%,100%{opacity:.28;transform:translateY(0) rotate(var(--r))}35%{opacity:1;transform:translateY(-7px) rotate(var(--r))}}
+@keyframes bui-breathe{0%,100%{opacity:.55}50%{opacity:1}}
+@keyframes bui-bar{0%{transform:translateX(-100%)}100%{transform:translateX(250%)}}
+
+/* A: app loading screen (full page, navy) */
+.bui-load-app{position:fixed;inset:0;z-index:9999;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;color:#fff;background:linear-gradient(112deg,#07074e 0%,#0f1468 55%,#2a3ab8 100%);font-family:'Inter',system-ui,sans-serif}
+.bui-load-app::before{content:"";position:absolute;right:-120px;top:-180px;width:560px;height:560px;border-radius:50%;background:radial-gradient(circle,rgba(115,135,255,.7) 0%,rgba(115,135,255,.22) 40%,rgba(115,135,255,0) 70%)}
+.bui-load-app > *{position:relative}
+.bui-load-word{font-family:'Readex Pro','Plus Jakarta Sans',sans-serif;font-weight:500;font-size:26px;letter-spacing:-.01em}
+.bui-load-word b{font-weight:500;color:#9faeff}
+.bui-load-label{font-size:15px;color:rgba(255,255,255,.78);animation:bui-breathe 1.6s ease-in-out infinite}
+
+/* B: page loading (light, inline) */
+.bui-load-page{width:100%;box-sizing:border-box;min-height:240px;padding:40px 16px;border-radius:20px;background:#f3f3ff;box-shadow:inset 0 0 0 1px #dadcf5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;font-family:'Inter',system-ui,sans-serif}
+.bui-load-page .bui-load-label{font-weight:600;color:#07074e;animation:none}
+.bui-load-bar{width:220px;max-width:100%;height:5px;border-radius:999px;background:#e2e4f5;overflow:hidden}
+.bui-load-bar span{display:block;width:40%;height:100%;border-radius:999px;background:#7387ff;animation:bui-bar 1.3s ease-in-out infinite}
+@media (prefers-reduced-motion:reduce){.bui-clip,.bui-load-label,.bui-load-bar span{animation:none!important}.bui-clip{opacity:1}}
+
+/* ── Empty state card (board 28) ─────────────────────────────────────── */
+.cmk-emptystate.bui-es{display:flex;flex-direction:column;align-items:center;text-align:center;max-width:460px;margin:16px auto;padding:30px 24px 32px;box-sizing:border-box;gap:12px;background:#fff;border:1px solid #e2e2f0;border-radius:14px;color:#07074e}
+.bui-es .cmk-emptystate-ic{display:grid;place-items:center;position:relative;overflow:hidden;width:68px;height:68px;margin:0;border-radius:20px;border:0;color:#fff;background:linear-gradient(112deg,#07074e 0%,#0f1468 55%,#2a3ab8 100%)}
+.bui-es .cmk-emptystate-ic::before{content:"";position:absolute;right:-16px;top:-18px;width:52px;height:52px;border-radius:50%;background:radial-gradient(circle,rgba(115,135,255,.85) 0%,rgba(115,135,255,0) 70%)}
+.bui-es .cmk-emptystate-ic svg{position:relative}
+.bui-es h3{margin:4px 0 0;font-family:'Readex Pro','Plus Jakarta Sans',sans-serif;font-weight:500;font-size:19px;letter-spacing:0;color:#07074e}
+.bui-es p{margin:0;max-width:340px;font-size:14px;line-height:1.55;color:#5a5a8c}
+.bui-es .cmk-emptystate-btn{display:inline-flex;align-items:center;border:0;cursor:pointer;font-family:inherit;margin-top:4px;height:40px;padding:0 18px;gap:8px;justify-content:center;border-radius:10px;background:#07074e;box-shadow:none;color:#fff;font-weight:600;font-size:14px;white-space:nowrap}
+.bui-es .cmk-emptystate-btn:hover{background:#12124f;transform:none}
+.cmk-tabs-row + .cmk-emptystate.bui-es,.cmk-filter-row + .cmk-emptystate.bui-es{margin-top:0}
+
+/* ── Error screen (board 29, "Something went wrong" / offline) ───────── */
+.bui-err{box-sizing:border-box;min-height:100vh;min-height:100dvh;display:grid;place-items:center;text-align:center;background:#f3f3ff;color:#07074e;font-family:'Inter',system-ui,sans-serif;padding:max(24px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+.bui-err-card{width:100%;max-width:440px;min-width:0;box-sizing:border-box;background:#fff;border:1px solid #e2e2f0;border-radius:14px;padding:30px 26px;display:flex;flex-direction:column;align-items:center;gap:10px}
+.bui-err-ic{width:56px;height:56px;border-radius:18px;background:#fff2dc;color:#8a4b00;display:grid;place-items:center}
+.bui-err-card h1{margin:0;font-family:'Readex Pro','Plus Jakarta Sans',sans-serif;font-weight:500;font-size:19px;color:#07074e}
+.bui-err-card p{margin:0;font-size:14px;line-height:1.5;color:#5a5a8c}
+.bui-err-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:6px}
+.bui-err-btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 18px;border-radius:10px;border:0;background:#07074e;color:#fff;font:600 14px 'Inter',system-ui,sans-serif;cursor:pointer;text-decoration:none}
+.bui-err-btn:hover{background:#12124f}
+.bui-err-btn--ghost{background:#fff;color:#07074e;border:1.5px solid #9f9fd1}
+.bui-err-btn--ghost:hover{background:#f3f3ff}

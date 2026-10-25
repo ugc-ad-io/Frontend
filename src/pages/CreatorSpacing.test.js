@@ -6,8 +6,8 @@ import path from 'path';
 const read = (...p) => fs.readFileSync(path.join(__dirname, ...p), 'utf8');
 const mkt = read('..', 'styles', 'creator-marketplace.css');
 const deals = read('MyDealsPage.css');
-const kyc = read('CreatorKYC.js');
-const signup = read('CreatorSignup.js');
+const kyc = read('..', 'styles', 'creator-ui-kyc.css');
+const signup = read('..', 'styles', 'creator-ui-onboarding.css');
 
 test('Messages stays full-bleed on phones despite the HoverSideRail 12px page gutter', () => {
   expect(mkt).toMatch(/@media \(max-width:768px\)\{\.cmk-app\.has-rail \.cmk-page\.cmk-page--flush\{padding-left:0;padding-right:0\}\}/);
@@ -27,10 +27,10 @@ test('Deal Room loading/empty wrapper adds no padding on top of the layout page 
   expect(deals).not.toMatch(/padding: 16px 16px 92px/);
 });
 
-test('KYC phone page cancels the safe-area part of the layout bottom padding too', () => {
-  expect(kyc).toContain('margin:-18px -16px calc(-96px - env(safe-area-inset-bottom))');
+test('KYC phone page keeps the submit bar above the bottom tab bar and safe area', () => {
+  expect(kyc).toContain('bottom:calc(64px + env(safe-area-inset-bottom,0px))');
 });
 
 test('Creator signup uses dynamic viewport height like Auth', () => {
-  expect(signup).toMatch(/min-height: 100vh;\s*min-height: 100dvh;\s*display: flex;/);
+  expect(signup).toMatch(/min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;/);
 });

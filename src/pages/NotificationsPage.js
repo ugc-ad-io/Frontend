@@ -1,20 +1,48 @@
 import { resolveNotifLink } from '../utils/notificationLinks';
 import { useLiveEffect, publishLiveUpdate } from '../lib/liveUpdates';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Bell, Check } from 'lucide-react';
+import { Bell, Check, Settings } from 'lucide-react';
 import { useAuth } from '../App';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
-import { Skeleton } from '../components/Skeleton';
+import CreatorPageHead from '../components/CreatorPageHead';
+import { NOTIFICATION_TABS, matchesNotificationTab, notificationAction } from '../utils/notificationCategory';
 import '../styles/creator-marketplace.css';
+import '../styles/brand-ui-pages.css';
+import '../styles/brand-ui-notifs.css';
+import '../styles/brand-ui-mobile-b.css';
+import '../styles/creator-ui-notifs.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
 const ICON = { success: '✓', warning: '⚠', error: '✕', info: 'ℹ' };
+
+// Today / Yesterday / Earlier bucket for the brand list, from the notification's own timestamp.
+const dayGroup = (iso) => {
+  if (!iso) return 'Earlier';
+  const d = new Date(iso);
+  const day0 = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diff = Math.round((day0(new Date()) - day0(d)) / 86400000);
+  return diff <= 0 ? 'Today' : diff === 1 ? 'Yesterday' : 'Earlier';
+};
+
+// Creator tab names (the helper's keys are brand-flavoured: campaign / payment / message).
+const CREATOR_TAB_LABEL = { campaign: 'Briefs & orders', payment: 'Money' };
+
+// "10m ago" / "2h ago" / "3d ago", then a short date.
+const timeAgo = (iso) => {
+  const mins = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return days < 7 ? `${days}d ago` : new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+};
 
 export default function NotificationsPage() {
   const { user } = useAuth();
@@ -23,6 +51,7 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true);
   // Set when the list could not be loaded, so a failed request is never shown as "No notifications yet".
   const [error, setError] = useState('');
+  const [tab, setTab] = useState('all'); // brand view: all | unread | campaign | payment | message
 
   const load = async () => {
     try {
@@ -48,91 +77,151 @@ export default function NotificationsPage() {
   const open = (n) => { if (!n.read) markRead(n.id); if (n.link) navigate(resolveNotifLink(n.link)); };
 
   const unread = items.filter((n) => !n.read).length;
-  const Layout = user?.role === 'business' ? BrandTopNavLayout : CreatorTopNavLayout;
+  const isBrand = user?.role === 'business';
+  const Layout = isBrand ? BrandTopNavLayout : CreatorTopNavLayout;
 
-  return (
-    <Layout>
-      <div className="cmk-page-head">
-        <h1>Notifications</h1>
-        <p>All your updates in one place.</p>
-      </div>
-
-      <div className="np-wrap">
-        <div className="np-bar">
-          <span>{unread} unread</span>
-          {unread > 0 && (
-            <button type="button" className="np-allread" onClick={markAll}><Check size={16} /> Mark all read</button>
-          )}
-        </div>
-
-        {loading ? (
-          <div className="np-list">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div className="np-item" key={i} aria-hidden="true">
-                {/* 40px round icon + title / message / time — matches .np-item */}
-                <Skeleton width={40} height={40} radius="50%" style={{ flex: 'none' }} />
-                <span className="np-body">
-                  <Skeleton width={`${40 + (i % 3) * 12}%`} height={14} />
-                  <Skeleton width="85%" height={12} style={{ marginTop: 4 }} />
-                  <Skeleton width={90} height={10} style={{ marginTop: 6 }} />
-                </span>
-              </div>
-            ))}
+  if (isBrand) {
+    const shown = items.filter((n) => matchesNotificationTab(n, tab));
+    const groups = ['Today', 'Yesterday', 'Earlier']
+      .map((label) => ({ label, rows: shown.filter((n) => dayGroup(n.created_at) === label) }))
+      .filter((g) => g.rows.length);
+    return (
+      <Layout>
+        <div className="bui-main">
+          <div className="bui-titlerow">
+            <div>
+              <h1 className="bui-h1">Notifications</h1>
+              <p className="bui-sub">Everything that needs you, newest first.</p>
+            </div>
+            {unread > 0 && (
+              <button type="button" className="bui-btn bui-btn--ghost" onClick={markAll}><Check size={16} /> Mark all as read</button>
+            )}
           </div>
-        ) : error && items.length === 0 ? (
-          <div className="cmk-empty" role="alert">
-            <Bell size={40} />
-            <p>{error}</p>
-            <button type="button" className="np-allread" onClick={() => { setLoading(true); load(); }}>Retry</button>
-          </div>
-        ) : items.length === 0 ? (
-          <div className="cmk-empty"><Bell size={40} /><p>No notifications yet</p><p style={{ fontSize: 13.5 }}>Updates about your campaigns, deals and messages will show up here.</p></div>
-        ) : (
-          <div className="np-list">
-            {items.map((n) => (
-              <button key={n.id} type="button" className={`np-item ${!n.read ? 'unread' : ''}`} onClick={() => open(n)}>
-                <span className={`np-ic ${n.type || 'info'}`}>{ICON[n.type] || 'ℹ'}</span>
-                <span className="np-body">
-                  <strong>
-                    {n.title}
-                    {n.source === 'admin' && (
-                      <span className="np-admin-chip">{n.sender_label || 'Admin'}</span>
-                    )}
-                  </strong>
-                  <span className="np-msg">{n.message}</span>
-                  <small>{n.created_at ? new Date(n.created_at).toLocaleString() : ''}</small>
-                </span>
-                {!n.read && <i className="np-dot" />}
+
+          <div className="bui-tabs bui-nf-tabs" role="tablist" aria-label="Filter notifications">
+            {NOTIFICATION_TABS.map(([id, label]) => (
+              <button key={id} type="button" role="tab" aria-selected={tab === id} className={`bui-tab${tab === id ? ' is-on' : ''}`} onClick={() => setTab(id)}>
+                {label} <span>{items.filter((n) => matchesNotificationTab(n, id)).length}</span>
               </button>
             ))}
           </div>
-        )}
-      </div>
 
-      <style>{`
-        /* Widen ONLY the notifications page's content container (self-scoped via
-           :has) past the app's default 1320px, so the cards use more of the
-           screen and the empty right-hand gap shrinks. Other pages are untouched. */
-        .cmk-wrap:has(.np-wrap){max-width:1600px}
-        .np-wrap{max-width:none;width:100%;margin-top:6px}
-        .np-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;color:var(--muted);font-size:14px;font-weight:600}
-        .np-allread{display:inline-flex;align-items:center;gap:6px;min-height:44px;border:1px solid var(--line);background:#fff;color:var(--indigo);border-radius:10px;padding:8px 12px;font-weight:700;font-size:13.5px;cursor:pointer}
-        .np-allread:hover{border-color:#cdd2f3}
-        .np-list{display:flex;flex-direction:column;gap:10px}
-        .np-item{display:flex;align-items:flex-start;gap:14px;width:100%;text-align:left;background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px 18px;cursor:pointer;transition:.15s;font-family:inherit;box-shadow:var(--shadow-soft)}
-        .np-item:hover{box-shadow:var(--shadow-card);border-color:#dfe2f5}
-        .np-item.unread{background:#f6f7ff;border-color:#e3e6ff}
-        .np-ic{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-size:17px;background:#eaf1ff;color:#2563eb}
-        .np-ic.success{background:#e3f7ec;color:#15a35b}
-        .np-ic.warning{background:#fff4e0;color:#d98a16}
-        .np-ic.error{background:#fdeaea;color:#e11d48}
-        .np-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
-        .np-body strong{overflow-wrap:anywhere;font-size:15px;color:var(--ink);font-weight:700;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-        .np-admin-chip{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#4338ca;background:#eef2ff;border:1px solid #dfe4ff;border-radius:999px;padding:2px 8px}
-        .np-msg{font-size:14px;color:var(--ink-2);line-height:1.45;overflow-wrap:anywhere}
-        .np-body small{font-size:12px;overflow-wrap:anywhere;color:var(--muted);margin-top:2px}
-        .np-dot{flex:none;width:9px;height:9px;border-radius:50%;background:#5b6bff;margin-top:6px}
-      `}</style>
+          {loading ? (
+            <div className="bui-nf-groups" aria-hidden="true">
+              {Array.from({ length: 5 }).map((_, i) => <div className="bui-nf-sk" key={i} />)}
+            </div>
+          ) : error && items.length === 0 ? (
+            <div className="bui-empty" role="alert">
+              <h3>{error}</h3>
+              <button type="button" className="bui-btn" onClick={() => { setLoading(true); load(); }}>Retry</button>
+            </div>
+          ) : shown.length === 0 ? (
+            <div className="bui-empty">
+              <h3>{items.length === 0 ? 'No notifications yet' : tab === 'unread' ? 'You’re all caught up' : 'Nothing here yet'}</h3>
+              <p>{items.length === 0 ? 'Updates about your campaigns, deals and messages will show up here.' : tab === 'unread' ? 'Nothing unread right now.' : 'No notifications in this category.'}</p>
+            </div>
+          ) : (
+            <div className="bui-nf-groups">
+              {groups.map((g) => (
+                <section key={g.label}>
+                  <h2 className="bui-nf-gh">{g.label}</h2>
+                  <div className="bui-nf-card">
+                    {g.rows.map((n) => (
+                      <button key={n.id} type="button" className={`bui-nf-row${!n.read ? ' is-unread' : ''}`} onClick={() => open(n)}>
+                        <span className={`bui-nf-ic ${n.type || 'info'}`}>{ICON[n.type] || 'ℹ'}</span>
+                        <span className="bui-nf-body">
+                          <span className="bui-nf-title">
+                            {n.title}
+                            {n.source === 'admin' && <span className="bui-nf-chip">{n.sender_label || 'Admin'}</span>}
+                          </span>
+                          <span className="bui-nf-text" style={{ display: 'block' }}>{n.message}</span>
+                          <span className="bui-nf-when" style={{ display: 'block' }}>{n.created_at ? new Date(n.created_at).toLocaleString() : ''}</span>
+                        </span>
+                        {n.link && <span className="bui-nf-cta">{notificationAction(n)}</span>}
+                        <span className="bui-nf-dot" aria-hidden="true" />
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+          )}
+        </div>
+      </Layout>
+    );
+  }
+
+  // Creator view (design board C19): filter pills, day groups, then a card that points to alert settings.
+  const shown = items.filter((n) => matchesNotificationTab(n, tab));
+  const groups = ['Today', 'Yesterday', 'Earlier']
+    .map((label) => ({ label, rows: shown.filter((n) => dayGroup(n.created_at) === label) }))
+    .filter((g) => g.rows.length);
+  return (
+    <Layout>
+      <div className="cui-n-page">
+        <CreatorPageHead title="Notifications" subtitle={unread > 0 ? `${unread} new` : 'All your updates in one place.'} hideSearch />
+
+        <div className="cui-n-grid">
+          <div className="cui-n-card">
+            <div className="cui-n-tabs" role="tablist" aria-label="Filter notifications">
+              {NOTIFICATION_TABS.map(([id, label]) => (
+                <button key={id} type="button" role="tab" aria-selected={tab === id} className={`cui-n-tab${tab === id ? ' is-on' : ''}`} onClick={() => setTab(id)}>
+                  {CREATOR_TAB_LABEL[id] || label}
+                  <span>{items.filter((n) => matchesNotificationTab(n, id)).length}</span>
+                </button>
+              ))}
+            </div>
+
+            {loading ? (
+              <div aria-hidden="true">
+                {Array.from({ length: 5 }).map((_, i) => <div className="cui-n-sk" key={i} />)}
+              </div>
+            ) : error && items.length === 0 ? (
+              <div className="cui-n-empty" role="alert">
+                <Bell size={36} />
+                <p>{error}</p>
+                <button type="button" className="cui-btn" onClick={() => { setLoading(true); load(); }}>Retry</button>
+              </div>
+            ) : shown.length === 0 ? (
+              <div className="cui-n-empty">
+                <Bell size={36} />
+                <p>{items.length === 0 ? 'No notifications yet' : tab === 'unread' ? 'You’re all caught up' : 'Nothing here yet'}</p>
+                <small>{items.length === 0 ? 'Updates about your briefs, orders and messages will show up here.' : 'No notifications in this category.'}</small>
+              </div>
+            ) : (
+              groups.map((g, gi) => (
+                <section key={g.label} className="cui-n-group">
+                  <div className="cui-n-gh">
+                    <h2>{g.label}</h2>
+                    {gi === 0 && unread > 0 && <button type="button" className="cui-n-markall" onClick={markAll}>Mark all read</button>}
+                  </div>
+                  {g.rows.map((n) => (
+                    <button key={n.id} type="button" className={`cui-n-row${!n.read ? ' is-unread' : ''}`} onClick={() => open(n)}>
+                      <span className={`cui-n-ic ${n.type || 'info'}`}>{ICON[n.type] || 'ℹ'}</span>
+                      <span className="cui-n-body">
+                        <span className="cui-n-title">
+                          {n.title}
+                          {n.source === 'admin' && <span className="cui-n-chip">{n.sender_label || 'Admin'}</span>}
+                        </span>
+                        {n.message ? <span className="cui-n-text">{n.message}</span> : null}
+                        <span className="cui-n-when">{n.created_at ? timeAgo(n.created_at) : ''}</span>
+                        {n.link && <span className="cui-n-cta">{notificationAction(n)}</span>}
+                      </span>
+                      <span className="cui-n-dot" aria-hidden="true" />
+                    </button>
+                  ))}
+                </section>
+              ))
+            )}
+          </div>
+
+          <aside className="cui-n-card cui-n-side">
+            <h2>Alert settings</h2>
+            <p>Choose which updates reach you: new brief matches, bid updates, messages, payout alerts and your weekly digest.</p>
+            <button type="button" className="cui-btn cui-btn--ghost" onClick={() => navigate('/settings')}><Settings size={16} /> Manage alerts</button>
+          </aside>
+        </div>
+      </div>
     </Layout>
   );
 }

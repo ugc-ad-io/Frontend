@@ -60,11 +60,11 @@ describe('Campaign detail for a draft', () => {
       expect(edit.textContent).toContain('Edit Draft');
       await act(async () => { edit.click(); });
       expect(mockNavigate).toHaveBeenCalledWith('/dashboard/business/post-brief?draft=camp1');
-      expect(host.textContent).not.toContain('Campaign Progress');
+      expect(host.textContent).not.toContain('Campaign progress');
       expect(host.textContent).not.toContain('Brief Sent');
-      expect(host.querySelector('.bcd-draft-card')).toBeTruthy();
-      expect(host.querySelector('.bcd-budget').textContent).toContain('Rs. 12,000');
-      expect(host.textContent).toContain('Created on');
+      expect(host.textContent).toContain('This campaign is a draft');
+      expect(host.querySelector('.bui-budget').textContent).toContain('₹12,000');
+      expect(host.textContent).toContain('Created ');
     } finally { await done(); }
   });
 
@@ -73,8 +73,8 @@ describe('Campaign detail for a draft', () => {
     const Detail = require('./BrandCampaignDetail').default;
     const { host, done } = await mount(<Detail />);
     try {
-      expect(host.querySelector('.bcd-budget').textContent).toContain('Not set yet');
-      expect(host.querySelector('.bcd-budget').textContent).not.toContain('Rs. 0');
+      expect(host.querySelector('.bui-budget').textContent).toContain('Not set yet');
+      expect(host.querySelector('.bui-budget').textContent).not.toContain('₹0');
     } finally { await done(); }
   });
 
@@ -84,8 +84,8 @@ describe('Campaign detail for a draft', () => {
     const { host, done } = await mount(<Detail />);
     try {
       expect(host.querySelector('[data-testid="edit-draft-btn"]')).toBeNull();
-      expect(host.textContent).toContain('Campaign Progress');
-      expect(host.textContent).toContain('Launched on');
+      expect(host.textContent).toContain('Campaign progress');
+      expect(host.textContent).toContain('Launched ');
     } finally { await done(); }
   });
 });

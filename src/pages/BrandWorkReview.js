@@ -7,9 +7,7 @@ import { toast } from 'sonner';
 import { downloadDeliverable } from '../utils/downloadDeliverable';
 import { apiErrorMessage } from '../utils/apiError';
 import {
-  SlidersHorizontal, MessageSquare, FileText, Download, Play, Clock, Calendar,
-  FileVideo, CheckCircle2, Hourglass, RefreshCw, ListChecks, MoreHorizontal,
-  ChevronLeft, ChevronRight, MessageSquarePlus,
+  MessageSquare, FileText, Download, Play, FileVideo, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import ChatPopup from '../components/ChatPopup';
@@ -18,6 +16,9 @@ import VideoReviewModal from '../components/VideoReviewModal';
 import ReviewModal from '../components/ReviewModal';
 import '../styles/creator-marketplace.css';
 import '../styles/brand-mobile.css';
+import '../styles/brand-ui.css';
+import '../styles/brand-ui-pages.css';
+import '../styles/brand-ui-work.css';
 import { pageWindow } from '../utils/pageWindow';
 import EmptyState from '../components/EmptyState';
 import { Skeleton } from '../components/Skeleton';
@@ -33,7 +34,7 @@ const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-GB', { day: 'nume
 const fmtDur = (s) => { if (!s || !isFinite(s)) return ''; const m = Math.floor(s / 60); const sec = Math.floor(s % 60); return `${m}:${String(sec).padStart(2, '0')}`; };
 const fileExt = (f) => (f ? (String(f).split('?')[0].split('.').pop() || '').toUpperCase() : '');
 
-function Thumb({ file, onOpen, onDuration, watermark }) {
+function Thumb({ file, onOpen, onDuration, watermark, cls = 'bwr-thumb', locked = false }) {
   const [d, setD] = useState('');
   // A submission stored before Cloudinary was in place can point at a file
   // that no longer exists (Render's disk is wiped on deploy) — show a clear
@@ -43,33 +44,48 @@ function Thumb({ file, onOpen, onDuration, watermark }) {
   const vid = isVideo(url);
   useEffect(() => { setBroken(false); setD(''); }, [url]);
   return (
-    <div className="bwr-thumb" onClick={onOpen}>
+    <div className={cls} onClick={onOpen}>
       {url && !broken ? (vid
         ? <video src={`${url}#t=0.5`} muted playsInline preload="metadata" onError={() => setBroken(true)} onLoadedMetadata={(e) => { const v = fmtDur(e.target.duration); setD(v); onDuration?.(v); }} />
         : <img src={url} alt="" onError={() => setBroken(true)} />)
         : <div className="bwr-thumb-fb"><FileText size={26} />{broken && <small style={{ display: 'block', marginTop: 6, opacity: 0.75 }}>File unavailable</small>}</div>}
       {watermark && <span className="bwr-wm" aria-hidden="true" />}
-      <span className="bwr-play"><Play size={20} fill="currentColor" /></span>
-      {d && <span className="bwr-dur">{d}</span>}
+      {locked && <span className="bui-wr-lock" aria-hidden="true">UGCAD.IO PREVIEW</span>}
+      <span className={cls === 'bwr-thumb' ? 'bwr-play' : 'bui-wr-play'}><Play size={20} fill="currentColor" /></span>
+      {d && <span className={cls === 'bwr-thumb' ? 'bwr-dur' : 'bui-wr-dur'}>{d}</span>}
     </div>
   );
 }
 
 const TABS = [
-  { key: 'approved', label: 'Approved', icon: CheckCircle2 },
-  { key: 'pending_review', label: 'Pending Review', icon: Hourglass },
-  { key: 'revision_requested', label: 'Revision', icon: RefreshCw },
-  { key: 'all', label: 'All Submissions', icon: ListChecks },
+  { key: 'all', label: 'All submissions' },
+  { key: 'pending_review', label: 'Pending review' },
+  { key: 'revision_requested', label: 'Revision' },
+  { key: 'approved', label: 'Approved' },
 ];
 
 const STATUS = {
-  approved: { cls: 'ok', label: 'Approved', icon: CheckCircle2 },
-  pending_review: { cls: 'pending', label: 'Pending Review', icon: Hourglass },
+  approved: { tone: 'ok', label: 'Approved' },
+  pending_review: { tone: 'warn', label: 'Pending review' },
   // Raw footage with UGC.ad's editing team — not reviewable until the cut lands.
-  awaiting_edit: { cls: 'pending', label: 'With UGC.ad Editors', icon: Hourglass },
+  awaiting_edit: { tone: 'muted', label: 'With UGC.ad editors' },
   // Raw video approved — the creator is editing it (raw → edited flow).
-  awaiting_edited: { cls: 'pending', label: 'Creator Editing', icon: Hourglass },
-  revision_requested: { cls: 'warn', label: 'Revision', icon: RefreshCw },
+  awaiting_edited: { tone: 'muted', label: 'Creator editing' },
+  revision_requested: { tone: 'bad', label: 'Revision requested' },
+};
+
+// "2h ago" / "3d ago" / a date once it's older than a week.
+const agoText = (d) => {
+  if (!d) return '';
+  const ms = Date.now() - new Date(d).getTime();
+  if (!Number.isFinite(ms) || ms < 0) return fmtDate(d);
+  const m = Math.floor(ms / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const days = Math.floor(h / 24);
+  return days <= 7 ? `${days}d ago` : fmtDate(d);
 };
 
 const PER_PAGE_OPTIONS = [10, 20, 50];
@@ -81,14 +97,8 @@ export default function BrandWorkReview() {
   // Set when the list request FAILED, so a broken request is not shown as "nothing to review".
   const [loadError, setLoadError] = useState('');
   const [tab, setTab] = useState('all');
-  const [filterOpen, setFilterOpen] = useState(false); // mobile status-filter menu
-  const [filterExpanded, setFilterExpanded] = useState(false); // desktop: click PINS the options open
-  const [filterHover, setFilterHover] = useState(false);       // desktop: hover opens transiently
-  const cfRef = useRef(null);
-  const filterRef = useRef(null);
   const [chatWith, setChatWith] = useState(null);
   const [durations, setDurations] = useState({});
-  const [menuId, setMenuId] = useState(null);
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
   const [videoModal, setVideoModal] = useState(null);
@@ -125,22 +135,6 @@ export default function BrandWorkReview() {
 
   useLiveEffect(() => { load(); /* eslint-disable-next-line */ }, []);
   useEffect(() => { setPage(1); }, [tab, perPage]);
-
-  // Close the mobile filter menu on any outside click.
-  useEffect(() => {
-    if (!filterOpen) return undefined;
-    const onDoc = (e) => { if (filterRef.current && !filterRef.current.contains(e.target)) setFilterOpen(false); };
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, [filterOpen]);
-
-  // Desktop: a click PINS the filter open — close it again on an outside click.
-  useEffect(() => {
-    if (!filterExpanded) return undefined;
-    const onDoc = (e) => { if (cfRef.current && !cfRef.current.contains(e.target)) setFilterExpanded(false); };
-    document.addEventListener('mousedown', onDoc);
-    return () => document.removeEventListener('mousedown', onDoc);
-  }, [filterExpanded]);
 
   const counts = useMemo(() => {
     const o = { all: items.length };
@@ -248,202 +242,135 @@ export default function BrandWorkReview() {
 
   return (
     <BrandTopNavLayout>
-      <div className="cmk-page-head cmk-page-head--filter" style={{ marginBottom: 6 }}>
-        <div>
-          <h1>Work Review</h1>
-          <p>Review submitted content and provide feedback.</p>
-        </div>
-        {/* Mobile only: sits on the title row and replaces the chip strip. */}
-        <div className="wr-filter-wrap" ref={filterRef}>
-          <button type="button" className="wr-filter-btn" onClick={() => setFilterOpen((v) => !v)} aria-haspopup="menu" aria-expanded={filterOpen}>
-            <SlidersHorizontal size={16} /> Filter
-          </button>
-          {filterOpen && (
-            <div className="wr-filter-menu" role="menu">
-              {TABS.map((t) => (
-                <button
-                  key={t.key}
-                  type="button"
-                  role="menuitemradio"
-                  aria-checked={tab === t.key}
-                  className={tab === t.key ? 'is-active' : ''}
-                  onClick={() => { setTab(t.key); setFilterOpen(false); }}
-                >
-                  {t.label} <em>({counts[t.key] || 0})</em>
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Desktop: "Filter" expands its status options left→right on hover/click.
-          Hidden on mobile (the page-head Filter is used there). */}
-      <div
-        ref={cfRef}
-        className={`cf-filter-row${(filterExpanded || filterHover) ? ' is-open' : ''}`}
-        onMouseEnter={() => setFilterHover(true)}
-        onMouseLeave={() => setFilterHover(false)}
-      >
-        <button type="button" className="cf-filter-btn" onClick={() => setFilterExpanded((v) => !v)} aria-expanded={filterExpanded || filterHover}>
-          <SlidersHorizontal size={16} /> Filter
-        </button>
-        <div className="cf-options">
-          <div className="cf-options-inner">
-            {TABS.map((t) => (
-              <button key={t.key} type="button" className={tab === t.key ? 'is-active' : ''} onClick={() => setTab(t.key)}>
-                <t.icon size={15} /> {t.label} <em>({counts[t.key] || 0})</em>
-              </button>
-            ))}
+      <div className="bui-main bui-main--detail">
+        <div className="bui-titlerow">
+          <div>
+            <h1 className="bui-h1">Work review</h1>
+            <p className="bui-sub">Watch every delivery, approve to release payment, or ask for changes.</p>
           </div>
         </div>
-      </div>
 
-      {loading ? (
-        <div className="bwr-list">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <article className="bwr-card" key={i} aria-hidden="true">
-              {/* left: 16/9 thumb — matches <Thumb>. NOTE: don't reuse the .bwr-thumb class
-                  here — its dark #0b1020 video background overrides the skeleton shimmer and
-                  paints the placeholder solid black. Size it inline instead so it keeps the
-                  light shimmer like the other bars. */}
-              <Skeleton width={220} height="auto" radius={14} style={{ aspectRatio: '16 / 9', flexShrink: 0 }} />
-              {/* middle: title, by-line, campaign box, meta row */}
-              <div className="bwr-body" style={{ flex: 1, minWidth: 0 }}>
-                <Skeleton width="45%" height={18} />
-                <Skeleton width="30%" height={12} style={{ marginTop: 10 }} />
-                <Skeleton width="100%" height={54} radius={12} style={{ marginTop: 14 }} />
-                <div style={{ display: 'flex', gap: 24, marginTop: 14 }}>
-                  <Skeleton width={70} height={30} />
-                  <Skeleton width={70} height={30} />
-                  <Skeleton width={90} height={30} />
-                </div>
-              </div>
-              {/* right: status pill + action buttons */}
-              <div className="bwr-side" style={{ display: 'flex', flexDirection: 'column', gap: 10, width: 200 }}>
-                <Skeleton width={110} height={30} radius={16} style={{ alignSelf: 'flex-end' }} />
-                <Skeleton width="100%" height={44} radius={12} style={{ marginTop: 'auto' }} />
-                <Skeleton width="100%" height={44} radius={12} />
-              </div>
-            </article>
+        <div className="bui-tabs" role="tablist" aria-label="Filter submissions">
+          {TABS.map((t) => (
+            <button key={t.key} type="button" role="tab" aria-selected={tab === t.key} className={`bui-tab${tab === t.key ? ' is-on' : ''}`} onClick={() => setTab(t.key)}>
+              {t.label}<span>{counts[t.key] || 0}</span>
+            </button>
           ))}
         </div>
-      ) : loadError && items.length === 0 ? (
-        <EmptyState title="Couldn't load submissions" message={loadError} action={{ label: 'Try again', onClick: () => { setLoading(true); load(); } }} />
-      ) : total === 0 ? (
-        <EmptyState title={`Nothing in “${TABS.find((t) => t.key === tab).label}”`} message="Submitted creator content will show up here for you to review and approve." />
-      ) : (
-        <>
-          <div className="bwr-list">
-            {pageRows.map((it) => {
-              const st = STATUS[it.status] || STATUS.pending_review;
-              const duration = durations[it.id] || '';
-              const ftype = fileExt(it.files[0]) || '-';
-              return (
-                <article key={it.id} className="bwr-card">
-                  <Thumb file={it.files[0]} onOpen={() => openFile(it)} watermark={it.status !== 'approved'} onDuration={(v) => setDurations((p) => (p[it.id] === v ? p : { ...p, [it.id]: v }))} />
 
-                  <div className="bwr-body">
-                    <h3 className="bwr-title">{it.title}</h3>
-                    {/* Every submitted file — raw AND edited — each opens on its own. */}
-                    {(it.labeledFiles || []).length > 1 && (
-                      <div className="bwr-meta">
-                        {it.labeledFiles.map((f) => (
-                          <button key={`${f.kind}-${f.url}`} type="button" className="bwr-btn" onClick={() => openFile({ ...it, files: [f.url] })}>
-                            <Play size={15} /> {f.label}
-                          </button>
-                        ))}
+        {loading ? (
+          <div className="bui-wr-grid">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <article className="bui-wr" key={i} aria-hidden="true">
+                <Skeleton width={168} height="auto" radius={14} style={{ aspectRatio: '9 / 16', flexShrink: 0 }} />
+                <div className="bui-wr-body">
+                  <Skeleton width="40%" height={22} />
+                  <Skeleton width="80%" height={20} />
+                  <Skeleton width="55%" height={14} />
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : loadError && items.length === 0 ? (
+          <EmptyState title="Couldn't load submissions" message={loadError} action={{ label: 'Try again', onClick: () => { setLoading(true); load(); } }} />
+        ) : total === 0 ? (
+          <EmptyState title={`Nothing in “${TABS.find((t) => t.key === tab).label}”`} message="Submitted creator content will show up here for you to review and approve." />
+        ) : (
+          <>
+            <div className="bui-wr-grid">
+              {pageRows.map((it) => {
+                const st = STATUS[it.status] || STATUS.pending_review;
+                const duration = durations[it.id] || (it.duration ? fmtDur(Number(it.duration)) : '');
+                const hasRaw = (it.labeledFiles || []).some((f) => f.kind === 'raw');
+                const hasEdited = (it.labeledFiles || []).some((f) => f.kind === 'edited');
+                const hasVideoFile = it.files.some((f) => isVideo(assetUrl(f)));
+                const locked = it.status !== 'approved';
+                const tracker = trackers[String(it.id)] || {};
+                let note = '';
+                if (it.status === 'pending_review') {
+                  note = it.stage === 'raw'
+                    ? 'Approving the raw cut sends it to editing next.'
+                    : `${tracker.free_revisions_remaining ?? it.freeRevisionsRemaining ?? 0} free revision${(tracker.free_revisions_remaining ?? it.freeRevisionsRemaining) === 1 ? '' : 's'} left · payment held in escrow.`;
+                } else if (it.status === 'revision_requested') {
+                  note = `${it.revisionsUsed || 1} revision${(it.revisionsUsed || 1) === 1 ? '' : 's'} requested · new cut due from the creator.`;
+                } else if (it.status === 'approved') {
+                  note = 'Payment released to the creator.';
+                }
+                const version = `${it.stage === 'raw' ? 'Raw cut' : 'Edited cut'}${it.version ? ` · v${it.version}` : ''}${it.files[0] ? ` · ${fileExt(it.files[0])}` : ''}`;
+                return (
+                  <article key={it.id} className="bui-wr">
+                    <Thumb file={it.files[0]} onOpen={() => openFile(it)} watermark={false} onDuration={(v) => setDurations((p) => (p[it.id] === v ? p : { ...p, [it.id]: v }))} cls="bui-wr-thumb" locked={locked} />
+                    <div className="bui-wr-body">
+                      <div className="bui-wr-top">
+                        <span className={`bui-status bui-status--${st.tone}`}>{st.label}</span>
+                        <span className="bui-wr-ver">{version}</span>
                       </div>
-                    )}
-                    <div className="bwr-by">
-                      <span className="bwr-by-ava"><PhotoOrInitial src={it.photo ? assetUrl(it.photo) : ''} initial="@" /></span>
-                      by <b>{handleLabelSafe(it.creator)}</b>
-                      <i className="bwr-by-dot" />
-                      <Calendar size={14} /> Submitted on {fmtDate(it.submittedAt)}
-                    </div>
-
-                    <div
-                      className="bwr-cbox bwr-cbox-link"
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => it.id && navigate(`/dashboard/business/campaign/${campaignOf(it)}`)}
-                      onKeyDown={(e) => { if ((e.key === 'Enter' || e.key === ' ') && it.id) navigate(`/dashboard/business/campaign/${campaignOf(it)}`); }}
-                    >
-                      <span className="bwr-cbox-ic"><FileText size={18} /></span>
-                      <div><label>Campaign</label><strong>{it.campaign}</strong></div>
-                    </div>
-
-                    <div className="bwr-meta">
-                      <div className="bwr-meta-item"><Clock size={16} /><div><label>Duration</label><span>{duration || '-'}</span></div></div>
-                      <div className="bwr-meta-item"><FileVideo size={16} /><div><label>File Type</label><span>{ftype}</span></div></div>
-                      <div className="bwr-meta-item"><Calendar size={16} /><div><label>Submitted</label><span>{fmtDate(it.submittedAt)}</span></div></div>
-                    </div>
-                  </div>
-
-                  <div className="bwr-side">
-                    <div className="bwr-side-top">
-                      <span className={`bwr-pill ${st.cls}`}><st.icon size={14} /> {st.label}</span>
-                      <div className="bwr-more-wrap">
-                        <button type="button" className="bwr-more" aria-label="More actions" onClick={() => setMenuId(menuId === it.id ? null : it.id)}>
-                          <MoreHorizontal size={18} />
-                        </button>
-                        {menuId === it.id && (
+                      <h2 className="bui-wr-title">{it.title}</h2>
+                      <div className="bui-wr-by">
+                        <span className="bui-ava24"><PhotoOrInitial src={it.photo ? assetUrl(it.photo) : ''} initial="@" /></span>
+                        by <strong>{handleLabelSafe(it.creator)}</strong> &middot; submitted {agoText(it.submittedAt)}
+                      </div>
+                      <button type="button" className="bui-wr-camp" onClick={() => it.id && navigate(`/dashboard/business/campaign/${campaignOf(it)}`)}>{it.campaign} &rarr;</button>
+                      <div className="bui-wr-files">
+                        {(it.labeledFiles || []).length > 1 ? it.labeledFiles.map((f) => (
+                          <button key={`${f.kind}-${f.url}`} type="button" className="bui-fchip is-on" onClick={() => openFile({ ...it, files: [f.url] })}>{f.kind === 'raw' ? 'Raw file' : 'Edited file'}</button>
+                        )) : (
                           <>
-                            <div className="bwr-menu-backdrop" onClick={() => setMenuId(null)} />
-                            <div className="bwr-menu">
-                              <button type="button" onClick={() => { setMenuId(null); openFile(it); }}><Play size={15} /> Open file</button>
-                              {it.status !== 'approved' && <button type="button" onClick={() => { setMenuId(null); it.files.some((f) => isVideo(assetUrl(f))) ? openVideoReview(it) : requestRevision(it.id); }}><RefreshCw size={15} /> Request revision</button>}
-                              {it.status === 'pending_review' && <button type="button" onClick={() => { setMenuId(null); approve(it.id); }}><CheckCircle2 size={15} /> Approve</button>}
-                              <button type="button" onClick={() => { setMenuId(null); message(it); }}><MessageSquare size={15} /> Message creator</button>
-                            </div>
+                            <span className={`bui-fchip${hasRaw || it.stage === 'raw' ? ' is-on' : ''}`}>Raw file</span>
+                            <span className={`bui-fchip${hasEdited || (it.stage && it.stage !== 'raw') ? ' is-on' : ''}`}>Edited file</span>
                           </>
                         )}
                       </div>
-                    </div>
-
-                    {it.status === 'approved' && (
-                      <div>{(it.labeledFiles || []).length > 1 ? it.labeledFiles.map(f => (
-                        <button key={f.kind} type="button" className="bwr-btn primary" onClick={() => download(it.id, `${it.title}-${f.kind}`, f.kind)}><Download size={16} /> Download {f.label}</button>
-                      )) : <button type="button" className="bwr-btn primary" onClick={() => download(it.id, it.title)}><Download size={16} /> Download</button>}</div>
-                    )}
-                    {it.status === 'pending_review' && (
-                      <>
-                        <button type="button" className="bwr-btn approve" onClick={() => approve(it.id)}><CheckCircle2 size={16} /> {it.stage === 'raw' ? (it.editMode === 'ugc' ? 'Approve raw - UGC.ad edits next' : 'Approve raw - creator edits next') : 'Approve'}</button>
-                        {/* Single revision path: the timestamped video-review flow, labelled
-                            "Request Revision". Only shown when there's a video to scrub. */}
-                        {it.files.some((f) => isVideo(assetUrl(f))) && (
-                          <button type="button" className="bwr-btn" onClick={() => openVideoReview(it)}><MessageSquarePlus size={16} /> Request Revision</button>
+                      {note && <div className="bui-wr-note">{note}</div>}
+                      <div className="bui-wr-actions">
+                        {it.status === 'pending_review' && (
+                          <>
+                            <button type="button" className="bui-btn bui-btn--sm40 approve" onClick={() => approve(it.id)}>
+                              {it.stage === 'raw' ? (it.editMode === 'ugc' ? 'Approve raw · UGC.ad edits next' : 'Approve raw · creator edits next') : 'Approve & release payment'}
+                            </button>
+                            {hasVideoFile && (
+                              <button type="button" className="bui-btn bui-btn--ghost bui-btn--sm40" onClick={() => openVideoReview(it)}>Request revision</button>
+                            )}
+                          </>
                         )}
-                      </>
-                    )}
-                    {it.status === 'revision_requested' && (
-                      <button type="button" className="bwr-btn" disabled><RefreshCw size={16} /> Awaiting resubmit</button>
-                    )}
-                    <button type="button" className="bwr-btn" onClick={() => message(it)}><MessageSquare size={16} /> Message Creator</button>
-                  </div>
-                </article>
-              );
-            })}
-          </div>
+                        {it.status === 'revision_requested' && <span className="bui-btn bui-btn--ghost bui-btn--sm40 is-disabled">Awaiting resubmit</span>}
+                        {it.status === 'approved' && (
+                          (it.labeledFiles || []).length > 1
+                            ? it.labeledFiles.map((f) => (
+                              <button key={f.kind} type="button" className="bui-btn bui-btn--sm40" onClick={() => download(it.id, `${it.title}-${f.kind}`, f.kind)}><Download size={15} /> Download {f.label}</button>
+                            ))
+                            : <button type="button" className="bui-btn bui-btn--sm40" onClick={() => download(it.id, it.title)}><Download size={15} /> Download</button>
+                        )}
+                        {it.status === 'approved' && it.creatorId && (
+                          <button type="button" className="bui-btn bui-btn--ghost bui-btn--sm40" onClick={() => setReviewFor(it)}>Rate creator</button>
+                        )}
+                        <button type="button" className="bui-iconbtn-sq" aria-label={`Message ${handleLabelSafe(it.creator)}`} onClick={() => message(it)}><MessageSquare size={16} /></button>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
 
-          <div className="bwr-foot">
-            <span className="bwr-foot-count">Showing {total === 0 ? 0 : start + 1}–{Math.min(start + perPage, total)} of {total} results</span>
-            <div className="bwr-pager">
-              <button type="button" disabled={safePage <= 1} onClick={() => setPage(safePage - 1)} aria-label="Previous page"><ChevronLeft size={18} /></button>
-              {pageWindow(safePage, pageCount).map((n, i) => (n === '…'
-                ? <span key={`gap-${i}`} className="bwr-pager-gap" aria-hidden="true">…</span>
-                : <button key={n} type="button" className={n === safePage ? 'on' : ''} onClick={() => setPage(n)} aria-label={`Page ${n}`} aria-current={n === safePage ? 'page' : undefined}>{n}</button>))}
-              <button type="button" disabled={safePage >= pageCount} onClick={() => setPage(safePage + 1)} aria-label="Next page"><ChevronRight size={18} /></button>
+            <div className="bwr-foot">
+              <span className="bwr-foot-count">Showing {total === 0 ? 0 : start + 1}&ndash;{Math.min(start + perPage, total)} of {total} results</span>
+              <div className="bwr-pager">
+                <button type="button" disabled={safePage <= 1} onClick={() => setPage(safePage - 1)} aria-label="Previous page"><ChevronLeft size={18} /></button>
+                {pageWindow(safePage, pageCount).map((n, i) => (n === '…'
+                  ? <span key={`gap-${i}`} className="bwr-pager-gap" aria-hidden="true">&hellip;</span>
+                  : <button key={n} type="button" className={n === safePage ? 'on' : ''} onClick={() => setPage(n)} aria-label={`Page ${n}`} aria-current={n === safePage ? 'page' : undefined}>{n}</button>))}
+                <button type="button" disabled={safePage >= pageCount} onClick={() => setPage(safePage + 1)} aria-label="Next page"><ChevronRight size={18} /></button>
+              </div>
+              <div className="bwr-perpage">
+                <label htmlFor="bwr-pp">Show</label>
+                <select id="bwr-pp" value={perPage} onChange={(e) => setPerPage(Number(e.target.value))}>
+                  {PER_PAGE_OPTIONS.map((n) => <option key={n} value={n}>{n} per page</option>)}
+                </select>
+              </div>
             </div>
-            <div className="bwr-perpage">
-              <label htmlFor="bwr-pp">Show</label>
-              <select id="bwr-pp" value={perPage} onChange={(e) => setPerPage(Number(e.target.value))}>
-                {PER_PAGE_OPTIONS.map((n) => <option key={n} value={n}>{n} per page</option>)}
-              </select>
-            </div>
-          </div>
-        </>
-      )}
+          </>
+        )}
+      </div>
 
       {chatWith && <ChatPopup user={chatWith} onClose={() => setChatWith(null)} />}
       {reviewFor && (

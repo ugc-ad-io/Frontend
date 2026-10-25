@@ -6,29 +6,11 @@ import axios from 'axios';
 import { uploadMedia } from '../utils/upload';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import {
-  Bookmark,
-  Briefcase,
-  FileCheck,
-  IndianRupee,
-  LayoutDashboard,
-  MessageSquare,
-  Settings,
-  Star,
-  ClipboardList,
-  Upload,
-  User,
-  X,
-  Zap,
-  Plus,
-  Play,
-  Pencil,
-  Clock
-} from 'lucide-react';
+import { Plus, Play, Pencil, X, Film } from 'lucide-react';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
-import './CreatorDashboard.css';
-import '../styles/creator-marketplace.css';
+import CreatorPageHead from '../components/CreatorPageHead';
 import EmptyState from '../components/EmptyState';
+import '../styles/creator-ui-profile.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -337,79 +319,63 @@ export default function PortfolioPage() {
 
   return (
     <CreatorTopNavLayout notifications={0}>
-      {loading ? (
-        <div className="cmk-empty">Loading…</div>
-      ) : (
-        <>
-          <div className="cmk-pf-head">
-            <div>
-              <h1>My Portfolio</h1>
-              <p>Showcase your best work to brands.</p>
-            </div>
-            <div className="cmk-pf-actions">
-              <button type="button" className="cmk-btn-ghost-sm" onClick={() => navigate('/settings')}>
-                <Pencil size={16} /> Edit Profile
-              </button>
-              <button type="button" className="cmk-btn-primary-sm" onClick={() => { resetForm(); setShowModal(true); }}>
-                <Plus size={16} /> Add New Work
-              </button>
-            </div>
-          </div>
+      <div className="cui-p-page">
+      <CreatorPageHead
+        title="My portfolio"
+        subtitle="Showcase your best work to brands."
+        hideSearch
+        action={(
+          <>
+            <button type="button" className="cui-btn cui-btn--ghost" onClick={() => navigate('/profile')}>
+              <Pencil size={16} /> Edit profile
+            </button>
+            <button type="button" className="cui-btn" onClick={() => { resetForm(); setShowModal(true); }}>
+              <Plus size={16} /> Add new work
+            </button>
+          </>
+        )}
+      />
 
-          <div className="cmk-tabs-row">
-            <div className="cmk-tabs">
-              <button type="button" className={tab === 'all' ? 'is-active' : ''} onClick={() => setTab('all')}>All <em>({pool.length})</em></button>
-              <button type="button" className={tab === 'videos' ? 'is-active' : ''} onClick={() => setTab('videos')}>Videos <em>({pool.filter(isVid).length})</em></button>
-              <button type="button" className={tab === 'photos' ? 'is-active' : ''} onClick={() => setTab('photos')}>Photos <em>({pool.filter((it) => !isVid(it)).length})</em></button>
+      {loading ? (
+        <div className="cui-p-card"><div className="cui-p-load">Loading…</div></div>
+      ) : (
+        <section className="cui-p-card">
+          <div className="cui-p-card-h">
+            <h2>Work brands can see</h2>
+            <div className="cui-p-seg" role="tablist">
+              {[['all', 'All', pool.length], ['videos', 'Videos', pool.filter(isVid).length], ['photos', 'Photos', pool.filter((it) => !isVid(it)).length]].map(([k, label, n]) => (
+                <button key={k} type="button" role="tab" aria-selected={tab === k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{label} <i>{n}</i></button>
+              ))}
             </div>
           </div>
 
           {visibleItems.length ? (
-            <>
-              {/* Full-bleed wrapper so the portfolio/featured row can span the full viewport */}
-              <div className="cmk-bleed cmk-bleed--align">
-                {/* Top 3 — expanding panels: hover one and it stretches wide */}
-                <div className="cmk-pf-featured">
-                  {visibleItems.slice(0, 3).map((item, index) => {
-                    const realIndex = portfolio.indexOf(item);
-                    return (
-                      <article key={item.urls?.[0] || `f${index}`} className="cmk-pf-feature cmk-rise">
-                        <PortfolioMedia url={item.urls?.[0] || ''} index={index} thumbnail demo={Boolean(item._demo)} />
-                        <span className="cmk-pf-feature-shade" />
-                        {isVid(item) && <span className="cmk-pf-play"><Play size={24} fill="currentColor" /></span>}
-                        {!item._demo && <button type="button" className="cmk-pf-remove" onClick={() => handleRemovePortfolioItem(realIndex)} aria-label="Remove"><X size={15} /></button>}
-                        {item.urls?.length > 1 && <span className="cmk-pf-count">+{item.urls.length - 1}</span>}
-                        {item.title && <div className="cmk-pf-feature-cap"><strong>{item.title}</strong></div>}
-                      </article>
-                    );
-                  })}
-                </div>
-
-                {/* The rest — standard grid */}
-                {visibleItems.length > 3 && (
-                  <div className="cmk-pf-grid">
-                    {visibleItems.slice(3).map((item, index) => {
-                      const realIndex = portfolio.indexOf(item);
-                      return (
-                        <article key={item.urls?.[0] || `g${index}`} className="cmk-pf-card cmk-rise">
-                          <div className="cmk-pf-media">
-                            <PortfolioMedia url={item.urls?.[0] || ''} index={index + 3} thumbnail demo={Boolean(item._demo)} />
-                            {isVid(item) && <span className="cmk-pf-play"><Play size={22} fill="currentColor" /></span>}
-                            {!item._demo && <button type="button" className="cmk-pf-remove" onClick={() => handleRemovePortfolioItem(realIndex)} aria-label="Remove"><X size={14} /></button>}
-                            {item.urls?.length > 1 && <span className="cmk-pf-count">+{item.urls.length - 1}</span>}
-                          </div>
-                          {item.title && <h3 className="cmk-pf-title">{item.title}</h3>}
-                        </article>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </>
+            <div className="cui-p-vgrid">
+              {visibleItems.map((item, index) => {
+                const realIndex = portfolio.indexOf(item);
+                return (
+                  <article key={item.urls?.[0] || `g${index}`} className="cui-p-vcard">
+                    <div className="cui-p-vmedia">
+                      <PortfolioMedia url={item.urls?.[0] || ''} index={index} thumbnail demo={Boolean(item._demo)} />
+                      {index < 3 && tab === 'all' && <span className="cui-p-vtag">#{index + 1} on card</span>}
+                      {isVid(item) && <span className="cui-p-vplay"><Play size={14} fill="currentColor" /></span>}
+                      {!item._demo && <button type="button" className="cui-p-vrm" onClick={() => handleRemovePortfolioItem(realIndex)} aria-label="Remove"><X size={15} /></button>}
+                      {item.urls?.length > 1 && <span className="cui-p-vcount">+{item.urls.length - 1}</span>}
+                    </div>
+                    {item.title && <h3>{item.title}</h3>}
+                    {(item.project_cost || item.project_duration) && <p>{[item.project_cost, item.project_duration].filter(Boolean).join(' · ')}</p>}
+                  </article>
+                );
+              })}
+              <button type="button" className="cui-p-vadd" onClick={() => { resetForm(); setShowModal(true); }}>
+                <Plus size={20} />Add<br />work
+              </button>
+            </div>
           ) : (
-            <EmptyState title="No work yet" message={`Add your best ${tab === 'all' ? 'videos and photos' : tab} to showcase your talent to brands.`} />
+            <EmptyState icon={Film} title="No work yet" message={`Add your best ${tab === 'all' ? 'videos and photos' : tab} to showcase your talent to brands.`} />
           )}
-        </>
+          <p className="cui-p-hint">The first 3 show on your card when brands search. Pick your best hooks.</p>
+        </section>
       )}
 
       {showModal && (
@@ -890,6 +856,7 @@ export default function PortfolioPage() {
           .portfolio-multi-upload { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); }
         }
       `}</style>
+      </div>
     </CreatorTopNavLayout>
   );
 }

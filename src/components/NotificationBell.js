@@ -5,6 +5,10 @@ import { Bell, Check, X } from 'lucide-react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { NOTIFICATION_TABS, matchesNotificationTab, notificationAction } from '../utils/notificationCategory';
+import '../styles/brand-ui-notifs.css';
+import '../styles/brand-ui-mobile-b.css';
+import '../styles/creator-ui-notifs.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -18,6 +22,8 @@ const NotificationBell = () => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showDropdown, setShowDropdown] = useState(false);
+  // All / Unread / Campaigns / Payments / Messages filter in the dropdown (only shown in the brand header, see brand-ui-notifs.css).
+  const [tab, setTab] = useState('all');
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
   // Notification ids we've already popped a toast for. Seeded on first load so we
@@ -121,6 +127,8 @@ const NotificationBell = () => {
   // onto `info` so every notification renders with a proper coloured badge.
   const TONE = (type) => (['success', 'warning', 'error'].includes(type) ? type : 'info');
 
+  const shown = notifications.filter((n) => matchesNotificationTab(n, tab));
+
   const getNotificationIcon = (type) => {
     switch (type) {
       case 'success':
@@ -164,14 +172,22 @@ const NotificationBell = () => {
             )}
           </div>
 
+          <div className="notification-tabs">
+            {NOTIFICATION_TABS.map(([id, label]) => (
+              <button key={id} type="button" className={tab === id ? 'is-on' : ''} onClick={() => setTab(id)}>
+                {label} <b>{notifications.filter((n) => matchesNotificationTab(n, id)).length}</b>
+              </button>
+            ))}
+          </div>
+
           <div className="notification-list">
-            {notifications.length === 0 ? (
+            {shown.length === 0 ? (
               <div className="no-notifications">
                 <Bell size={48} />
-                <p>No notifications yet</p>
+                <p>{notifications.length === 0 ? 'No notifications yet' : tab === 'unread' ? 'You’re all caught up' : 'Nothing here yet'}</p>
               </div>
             ) : (
-              notifications.map((notification) => (
+              shown.map((notification) => (
                 <div
                   key={notification.id}
                   className={`notification-item ${!notification.read ? 'unread' : ''} ${TONE(notification.type)}`}
@@ -194,6 +210,7 @@ const NotificationBell = () => {
                       {new Date(notification.created_at).toLocaleString()}
                     </span>
                   </div>
+                  {notification.link && <span className="notification-cta">{notificationAction(notification)}</span>}
                   {!notification.read && (
                     <button
                       className="mark-read-btn"

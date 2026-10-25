@@ -1,17 +1,18 @@
 import { useLiveEffect } from '../lib/liveUpdates';
-import { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import { Fragment, useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { uploadMedia } from '../utils/upload';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { AlertTriangle, BellOff, CheckCheck, ChevronLeft, ClipboardList, Eye, FileText, Flag, LayoutGrid, MoreHorizontal, Paperclip, Search, Send, ShieldAlert, Smile, SquarePen, Upload, User, UserRoundSearch, Wallet, X, Zap, FileCheck, IndianRupee, LayoutDashboard, MessageSquare, Settings, Star, Briefcase, Package, Lock, Plus } from 'lucide-react';
+import { AlertTriangle, BellOff, CheckCheck, ChevronLeft, ClipboardList, Eye, FileText, Flag, LayoutGrid, MoreHorizontal, Paperclip, Search, Send, ShieldAlert, ShieldCheck, Smile, SquarePen, Upload, User, UserRoundSearch, Wallet, X, Zap, FileCheck, IndianRupee, LayoutDashboard, MessageSquare, Settings, Star, Briefcase, Package, Lock, Plus } from 'lucide-react';
 import { getInitial } from '../components/CreatorComponents';
 import { displayName, creatorFirstName } from '../utils/displayName';
 import DashboardLayout from '../components/DashboardLayout';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
+import CreatorPageHead from '../components/CreatorPageHead';
 import PlanBrief from './PlanBrief';
 import { findContactInfo } from '../components/RevisionRequestModal';
 import CreatorProfileModal from '../components/CreatorProfileModal';
@@ -19,6 +20,9 @@ import BrandProfileCard from '../components/BrandProfileCard';
 import { SkeletonList } from '../components/Skeleton';
 import './CreatorDashboard.css';
 import './MessagesPage.css';
+import '../styles/brand-ui-messages.css';
+import '../styles/brand-ui-mobile-b.css';
+import '../styles/creator-ui-inbox.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -34,6 +38,14 @@ const CHAT_FILTERS = [
   { label: 'New Chat', value: 'no_deal' },
   { label: 'Archived', value: 'archived' }
 ];
+// Creator view (design C09): same filters, creator wording, plus an Unread filter (unread_count > 0).
+const CREATOR_CHAT_FILTERS = [
+  { label: 'All', value: 'all' },
+  { label: 'Orders', value: 'active_deal' },
+  { label: 'New', value: 'no_deal' },
+  { label: 'Unread', value: 'unread' },
+  { label: 'Archived', value: 'archived' }
+];
 const ACTION_CARD_LABELS = {
   custom_offer: 'Custom Offer',
   private_invitation: 'Private Invitation',
@@ -45,6 +57,8 @@ const ACTION_CARD_LABELS = {
   raise_dispute: 'Raise Dispute'
 };
 const ACTION_CARD_TYPES = Object.keys(ACTION_CARD_LABELS);
+// Card fields that hold the money amount; the brand view lifts it into the card's hero strip.
+const ACTION_CARD_PRICE_KEYS = ['price', 'budget', 'modified_price'];
 
 // Friendly labels for the accept/reject/counter buttons the backend attaches to
 // received offer cards (available_actions), instead of showing raw lowercase verbs.
@@ -158,6 +172,36 @@ const ACTION_CARD_FIELD_LIMITS = {
   escalate_to_admin: { summary: { min: 100, max: 500 } },
 };
 
+const money = (n) => `₹${Number(n).toLocaleString('en-IN')}`;
+const CARD_STATUS_LABELS = { open: 'Awaiting reply', accept: 'Accepted', accepted: 'Accepted', reject: 'Declined', rejected: 'Declined', counter: 'Countered', countered: 'Countered', expired: 'Expired' };
+const IMAGE_URL_RE = /\.(jpe?g|png|gif|webp)(\?|$)/i;
+
+// Right-hand "Deal" card for a brand, built only from what the open thread already
+// loaded: the latest offer card (campaign_name, price/budget, timeline, status) and the
+// conversation's deal status. Rows with no data are left out.
+const buildDealInfo = (messages, conv, forCreator = false) => {
+  const offers = messages.filter((m) => m.item_type === 'action_card' && OFFER_CARD_TYPES.includes(m.type));
+  const last = offers[offers.length - 1];
+  const dealStatus = conv?.associated_deal_status;
+  if (!last && !dealStatus) return null;
+  const f = last?.fields || {};
+  const title = [...offers].reverse().map((o) => o.fields?.campaign_name).find(Boolean) || f.deliverable_summary || f.deliverable_type || '';
+  const priceKey = ACTION_CARD_PRICE_KEYS.find((k) => f[k] !== undefined && f[k] !== '');
+  const priceNum = priceKey ? Number(f[priceKey]) : NaN;
+  const timeline = /^\d{4}-\d{2}-\d{2}$/.test(String(f.timeline || ''))
+    ? new Date(`${f.timeline}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+    : f.timeline;
+  const sub = last ? [ACTION_CARD_LABELS[last.type], f.deliverable_summary && f.deliverable_summary !== title ? f.deliverable_summary : ''].filter(Boolean).join(' · ') : '';
+  const rows = [
+    [forCreator ? 'Pay' : 'Budget', Number.isFinite(priceNum) ? money(priceNum) : ''],
+    ['Timeline', timeline || ''],
+    ['Offer status', last ? (CARD_STATUS_LABELS[last.status] || last.status || '') : ''],
+    ['Deal stage', dealStatus ? dealStatus.charAt(0).toUpperCase() + dealStatus.slice(1) : ''],
+  ].filter(([, v]) => v);
+  if (!title && !sub && !rows.length) return null;
+  return { title, sub, rows };
+};
+
 const avatarColors = ['#07074e', '#ff7043', '#26a69a', '#ab47bc', '#ef5350', '#42a5f5', '#ffa726', '#29b6f6'];
 const avatarColor = (name) => avatarColors[name?.charCodeAt ? (name.charCodeAt(0) % avatarColors.length) : 0];
 
@@ -213,6 +257,7 @@ export default function MessagesPage() {
   });
   const [report, setReport] = useState(null); // { reason, details } when the report modal is open
   const [reportSubmitting, setReportSubmitting] = useState(false);
+  const [wallet, setWallet] = useState(null); // brand only: { available_balance, minimum_chat_balance, chat_unlocked }
 
   const typingSentAtRef = useRef(0);
   const messageContainerRef = useRef(null);
@@ -268,6 +313,15 @@ export default function MessagesPage() {
       return () => clearInterval(interval);
     }
   }, [user?.id]);
+
+  // Brand only: the wallet decides whether the "Add funds" bar shows above the composer.
+  // The server is what actually blocks sending below the minimum; this is just the explanation.
+  useLiveEffect(() => {
+    if (user?.role !== 'business') return;
+    axios.get(`${API}/business/wallet`)
+      .then((res) => setWallet(res.data || null))
+      .catch(() => { /* no bar if the wallet can't be read */ });
+  }, [user?.role, selectedId]);
 
   // Auto-select conversation from URL param
   useEffect(() => {
@@ -620,19 +674,31 @@ export default function MessagesPage() {
   const renderActionCard = (item) => {
     const fields = item.fields || {};
     const isOwn = item.sender_id === user.id;
+    const priceKey = ACTION_CARD_PRICE_KEYS.find((k) => fields[k] !== undefined && fields[k] !== '');
+    const priceNum = priceKey ? Number(fields[priceKey]) : NaN;
+    // Creator view: the offer's name becomes the card title, so it is not repeated in the field grid.
+    const titleKey = isBusiness ? '' : ['campaign_name', 'deliverable_summary', 'deliverable_type'].find((k) => fields[k]);
     return (
       <div key={item.id} className={`msg-action-card ${isOwn ? 'is-own' : ''}`}>
-        <div className="msg-action-card-head">
-          <span><ShieldAlert size={16} /></span>
-          <div>
-            <strong>{ACTION_CARD_LABELS[item.type] || item.type}</strong>
-            {item.deal_id ? <small>{item.deal_id}</small> : null}
+        <div className="msg-action-card-top">
+          <div className="msg-action-card-head">
+            <span><ShieldAlert size={16} /></span>
+            <div>
+              <strong>{ACTION_CARD_LABELS[item.type] || item.type}</strong>
+              {item.deal_id ? <small>{item.deal_id}</small> : null}
+            </div>
+            <em>{item.status || 'open'}</em>
           </div>
-          <em>{item.status || 'open'}</em>
+          {titleKey ? <div className="msg-action-card-title">{fields[titleKey]}</div> : null}
+          {priceKey ? (
+            <div className="msg-action-card-price">
+              {Number.isFinite(priceNum) ? `₹${priceNum.toLocaleString('en-IN')}` : String(fields[priceKey])}
+            </div>
+          ) : null}
         </div>
         <div className="msg-action-card-fields">
-          {Object.entries(fields).slice(0, 6).map(([key, value]) => (
-            <p key={key}><span>{item.type === 'counter_offer' && key === 'timeline' && /^\d{4}-\d{2}-\d{2}$/.test(String(value)) ? 'Delivery date' : key.replaceAll('_', ' ')}</span><strong>{formatActionValue(value)}</strong></p>
+          {Object.entries(fields).filter(([key]) => key !== titleKey).slice(0, 6).map(([key, value]) => (
+            <p key={key} data-field={key}><span>{item.type === 'counter_offer' && key === 'timeline' && /^\d{4}-\d{2}-\d{2}$/.test(String(value)) ? 'Delivery date' : key.replaceAll('_', ' ')}</span><strong>{formatActionValue(value)}</strong></p>
           ))}
         </div>
         {!isOwn && item.status === 'open' && item.available_actions?.length ? (
@@ -645,8 +711,9 @@ export default function MessagesPage() {
                   ? () => startDecline(item.id)
                   : () => respondToActionCard(item.id, action);
               return (
-                <button key={action} type="button" onClick={onClick}>
+                <button key={action} type="button" className={`is-${action}`} onClick={onClick}>
                   {OFFER_RESPONSE_LABELS[action] || action}
+                  {!isBusiness && action === 'accept' && Number.isFinite(priceNum) ? ` ${money(priceNum)}` : ''}
                 </button>
               );
             })}
@@ -872,7 +939,7 @@ export default function MessagesPage() {
     const matchesSearch = nameOf(conv).toLowerCase().includes(search.toLowerCase());
     const matchesFilter =
       filter === 'all' ||
-      conv.thread_classification === filter;
+      (filter === 'unread' ? conv.unread_count > 0 : conv.thread_classification === filter);
     return matchesSearch && matchesFilter;
   });
 
@@ -889,9 +956,37 @@ export default function MessagesPage() {
   const totalUnread = conversations.reduce((sum, c) => sum + (c.unread_count || 0), 0);
   const Shell = isBusiness ? BrandTopNavLayout : CreatorTopNavLayout;
   const shellProps = { notifications: totalUnread };
+  // Creators get a padded page (title row + inbox card); brands render the layout directly as before.
+  const Page = isBusiness ? Fragment : 'div';
+  const pageProps = isBusiness ? {} : { className: `cui-m-page${selectedId ? ' has-chat' : ''}` };
+  const walletLow = isBusiness && wallet != null
+    && (wallet.chat_unlocked === false || Number(wallet.available_balance) < Number(wallet.minimum_chat_balance));
+  const dealInfo = selectedId ? buildDealInfo(messages, selectedConv, !isBusiness) : null;
+  // newest first, capped; shown in the right-hand "Shared in chat" column (brand and creator)
+  const sharedFiles = selectedId ? messages.flatMap((m) => getMessageAttachments(m)).reverse().slice(0, 9) : [];
+
+  const renderDealInfo = () => (dealInfo ? (
+    <>
+      {dealInfo.title ? <strong className="msg-deal-title">{dealInfo.title}</strong> : null}
+      {dealInfo.sub ? <span className="msg-deal-sub">{dealInfo.sub}</span> : null}
+      {dealInfo.rows.length ? (
+        <dl className="msg-deal-rows">
+          {dealInfo.rows.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}
+        </dl>
+      ) : null}
+    </>
+  ) : null);
 
   return (
     <Shell {...shellProps}>
+      <Page {...pageProps}>
+      {!isBusiness && (
+        <CreatorPageHead
+          title="Inbox"
+          subtitle={totalUnread > 0 ? `${totalUnread} unread` : 'Your conversations with brands.'}
+          hideSearch
+        />
+      )}
       <div className={`msg-layout ${selectedId ? 'has-active-chat' : ''}`}>
         {/* Left Panel: Conversations List */}
         <div className="msg-list-panel">
@@ -905,14 +1000,14 @@ export default function MessagesPage() {
             <input
               type="search"
               aria-label="Search messages"
-              placeholder="Search messages..."
+              placeholder={isBusiness ? 'Search messages...' : 'Search brands'}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
 
           <div className="msg-filters">
-            {CHAT_FILTERS.map((f) => (
+            {(isBusiness ? CHAT_FILTERS : CREATOR_CHAT_FILTERS).map((f) => (
               <button
                 key={f.value}
                 type="button"
@@ -942,7 +1037,7 @@ export default function MessagesPage() {
                   key={conv.user_id}
                   role="button"
                   tabIndex={0}
-                  className={`msg-conv-item ${selectedId === conv.user_id ? 'is-active' : ''}`}
+                  className={`msg-conv-item ${selectedId === conv.user_id ? 'is-active' : ''}${conv.unread_count > 0 && !mutedIds.has(conv.user_id) ? ' has-unread' : ''}`}
                   onClick={() => setSelectedId(conv.user_id)}
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedId(conv.user_id); } }}
                 >
@@ -964,7 +1059,7 @@ export default function MessagesPage() {
                           ? 'File attachment'
                           : ''}
                     </p>
-                    {conv.associated_deal_status ? <small className="msg-deal-status">{conv.associated_deal_status}</small> : null}
+                    {conv.associated_deal_status ? <small className="msg-deal-status" data-status={String(conv.associated_deal_status).toLowerCase()}>{conv.associated_deal_status}</small> : null}
                   </div>
                   {conv.unread_count > 0 && !mutedIds.has(conv.user_id) && <span className="msg-badge">{conv.unread_count}</span>}
                 </div>
@@ -1008,7 +1103,7 @@ export default function MessagesPage() {
                     Only a brand sends briefs, so it's hidden on the creator's side. */}
                 {isBusiness && (
                   <button type="button" className="msg-send-brief" title="Send a brief to this creator" onClick={openBriefFromCard}>
-                    <FileText size={15} /> Send a Brief
+                    <FileText size={15} /> <span>Send a Brief</span>
                   </button>
                 )}
                 <div className="msg-more-wrap">
@@ -1026,6 +1121,13 @@ export default function MessagesPage() {
                 </div>
               </div>
             </div>
+
+            {dealInfo ? (
+              <details className="msg-deal-strip">
+                <summary><span>Deal</span><em>{dealInfo.title || dealInfo.sub || selectedConv?.associated_deal_status}</em></summary>
+                <div className="msg-deal-strip-body">{renderDealInfo()}</div>
+              </details>
+            ) : null}
 
             {/* Messages */}
             <div className="msg-messages" ref={messageContainerRef} onScroll={handleMessagesScroll}>
@@ -1076,6 +1178,16 @@ export default function MessagesPage() {
               {isOtherTyping ? <div className="msg-typing">{peerLabel(selectedConv)} is typing...</div> : null}
               <div ref={messagesEndRef} />
             </div>
+
+            {walletLow ? (
+              <div className="msg-wallet-bar" role="status">
+                <div className="msg-wallet-bar-text">
+                  <strong>Add {money(wallet.minimum_chat_balance)} to start chatting</strong>
+                  <span>Your wallet has {money(wallet.available_balance || 0)}. You can still read every message.</span>
+                </div>
+                <button type="button" onClick={() => navigate('/dashboard/business/wallet')}>Add funds</button>
+              </div>
+            ) : null}
 
             {/* Quick Actions — a single horizontal row. It scrolls sideways when the
                 options don't fit, rather than opening a vertical dropdown. */}
@@ -1204,7 +1316,7 @@ export default function MessagesPage() {
                 <MessageSquare size={44} strokeWidth={1.6} />
               </div>
               <h3>Your Messages</h3>
-              <p>Select a conversation to start messaging with brands and creators.</p>
+              <p>{isBusiness ? 'Select a conversation to start messaging with brands and creators.' : 'Select a conversation to start messaging with brands.'}</p>
             </div>
             <div className="msg-empty-foot">
               <Lock size={13} /> <span>Your conversations are private and secured.</span>
@@ -1212,7 +1324,51 @@ export default function MessagesPage() {
           </div>
         )}
 
+        {selectedId && (dealInfo || sharedFiles.length || !isBusiness) ? (
+          <aside className="msg-side" aria-label="Deal and shared files">
+            {!isBusiness ? (
+              <section className="msg-side-card cui-m-who">
+                <h3>Brand</h3>
+                <div className="cui-m-who-row">
+                  <span className="cui-m-who-av" style={{ background: avatarColor(peerLabel(selectedConv)) }}>{getInitial(peerLabel(selectedConv))}</span>
+                  <div>
+                    <strong>{peerLabel(selectedConv)}</strong>
+                    {selectedConv?.associated_deal_status ? <small>{selectedConv.associated_deal_status}</small> : null}
+                  </div>
+                </div>
+              </section>
+            ) : null}
+            {dealInfo ? (
+              <section className="msg-side-card">
+                <h3>Deal</h3>
+                {renderDealInfo()}
+              </section>
+            ) : null}
+            {sharedFiles.length ? (
+              <section className="msg-side-card">
+                <h3>Shared in chat</h3>
+                <div className="msg-shared-grid">
+                  {sharedFiles.filter((u) => IMAGE_URL_RE.test(u)).map((u, i) => (
+                    <a key={`${u}-${i}`} href={getAttachmentUrl(u)} target="_blank" rel="noreferrer" aria-label={getAttachmentName(u, i)}>
+                      <img src={getAttachmentUrl(u)} alt="" loading="lazy" />
+                    </a>
+                  ))}
+                </div>
+                {sharedFiles.filter((u) => !IMAGE_URL_RE.test(u)).map((u, i) => (
+                  <a key={`${u}-${i}`} className="msg-shared-file" href={getAttachmentUrl(u)} target="_blank" rel="noreferrer">
+                    <FileText size={14} /><span>{getAttachmentName(u, i)}</span>
+                  </a>
+                ))}
+              </section>
+            ) : null}
+            {!isBusiness ? (
+              <p className="cui-m-safe"><ShieldCheck size={18} /> <span>Keep chats and payments on UGCad. You are only protected here.</span></p>
+            ) : null}
+          </aside>
+        ) : null}
+
       </div>
+      </Page>
 
       {briefTarget && (
         <PlanBrief

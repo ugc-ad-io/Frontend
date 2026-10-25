@@ -92,17 +92,18 @@ export function useBidGate(user) {
       )}
 
       <style>{`
-        .bgate-overlay{position:fixed;inset:0;z-index:10050;background:rgba(15,18,40,.5);backdrop-filter:blur(2px);display:flex;align-items:center;justify-content:center;padding:20px}
-        .bgate-modal{width:100%;max-width:420px;background:#fff;border-radius:18px;box-shadow:0 24px 60px rgba(7,7,78,.28);padding:24px;box-sizing:border-box}
-        .bgate-ic{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:#eef0ff;color:#4452f0;margin-bottom:12px}
+        .bgate-overlay{position:fixed;inset:0;z-index:10050;background:rgba(7,7,78,.45);display:flex;align-items:center;justify-content:center;padding:20px}
+        .bgate-modal{width:100%;max-width:420px;max-height:100%;overflow-y:auto;background:#fff;border-radius:16px;box-shadow:0 24px 60px rgba(7,7,78,.28);padding:24px;box-sizing:border-box;font-family:'Inter',system-ui,sans-serif;color:#07074e}
+        .bgate-ic{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:#eef0ff;color:#4e60e6;margin-bottom:12px}
         .bgate-ic.warn{background:#fff4e5;color:#a35b00}
-        .bgate-modal h2{margin:0 0 8px;font-size:1.15rem;color:#0f1132}
-        .bgate-modal p{margin:0 0 10px;font-size:.92rem;line-height:1.55;color:#4a4f73}
-        .bgate-modal ul{margin:0 0 14px;padding-left:20px;font-size:.92rem;color:#15163a;line-height:1.7}
-        .bgate-example{background:#f6f7ff;border:1px solid #e6e9ff;border-radius:11px;padding:10px 12px;font-weight:600;color:#15163a!important}
+        .bgate-modal h2{margin:0 0 8px;font-family:'Readex Pro','Plus Jakarta Sans',sans-serif;font-weight:500;font-size:1.25rem;color:#07074e}
+        .bgate-modal p{margin:0 0 10px;font-size:.92rem;line-height:1.55;color:#3a3a6a}
+        .bgate-modal ul{margin:0 0 14px;padding-left:20px;font-size:.92rem;color:#07074e;line-height:1.7}
+        .bgate-example{background:#f6f6fd;border-radius:12px;padding:10px 12px;font-weight:600;color:#07074e!important}
         .bgate-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:6px}
-        .bgate-primary{border:0;background:linear-gradient(100deg,#12124f,#07074e);color:#fff;font-weight:700;font-size:.9rem;padding:11px 18px;border-radius:11px;cursor:pointer}
-        .bgate-ghost{border:1px solid #e6e8f3;background:#fff;color:#5b6573;font-weight:600;font-size:.9rem;padding:11px 16px;border-radius:11px;cursor:pointer}
+        @media(max-width:480px){.bgate-actions{flex-direction:column-reverse}.bgate-actions button{width:100%}}
+        .bgate-primary{border:0;background:#07074e;color:#fff;font-weight:700;font-size:.9rem;min-height:44px;padding:0 18px;border-radius:12px;cursor:pointer}
+        .bgate-ghost{border:0;box-shadow:inset 0 0 0 1.5px #c9cbea;background:#fff;color:#07074e;font-weight:600;font-size:.9rem;min-height:44px;padding:0 16px;border-radius:12px;cursor:pointer}
       `}</style>
     </>
   );
@@ -117,8 +118,8 @@ export function BidFeeNotice({ percent = DEFAULT_COMMISSION_PERCENT }) {
       <strong>UGC.ad platform fee: {pctLabel(percent)}%</strong>
       <span>Deducted from your payout when the brand approves your work.</span>
       <style>{`
-        .bfee{display:flex;flex-direction:column;gap:4px;background:#f6f7ff;border:1px solid #e6e9ff;border-radius:12px;padding:11px 13px;font-size:.82rem;color:#4a4f73;font-weight:500}
-        .bfee strong{color:#15163a;font-size:.88rem}
+        .bfee{display:flex;flex-direction:column;gap:4px;background:#f6f6fd;border:0;border-radius:12px;padding:11px 13px;font-size:.82rem;color:#6e6e96;font-weight:500}
+        .bfee strong{color:#07074e;font-size:.88rem}
       `}</style>
     </div>
   );

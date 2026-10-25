@@ -1,0 +1,7 @@
+/* Brand invoice screen (phone). Card styles come from wallet.css (ap-wl-inv*); only the screen spacing lives here. */
+.ap-iv{padding-bottom:calc(8px + env(safe-area-inset-bottom,0px))}
+.ap-iv-print{height:50px}
+@media print{
+  .ap-bar,.ap-iv-print{display:none!important}
+  .ap-shell{background:#fff!important}
+}

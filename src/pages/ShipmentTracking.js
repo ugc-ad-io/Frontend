@@ -8,12 +8,630 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import { uploadMedia } from '../utils/upload';
-import { ArrowLeft, Package, Truck, AlertTriangle, ClipboardList } from 'lucide-react';
+import { ArrowLeft, Package, Truck, AlertTriangle, ClipboardList, X } from 'lucide-react';
 import { Skeleton } from '../components/Skeleton';
 import { isSelectedCreator } from '../utils/campaignCreators';
+import BrandTopNavLayout from '../components/BrandTopNavLayout';
+import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
+import CreatorPageHead from '../components/CreatorPageHead';
+import '../styles/brand-ui.css';
+import '../styles/brand-ui-states.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
+
+const PAGE_CSS = `
+        .shipment-page {
+          --shp-ink: #07074e;
+          --shp-muted: #6e6e96;
+          --shp-line: #e2e2f0;
+          --shp-soft: #edeef6;
+          --shp-card-shadow: 0 1px 2px rgba(7, 7, 78, .05), 0 10px 26px -18px rgba(7, 7, 78, .28);
+          color: var(--shp-ink);
+          font-family: 'Inter', system-ui, sans-serif;
+          -webkit-font-smoothing: antialiased;
+          min-height: 100vh;
+          min-height: 100dvh;
+          background: #f3f3ff;
+          padding: 32px clamp(16px, 3vw, 32px) max(48px, env(safe-area-inset-bottom));
+          box-sizing: border-box;
+          overflow-x: hidden;
+        }
+        /* inside the brand / creator shell the shell already supplies the page background */
+        .shipment-page.in-shell .page-header,
+        .shipment-page.in-shell .shipment-container { max-width: 1360px; }
+        .shipment-page.in-shell {
+          min-height: 0;
+          background: transparent;
+          padding: 4px 0 24px;
+        }
+
+        .loading-page,
+        .error-page {
+          min-height: 60vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.25rem;
+          color: #6e6e96;
+        }
+        .shp-nf { flex-direction: column; gap: 14px; padding: 16px; text-align: center; font-size: 17px; font-family: 'Inter', system-ui, sans-serif; color: #07074e; }
+        .shp-nf-btns { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+        .shp-btn { height: 48px; padding: 0 24px; border-radius: 999px; border: 1px solid transparent; background: #07074e; color: #fff; font: inherit; font-size: 14.5px; font-weight: 700; cursor: pointer; }
+        .shp-btn:hover { background: #12124f; }
+        .shp-btn--ghost { background: #fff; color: #07074e; border-color: #c9cbea; }
+        .shp-btn--ghost:hover { background: #f3f3ff; }
+
+        .page-header {
+          max-width: 1000px;
+          margin: 0 auto 14px;
+        }
+
+        .shipment-page .back-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          height: 36px;
+          padding: 0 12px 0 6px;
+          background: transparent;
+          border: none;
+          border-radius: 10px;
+          color: #4e60e6;
+          font: inherit;
+          font-size: 14.5px;
+          font-weight: 600;
+          cursor: pointer;
+          box-shadow: none;
+        }
+        .shipment-page .back-btn:hover { background: #eef0ff; color: #4e60e6; transform: none; }
+
+        .shipment-container {
+          max-width: 1000px;
+          margin: 0 auto;
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+        .shipment-container .cui-head { margin: 0; }
+
+        .st-header {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+        }
+
+        .st-icon {
+          flex-shrink: 0;
+          display: grid;
+          place-items: center;
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
+          background: #eef0ff;
+          color: #4e60e6;
+        }
+        .shipment-page:not(.is-embed) .st-icon { display: none; }
+
+        .st-head-text h1 {
+          font-family: 'Readex Pro', 'Plus Jakarta Sans', sans-serif;
+          font-size: clamp(28px, 3vw, 36px);
+          font-weight: 500;
+          letter-spacing: -.03em;
+          color: var(--shp-ink);
+          margin: 0;
+          line-height: 1.15;
+        }
+
+        .st-head-text p {
+          color: #5a5a8c;
+          font-size: 16px;
+          margin: 6px 0 0;
+        }
+
+        .shp-skel { margin-top: 20px; padding: 24px; border-radius: 20px; background: #fff; box-shadow: var(--shp-card-shadow); }
+
+        .shipment-page .no-shipment { margin: 24px auto; }
+        .shipment-page .no-shipment .cmk-emptystate-ic { color: #4e60e6; }
+
+        .shipment-details {
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+        }
+
+        .status-card {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          padding: 18px 22px;
+          background: #fff;
+          border-radius: 20px;
+          box-shadow: var(--shp-card-shadow);
+          color: var(--shp-ink);
+        }
+
+        .status-icon {
+          flex: none;
+          width: 46px;
+          height: 46px;
+          background: #eef0ff;
+          color: #4e60e6;
+          border-radius: 14px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .status-icon svg { width: 22px; height: 22px; }
+
+        .status-label {
+          font-size: 12px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: .04em;
+          color: var(--shp-muted);
+          margin: 0 0 2px;
+        }
+
+        .status-value {
+          font-family: 'Readex Pro', 'Plus Jakarta Sans', sans-serif;
+          font-size: 22px;
+          font-weight: 500;
+          letter-spacing: -.01em;
+          line-height: 1.15;
+          margin: 0;
+        }
+
+        .details-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
+          align-items: start;
+        }
+
+        .detail-card {
+          padding: 20px 22px;
+          background: #fff;
+          border-radius: 20px;
+          box-shadow: var(--shp-card-shadow);
+        }
+
+        .detail-card h3 {
+          font-family: 'Readex Pro', 'Plus Jakarta Sans', sans-serif;
+          font-size: 17px;
+          font-weight: 500;
+          color: var(--shp-ink);
+          margin: 0 0 12px;
+        }
+
+        .detail-card--row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+        }
+
+        .detail-card--row h3 {
+          margin: 0;
+        }
+
+        .detail-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 16px;
+          font-size: 14px;
+          margin-bottom: 10px;
+          padding-bottom: 10px;
+          border-bottom: 1px solid var(--shp-soft);
+        }
+
+        .detail-item:last-child {
+          margin-bottom: 0;
+          padding-bottom: 0;
+          border-bottom: none;
+        }
+
+        .detail-item .label {
+          color: var(--shp-muted);
+        }
+
+        .detail-item .value {
+          color: var(--shp-ink);
+          font-weight: 600;
+        }
+
+        .shipment-page .link {
+          color: #4e60e6;
+          font-weight: 600;
+          text-decoration: none;
+        }
+
+        .shipment-page .link:hover {
+          text-decoration: underline;
+        }
+
+        .checklist {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          font-size: 14.5px;
+        }
+
+        .checklist-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          color: var(--shp-ink);
+          cursor: pointer;
+        }
+
+        .checklist-item input[type="checkbox"],
+        .checkbox-label input[type="checkbox"] {
+          width: 20px;
+          height: 20px;
+          cursor: pointer;
+          accent-color: #07074e;
+        }
+
+        .video-link {
+          display: inline-flex;
+          align-items: center;
+          height: 44px;
+          padding: 0 22px;
+          background: #07074e;
+          color: #fff;
+          border-radius: 999px;
+          border: none;
+          font: inherit;
+          font-size: 14.5px;
+          cursor: pointer;
+          font-weight: 700;
+        }
+
+        .video-link:hover {
+          background: #12124f;
+        }
+
+        .dispute-alert {
+          display: flex;
+          align-items: flex-start;
+          gap: 14px;
+          padding: 18px 22px;
+          background: #fde8e8;
+          border-radius: 20px;
+          color: #b42318;
+        }
+        .dispute-alert svg { flex: none; margin-top: 1px; }
+
+        .dispute-alert strong {
+          display: block;
+          margin-bottom: 4px;
+          font-size: 15px;
+        }
+        .dispute-alert p { margin: 0; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+
+        .next-steps {
+          padding: 20px 22px;
+          background: #fff;
+          border-radius: 20px;
+          box-shadow: var(--shp-card-shadow);
+          color: var(--shp-ink);
+        }
+
+        .next-steps-header {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 12px;
+          color: #4e60e6;
+        }
+
+        .next-steps-header h3 {
+          font-family: 'Readex Pro', 'Plus Jakarta Sans', sans-serif;
+          font-size: 17px;
+          font-weight: 500;
+          color: var(--shp-ink);
+          margin: 0;
+        }
+
+        .next-steps-list {
+          margin: 0;
+          padding-left: 22px;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .next-steps-list li::marker { color: #6e6e96; font-weight: 600; }
+
+        .next-steps-list li {
+          font-size: 14.5px;
+          line-height: 1.55;
+          color: #5a5a8c;
+        }
+
+        .file-name {
+          display: block;
+          margin-top: 8px;
+          font-size: 13px;
+          color: var(--shp-muted);
+          word-break: break-all;
+        }
+
+        .action-buttons {
+          display: flex;
+          gap: 12px;
+        }
+        .action-buttons:empty { display: none; }
+
+        .action-buttons button {
+          flex: 1;
+        }
+
+        /* Buttons: the global .btn-primary / .btn-secondary are old-style; same pill look as the redesigned dialogs. */
+        .shipment-page .btn-primary,
+        .shp-ov .btn-primary,
+        .shp-ov .btn-secondary {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          height: 48px;
+          padding: 0 24px;
+          border-radius: 999px;
+          font: inherit;
+          font-size: 14.5px;
+          font-weight: 700;
+          cursor: pointer;
+          transform: none;
+          transition: background .15s;
+          box-sizing: border-box;
+        }
+        .shipment-page .btn-primary,
+        .shp-ov .btn-primary { background: #07074e; color: #fff; border: 1px solid transparent; box-shadow: none; }
+        .shipment-page .btn-primary:hover:not(:disabled),
+        .shp-ov .btn-primary:hover:not(:disabled) { background: #12124f; transform: none; box-shadow: none; }
+        .shipment-page .btn-primary:disabled,
+        .shp-ov .btn-primary:disabled,
+        .shp-ov .btn-secondary:disabled { opacity: .55; cursor: not-allowed; }
+        .shp-ov .btn-secondary { background: #fff; color: #07074e; border: 1px solid #c9cbea; }
+        .shp-ov .btn-secondary:hover:not(:disabled) { background: #f3f3ff; color: #07074e; transform: none; }
+
+        /* Dialogs: same shell as the review / revision dialogs. */
+        .shp-ov.modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(7, 7, 78, .45);
+          -webkit-backdrop-filter: blur(3px);
+          backdrop-filter: blur(3px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1200;
+          padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom));
+          overflow-y: auto;
+          overscroll-behavior: contain;
+        }
+        /* Portaled to <body>: above everything. */
+        .shp-ov.ship-portal-overlay {
+          z-index: 2147483000;
+          animation: shipFade .18s ease;
+        }
+        .shp-ov.ship-portal-overlay .modal-content {
+          animation: shipPop .22s cubic-bezier(.2, .7, .2, 1);
+        }
+        @keyframes shipFade { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes shipPop { from { opacity: 0; transform: translateY(12px) scale(.98); } to { opacity: 1; transform: none; } }
+
+        .shp-ov .modal-content {
+          position: relative;
+          background: #fff;
+          padding: 26px 24px 22px;
+          border-radius: 20px;
+          box-shadow: 0 40px 80px -30px rgba(7, 7, 78, .6);
+          max-width: 560px;
+          width: 100%;
+          max-height: calc(100dvh - 48px);
+          overflow-y: auto;
+          overscroll-behavior: contain;
+          box-sizing: border-box;
+          overflow-wrap: anywhere;
+          color: #07074e;
+          font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        .shp-ov .modal-content h2 {
+          font-family: 'Readex Pro', 'Plus Jakarta Sans', sans-serif;
+          font-size: 20px;
+          font-weight: 500;
+          color: #07074e;
+          margin: 0 0 6px;
+        }
+
+        .shp-ov .video-modal-content {
+          max-width: 720px;
+          padding: 20px;
+        }
+        .shp-ov .video-modal-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 14px;
+        }
+        .shp-ov .video-modal-head h2 { margin: 0; }
+        .shp-ov .video-modal-close {
+          width: 32px;
+          height: 32px;
+          border-radius: 9px;
+          border: none;
+          background: #f6f6fd;
+          color: #07074e;
+          cursor: pointer;
+          flex-shrink: 0;
+          display: grid;
+          place-items: center;
+        }
+        .shp-ov .video-modal-close:hover { background: #eef0ff; }
+        .shp-ov .video-modal-el {
+          width: 100%;
+          max-height: 70vh;
+          max-height: 70dvh;
+          border-radius: 16px;
+          background: #07074e;
+          display: block;
+        }
+
+        .shipment-form,
+        .receive-form {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .shp-ov .form-group { display: flex; flex-direction: column; gap: 6px; margin: 0; }
+        .shp-ov .form-group label { margin: 0; font-size: 13px; font-weight: 700; color: #07074e; }
+        .shp-ov .input-field,
+        .shp-ov .textarea-field {
+          width: 100%;
+          box-sizing: border-box;
+          padding: 11px 14px;
+          font: inherit;
+          font-size: 14px;
+          color: #07074e;
+          background: #f6f6fd;
+          border: 1.5px solid transparent;
+          border-radius: 16px;
+          outline: none;
+          transition: none;
+        }
+        .shp-ov .textarea-field { min-height: 96px; }
+        .shp-ov .input-field:focus,
+        .shp-ov .textarea-field:focus { background: #fff; border-color: #7387ff; box-shadow: 0 0 0 3px rgba(115, 135, 255, .2); }
+        .shp-ov .input-field::placeholder,
+        .shp-ov .textarea-field::placeholder { color: #9f9fd1; }
+
+        .await-banner {
+          display: flex;
+          align-items: flex-start;
+          gap: 12px;
+          padding: 16px 20px;
+          background: #fff2dc;
+          border-radius: 20px;
+          color: #8a4b00;
+        }
+        .await-banner svg { flex: none; margin-top: 1px; }
+        .await-banner strong { display: block; margin-bottom: 2px; font-size: 15px; }
+        .await-banner p { margin: 0; font-size: 14px; line-height: 1.5; color: #8a4b00; }
+
+        .ship-cta {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 9px;
+        }
+
+        .ship-help {
+          font-size: 13.5px;
+          color: #6e6e96;
+          line-height: 1.5;
+          margin: 0 0 4px;
+        }
+        .shp-ov .modal-content > .ship-help + .shipment-form { margin-top: 12px; }
+        .ship-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+        }
+        .ship-row--3 {
+          grid-template-columns: 1fr 1fr 1fr;
+        }
+        .ship-dims {
+          display: grid;
+          grid-template-columns: 1fr 1fr 1fr;
+          gap: 8px;
+        }
+        .ship-divider {
+          font-size: 13px;
+          font-weight: 700;
+          color: #07074e;
+          padding-top: 12px;
+          margin-top: 2px;
+          border-top: 1px solid #edeef6;
+        }
+        @media (max-width: 600px) {
+          .ship-row, .ship-row--3 { grid-template-columns: 1fr; }
+        }
+        .ship-row > *, .ship-dims > * { min-width: 0; }
+
+        .shp-ov .checkbox-label {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          font-size: 14px;
+          font-weight: 500;
+          color: #07074e;
+          cursor: pointer;
+        }
+
+        .shp-ov .modal-actions {
+          display: flex;
+          gap: 10px;
+          margin-top: 8px;
+        }
+
+        .shp-ov .modal-actions button {
+          flex: 1;
+        }
+
+        /* Embedded inside the dashboard drawer - no page background, no outer padding. */
+        .shipment-page.is-embed {
+          min-height: 0;
+          background: transparent;
+          padding: 0;
+        }
+
+        .shipment-page.is-embed .page-header {
+          max-width: none;
+          margin: 0 0 14px;
+        }
+
+        .shipment-page.is-embed .shipment-container {
+          max-width: none;
+        }
+        .shipment-page.is-embed .st-head-text h1 { font-size: 24px; }
+        .shipment-page.is-embed .st-head-text p { font-size: 14.5px; margin-top: 2px; }
+        .shipment-page.is-embed .status-card,
+        .shipment-page.is-embed .detail-card,
+        .shipment-page.is-embed .next-steps {
+          box-shadow: inset 0 0 0 1px var(--shp-line);
+        }
+
+        @media (max-width: 768px) {
+          .shp-ov .input-field, .shp-ov .textarea-field { font-size: 16px; min-height: 44px; }
+          .shp-ov .textarea-field { min-height: 96px; }
+          .shipment-page .back-btn { min-height: 44px; }
+
+          .details-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .action-buttons {
+            flex-direction: column;
+          }
+        }
+        @media (max-width: 480px) {
+          .shipment-page:not(.is-embed):not(.in-shell) { padding: 16px 16px max(24px, env(safe-area-inset-bottom)); }
+          .st-head-text h1 { font-size: 26px; }
+          .st-head-text { min-width: 0; overflow-wrap: anywhere; }
+          .detail-card, .status-card, .next-steps { padding: 16px; }
+          .detail-item { flex-wrap: wrap; gap: 4px 12px; }
+          .detail-item .value { min-width: 0; overflow-wrap: anywhere; text-align: right; }
+          .status-value { overflow-wrap: anywhere; font-size: 20px; }
+          .detail-card--row { flex-wrap: wrap; }
+          .shp-ov.modal-overlay { padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom)); }
+          .shp-ov .modal-content { padding: 22px 16px 18px; max-height: calc(100dvh - 24px); }
+          .shp-ov .modal-actions { flex-direction: column-reverse; }
+        }
+`;
 
 // Resolve a 6-digit Indian PIN → { city, state } via India Post so the pickup
 // City/State always match the Pincode (they're auto-filled, not free text).
@@ -36,6 +654,11 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
   const { user } = useAuth();
   // A deep link opened in a fresh tab has no history: navigate(-1) would do nothing.
   const goBack = () => (onClose ? onClose() : window.history.length > 1 ? navigate(-1) : navigate(user?.role === 'business' ? '/dashboard/business' : '/my-active-work'));
+  // Opened as its own page (not inside a drawer): sit inside the brand / creator shell so the
+  // header + nav match the rest of the site. Embedded use (drawer) and admin staff stay bare.
+  const shell = onClose ? null : user?.role === 'business' ? 'brand' : user?.role === 'creator' ? 'creator' : null;
+  const wrap = (node) => (shell === 'brand' ? <BrandTopNavLayout>{node}</BrandTopNavLayout>
+    : shell === 'creator' ? <CreatorTopNavLayout>{node}</CreatorTopNavLayout> : node);
   const [campaign, setCampaign] = useState(null);
   const [shipment, setShipment] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -272,22 +895,23 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
     });
   };
 
-  if (loading) return (
-    <div className={`shipment-page ${onClose ? 'is-embed' : ''}`} aria-hidden="true">
+  if (loading) return wrap(
+    <div className={`shipment-page ${onClose ? 'is-embed' : ''} ${shell ? 'in-shell' : ''}`} aria-hidden="true">
+      <style>{PAGE_CSS}</style>
       <div className="page-header">
         <Skeleton width={90} height={36} radius={10} />
       </div>
       <div className="shipment-container">
         {/* st-header: icon + title + campaign line */}
         <div className="st-header">
-          <Skeleton width={52} height={52} radius={14} />
+          <Skeleton width={44} height={44} radius={12} />
           <div className="st-head-text" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             <Skeleton width={200} height={22} />
             <Skeleton width={150} height={13} />
           </div>
         </div>
         {/* a status/details card block */}
-        <div style={{ marginTop: 20, padding: 24, border: '1px solid #eef0f5', borderRadius: 16, background: '#fff' }}>
+        <div className="shp-skel">
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
             <Skeleton width={48} height={48} radius="50%" />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
@@ -302,13 +926,14 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
       </div>
     </div>
   );
-  if (!campaign) return (
-    <div className="error-page" style={{ flexDirection: 'column', gap: 12, padding: 16, textAlign: 'center', minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#718096' }}>
+  if (!campaign) return wrap(
+    <div className="error-page shp-nf">
+      <style>{PAGE_CSS}</style>
       <span>Campaign not found</span>
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
-        <button type="button" className="back-btn" style={{ minHeight: 44, padding: '10px 20px', borderRadius: 12, border: '2px solid #e2e8f0', background: '#fff', fontWeight: 600, cursor: 'pointer' }} onClick={goBack}>Back</button>
+      <div className="shp-nf-btns">
+        <button type="button" className="shp-btn shp-btn--ghost" onClick={goBack}>Back</button>
         {campaignId && (
-          <button type="button" style={{ minHeight: 44, padding: '10px 20px', borderRadius: 12, border: 0, background: '#07074e', color: '#fff', fontWeight: 600, cursor: 'pointer' }} onClick={() => { setLoading(true); fetchCampaign(); fetchShipment(); }}>Retry</button>
+          <button type="button" className="shp-btn" onClick={() => { setLoading(true); fetchCampaign(); fetchShipment(); }}>Retry</button>
         )}
       </div>
     </div>
@@ -391,34 +1016,38 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
 
   const embedded = !!onClose;
 
-  return (
-    <div className={`shipment-page ${embedded ? 'is-embed' : ''}`}>
+  return wrap(
+    <div className={`shipment-page ${embedded ? 'is-embed' : ''} ${shell ? 'in-shell' : ''}`}>
       <div className="page-header">
         <button className="back-btn" onClick={goBack} data-testid="back-btn">
-          <ArrowLeft size={20} /> Back
+          <ArrowLeft size={18} /> Back
         </button>
       </div>
 
       <div className="shipment-container fade-in">
+        {shell === 'creator' ? (
+          <CreatorPageHead title="Shipment Tracking" subtitle={`Campaign: ${campaign.title}`} hideSearch />
+        ) : (
         <div className="st-header">
-          <span className="st-icon"><Package size={26} /></span>
+          <span className="st-icon"><Package size={22} /></span>
           <div className="st-head-text">
             <h1>Shipment Tracking</h1>
             <p>Campaign: {campaign.title}</p>
           </div>
         </div>
+        )}
 
         {/* The BRAND enters their pickup address inside the "Ship Product" form below
             (request-shipment). The CREATOR confirms their delivery address in their own
             deal room — never here. So no address card on this page. */}
 
         {!hasRealShipment ? (
-          <div className="no-shipment">
-            <Package size={64} />
+          <div className="no-shipment cmk-emptystate bui-es">
+            <span className="cmk-emptystate-ic"><Package size={30} /></span>
             <p>{isBusiness ? 'Ready to ship - submit your product & pickup details and our team will prepare the shipping label.' : 'No shipment details available yet'}</p>
             {isBusiness && (
               <button
-                className="btn-primary ship-cta"
+                className="btn-primary ship-cta cmk-emptystate-btn"
                 onClick={() => setShowShipModal(true)}
                 data-testid="ship-product-btn"
               >
@@ -575,7 +1204,7 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
           Portaled to <body> so it's a true full-screen modal (not trapped inside
           the animating PageModal) — fixes off-center jump + background card peek. */}
       {showShipModal && createPortal(
-        <div className="modal-overlay ship-portal-overlay" onClick={() => !uploading && setShowShipModal(false)}>
+        <div className="modal-overlay shp-ov ship-portal-overlay" onClick={() => !uploading && setShowShipModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>Ship Product</h2>
             <p className="ship-help">Enter the product details and your pickup address. Our team will prepare a pre-paid label and dispatch it to the creator. The creator's delivery address is handled securely - you don't need it.</p>
@@ -666,7 +1295,7 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
 
       {/* Update Shipment Modal */}
       {showUpdateModal && (
-        <div className="modal-overlay" onClick={() => setShowUpdateModal(false)}>
+        <div className="modal-overlay shp-ov" onClick={() => setShowUpdateModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>Update Shipment Details</h2>
             <form onSubmit={handleUpdateShipment} className="shipment-form">
@@ -758,7 +1387,7 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
 
       {/* Receive Shipment Modal */}
       {showReceiveModal && (
-        <div className="modal-overlay" onClick={() => setShowReceiveModal(false)}>
+        <div className="modal-overlay shp-ov" onClick={() => setShowReceiveModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>Mark Shipment as Received</h2>
             <form onSubmit={handleReceiveShipment} className="receive-form">
@@ -820,11 +1449,11 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
           Ship Product modal. Playing it in-app avoids the browser downloading .mov
           files it can't render inline. */}
       {unboxingModalUrl && createPortal(
-        <div className="modal-overlay ship-portal-overlay" onClick={() => setUnboxingModalUrl(null)}>
+        <div className="modal-overlay shp-ov ship-portal-overlay" onClick={() => setUnboxingModalUrl(null)}>
           <div className="modal-content video-modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="video-modal-head">
               <h2>Unboxing Video</h2>
-              <button type="button" className="video-modal-close" aria-label="Close" onClick={() => setUnboxingModalUrl(null)}>✕</button>
+              <button type="button" className="video-modal-close" aria-label="Close" onClick={() => setUnboxingModalUrl(null)}><X size={18} /></button>
             </div>
             <video src={unboxingModalUrl} controls autoPlay playsInline className="video-modal-el" />
           </div>
@@ -832,572 +1461,7 @@ export default function ShipmentTracking({ embedCampaignId, creatorId, autoShip,
         document.body
       )}
 
-      <style>{`
-        .shipment-page {
-          min-height: 100vh;
-          min-height: 100dvh;
-          background: linear-gradient(135deg, #f8f9ff 0%, #e8ecff 100%);
-          padding: 40px 8%;
-          padding-bottom: max(40px, env(safe-area-inset-bottom));
-          padding-left: max(8%, env(safe-area-inset-left));
-          padding-right: max(8%, env(safe-area-inset-right));
-          box-sizing: border-box;
-          overflow-x: hidden;
-        }
-
-        .loading-page,
-        .error-page {
-          min-height: 100vh;
-          min-height: 100dvh;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 1.25rem;
-          color: #718096;
-        }
-
-        .page-header {
-          max-width: 1000px;
-          margin: 0 auto 24px;
-        }
-
-        .back-btn {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          padding: 12px 24px;
-          background: white;
-          border: 2px solid #e2e8f0;
-          border-radius: 12px;
-          color: #4a5568;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.3s ease;
-        }
-
-        .back-btn:hover {
-          border-color: #667eea;
-          color: #667eea;
-          transform: translateX(-4px);
-        }
-
-        .shipment-container {
-          max-width: 1000px;
-          margin: 0 auto;
-          background: white;
-          padding: 26px 28px;
-          border-radius: 24px;
-          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
-        }
-
-        .st-header {
-          display: flex;
-          align-items: center;
-          gap: 13px;
-          margin-bottom: 18px;
-          padding-bottom: 16px;
-          border-bottom: 1px solid #eef0f7;
-        }
-
-        .st-icon {
-          flex-shrink: 0;
-          display: grid;
-          place-items: center;
-          width: 44px;
-          height: 44px;
-          border-radius: 13px;
-          background: linear-gradient(135deg, #eef1ff 0%, #e6e9ff 100%);
-          color: #667eea;
-        }
-
-        .st-head-text h1 {
-          font-size: 1.3rem;
-          font-weight: 700;
-          color: #1a202c;
-          margin: 0;
-          line-height: 1.15;
-        }
-
-        .st-head-text p {
-          color: #718096;
-          font-size: 0.85rem;
-          margin: 2px 0 0;
-        }
-
-        .no-shipment {
-          text-align: center;
-          padding: 80px 20px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 20px;
-          color: #718096;
-        }
-
-        .shipment-details {
-          display: flex;
-          flex-direction: column;
-          gap: 18px;
-        }
-
-        .status-card {
-          display: flex;
-          align-items: center;
-          gap: 14px;
-          padding: 14px 18px;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          border-radius: 14px;
-          color: white;
-        }
-
-        .status-icon {
-          width: 46px;
-          height: 46px;
-          background: rgba(255, 255, 255, 0.2);
-          border-radius: 13px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .status-icon svg { width: 24px; height: 24px; }
-
-        .status-label {
-          font-size: 0.72rem;
-          text-transform: uppercase;
-          letter-spacing: 0.4px;
-          opacity: 0.85;
-          margin-bottom: 2px;
-        }
-
-        .status-value {
-          font-size: 1.3rem;
-          font-weight: 700;
-          line-height: 1.1;
-        }
-
-        .details-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 14px;
-          align-items: start;
-        }
-
-        .detail-card {
-          padding: 16px 18px;
-          background: #fbfcff;
-          border-radius: 14px;
-          border: 1px solid #e8ebf5;
-        }
-
-        .detail-card h3 {
-          font-size: 0.98rem;
-          font-weight: 700;
-          color: #2d3748;
-          margin: 0 0 10px;
-        }
-
-        .detail-card--row {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 16px;
-        }
-
-        .detail-card--row h3 {
-          margin: 0;
-        }
-
-        .detail-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 16px;
-          font-size: 0.9rem;
-          margin-bottom: 8px;
-          padding-bottom: 8px;
-          border-bottom: 1px solid #eceef5;
-        }
-
-        .detail-item:last-child {
-          margin-bottom: 0;
-          padding-bottom: 0;
-          border-bottom: none;
-        }
-
-        .detail-item .label {
-          color: #718096;
-          font-weight: 500;
-        }
-
-        .detail-item .value {
-          color: #1a202c;
-          font-weight: 600;
-        }
-
-        .link {
-          color: #667eea;
-          font-weight: 600;
-          text-decoration: none;
-        }
-
-        .link:hover {
-          text-decoration: underline;
-        }
-
-        .checklist {
-          display: flex;
-          flex-direction: column;
-          gap: 9px;
-          font-size: 0.9rem;
-        }
-
-        .checklist-item {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          color: #4a5568;
-          cursor: pointer;
-        }
-
-        .checklist-item input[type="checkbox"] {
-          width: 20px;
-          height: 20px;
-          cursor: pointer;
-        }
-
-        .video-link {
-          display: inline-block;
-          padding: 12px 24px;
-          background: #667eea;
-          color: white;
-          border-radius: 12px;
-          border: none;
-          text-decoration: none;
-          font: inherit;
-          cursor: pointer;
-          font-weight: 600;
-          transition: all 0.3s ease;
-        }
-
-        .video-link:hover {
-          background: #5568d3;
-        }
-
-        .dispute-alert {
-          display: flex;
-          align-items: start;
-          gap: 16px;
-          padding: 24px;
-          background: #fef2f2;
-          border-radius: 16px;
-          border: 2px solid #ef4444;
-          color: #991b1b;
-        }
-
-        .dispute-alert strong {
-          display: block;
-          margin-bottom: 8px;
-          font-size: 1.1rem;
-        }
-
-        .next-steps {
-          padding: 24px;
-          background: #f0fdf4;
-          border-radius: 16px;
-          border: 2px solid #86efac;
-          color: #14532d;
-        }
-
-        .next-steps-header {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          margin-bottom: 16px;
-        }
-
-        .next-steps-header h3 {
-          font-size: 1.2rem;
-          font-weight: 600;
-          color: #166534;
-          margin: 0;
-        }
-
-        .next-steps-list {
-          margin: 0;
-          padding-left: 22px;
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-        }
-
-        .next-steps-list li {
-          font-size: 0.98rem;
-          line-height: 1.5;
-        }
-
-        .file-name {
-          display: block;
-          margin-top: 8px;
-          font-size: 0.875rem;
-          color: #4a5568;
-          word-break: break-all;
-        }
-
-        .action-buttons {
-          display: flex;
-          gap: 16px;
-          padding-top: 24px;
-          border-top: 2px solid #e2e8f0;
-        }
-
-        .action-buttons button {
-          flex: 1;
-        }
-
-        .modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.6);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 1000;
-          padding: 20px;
-        }
-
-        /* Portaled to <body>: dimmed, blurred backdrop above everything. */
-        .ship-portal-overlay {
-          z-index: 2147483000;
-          background: rgba(9, 11, 40, 0.5);
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
-          animation: shipFade .18s ease;
-        }
-        .ship-portal-overlay .modal-content {
-          animation: shipPop .22s cubic-bezier(.2, .7, .2, 1);
-        }
-        @keyframes shipFade { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes shipPop { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
-
-        .modal-content {
-          background: white;
-          padding: 26px 28px;
-          border-radius: 22px;
-          max-width: 600px;
-          width: 100%;
-          max-height: 94vh;
-          max-height: 94dvh;
-          overflow-y: auto;
-          overscroll-behavior: contain;
-          box-sizing: border-box;
-        }
-
-        .modal-content h2 {
-          font-size: 1.45rem;
-          font-weight: 800;
-          color: #07074e;
-          margin-bottom: 10px;
-        }
-
-        .video-modal-content {
-          max-width: 720px;
-          padding: 20px;
-        }
-        .video-modal-head {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 14px;
-        }
-        .video-modal-head h2 { margin: 0; }
-        .video-modal-close {
-          width: 44px;
-          height: 44px;
-          border-radius: 10px;
-          border: none;
-          background: #f1f2fb;
-          color: #4a5568;
-          font-size: 1rem;
-          cursor: pointer;
-          flex-shrink: 0;
-        }
-        .video-modal-close:hover { background: #e6e8f7; }
-        .video-modal-el {
-          width: 100%;
-          max-height: 70vh;
-          max-height: 70dvh;
-          border-radius: 14px;
-          background: #000;
-          display: block;
-        }
-
-        .shipment-form,
-        .receive-form {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        /* Scoped compression so the Ship Product form fits without scrolling */
-        .modal-content .form-group { display: flex; flex-direction: column; gap: 5px; margin: 0; }
-        .modal-content .form-group label { margin: 0; font-size: 0.9rem; font-weight: 700; color: #15163a; }
-        .modal-content .input-field { padding: 9px 13px; font-size: 0.92rem; border-radius: 11px; }
-
-        .info-note {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 16px;
-          background: #e0e7ff;
-          border-radius: 12px;
-          color: #3730a3;
-          font-size: 0.95rem;
-        }
-
-        .ship-cta {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          gap: 9px;
-        }
-
-        .await-banner {
-          display: flex;
-          align-items: flex-start;
-          gap: 14px;
-          padding: 16px 18px;
-          background: #fff8ec;
-          border: 1px solid #f5d99b;
-          border-radius: 14px;
-          color: #92400e;
-        }
-        .await-banner strong { display: block; margin-bottom: 3px; font-size: 0.98rem; }
-        .await-banner p { margin: 0; font-size: 0.88rem; line-height: 1.5; color: #a16207; }
-
-        .ship-help {
-          font-size: 0.85rem;
-          color: #64748b;
-          line-height: 1.45;
-          margin: 0 0 2px;
-        }
-        .ship-row {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 12px;
-        }
-        .ship-row--3 {
-          grid-template-columns: 1fr 1fr 1fr;
-        }
-        .ship-dims {
-          display: grid;
-          grid-template-columns: 1fr 1fr 1fr;
-          gap: 8px;
-        }
-        .ship-divider {
-          font-size: 0.78rem;
-          font-weight: 700;
-          text-transform: uppercase;
-          letter-spacing: 0.04em;
-          color: #94a3b8;
-          padding-top: 4px;
-          margin-top: 2px;
-          border-top: 1px solid #eceef5;
-        }
-        @media (max-width: 600px) {
-          .ship-row, .ship-row--3 { grid-template-columns: 1fr; }
-        }
-        .modal-overlay { padding-top: max(20px, env(safe-area-inset-top)); padding-bottom: max(20px, env(safe-area-inset-bottom)); }
-        .ship-row > *, .ship-dims > * { min-width: 0; }
-        .modal-content .input-field { width: 100%; box-sizing: border-box; }
-        .modal-content { overflow-wrap: anywhere; }
-
-        .checkbox-label {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          font-size: 0.95rem;
-          color: #2d3748;
-          cursor: pointer;
-        }
-
-        .checkbox-label input[type="checkbox"] {
-          width: 20px;
-          height: 20px;
-          cursor: pointer;
-        }
-
-        .modal-actions {
-          display: flex;
-          gap: 12px;
-          margin-top: 8px;
-        }
-
-        .modal-actions button {
-          flex: 1;
-        }
-
-        /* Embedded inside the dashboard PageModal - drop the full-page
-           background and the redundant outer card so it sits flush. */
-        .shipment-page.is-embed {
-          min-height: 0;
-          background: transparent;
-          padding: 0;
-        }
-
-        .shipment-page.is-embed .page-header {
-          max-width: none;
-          margin: 0 0 18px;
-        }
-
-        /* The modal/drawer background is near-white (#fdfdfe) - the button's default
-           white fill + faint #e2e8f0 border was blending straight into it, so the
-           "Back" control effectively disappeared inside the Manage Shipment drawer. */
-        .shipment-page.is-embed .back-btn {
-          background: #f1f2fb;
-          border-color: #d7daf0;
-        }
-
-        .shipment-page.is-embed .shipment-container {
-          max-width: none;
-          padding: 0;
-          border-radius: 0;
-          box-shadow: none;
-          background: transparent;
-        }
-
-        @media (max-width: 768px) {
-          .modal-content .input-field, .modal-content .textarea-field { font-size: 16px; min-height: 44px; }
-          .modal-actions button, .back-btn, .btn-primary { min-height: 44px; }
-          .shipment-container {
-            padding: 32px 24px;
-          }
-
-          .shipment-page.is-embed .shipment-container {
-            padding: 0;
-          }
-
-          .details-grid {
-            grid-template-columns: 1fr;
-          }
-
-          .action-buttons {
-            flex-direction: column;
-          }
-        }
-        @media (max-width: 480px) {
-          .shipment-page:not(.is-embed) { padding: 16px 12px; padding-bottom: max(24px, env(safe-area-inset-bottom)); }
-          .shipment-container { padding: 20px 16px; border-radius: 16px; }
-          .detail-item { flex-wrap: wrap; gap: 4px 12px; }
-          .detail-item .value { min-width: 0; overflow-wrap: anywhere; text-align: right; }
-          .st-head-text { min-width: 0; overflow-wrap: anywhere; }
-          .status-value { overflow-wrap: anywhere; }
-          .modal-content { padding: 20px 16px; border-radius: 16px; }
-          .modal-actions { flex-direction: column-reverse; }
-        }
-      `}</style>
+      <style>{PAGE_CSS}</style>
     </div>
   );
 }

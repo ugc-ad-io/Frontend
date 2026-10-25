@@ -1,89 +1,75 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import axios from 'axios';
 import { useAuth } from '../App';
 import {
-  ChevronDown, Star, User, Wallet, Settings, LogOut, Search, Menu, X,
-  Zap, Compass, FileText, MessageSquare, Bookmark, BadgeCheck
+  LayoutGrid, Compass, Package, MessageSquare, Wallet, User, Star, Settings, Bookmark,
+  BadgeCheck, LogOut, Menu, X, ChevronRight,
 } from 'lucide-react';
-import NotificationBell from './NotificationBell';
-import HoverSideRail from './HoverSideRail';
-import MessagesPopup from './MessagesPopup';
 import { creatorFirstName } from '../utils/displayName';
-import useNavHeightVar from '../utils/useNavHeightVar';
 import '../styles/creator-marketplace.css';
+import '../styles/creator-ui.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+const API = `${BACKEND_URL}/api`;
 const getInitial = (name) => (name || 'U').trim().charAt(0).toUpperCase();
+const LEVEL_LABEL = { new: 'New', verified: 'Verified', l1: 'Level 1', l2: 'Level 2', elite: 'Elite' };
 
-// Primary links live in the top bar; account/secondary links live in the avatar menu.
-const PRIMARY_LINKS = [
-  { name: 'Active Work', to: '/my-active-work', icon: Zap },
-  { name: 'Browse Campaigns', to: '/browse-briefs', icon: Compass },
-  { name: 'Saved', to: '/saved', icon: Bookmark },
-  { name: 'My Deals', to: '/my-deals', icon: FileText },
-  { name: 'Messages', to: '/messages', dot: true, icon: MessageSquare }
+// Sidebar destinations (design board C01). `count` keys are filled from the deals list below.
+const NAV = [
+  { key: 'dash', name: 'Dashboard', to: '/dashboard/creator', icon: LayoutGrid, match: ['/dashboard/creator'] },
+  { key: 'briefs', name: 'Find briefs', to: '/browse-briefs', icon: Compass, match: ['/browse-briefs', '/my-bids'] },
+  { key: 'saved', name: 'Saved briefs', to: '/saved', icon: Bookmark, match: ['/saved'] },
+  { key: 'orders', name: 'Orders', to: '/my-deals', icon: Package, count: 'orders', match: ['/my-deals', '/my-active-work'] },
+  { key: 'inbox', name: 'Inbox', to: '/messages', icon: MessageSquare, count: 'unread', match: ['/messages'] },
+  { key: 'earn', name: 'Earnings', to: '/withdrawal', icon: Wallet, match: ['/withdrawal'] },
+  { key: 'profile', name: 'My profile', to: '/profile', icon: User, match: ['/profile', '/portfolio'] },
+  { key: 'reviews', name: 'Reviews', to: '/reviews', icon: Star, match: ['/reviews'] },
+  { key: 'settings', name: 'Settings', to: '/settings', icon: Settings, match: ['/settings', '/kyc'] },
 ];
-
-const MENU_LINKS = [
-  { name: 'Reviews', to: '/reviews', icon: Star },
-  { name: 'Earnings', to: '/withdrawal', icon: Wallet },
-  // Withdrawals are gated on this, so it needs a way in that isn't only the
-  // banner on the payouts page.
-  { name: 'Verify KYC', to: '/kyc', icon: BadgeCheck },
-  { sep: true },
-  { name: 'Settings', to: '/settings', icon: Settings }
-];
+// Bottom tab bar on phones.
+const TABS = ['dash', 'briefs', 'orders', 'inbox'];
 
 /**
- * Top-navigation marketplace shell for the creator side (replaces the sidebar
- * DashboardLayout). Renders the sticky nav + avatar menu and wraps page content
- * full-width. Pass `notifications` to show a bell badge.
+ * Creator shell: dark sidebar on desktop, top bar + drawer + bottom tabs on phones.
+ * Pages render their own title row with <CreatorPageHead />.
  */
-export default function CreatorTopNavLayout({ children, notifications = 0 }) {
+export default function CreatorTopNavLayout({ children }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const { pathname, search } = useLocation();
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [msgOpen, setMsgOpen] = useState(false);
-  const menuRef = useRef(null);
-  const headerRef = useRef(null);
-  useNavHeightVar(headerRef);
+  const { pathname } = useLocation();
+  const [drawer, setDrawer] = useState(false);
+  const [counts, setCounts] = useState({ orders: 0, unread: 0 });
 
-  const runSearch = () => {
-    const q = searchTerm.trim();
-    navigate(q ? `/browse-briefs?q=${encodeURIComponent(q)}` : '/browse-briefs');
-  };
+  useEffect(() => { setDrawer(false); }, [pathname]);
 
+  // Sidebar badges: active orders and unread chat messages come from the deals list.
   useEffect(() => {
-    const close = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false); };
-    document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
-  }, []);
+    let live = true;
+    axios.get(`${API}/deals/my?summary=true`)
+      .then((r) => {
+        if (!live) return;
+        const list = Array.isArray(r.data) ? r.data : (r.data?.deals || []);
+        const open = list.filter((d) => !/paid\s*[-—–]\s*complete|disputed|archived/i.test(String(d.current_state || '')));
+        setCounts({ orders: open.length, unread: list.reduce((s, d) => s + Number(d.unread_count || 0), 0) });
+      })
+      .catch(() => {});
+    return () => { live = false; };
+  }, [pathname]);
 
   const displayName = creatorFirstName(user);
   const photo = user?.profile_photo || user?.profile_picture || user?.avatar;
-  const isActive = (to) => pathname === to || pathname.startsWith(`${to}/`);
+  const photoUrl = photo ? (photo.startsWith('http') ? photo : `${BACKEND_URL}${photo}`) : '';
+  const isActive = (item) => item.match.some((m) => pathname === m || pathname.startsWith(`${m}/`));
+  const level = LEVEL_LABEL[String(user?.level || '').toLowerCase()] || user?.level_label || 'New';
+  const choice = Boolean(user?.ugcad_approved);
 
-  // Pages that own the bottom-right corner with their own chat launcher — the
-  // global FAB would land on top of it. `/my-deals` is the hub (a list, no chat)
-  // UNLESS it's opened as the Deal Room detail (?campaign / ?deal), which renders
-  // its own deal-scoped chat FAB there.
-  const dealParams = new URLSearchParams(search);
-  const isDealRoom = pathname === '/my-deals' && (dealParams.get('campaign') || dealParams.get('deal'));
-  const hideMsgFab = pathname === '/messages' || pathname.startsWith('/messages/') || isDealRoom;
-  // Messages sizes itself to the viewport (100dvh - nav). The mobile FAB-clearance
-  // padding on .cmk-page would push the composer below the fold, and there's no FAB
-  // here to clear anyway — so that page opts out.
   const isMessages = pathname === '/messages' || pathname.startsWith('/messages/');
-
   const handleLogout = () => { logout(); };
 
-  // KYC nudge: creators who haven't verified see a banner across every page
-  // (except the KYC page itself) prompting them to finish verification.
+  // KYC nudge: creators who haven't verified see a banner across every page (except the KYC page itself).
   const kycStatus = user?.kyc?.status || 'not_submitted';
-  const showKycBanner = user?.role === 'creator' && kycStatus !== 'verified' && !isActive('/kyc');
+  const showKycBanner = user?.role === 'creator' && kycStatus !== 'verified' && !pathname.startsWith('/kyc');
   const KYC_BANNER = {
     not_submitted: { tone: 'warn', text: 'Verify your identity (KYC) to submit bids, unlock withdrawals, and get prioritised for campaigns.', cta: 'Verify KYC' },
     pending: { tone: 'info', text: "Your KYC is under review - we'll let you know once it's verified.", cta: 'View status' },
@@ -91,155 +77,86 @@ export default function CreatorTopNavLayout({ children, notifications = 0 }) {
   };
   const kb = KYC_BANNER[kycStatus] || KYC_BANNER.not_submitted;
 
+  const items = useMemo(() => NAV, []);
+  const sidebar = (
+    <>
+      <button type="button" className="cui-logo" onClick={() => navigate('/dashboard/creator')} aria-label="UGCad.io dashboard">
+        <span className="cui-logo-mark" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-logo.png)` }} />
+        <span className="cui-logo-word"><b>UGC</b>ad.io</span>
+      </button>
+      <span className="cui-tag">FOR CREATORS</span>
+      <nav className="cui-nav" aria-label="Creator">
+        {items.map((item) => {
+          const n = item.count ? counts[item.count] : 0;
+          return (
+            <button key={item.key} type="button" className={`cui-nav-item${isActive(item) ? ' is-on' : ''}`} onClick={() => navigate(item.to)}>
+              <item.icon size={19} />
+              <span>{item.name}</span>
+              {n > 0 && <i>{n > 99 ? '99+' : n}</i>}
+            </button>
+          );
+        })}
+      </nav>
+      <div className="cui-level">
+        <small>Your level</small>
+        <b>{level}{choice ? ' · UGCAD.IO Choice' : ''}</b>
+        <div className="cui-level-bar"><span style={{ width: level === 'Elite' ? '100%' : '55%' }} /></div>
+        <small>{kycStatus === 'verified' ? 'Identity verified' : 'Verify your identity to level up'}</small>
+      </div>
+      <button type="button" className="cui-out" onClick={handleLogout}><LogOut size={16} /> Log out</button>
+    </>
+  );
+
   return (
-    <div className="cmk-app has-rail">
-      <HoverSideRail
-        brandMark="U"
-        onLogoClick={() => navigate('/dashboard/creator')}
-        primary={PRIMARY_LINKS}
-        secondary={MENU_LINKS.filter((i) => !i.sep)}
-        isActive={isActive}
-        onNavigate={navigate}
-        onLogout={handleLogout}
-        account={{ name: displayName, role: 'Creator', photo }}
-      />
-      <header ref={headerRef} className={`cmk-nav${mobileOpen ? ' cmk-nav--open' : ''}`}>
-        <div className="cmk-wrap cmk-nav-inner">
-          <button type="button" className="cmk-hamburger" aria-label="Menu" aria-expanded={mobileOpen} onClick={() => setMobileOpen((v) => !v)}>
-            {mobileOpen ? <X size={22} /> : <Menu size={22} />}
-          </button>
-          <button type="button" className="cmk-brand" onClick={() => navigate('/dashboard/creator')} aria-label="Go to Dashboard">
-            <img src="/ugcad-logo.png" alt="UGCad.io" className="cmk-brand-logo" />
-          </button>
+    <div className="cmk-app cui-app">
+      <aside className="cui-side">{sidebar}</aside>
 
-          <div className="cmk-nav-search" role="search">
-            <button type="button" className="cmk-nav-search-btn" aria-label="Search" onClick={runSearch}>
-              <Search size={18} />
-            </button>
-            <input
-              type="search"
-              placeholder="Search briefs, brands, categories..."
-              aria-label="Search"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') runSearch(); }}
-            />
-          </div>
-
-          <nav className="cmk-links" aria-label="Creator">
-            {PRIMARY_LINKS.map((link) => (
-              <button
-                key={link.name}
-                type="button"
-                className={isActive(link.to) ? 'is-active' : ''}
-                onClick={() => navigate(link.to)}
-              >
-                {link.name}
-                {link.dot && <span className="cmk-link-dot" />}
-              </button>
-            ))}
-          </nav>
-
-          <div className="cmk-nav-right" ref={menuRef}>
-            <NotificationBell />
-            <button type="button" className="cmk-avatar-btn" onClick={() => setMenuOpen((v) => !v)} aria-label="Account menu" aria-expanded={menuOpen}>
-              <span className="cmk-avatar">
-                {photo ? <img src={photo.startsWith('http') ? photo : `${BACKEND_URL}${photo}`} alt={displayName} /> : getInitial(displayName)}
-              </span>
-              <span className="cmk-avatar-id">
-                <strong>{displayName}</strong>
-                <small>Creator</small>
-              </span>
-              <ChevronDown size={16} color="#9296ba" />
-            </button>
-
-            {menuOpen && (
-              <div className="cmk-menu">
-                {MENU_LINKS.map((item, i) => (
-                  item.sep
-                    ? <div key={`sep-${i}`} className="cmk-sep" />
-                    : (
-                      <button key={item.name} type="button" onClick={() => { setMenuOpen(false); navigate(item.to); }}>
-                        <item.icon size={18} /> {item.name}
-                      </button>
-                    )
-                ))}
-                <button type="button" onClick={handleLogout}><LogOut size={18} /> Log out</button>
-              </div>
-            )}
-          </div>
-        </div>
-        {mobileOpen && (
-          <>
-            <div
-              className="cmk-mobile-backdrop"
-              onClick={() => setMobileOpen(false)}
-            />
-            <div className="cmk-mobile-menu">
-              <nav className="cmk-mobile-nav">
-                {PRIMARY_LINKS.map((link) => (
-                  <button key={link.name} type="button" className={`cmk-mobile-item ${isActive(link.to) ? 'is-active' : ''}`} onClick={() => { setMobileOpen(false); navigate(link.to); }}>
-                    <link.icon size={18} />
-                    {link.name}
-                    {link.dot && <span className="cmk-link-dot" />}
-                  </button>
-                ))}
-                <div className="cmk-mobile-sep" />
-                {MENU_LINKS.filter((i) => !i.sep).map((item) => (
-                  <button key={item.name} type="button" className="cmk-mobile-item" onClick={() => { setMobileOpen(false); navigate(item.to); }}>
-                    <item.icon size={18} /> {item.name}
-                  </button>
-                ))}
-              </nav>
-              <div className="cmk-mobile-sep" />
-              <button type="button" className="cmk-mobile-logout" onClick={handleLogout}>
-                <LogOut size={18} /> Log out
-              </button>
-            </div>
-          </>
-        )}
+      <header className="cui-top">
+        <button type="button" className="cui-iconbtn" aria-label="Menu" aria-expanded={drawer} onClick={() => setDrawer((v) => !v)}>
+          {drawer ? <X size={22} /> : <Menu size={22} />}
+        </button>
+        <button type="button" className="cui-top-logo" onClick={() => navigate('/dashboard/creator')} aria-label="UGCad.io dashboard">
+          <span className="cui-logo-mark cui-logo-mark--dark" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-logo.png)` }} />
+          <span className="cui-logo-word cui-logo-word--dark"><b>UGC</b>ad.io</span>
+        </button>
+        <button type="button" className="cui-avatar" aria-label="My profile" onClick={() => navigate('/profile')}>
+          {photoUrl ? <img src={photoUrl} alt={displayName} /> : getInitial(displayName)}
+        </button>
       </header>
 
-      <main className={`cmk-wrap cmk-page${isMessages ? ' cmk-page--flush' : ''}`}>
+      {drawer && (
+        <>
+          <div className="cui-backdrop" onClick={() => setDrawer(false)} aria-hidden="true" />
+          <aside className="cui-drawer">{sidebar}</aside>
+        </>
+      )}
+
+      <main className={`cui-main${isMessages ? ' cui-main--flush' : ''}`}>
         {showKycBanner && (
-          <button type="button" className={`cmk-kyc-banner ${kb.tone}`} onClick={() => navigate('/kyc')}>
-            <span className="cmk-kyc-ic"><BadgeCheck size={18} /></span>
-            <span className="cmk-kyc-text">{kb.text}</span>
-            <span className="cmk-kyc-cta">{kb.cta} <ChevronDown size={14} style={{ transform: 'rotate(-90deg)' }} /></span>
+          <button type="button" className={`cui-kyc ${kb.tone}`} onClick={() => navigate('/kyc')}>
+            <BadgeCheck size={18} />
+            <span>{kb.text}</span>
+            <em>{kb.cta} <ChevronRight size={14} /></em>
           </button>
         )}
         {children}
       </main>
 
-      <style>{`
-        .cmk-kyc-banner { width: 100%; display: flex; align-items: center; gap: 12px; text-align: left; border: 1px solid; border-radius: 14px; padding: 12px 16px; margin: 0 0 18px; cursor: pointer; font-family: inherit; font-size: 13.5px; }
-        .cmk-kyc-banner.warn { background: #fff8e8; border-color: #fbe3b4; color: #92600a; }
-        .cmk-kyc-banner.info { background: #eef0ff; border-color: #d7dbff; color: #3730a3; }
-        .cmk-kyc-ic { display: grid; place-items: center; flex-shrink: 0; }
-        .cmk-kyc-text { flex: 1; font-weight: 600; line-height: 1.4; }
-        .cmk-kyc-cta { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; font-weight: 700; white-space: nowrap; }
-        .cmk-kyc-banner:hover { filter: brightness(0.98); }
-        @media (max-width: 640px) { .cmk-kyc-cta span { display: none; } }
-      `}</style>
-
-      {/* Floating Message button — hidden where the page already owns the bottom-right
-          corner: the Messages page itself, and the Deal Room, which renders its own
-          deal-scoped chat FAB there. Both were drawing on top of each other. */}
-      {!hideMsgFab && (
-        <>
-          <button
-            type="button"
-            className="cmk-btn-primary-sm cmk-post-fab"
-            onClick={() => setMsgOpen((v) => !v)}
-            title="Messages"
-            aria-label="Messages"
-          >
-            <MessageSquare size={18} /><span className="cmk-btn-label">Message</span>
-          </button>
-
-          {msgOpen && <MessagesPopup onClose={() => setMsgOpen(false)} />}
-        </>
-      )}
+      <nav className="cui-tabs" aria-label="Creator quick links">
+        {NAV.filter((i) => TABS.includes(i.key)).map((item) => {
+          const n = item.count ? counts[item.count] : 0;
+          return (
+            <button key={item.key} type="button" className={isActive(item) ? 'is-on' : ''} onClick={() => navigate(item.to)}>
+              <span className="cui-tab-ic"><item.icon size={21} />{n > 0 && <i>{n > 9 ? '9+' : n}</i>}</span>
+              <small>{item.name === 'Dashboard' ? 'Home' : item.name === 'Find briefs' ? 'Briefs' : item.name}</small>
+            </button>
+          );
+        })}
+        <button type="button" className={isActive(NAV.find((i) => i.key === 'profile')) ? 'is-on' : ''} onClick={() => navigate('/profile')}>
+          <span className="cui-tab-ic"><User size={21} /></span>
+          <small>Profile</small>
+        </button>
+      </nav>
     </div>
   );
 }

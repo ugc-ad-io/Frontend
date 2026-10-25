@@ -4,8 +4,12 @@ import axios from 'axios';
 import { useAuth } from '../App';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { User, Building2, Lock, Mail, Phone, ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import '../styles/brand-ui.css';
+import '../styles/brand-ui-auth.css';
+import '../styles/brand-ui-mobile-b.css';
+import '../styles/creator-ui-onboarding.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -72,6 +76,20 @@ function routeForUser(navigate, role, profileCompleted, next) {
   return navigate('/');
 }
 
+// Left story panel copy. Creators (board C11) get the creator wording; brands keep theirs.
+const PROMO = {
+  creator: {
+    title: 'Make videos for brands. Get paid.',
+    text: 'Brands post real projects. You apply, create and get paid - no outreach needed.',
+    list: ['Brands post real briefs you can apply to', 'Payment is held safely while you create', 'Withdraw your earnings to UPI or bank'],
+  },
+  business: {
+    title: 'Real creators. Real videos. Ready in days.',
+    text: 'Vetted creators make UGC videos for D2C brands. Post a campaign, get matched with the right talent, and turn real content into results.',
+    list: ['Every creator checked by our team', 'Money held in escrow until you approve', 'Fast turnaround on first videos'],
+  },
+};
+
 // A request that never got an answer (offline, server down) says so, instead of axios' bare "Network Error".
 const authError = (error, fallback) => (error?.response
   ? apiErrorMessage(error, fallback)
@@ -93,6 +111,9 @@ export default function Auth() {
   const navigate = useNavigate();
   const { login, user } = useAuth();
   const nextPath = safeNext(searchParams.get('next'));
+  // Creator look: arrived via a creator link (?role=creator) or picked Creator while signing up.
+  const creatorMode = role === 'creator' && (searchParams.get('role') === 'creator' || !isLogin);
+  const promo = PROMO[creatorMode ? 'creator' : 'business'];
 
   // Opening /auth while a valid session already exists (installed app, bookmarked sign-in
   // link) goes straight to the user's home. Only when a token was present on arrival, so it
@@ -342,22 +363,28 @@ export default function Auth() {
   };
 
   return (
-    <div className="ap-root">
-      {/* Background orbs */}
-      <div className="ap-orb ap-orb--1" aria-hidden="true" />
-      <div className="ap-orb ap-orb--2" aria-hidden="true" />
-      <div className="ap-orb ap-orb--3" aria-hidden="true" />
-      <div className="ap-grid" aria-hidden="true" />
+    <div className="bui-app ap-root">
+      <div className={`ap-shell ${isLogin ? 'is-signin' : 'is-signup'} ${view !== 'auth' ? 'is-compact' : ''}${creatorMode ? ' ap-creator' : ''}`}>
 
-      {/* Brand logo — top-left corner of the page */}
-      <img src="/newlogo-tight.png" alt="UGCad.io" className="ap-page-logo" />
+      {/* ── LEFT: story panel (hidden under 900px) ── */}
+      <aside className="ap-promo">
+        <button type="button" className="ap-promo-logo" onClick={() => navigate('/')} aria-label="UGCad.io home">
+          <span className="bui-logo-mark" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-logo.png)` }} />
+          <span className="bui-logo-word"><b>UGC</b>ad.io</span>
+          {creatorMode && <span className="ap-promo-tag">FOR CREATORS</span>}
+        </button>
+        <div className="ap-promo-body">
+          <h2 className="ap-promo-title">{promo.title}</h2>
+          <p className="ap-promo-text">{promo.text}</p>
+          <ul className="ap-promo-list">
+            {promo.list.map((t) => <li key={t}><i><Check size={15} /></i>{t}</li>)}
+          </ul>
+        </div>
+        <span />
+      </aside>
 
-      {/* ── the auth card (form + promo, one floating shell) ── */}
-      {/* Sign In → form on the right; Sign Up → form on the left. */}
-      <div className={`ap-shell ${isLogin ? 'is-signin' : 'is-signup'} ${view !== 'auth' ? 'is-compact' : ''}`}>
-
-      {/* ── LEFT: the sign-in / sign-up form ── */}
-      <div className="ap-left">
+      {/* ── RIGHT: the sign-in / sign-up / reset form ── */}
+      <main className="ap-left">
 
       {/* Back button — arrow only, top-left */}
       <button className="ap-back" onClick={() => navigate('/')} aria-label="Back to home">
@@ -368,15 +395,20 @@ export default function Auth() {
         className="ap-card"
         initial={false}
       >
-        {/* Logo */}
-        <motion.div
-          className="ap-logo-wrap"
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15, duration: 0.4 }}
-        >
-          <img src="/ugcad-logo.png" alt="UGCad.io" className="ap-logo" />
-        </motion.div>
+        {/* Logo (shown only when the story panel is hidden) */}
+        <div className="ap-logo-wrap">
+          <span className="bui-logo">
+            <span className="bui-logo-mark" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-logo.png)` }} />
+            <span className="bui-logo-word"><b>UGC</b>ad.io</span>
+          </span>
+        </div>
+
+        {view === 'auth' && (
+          <div className="ap-tabs" role="tablist">
+            <button type="button" role="tab" aria-selected={isLogin} className={`ap-tab${isLogin ? ' is-on' : ''}`} onClick={() => setIsLogin(true)}>Log in</button>
+            <button type="button" role="tab" aria-selected={!isLogin} className={`ap-tab${!isLogin ? ' is-on' : ''}`} onClick={() => setIsLogin(false)}>Sign up</button>
+          </div>
+        )}
 
         {/* Header */}
         <AnimatePresence mode="wait">
@@ -390,31 +422,48 @@ export default function Auth() {
           >
             <h1 className="ap-title">
               {view === 'forgot'
-                ? 'Reset password'
+                ? 'Reset your password'
                 : view === 'reset'
                 ? 'Enter your code'
                 : view === 'newpass'
                 ? 'New password'
+                : view === '2fa'
+                ? 'Two-step login'
                 : isLogin
                 ? 'Welcome back'
-                : 'Create account'}
+                : 'Create your account'}
             </h1>
             <p className="ap-subtitle">
               {view === 'forgot'
-                ? "Enter your email and we'll send you a reset code"
+                ? "Enter your email and we'll send you a 6-digit reset code."
                 : view === 'reset'
                 ? (email ? `Enter the 6-digit code we emailed to ${email}` : 'Enter the 6-digit code we emailed you')
                 : view === 'newpass'
-                ? 'Choose a new password for your account'
+                ? 'Choose a new password for your account.'
+                : view === '2fa'
+                ? 'Enter the 6-digit code from your authenticator app.'
                 : isLogin
-                ? 'Sign in to continue your journey on UGCad.io'
-                : 'Join thousands of creators and brands on UGCad.io'}
+                ? (creatorMode ? 'Log in to see your briefs, orders and money.' : 'Log in to your UGCad.io account.')
+                : 'Free to join. Takes 2 minutes.'}
             </p>
           </motion.div>
         </AnimatePresence>
 
         {view === 'auth' && (
         <>
+        {/* Google sign-in — only when a client id is configured */}
+        {GOOGLE_CLIENT_ID && (
+          <motion.div
+            className="ap-oauth"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.4 }}
+          >
+            <div ref={googleBtnRef} className="ap-google" />
+            <div className="ap-divider"><span>or</span></div>
+          </motion.div>
+        )}
+
         <form onSubmit={handleSubmit} className="ap-form">
           {/* Role selector — only on signup */}
           <AnimatePresence>
@@ -427,29 +476,25 @@ export default function Auth() {
                 exit={{ opacity: 0, height: 0 }}
                 transition={{ duration: 0.3 }}
               >
-                <label className="ap-label">I am a:</label>
+                <span className="ap-label">I am a:</span>
                 <div className="ap-role-options">
-                  <button
-                    type="button"
-                    className={`ap-role-btn${role === 'creator' ? ' active' : ''}`}
-                    onClick={() => setRole('creator')}
-                    data-testid="role-creator-btn"
-                  >
-                    <div className="ap-role-icon">
-                      <User size={20} />
-                    </div>
-                    <span>Creator</span>
-                  </button>
                   <button
                     type="button"
                     className={`ap-role-btn${role === 'business' ? ' active' : ''}`}
                     onClick={() => setRole('business')}
                     data-testid="role-business-btn"
                   >
-                    <div className="ap-role-icon">
-                      <Building2 size={20} />
-                    </div>
-                    <span>Business</span>
+                    <strong>Business</strong>
+                    <small>I want videos</small>
+                  </button>
+                  <button
+                    type="button"
+                    className={`ap-role-btn${role === 'creator' ? ' active' : ''}`}
+                    onClick={() => setRole('creator')}
+                    data-testid="role-creator-btn"
+                  >
+                    <strong>Creator</strong>
+                    <small>I make videos</small>
                   </button>
                 </div>
               </motion.div>
@@ -464,7 +509,7 @@ export default function Auth() {
             transition={{ delay: 0.25, duration: 0.4 }}
           >
             <label className="ap-label" htmlFor="email">
-              <Mail size={15} /> Email
+              {isLogin ? 'Email' : 'Work email'}
             </label>
             <input
               id="email"
@@ -473,7 +518,7 @@ export default function Auth() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="ap-input input-field"
+              className="ap-input"
               placeholder="your@email.com"
               required
               data-testid="email-input"
@@ -491,7 +536,7 @@ export default function Auth() {
                 transition={{ duration: 0.3 }}
               >
                 <label className="ap-label" htmlFor="phone">
-                  <Phone size={15} /> Mobile Number
+                  Mobile number
                 </label>
                 <div className="ap-phone-row">
                   <select
@@ -517,7 +562,7 @@ export default function Auth() {
                     maxLength={phoneMax(dialCode)}
                     value={phone}
                     onChange={(e) => setPhone(normalisePhone(e.target.value, dialCode))}
-                    className="ap-input input-field"
+                    className="ap-input"
                     placeholder={`${phoneMax(dialCode)}-digit number`}
                     required
                     data-testid="phone-input"
@@ -538,7 +583,7 @@ export default function Auth() {
             transition={{ delay: 0.35, duration: 0.4 }}
           >
             <label className="ap-label" htmlFor="password">
-              <Lock size={15} /> Password
+              Password
             </label>
             <div className="ap-input-wrap">
               <input
@@ -547,7 +592,7 @@ export default function Auth() {
                 type={showPass.login ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="ap-input input-field"
+                className="ap-input"
                 placeholder="••••••••"
                 required
                 data-testid="password-input"
@@ -574,32 +619,17 @@ export default function Auth() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.42, duration: 0.4 }}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="ap-submit btn-primary"
+            className="ap-submit"
             disabled={loading}
             data-testid="submit-btn"
           >
             {loading ? (
               <span className="ap-spinner" />
             ) : (
-              isLogin ? 'Sign In' : 'Create Account'
+              isLogin ? 'Log in' : 'Create account'
             )}
           </motion.button>
         </form>
-
-        {/* Google sign-in — only when a client id is configured */}
-        {GOOGLE_CLIENT_ID && (
-          <motion.div
-            className="ap-oauth"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.48, duration: 0.4 }}
-          >
-            <div className="ap-divider"><span>or</span></div>
-            <div ref={googleBtnRef} className="ap-google" />
-          </motion.div>
-        )}
 
         {/* Footer toggle */}
         <motion.div
@@ -615,7 +645,7 @@ export default function Auth() {
             onClick={() => setIsLogin(!isLogin)}
             data-testid="toggle-auth-btn"
           >
-            {isLogin ? 'Sign Up' : 'Sign In'}
+            {isLogin ? 'Sign up' : 'Log in'}
           </button>
         </motion.div>
         {!isLogin && (
@@ -640,7 +670,7 @@ export default function Auth() {
           >
             <div className="ap-field">
               <label className="ap-label" htmlFor="forgot-email">
-                <Mail size={15} /> Email
+                Email
               </label>
               <input
                 id="forgot-email"
@@ -649,7 +679,7 @@ export default function Auth() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="ap-input input-field"
+                className="ap-input"
                 placeholder="your@email.com"
                 required
                 autoFocus
@@ -659,7 +689,7 @@ export default function Auth() {
 
             <button
               type="submit"
-              className="ap-submit btn-primary"
+              className="ap-submit"
               disabled={loading}
               data-testid="forgot-submit-btn"
             >
@@ -667,9 +697,8 @@ export default function Auth() {
             </button>
 
             <div className="ap-footer">
-              Remembered it?{' '}
               <button type="button" className="ap-toggle" onClick={backToLogin}>
-                Back to sign in
+                ← Back to log in
               </button>
             </div>
           </motion.form>
@@ -686,7 +715,7 @@ export default function Auth() {
           >
             <div className="ap-field">
               <label className="ap-label" htmlFor="reset-code">
-                Code
+                Code from your email
               </label>
               <input
                 id="reset-code"
@@ -696,7 +725,7 @@ export default function Auth() {
                 maxLength={6}
                 value={resetCode}
                 onChange={(e) => setResetCode(e.target.value.replace(/\D/g, ''))}
-                className="ap-input input-field"
+                className="ap-input"
                 placeholder="Enter your code"
                 required
                 autoFocus
@@ -706,7 +735,7 @@ export default function Auth() {
 
             <button
               type="submit"
-              className="ap-submit btn-primary"
+              className="ap-submit"
               disabled={loading}
               data-testid="verify-code-btn"
             >
@@ -719,7 +748,7 @@ export default function Auth() {
               </button>
               {'  ·  '}
               <button type="button" className="ap-toggle" onClick={backToLogin}>
-                Back to sign in
+                ← Back to log in
               </button>
             </div>
           </motion.form>
@@ -744,18 +773,18 @@ export default function Auth() {
                 maxLength={6}
                 value={totpCode}
                 onChange={(e) => setTotpCode(e.target.value.replace(/\D/g, ''))}
-                className="ap-input input-field"
+                className="ap-input"
                 placeholder="6-digit code from your app"
                 required
                 autoFocus
               />
             </div>
-            <button type="submit" className="ap-submit btn-primary" disabled={loading}>
+            <button type="submit" className="ap-submit" disabled={loading}>
               {loading ? <span className="ap-spinner" /> : 'Verify & sign in'}
             </button>
             <div className="ap-footer">
               <button type="button" className="ap-toggle" onClick={() => { setView('auth'); setTotpCode(''); googleCredRef.current = null; }}>
-                Back to sign in
+                ← Back to log in
               </button>
             </div>
           </motion.form>
@@ -772,7 +801,7 @@ export default function Auth() {
           >
             <div className="ap-field">
               <label className="ap-label" htmlFor="new-password">
-                <Lock size={15} /> New password
+                New password
               </label>
               <div className="ap-input-wrap">
                 <input
@@ -781,7 +810,7 @@ export default function Auth() {
                   type={showPass.newPass ? 'text' : 'password'}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="ap-input input-field"
+                  className="ap-input"
                   placeholder="At least 6 characters"
                   required
                   autoFocus
@@ -795,7 +824,7 @@ export default function Auth() {
 
             <div className="ap-field">
               <label className="ap-label" htmlFor="confirm-password">
-                <Lock size={15} /> Confirm password
+                Confirm password
               </label>
               <div className="ap-input-wrap">
                 <input
@@ -804,7 +833,7 @@ export default function Auth() {
                   type={showPass.confirm ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="ap-input input-field"
+                  className="ap-input"
                   placeholder="Re-enter new password"
                   required
                   data-testid="confirm-password-input"
@@ -817,11 +846,11 @@ export default function Auth() {
 
             <button
               type="submit"
-              className="ap-submit btn-primary"
+              className="ap-submit"
               disabled={loading}
               data-testid="reset-submit-btn"
             >
-              {loading ? <span className="ap-spinner" /> : 'Reset password'}
+              {loading ? <span className="ap-spinner" /> : 'Save new password'}
             </button>
 
             <div className="ap-footer">
@@ -830,813 +859,14 @@ export default function Auth() {
               </button>
               {'  ·  '}
               <button type="button" className="ap-toggle" onClick={backToLogin}>
-                Back to sign in
+                ← Back to log in
               </button>
             </div>
           </motion.form>
         )}
       </motion.div>
+      </main>
       </div>
-
-      {/* ── RIGHT: UGC promo panel ── */}
-      <aside className="ap-promo">
-        <span className="ap-promo-logobg" aria-hidden="true" />
-        <span className="ap-promo-shine" aria-hidden="true" />
-        <div className="ap-promo-inner">
-          <div>
-            <h2 className="ap-promo-title">Where brands<br />meet real<br />creators.</h2>
-            <p className="ap-promo-text">
-              UGCad connects brands with authentic UGC creators - post a campaign,
-              get matched with the right talent, and turn real content into results,
-              all in one place.
-            </p>
-          </div>
-          <p className="ap-promo-stat">More than 17k creators &amp; brands joined - it&apos;s your turn.</p>
-        </div>
-      </aside>
-      </div>
-
-      <style>{`
-        /* ── Root ────────────────────────────────────────────────── */
-        .ap-root {
-          /* dvh, with vh first as the fallback for browsers without it. On a phone 100vh
-             counts the strip behind the address bar, so the screen was taller than what is
-             actually visible - the card sat off-centre and the page scrolled a little even
-             with nothing to scroll to. dvh measures the real visible viewport. */
-          min-height: 100vh;
-          min-height: 100dvh;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 40px 20px;
-          background: linear-gradient(160deg, #050510 0%, #0D0B26 100%);
-          position: relative;
-          overflow: hidden;
-          font-family: var(--font-body);
-        }
-
-        /* ── Orbs ────────────────────────────────────────────────── */
-        .ap-orb {
-          position: absolute;
-          border-radius: 50%;
-          animation: orbDrift 8s ease-in-out infinite;
-          pointer-events: none;
-        }
-        .ap-orb--1 {
-          width: 500px; height: 500px;
-          background: rgba(99, 102, 241, 0.18);
-          filter: blur(90px);
-          top: -150px; left: -100px;
-        }
-        .ap-orb--2 {
-          width: 400px; height: 400px;
-          background: rgba(139, 92, 246, 0.14);
-          filter: blur(80px);
-          bottom: -100px; right: -80px;
-          animation-delay: -4s;
-        }
-        .ap-orb--3 {
-          width: 280px; height: 280px;
-          background: rgba(34, 211, 238, 0.08);
-          filter: blur(70px);
-          top: 50%; left: 50%;
-          transform: translate(-50%, -50%);
-          animation-delay: -2s;
-        }
-
-        /* Dot-grid */
-        .ap-grid {
-          position: absolute;
-          inset: 0;
-          pointer-events: none;
-          background-image:
-            linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
-          background-size: 60px 60px;
-        }
-
-        /* ── Back button ─────────────────────────────────────────── */
-        .ap-back {
-          position: fixed;
-          top: 24px;
-          left: 28px;
-          display: flex;
-          align-items: center;
-          gap: 7px;
-          background: rgba(255,255,255,0.06);
-          border: 1px solid rgba(255,255,255,0.1);
-          color: #94A3B8;
-          font-size: 0.85rem;
-          font-weight: 500;
-          padding: 8px 16px;
-          border-radius: 100px;
-          cursor: pointer;
-          transition: all 0.25s ease;
-          z-index: 10;
-          font-family: var(--font-body);
-          backdrop-filter: blur(8px);
-        }
-        .ap-back:hover {
-          background: rgba(255,255,255,0.1);
-          color: #F1F5F9;
-          border-color: rgba(255,255,255,0.2);
-        }
-
-        /* ── Card ────────────────────────────────────────────────── */
-        .ap-card {
-          position: relative;
-          z-index: 2;
-          width: 100%;
-          max-width: 440px;
-          background: #ffffff;
-          border-radius: 24px;
-          padding: 44px 40px;
-          box-shadow: 0 32px 80px rgba(0, 0, 0, 0.4);
-        }
-
-
-        /* ── Logo ────────────────────────────────────────────────── */
-        .ap-logo-wrap {
-          display: flex;
-          justify-content: center;
-          margin-bottom: 24px;
-        }
-        .ap-logo {
-          height: 64px;   /* stacked lockup (monogram + UGCad.io) needs more height than the wordmark */
-          width: auto;
-          display: block;
-        }
-
-        /* ── Header ──────────────────────────────────────────────── */
-        .ap-header {
-          text-align: center;
-          margin-bottom: 32px;
-        }
-        .ap-title {
-          font-family: var(--font-head);
-          font-size: var(--fs-h2);
-          font-weight: var(--fw-head);
-          color: #0F172A;
-          margin-bottom: 8px;
-        }
-        .ap-subtitle {
-          color: #6366F1;
-          font-size: 0.9rem;
-          line-height: 1.55;
-        }
-
-        /* ── Form ────────────────────────────────────────────────── */
-        .ap-form {
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-        }
-
-        /* Role selector */
-        .ap-role-wrap {
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-        }
-        .ap-role-options {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 10px;
-        }
-        .ap-role-btn {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 14px 18px;
-          border-radius: 12px;
-          border: 1.5px solid #E2E8F0;
-          background: #F8FAFC;
-          color: #64748B;
-          font-family: var(--font-body);
-          font-size: 0.9rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.25s ease;
-        }
-        .ap-role-btn:hover {
-          border-color: #6366F1;
-          color: #6366F1;
-          background: rgba(99, 102, 241, 0.04);
-        }
-        .ap-role-btn.active {
-          border-color: #6366F1;
-          background: rgba(99, 102, 241, 0.08);
-          color: #6366F1;
-          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
-        }
-        .ap-role-icon {
-          width: 36px;
-          height: 36px;
-          border-radius: 10px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: #EEF2FF;
-          transition: background 0.25s ease;
-          flex-shrink: 0;
-        }
-        .ap-role-btn.active .ap-role-icon {
-          background: rgba(99, 102, 241, 0.15);
-        }
-
-        /* Label */
-        .ap-label {
-          display: flex;
-          align-items: center;
-          gap: 7px;
-          font-size: 0.82rem;
-          font-weight: 600;
-          color: #475569;
-          letter-spacing: 0.02em;
-          text-transform: uppercase;
-          margin-bottom: 2px;
-        }
-
-        /* Field wrapper */
-        .ap-field {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        /* Input override for white card */
-        .ap-input.input-field {
-          background: #F8FAFC !important;
-          border: 1.5px solid #E2E8F0 !important;
-          border-radius: 12px !important;
-          color: #0F172A !important;
-          font-family: var(--font-body);
-          font-size: 0.95rem;
-          padding: 13px 16px;
-          transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
-        }
-        .ap-input.input-field::placeholder {
-          color: #94A3B8;
-        }
-        /* Hide the browser's built-in password reveal/clear icons (Edge/IE) so
-           only our custom eye toggle shows - otherwise there are two eye icons. */
-        .ap-input.input-field::-ms-reveal,
-        .ap-input.input-field::-ms-clear {
-          display: none;
-        }
-        .ap-input.input-field:focus {
-          outline: none;
-          border-color: #6366F1 !important;
-          background: #ffffff !important;
-          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12) !important;
-        }
-
-        /* Mobile number: dial-code select + national number, one row */
-        .ap-phone-row {
-          display: grid;
-          grid-template-columns: 92px minmax(0, 1fr);
-          gap: 8px;
-        }
-        .ap-dial {
-          background: #F8FAFC;
-          border: 1.5px solid #E2E8F0;
-          border-radius: 12px;
-          color: #0F172A;
-          font-family: var(--font-body);
-          font-size: 0.95rem;
-          font-weight: 600;
-          padding: 13px 10px;
-          cursor: pointer;
-          transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
-        }
-        .ap-dial:focus {
-          outline: none;
-          border-color: #6366F1;
-          background: #ffffff;
-          box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
-        }
-        .ap-field-error {
-          font-size: 0.78rem;
-          color: #DC2626;
-        }
-
-        /* Password field show/hide toggle */
-        .ap-input-wrap {
-          position: relative;
-          display: flex;
-          align-items: center;
-        }
-        .ap-input-wrap .ap-input.input-field {
-          width: 100%;
-          padding-right: 44px;
-        }
-        .ap-eye {
-          position: absolute;
-          right: 8px;
-          top: 50%;
-          transform: translateY(-50%);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 30px;
-          height: 30px;
-          border: none;
-          background: transparent;
-          color: #94A3B8;
-          cursor: pointer;
-          border-radius: 8px;
-          transition: color 0.2s ease, background 0.2s ease;
-        }
-        .ap-eye:hover {
-          color: #475569;
-          background: #F1F5F9;
-        }
-
-        /* Submit button override */
-        .ap-submit.btn-primary {
-          width: 100%;
-          padding: 14px;
-          border-radius: 12px !important;
-          font-size: 0.97rem;
-          font-weight: 600;
-          margin-top: 4px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          background: #0F172A !important;
-          box-shadow: 0 8px 24px rgba(15, 23, 42, 0.25) !important;
-          transition: box-shadow 0.25s ease !important;
-          border: none !important;
-        }
-        .ap-submit.btn-primary:hover:not(:disabled) {
-          box-shadow: 0 12px 32px rgba(15, 23, 42, 0.35) !important;
-        }
-        .ap-submit.btn-primary:disabled {
-          opacity: 0.65;
-        }
-
-        /* Spinner */
-        .ap-spinner {
-          width: 18px;
-          height: 18px;
-          border: 2px solid rgba(255,255,255,0.3);
-          border-top-color: white;
-          border-radius: 50%;
-          animation: spin 0.7s linear infinite;
-          display: inline-block;
-        }
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-
-        /* ── OAuth / Google ──────────────────────────────────────── */
-        .ap-oauth {
-          margin-top: 20px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 16px;
-        }
-        .ap-divider {
-          width: 100%;
-          display: flex;
-          align-items: center;
-          text-align: center;
-          color: #94A3B8;
-          font-size: 0.8rem;
-        }
-        .ap-divider::before,
-        .ap-divider::after {
-          content: '';
-          flex: 1;
-          height: 1px;
-          background: #E2E8F0;
-        }
-        .ap-divider span {
-          padding: 0 12px;
-          text-transform: uppercase;
-          letter-spacing: 0.06em;
-        }
-        .ap-google {
-          display: flex;
-          justify-content: center;
-          min-height: 40px;
-          /* .ap-oauth centres its children, which shrank this empty box to 0px wide, so
-             the width measured before Google renders fell back to 320 - wider than the
-             form on small phones. Full width gives that measurement the real column. */
-          width: 100%;
-        }
-
-        /* Forgot-password link (login only) */
-        .ap-forgot-link {
-          align-self: flex-end;
-          margin-top: 2px;
-          background: none;
-          border: none;
-          padding: 0;
-          color: #6366F1;
-          font-family: var(--font-body);
-          font-size: 0.8rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: color 0.2s ease;
-        }
-        .ap-forgot-link:hover {
-          color: #4F46E5;
-          text-decoration: underline;
-          text-underline-offset: 3px;
-        }
-
-
-        .ap-legal {
-          margin: 14px 0 0;
-          text-align: center;
-          color: #64748B;
-          font-size: 0.76rem;
-          line-height: 1.5;
-          overflow-wrap: anywhere;
-        }
-        .ap-legal a { color: #0F172A; font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
-
-        /* ── Footer ──────────────────────────────────────────────── */
-        .ap-footer {
-          margin-top: 24px;
-          text-align: center;
-          color: #334155;
-          font-size: 0.88rem;
-        }
-        .ap-toggle {
-          background: none;
-          border: none;
-          color: #0F172A;
-          font-weight: 700;
-          cursor: pointer;
-          margin-left: 4px;
-          font-size: 0.88rem;
-          font-family: var(--font-body);
-          transition: color 0.2s ease;
-          text-decoration: underline;
-          text-underline-offset: 3px;
-        }
-        .ap-toggle:hover {
-          color: #6366F1;
-        }
-
-        /* ── Responsive ──────────────────────────────────────────── */
-        @media (max-width: 480px) {
-          .ap-card {
-            padding: 36px 24px;
-          }
-          .ap-back {
-            top: 16px;
-            left: 16px;
-          }
-        }
-
-        /* ══════════════════════════════════════════════════════════════
-           Split auth layout - form on the left, UGC promo panel on the right
-           ══════════════════════════════════════════════════════════════ */
-        .ap-root {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 26px;
-          background: linear-gradient(160deg, #050510 0%, #0D0B26 100%);
-          overflow: hidden;
-        }
-        .ap-grid { display: none; }
-
-        .ap-shell {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          width: 100%;
-          max-width: 980px;
-          /* No max-height: capping the shell at the viewport clipped the bottom of the form
-             (Google button, "Sign Up" link) on short laptop screens. The page scrolls instead. */
-          background: #f2f3f7;
-          border-radius: 26px;
-          overflow: hidden;
-          box-shadow: 0 40px 90px -34px rgba(15,18,45,0.4);
-        }
-        /* Sign-up only: wider shell so the promo panel gets more room. Login and
-           the form card (max-width 336px) are unchanged. */
-        .ap-shell.is-signup { max-width: 1120px; }
-
-        .ap-left {
-          position: relative;
-          z-index: 2;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          padding: 34px 48px 34px 74px;
-          background: #f2f3f7;
-          overflow-y: auto;
-        }
-        /* Sign-up form sits a bit further right (wider shell). */
-        .ap-shell.is-signup .ap-left { padding-left: 106px; }
-        .ap-card {
-          background: transparent;
-          box-shadow: none;
-          max-width: 336px;
-          margin: 0;
-          padding: 0;
-        }
-        /* In-card logo hidden - the brand mark now lives at the page's top-left. */
-        .ap-logo-wrap { display: none; }
-        .ap-page-logo {
-          position: absolute;
-          top: 24px;
-          left: 34px;
-          height: 32px !important;
-          width: auto !important;
-          max-height: none !important;
-          z-index: 6;
-          pointer-events: none;
-        }
-        .ap-header { text-align: left; margin-bottom: 18px; }
-        .ap-title { font-size: 25px; }
-        .ap-subtitle { font-size: 12.5px; }
-        .ap-input { padding: 10px 13px; font-size: 13.5px; }
-        .ap-submit { padding: 12px; font-size: 14px; }
-        .ap-back {
-          position: relative;
-          top: auto;
-          left: auto;
-          align-self: flex-start;
-          margin-bottom: 14px;
-          margin-left: -34px;
-          width: 38px;
-          height: 38px;
-          padding: 0;
-          gap: 0;
-          display: grid;
-          place-items: center;
-          background: rgba(15,18,45,0.06);
-          border-color: rgba(15,18,45,0.12);
-          color: #4b4f6b;
-          backdrop-filter: none;
-        }
-        .ap-back:hover { background: rgba(15,18,45,0.1); color: #15163a; border-color: rgba(15,18,45,0.22); }
-        /* Sign-up form is shifted right - pull just the back arrow back left. */
-        .ap-shell.is-signup .ap-back { margin-left: -66px; }
-
-        /* Promo panel (right) */
-        /* Animated swap - Sign Up: form left · Sign In: form right.
-           Panels slide with transform (grid order can't animate). Form (z-index 2)
-           slides over the promo. On sign-in the form shifts one column right and
-           the promo one column left; sign-up is the resting (no-transform) state. */
-        .ap-left, .ap-promo { transition: transform .55s cubic-bezier(.76, 0, .24, 1); }
-        .ap-shell.is-signin .ap-left { transform: translateX(100%); }
-        .ap-shell.is-signin .ap-promo { transform: translateX(-100%); }
-
-        .ap-promo {
-          position: relative;
-          overflow: hidden;
-          display: flex;
-          color: #fff;
-          border-radius: 0;
-          margin: 0;
-          /* Brand hero image on the left panel - shown as-is (no dark overlay).
-             Optimized WebP (~33KB) with JPG fallback; the original PNG was 1.3MB and slow.
-             Longhand so image-set-unaware engines fall back to the JPG and the colour stays. */
-          background-color: #0b0b16;
-          background-position: center;
-          background-size: cover;
-          background-repeat: no-repeat;
-          background-image: url('/login.jpg');
-          background-image: image-set(url('/login.webp') type('image/webp'), url('/login.jpg') type('image/jpeg'));
-        }
-        /* Old faint watermark replaced by the login hero above. */
-        .ap-promo-logobg { display: none; }
-        .ap-promo-shine {
-          position: absolute; top: -12%; right: -22%;
-          width: 58%; height: 130%;
-          background: linear-gradient(120deg, transparent, rgba(130,150,190,0.14), transparent);
-          transform: rotate(18deg); pointer-events: none;
-        }
-        .ap-promo-inner {
-          position: relative; z-index: 1; width: 100%;
-          display: flex; flex-direction: column; justify-content: flex-start;
-          gap: 24px; padding: 64px 34px 14px 62px;
-        }
-        .ap-promo-brand { font-weight: 700; font-size: 13.5px; color: #cfd2e6; letter-spacing: .2px; }
-        /* Positioned to sit inside the dark-blue card in the hero image (upper area). */
-        .ap-promo-title {
-          position: absolute; left: 12%; top: 10%; width: 40%; z-index: 2; white-space: nowrap;
-          font-family: var(--font-head, inherit);
-          font-size: 18px; font-weight: 800; line-height: 1.2; margin: 0; color: #fff;
-        }
-        /* Sign-in only: nudge the heading a touch left. */
-        .ap-shell.is-signin .ap-promo-title { left: 11%; }
-        /* Positioned over the light card baked into the hero image (lower area). */
-        .ap-promo-text { position: absolute; left: 53%; top: 73%; width: 40%; color: #26386e;
-          font-size: 13px; font-weight: 500; line-height: 1.6; margin: 0; z-index: 2; }
-        /* Sign-up panel is wider, so the image crops a bit differently - nudge the
-           description down on sign-up only. */
-        .ap-shell.is-signup .ap-promo-text { top: 75%; left: 55%; }
-        /* Reset / forgot / new-password / 2FA views make the shell much shorter, so the
-           description (pinned at top:73%) spilled out of the panel and collided with the
-           stat line. Those views don't need the paragraph - drop it and keep the title. */
-        .ap-shell.is-compact .ap-promo-text { display: none; }
-        /* Cap the width so it wraps onto 2–3 lines instead of running one long line
-           straight off the edge of the panel. */
-        .ap-promo-stat { color: rgba(255,255,255,0.82); font-size: 13px; font-weight: 500; margin: auto 0 0; }
-        .ap-promo-card {
-          background: rgba(255,255,255,0.05);
-          border: 1px solid rgba(255,255,255,0.09);
-          border-radius: 18px; padding: 20px 22px;
-          -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
-        }
-        .ap-promo-card h3 { margin: 0 0 8px; font-size: 17px; font-weight: 800; color: #fff; }
-        .ap-promo-card p { margin: 0 0 14px; color: rgba(255,255,255,0.58); font-size: 13px; line-height: 1.55; max-width: 320px; }
-        .ap-promo-people { display: flex; align-items: center; }
-        .ap-promo-ava {
-          width: 32px; height: 32px; border-radius: 50%; border: 2px solid #14141f;
-          margin-left: -9px; display: inline-flex; flex: none;
-        }
-        .ap-promo-ava:first-child { margin-left: 0; }
-        .ap-promo-ava--more {
-          background: #23233a !important; color: #cfd2e6;
-          font-size: 12px; font-weight: 700; align-items: center; justify-content: center;
-        }
-
-        /* The title and description sit on cards painted INTO the hero image (860×1075,
-           drawn with background-size: cover, centred). Percentages of the panel only
-           matched those cards at one panel shape - on a shorter or taller panel the image
-           crops differently and the text slid off its card. Position them in image pixels
-           instead: one image px = --s screen px, image offset by --ox/--oy. Browsers
-           without container units keep the percentage positions above. */
-        @supports (width: 1cqw) {
-          .ap-promo { container-type: size; }
-          .ap-promo-inner {
-            --s: max(calc(100cqw / 860), calc(100cqh / 1075));
-            --ox: calc((100cqw - 860 * var(--s)) / 2);
-            --oy: calc((100cqh - 1075 * var(--s)) / 2);
-          }
-          .ap-shell .ap-promo .ap-promo-title {
-            left: calc(var(--ox) + 100 * var(--s));
-            top: calc(var(--oy) + 107 * var(--s));
-            width: auto;
-            font-size: clamp(13px, calc(31 * var(--s)), 22px);
-          }
-          .ap-shell .ap-promo .ap-promo-text {
-            left: calc(var(--ox) + 450 * var(--s));
-            top: calc(var(--oy) + 795 * var(--s));
-            /* A tall panel (sign-up) crops the image's sides, cutting off the card's right
-               end - wrap inside what is still visible rather than run off the panel. */
-            width: min(calc(355 * var(--s)), calc(100cqw - var(--ox) - 450 * var(--s) - 22px));
-            font-size: clamp(10.5px, calc(22.5 * var(--s)), 15px);
-            line-height: 1.5;
-          }
-        }
-
-        /* Corner logo needs ~210px free beside the card (980px login / 1120px sign-up).
-           Below that it sat on top of the card and the back arrow - put it in the flow,
-           centred above the card. */
-        @media (min-width: 861px) and (max-width: 1539px) {
-          .ap-root { flex-direction: column; }
-          .ap-page-logo { position: static; align-self: flex-start; margin-bottom: 16px; }
-        }
-
-        /* Short laptop screens (720p, 768p, scaled 1080p): tighten vertical spacing so the
-           whole login card fits without scrolling. */
-        @media (min-width: 861px) and (max-height: 760px) {
-          .ap-root { padding: 12px 26px; }
-          .ap-page-logo { margin-bottom: 10px; }
-          .ap-left { padding-top: 18px; padding-bottom: 18px; }
-          .ap-back { margin-bottom: 4px; }
-          .ap-header { margin-bottom: 12px; }
-          .ap-form { gap: 14px; }
-          .ap-oauth { margin-top: 12px; gap: 10px; }
-          .ap-footer { margin-top: 12px; }
-          /* A short panel crops the image so its light card reaches the bottom edge,
-             right where this line sits - drop it rather than print over the card. */
-          .ap-promo-stat { display: none; }
-        }
-
-        @media (max-width: 860px) {
-          .ap-root { flex-direction: column; }
-          .ap-shell { grid-template-columns: 1fr; max-width: 420px; max-height: none; }
-          .ap-promo { display: none; }
-          /* single column - never slide the form off-screen */
-          .ap-shell.is-signin .ap-left, .ap-shell.is-signin .ap-promo { transform: none !important; }
-          /* Top padding 40 -> 28. Trimmed from the desktop value so the card doesn't waste
-             the fold, but not as tight as 18px - the back arrow needs a little clearance from
-             the card's top edge rather than sitting right against it. */
-          .ap-left { padding: 28px 28px 32px; align-items: center; }
-          /* Arrow moves OUT OF FLOW and onto the heading's own line - the usual mobile
-             pattern of a back control at the left with the title centred beside it. While it
-             was a flex child it occupied a full row of its own, so "Create account" could
-             never sit level with it however much the gap was trimmed.
-             .ap-left is position:relative, so these offsets resolve against it; matching its
-             padding keeps the arrow on the same left edge as the rest of the content.
-             The heading is centred and ~200px wide inside a ~324px column, so it starts well
-             clear of the 38px arrow - they share the line without colliding. */
-          .ap-back {
-            position: absolute;
-            top: 28px;
-            /* 28 -> 10. The 38px box is kept for the tap target even though the chip is now
-               invisible, so left is measured from the box edge, not the glyph - 10px puts
-               the arrow itself roughly on the content's left edge. */
-            left: 10px;
-            margin: 0;
-            /* Chrome removed: bare glyph, no grey circle or border. */
-            background: transparent;
-            border-color: transparent;
-          }
-          /* Hover would otherwise paint the chip back in on a hoverable narrow window
-             (.ap-back:hover is 0,2,0 and outranks the 0,1,0 rule above). */
-          .ap-back:hover { background: transparent; border-color: transparent; }
-          .ap-header { margin-bottom: 18px; }
-          /* .ap-shell.is-signup .ap-left sets padding-left:106px to shift the form right
-             in the desktop two-column split layout - that rule has no media guard, so on
-             mobile it was ALSO eating 106px instead of the intended 28px, squeezing
-             .ap-card down to ~165px. That starved the role-selector's 1fr/1fr grid of
-             real width, and the wider "Business" button overflowed off the right edge of
-             the screen. Reset it back to match the other side on mobile (single column,
-             no rightward shift needed). */
-          .ap-shell.is-signup .ap-left { padding-left: 28px; }
-          .ap-card { margin: 0 auto; width: 100%; }
-          .ap-header { text-align: center; }
-          /* Single column: the shell now fills the screen, so the page-level brand mark
-             (absolute at 24/34 against .ap-root) landed INSIDE the card and sat on top of
-             the back arrow and the "Create account" heading. There is no free corner left
-             to put it in, so drop it here and bring back the card's own logo - centred
-             above the title, which is what the sibling justify-content rule below always
-             intended but could never do while .ap-logo-wrap was display:none. */
-          .ap-page-logo { display: block; position: static; align-self: flex-start; margin: 0 0 16px 8px; }
-          .ap-logo-wrap { display: none; }
-          /* 64px is the desktop card size; on a phone it crowds the heading. The 38px back
-             arrow sits at the same height on the far left, so the two share the row. */
-          .ap-logo { height: 40px; }
-          /* .ap-back uses a negative margin-left (-34px, -66px on signup) to sit flush
-             with the desktop form's wide left padding (74px/106px). Mobile resets that
-             padding to 28px above but never reset the negative margin, so the button was
-             pulled past the card's left edge and clipped by .ap-shell's overflow:hidden. */
-          .ap-back, .ap-shell.is-signup .ap-back { margin-left: 0; }
-        }
-
-        /* ── Narrow phones (<=400px) ──────────────────────────────────────────────
-           At 360px the form column offers ~304px, but the role pair's MIN-CONTENT width is
-           ~314px (icon 36 + gap 10 + label + 36px padding, twice, plus the 10px grid gap).
-           A 1fr track will not shrink below its content, so "Business" pushed past the card
-           edge and was clipped by .ap-shell's overflow:hidden - exactly the cut-off button.
-           Trimming the padding, icon and label brings min-content under the available width
-           so the pair fits side by side instead of overflowing. */
-        @media (max-width: 400px) {
-          /* 26px around the card ate 52px of a 360px screen; 16px is the app's phone gutter. */
-          .ap-root { padding: 16px; }
-          .ap-left { padding: 24px 18px 26px; }
-          .ap-shell.is-signup .ap-left { padding-left: 18px; }
-          /* Track the tighter padding above so the arrow keeps sitting on the content's
-             left edge and level with the heading. */
-          .ap-back { top: 24px; left: 2px; }
-          .ap-role-options { gap: 8px; }
-          .ap-role-btn {
-            padding: 11px 10px;
-            gap: 8px;
-            font-size: 0.82rem;
-            /* Grid items default to min-width:auto, which is what pinned the track open.
-               Allowing 0 lets the label truncate as a last resort instead of overflowing. */
-            min-width: 0;
-          }
-          .ap-role-btn span {
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-          }
-          .ap-role-icon { width: 30px; height: 30px; flex-shrink: 0; }
-        }
-        @media (max-width:1539px) {
-          .ap-root { padding-top:80px; }
-          .ap-page-logo { position:absolute!important; top:24px; left:26px; margin:0!important; }
-        }
-        @media (max-width:860px) {
-          .ap-root { padding:80px 16px 24px; justify-content:flex-start; }
-          .ap-shell .ap-left { grid-column:1; grid-row:1; min-width:0; width:100%; transform:none!important; transition:none; }
-        }
-        /* Phone pass: 44px touch targets, notch / home-bar safe areas (viewport-fit=cover),
-           long emails and the dial-code select never push the card wider than the screen. */
-        @media (max-width:860px) {
-          .ap-root {
-            padding-top: calc(80px + var(--sa-top));
-            padding-left: max(16px, var(--sa-left));
-            padding-right: max(16px, var(--sa-right));
-            padding-bottom: max(24px, var(--sa-bottom));
-          }
-          .ap-page-logo { top: calc(24px + var(--sa-top)); left: max(26px, var(--sa-left)); }
-          .ap-back, .ap-shell.is-signup .ap-back { width: 44px; height: 44px; }
-          .ap-eye { width: 40px; height: 40px; right: 4px; }
-          .ap-input-wrap .ap-input.input-field { padding-right: 48px; }
-          .ap-forgot-link { min-height: 44px; padding: 0 0 0 12px; }
-          .ap-toggle { min-height: 44px; padding: 0 6px; }
-          .ap-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; }
-          .ap-card, .ap-field, .ap-phone-row { min-width: 0; }
-          .ap-input.input-field, .ap-dial { min-width: 0; max-width: 100%; }
-          .ap-subtitle { overflow-wrap: anywhere; }
-        }
-      `}</style>
     </div>
   );
 }

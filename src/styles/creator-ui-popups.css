@@ -1,0 +1,17 @@
+/* Creator UI - shared dialog pieces (board C25): upload progress + review dialog look. Prefix `cui-s-`. */
+.cui-s-up{width:100%;margin-top:10px}
+.cui-s-up-track{height:8px;border-radius:999px;background:#e4e5f3;overflow:hidden}
+.cui-s-up-fill{height:100%;border-radius:999px;background:#7387ff;transition:width .2s ease}
+.cui-s-up small{display:block;margin-top:5px;font-size:12px;font-weight:600;color:#6e6e96}
+
+/* Empty / error states inside the creator shell (board C26): bare centred block, pill button. */
+.cui-app .cmk-emptystate.bui-es{max-width:520px;margin:48px auto;padding:24px 16px;background:transparent;border:0;border-radius:0;gap:14px}
+.cui-app .bui-es .cmk-emptystate-ic{width:72px;height:72px;border-radius:18px}
+.cui-app .bui-es h3{font-size:26px;line-height:1.2;letter-spacing:-.02em}
+.cui-app .bui-es p{max-width:460px;font-size:15.5px;color:#6e6e96}
+.cui-app .bui-es .cmk-emptystate-btn{height:48px;padding:0 22px;border-radius:999px;font-weight:700}
+@media (max-width:640px){
+  .cui-app .cmk-emptystate.bui-es{margin:28px auto}
+  .cui-app .bui-es h3{font-size:22px}
+  .cui-app .bui-es p{font-size:14.5px}
+}

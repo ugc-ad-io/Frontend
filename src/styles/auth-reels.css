@@ -1,0 +1,5 @@
+/* Creator review tiles on the Auth hero (design boards: login, left panel + phone hero). */
+.auth-reels{display:flex;gap:8px;width:100%;max-width:520px}
+.auth-reel{position:relative;flex:1 1 0;min-width:0;aspect-ratio:9/16;border-radius:12px;overflow:hidden;background:#1b1f6b;
+  box-shadow:0 0 0 1px rgba(255,255,255,.28),0 14px 26px -14px rgba(0,0,0,.55)}
+.auth-reel img,.auth-reel video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}

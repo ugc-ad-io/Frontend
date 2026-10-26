@@ -10,6 +10,7 @@ import '../styles/brand-ui.css';
 import '../styles/brand-ui-auth.css';
 import '../styles/brand-ui-mobile-b.css';
 import '../styles/creator-ui-onboarding.css';
+import AuthReels from '../components/AuthReels';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -380,7 +381,7 @@ export default function Auth() {
             {promo.list.map((t) => <li key={t}><i><Check size={15} /></i>{t}</li>)}
           </ul>
         </div>
-        <span />
+        <AuthReels play />
       </aside>
 
       {/* ── RIGHT: the sign-in / sign-up / reset form ── */}

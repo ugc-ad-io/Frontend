@@ -143,3 +143,9 @@ html.ugc-kb .ap-auth .ap-auth-link{min-height:32px}
   html.ugc-kb .ap-auth .ap-auth-hero{display:none}
   html.ugc-kb .ap-auth .ap-auth-main{padding-top:calc(8px + env(safe-area-inset-top,0px))}
 }
+/* creator review tiles in the login hero (replace the sub-copy and the benefit list, like the mobile board) */
+.ap-auth-hero .auth-reels{margin-top:16px;max-width:none;gap:6px}
+.ap-auth-hero .auth-reel{border-radius:10px}
+.ap-auth-hero--reels .ap-auth-sub,.ap-auth-hero--reels .ap-auth-list{display:none}
+@media (max-height:699px){.ap-auth-hero .auth-reels{display:none}}
+html.ugc-kb .ap-auth .auth-reels{display:none}

@@ -7,6 +7,7 @@ import { useAuth } from '../../../App';
 import { apiErrorMessage } from '../../../utils/apiError';
 import AppShell from '../../shell/AppShell';
 import './auth.css';
+import AuthReels from '../../../components/AuthReels';
 
 // Phone version of src/pages/Auth.js (route /auth). Same endpoints, validation and redirects.
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -442,13 +443,14 @@ export default function Auth() {
     );
     body = isLogin ? (
       <>
-        <header className="ap-auth-hero">
+        <header className="ap-auth-hero ap-auth-hero--reels">
           <div className="ap-auth-brand">
             <span className="ap-logo-mark ap-auth-logo" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-logo.png)` }} />
             <span><b>UGC</b>ad.io</span>
             {creatorMode && <span className="ap-auth-tag">FOR CREATORS</span>}
           </div>
           <h1 className="ap-auth-h1">{promo.title}</h1>
+          <AuthReels />
           <p className="ap-auth-sub">{creatorMode ? 'Log in to see your briefs, orders and money.' : promo.text}</p>
           <ul className="ap-auth-list">
             {promo.list.map((t) => <li key={t}><i><Check size={12} /></i>{t}</li>)}

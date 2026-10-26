@@ -98,3 +98,5 @@
   .ap-phone-row{grid-template-columns:96px minmax(0,1fr)}
   .ap-title{font-size:26px}
 }
+.ap-promo .auth-reels{margin-top:28px}
+@media (max-height:720px){.ap-promo .auth-reels{display:none}}

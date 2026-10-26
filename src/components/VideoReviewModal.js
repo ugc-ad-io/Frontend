@@ -330,7 +330,7 @@ export default function VideoReviewModal({
           .vrm-stage video::-webkit-media-controls,
           .vrm-stage video::-webkit-media-controls-enclosure,
           .vrm-stage video::-webkit-media-controls-panel{display:none !important;-webkit-appearance:none !important}
-          .vrm-wm{position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(-30deg,rgba(255,255,255,.09) 0 2px,transparent 2px 190px)}
+          .vrm-wm{position:absolute;inset:0;pointer-events:none;background-image:var(--ugc-wm);background-size:240px 150px}
           .vrm-track{padding:16px 2px 0}
           .vrm-track-bar{position:relative;height:6px;border-radius:999px;background:#e4e4f2;margin-bottom:12px;cursor:pointer}
           .vrm-track-bar::before{content:'';position:absolute;inset:-9px 0;}/* bigger click target */

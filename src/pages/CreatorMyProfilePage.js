@@ -10,6 +10,7 @@ import CreatorProfileModal from '../components/CreatorProfileModal';
 import PhotoOrInitial from '../components/PhotoOrInitial';
 import { creatorFirstName } from '../utils/displayName';
 import '../styles/creator-ui-profile.css';
+import '../styles/creator-ui-mobile-profile.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;

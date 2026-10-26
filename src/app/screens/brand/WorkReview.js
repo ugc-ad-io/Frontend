@@ -16,6 +16,7 @@ import { findContactInfo } from '../../../components/RevisionRequestModal';
 import { MAX_REVISION_ITEMS, revisionItemCount, buildRevisionPayload, revisionFeeNotice } from '../../../utils/revisionPayload';
 import PlanBrief from '../../../pages/PlanBrief';
 import { API, Avatar, LoadError, Skeletons, firstWord, loadErrorText } from './workShared';
+import { useAppBack } from '../../shell/useAppBack';
 import './work.css';
 
 const isVideo = (u) => /\.(mp4|webm|mov|m4v|avi|mkv)$/i.test(String(u || '').split('?')[0]);
@@ -75,6 +76,7 @@ function Thumb({ file, locked, duration, onOpen, onDuration }) {
  * VideoReviewModal ({ items, notes, deadline_at } via buildRevisionPayload).
  */
 function ReviewPlayer({ item, src, watermark, canAct, tracker, submitting, approving, onClose, onApprove, onSubmit }) {
+  useAppBack(true, onClose);
   const videoRef = useRef(null);
   const [mode, setMode] = useState('watch');
   const [now, setNow] = useState(0);
@@ -576,7 +578,7 @@ export default function BrandWorkReviewApp() {
   const retry = () => { setLoading(true); load(); };
 
   return (
-    <AppShell title="Work review" subtitle="Approve to pay or ask for changes">
+    <AppShell back title="Work review" subtitle="Approve to pay or ask for changes">
       <div className="ap-wk">
         <div className="ap-chips ap-wk-chips" role="tablist" aria-label="Filter submissions">
           {TABS.map((t) => (
@@ -627,8 +629,10 @@ export default function BrandWorkReviewApp() {
                         onDuration={(v) => setDurations((p) => (p[it.id] === v ? p : { ...p, [it.id]: v }))}
                       />
                       <div className="ap-wk-body">
-                        <span className={`ap-pill ${st.tone}`}>{st.label}{it.status === 'pending_review' ? ` · ${it.stage === 'raw' ? 'raw cut' : 'edited cut'}` : ''}</span>
-                        <div className="ap-wk-title">{it.title}</div>
+                        <div className="ap-wk-head">
+                          <div className="ap-wk-title">{it.title}</div>
+                          <span className={`ap-pill ${st.tone}`}><span>{st.label}{it.status === 'pending_review' ? ` · ${it.stage === 'raw' ? 'raw cut' : 'edited cut'}` : ''}</span></span>
+                        </div>
                         <div className="ap-wk-by"><Avatar name={name} src={it.photo ? assetUrl(it.photo) : ''} size={20} />{name}</div>
                         <div className="ap-wk-meta">Submitted {agoText(it.submittedAt) || 'recently'}{it.version ? ` · v${it.version}` : ''}</div>
                         <button type="button" className="ap-wk-camp" onClick={() => navigate(`/dashboard/business/campaign/${campaignOf(it)}`)}>{it.campaign} →</button>

@@ -10,6 +10,7 @@ import { ImagePlus, Camera, Check, ArrowRight, ArrowLeft, Plus, Info, Instagram,
 import CreatorOnboardBar from '../components/CreatorOnboardBar';
 import CreatorGate from '../components/CreatorGate';
 import '../styles/creator-ui-onboarding.css';
+import '../styles/creator-ui-mobile-profile.css';
 import { NICHE_CATEGORIES, CONTENT_CATEGORIES } from '../constants/contentCategories';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';

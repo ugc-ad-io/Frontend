@@ -18,17 +18,19 @@
 .ap-wk-thumb-fb{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:10px;text-align:center;padding:4px;color:#c9ceff}
 .ap-wk-play{position:absolute;left:50%;top:50%;width:28px;height:28px;margin:-14px 0 0 -14px;border-radius:50%;background:rgba(255,255,255,.92);display:grid;place-items:center;color:var(--ap-ink)}
 .ap-wk-dur{position:absolute;left:6px;bottom:6px;height:18px;padding:0 6px;border-radius:999px;background:rgba(0,0,0,.55);color:#fff;font-size:10px;font-weight:700;display:inline-flex;align-items:center}
-.ap-wk-wm{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;overflow:hidden}
-.ap-wk-wm::after{content:'UGCAD.IO PREVIEW';transform:rotate(-30deg);white-space:nowrap;font-weight:800;letter-spacing:.08em;font-size:9px;color:rgba(255,255,255,.55);text-shadow:0 1px 2px rgba(0,0,0,.4)}
+.ap-wk-wm{position:absolute;inset:0;pointer-events:none;background-image:var(--ugc-wm);background-size:120px 75px}
 .ap-wk-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
-.ap-wk-body .ap-pill{align-self:flex-start}
+.ap-wk-head{display:flex;align-items:flex-start;gap:8px;min-width:0}
 .ap-wk-title{font-weight:700;font-size:15.5px;line-height:1.25;overflow-wrap:anywhere}
+.ap-wk-head .ap-wk-title{flex:1 1 0;min-width:0;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden}
+.ap-wk-head .ap-pill{flex:0 1 auto;min-width:0;max-width:68%;margin-top:-2px}
+.ap-wk-head .ap-pill>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ap-wk-by{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ap-muted)}
 .ap-wk-by .ap-wk-ava{width:20px;height:20px;font-size:10px}
 .ap-wk-meta{font-size:12px;color:var(--ap-muted);line-height:1.4}
 .ap-wk-camp{align-self:flex-start;background:none;border:0;padding:0;min-height:0;font:inherit;font-size:12px;font-weight:600;color:var(--ap-link);cursor:pointer;text-align:left}
-.ap-wk-acts{margin-top:auto;padding-top:4px;display:flex;flex-wrap:wrap;gap:8px}
-.ap-wk-acts .ap-btn{flex:1 1 112px;min-width:0;height:44px;font-size:14px;padding:0 14px}
+.ap-wk-acts{margin-top:auto;padding-top:4px;display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.ap-wk-acts .ap-btn{flex:1 1 auto;height:44px;font-size:14px;padding:0 14px}
 .ap-wk-acts .ap-btn--soft{background:#eef0ff;color:var(--ap-ink)}
 .ap-wk-acts .ap-btn[aria-disabled=true]{opacity:.6;pointer-events:none}
 .ap-wk-ic{flex:none;width:44px;height:44px;border-radius:50%;background:#eef0ff;color:var(--ap-ink);border:0;display:grid;place-items:center;cursor:pointer}
@@ -98,8 +100,7 @@
 .ap-wk-pl-btn--main{flex:1;background:#fff;color:var(--ap-ink)}
 .ap-wk-pl-btn:disabled{opacity:.55}
 .ap-wk-pl-note{text-align:center;font-size:12px;color:#c9ceff}
-.ap-wk-pl-wm{position:absolute;inset:0;z-index:1;pointer-events:none;display:grid;place-items:center}
-.ap-wk-pl-wm::after{content:'UGCAD.IO PREVIEW';transform:rotate(-28deg);white-space:nowrap;font-weight:800;letter-spacing:.14em;font-size:20px;color:rgba(255,255,255,.28);text-shadow:0 1px 3px rgba(0,0,0,.4)}
+.ap-wk-pl-wm{position:absolute;inset:0;z-index:1;pointer-events:none;background-image:var(--ugc-wm);background-size:240px 150px}
 .ap-wk-pl-fail{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:24px;text-align:center}
 .ap-wk-pl-fail span{font-size:13px;opacity:.75}
 .ap-wk-pl-fail .ap-btn{background:#fff;color:var(--ap-ink)}
@@ -232,6 +233,10 @@
 .ap-wk-mb-bar{position:sticky;bottom:0;z-index:5;margin:4px calc(-16px - env(safe-area-inset-right,0px)) -28px calc(-16px - env(safe-area-inset-left,0px));padding:14px calc(16px + env(safe-area-inset-right,0px)) calc(14px + env(safe-area-inset-bottom,0px)) calc(16px + env(safe-area-inset-left,0px));background:#fff;border-radius:26px 26px 0 0;box-shadow:0 -10px 30px -18px rgba(7,7,78,.35)}
 .ap-wk-fail ul{margin:6px 0 0;padding-left:18px}
 
+@media (max-width:359px){
+  .ap-wk-head .ap-pill{max-width:58%}
+  .ap-wk-acts .ap-btn{padding:0 8px;font-size:13px}
+}
 @media (min-width:600px){
   .ap-wk-list{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
   .ap-wk-pl{max-width:560px;left:50%;right:auto;width:100%;transform:translateX(-50%)}

@@ -1,5 +1,6 @@
 import { useLiveEffect } from '../lib/liveUpdates';
-import { useState, useEffect, useMemo } from 'react';
+import useAutoSearch, { takeSearchFocus } from '../utils/useAutoSearch';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../App';
 import axios from 'axios';
@@ -131,6 +132,15 @@ export default function BrowseBriefs() {
     setVisible(PAGE);
   }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // The search box works as you type (no Enter needed) and is shared by all four tabs.
+  const searchBoxRef = useRef(null);
+  useEffect(() => { takeSearchFocus(searchBoxRef.current); }, []);
+  useAutoSearch(term, searchParams.get('q'), (v) => {
+    const next = new URLSearchParams(searchParams);
+    if (v) next.set('q', v); else next.delete('q');
+    setSearchParams(next, { replace: true });
+  });
+
   const fetchData = async () => {
     try {
       const res = await axios.get(`${API}/campaigns?t=${Date.now()}`);
@@ -162,6 +172,12 @@ export default function BrowseBriefs() {
     [availableCampaigns, myBids]
   );
   const invites = useMemo(() => deals.filter(isInviteDeal), [deals]);
+  const searchQ = search.trim().toLowerCase();
+  const invitesShown = useMemo(() => (searchQ ? invites.filter((d) => {
+    const c = d.campaign || {};
+    const brand = d?.brand?.name || c.brand_name || c.business_name || c.business_nickname || '';
+    return `${c.title || ''} ${brand} ${c.description || ''}`.toLowerCase().includes(searchQ);
+  }) : invites), [invites, searchQ]);
 
   // Deep-link: open a specific brief's detail from a shared URL (?open=<id>).
   useEffect(() => {
@@ -227,7 +243,7 @@ export default function BrowseBriefs() {
   const filtersOn = category !== 'All Categories' || budgetFilter !== 'any' || deliveryFilter !== 'any';
 
   const setTab = (key) => {
-    if (key === 'saved') { navigate('/saved'); return; }
+    if (key === 'saved') { navigate(search.trim() ? `/saved?q=${encodeURIComponent(search.trim())}` : '/saved'); return; }
     const next = new URLSearchParams(searchParams);
     if (key === 'all') next.delete('tab'); else next.set('tab', key);
     setSearchParams(next, { replace: true });
@@ -266,16 +282,16 @@ export default function BrowseBriefs() {
     <CreatorTopNavLayout notifications={0}>
       <CreatorPageHead title="Find briefs" subtitle={subtitle} hideSearch />
 
-      {tab === 'all' && (
+      {(
         <div className="cui-b-filters">
           <form className="cui-b-searchrow" role="search" onSubmit={runSearch}>
             <label className="cui-b-search">
               <Search size={18} />
-              <input type="search" aria-label="Search briefs" value={term} onChange={(e) => setTerm(e.target.value)} placeholder="Search by product, brand or idea — e.g. “serum”, “unboxing”" />
+              <input ref={searchBoxRef} type="search" aria-label="Search briefs" value={term} onChange={(e) => setTerm(e.target.value)} placeholder="Search by product, brand or idea — e.g. “serum”, “unboxing”" />
             </label>
             <button type="submit" className="cui-b-searchbtn">Search</button>
           </form>
-          <div className="cui-b-chips">
+          {tab === 'all' && (<div className="cui-b-chips">
             <Chip label="Category" value={category} display={category === 'All Categories' ? 'All' : category} active={category !== 'All Categories'} onChange={changeFilter(setCategory)}>
               {CATEGORIES.map((c) => <option key={c} value={c}>{c === 'All Categories' ? 'All' : c}</option>)}
             </Chip>
@@ -294,7 +310,7 @@ export default function BrowseBriefs() {
               <option value="7+">More than 7 days</option>
             </Chip>
             {(filtersOn || search) && <button type="button" className="cui-b-clear" onClick={clearAll}>Clear all</button>}
-          </div>
+          </div>)}
         </div>
       )}
 
@@ -317,10 +333,12 @@ export default function BrowseBriefs() {
         )}
       </div>
 
-      {tab === 'applied' && <MyBidsContent onCount={setAppliedCount} />}
-      {tab === 'invites' && (
-        <BriefInvites invites={invites} loading={loading && !deals.length && !dealsError} error={dealsError} onRetry={fetchData} />
-      )}
+      {tab === 'applied' && <MyBidsContent onCount={setAppliedCount} query={search} />}
+      {tab === 'invites' && (invites.length && searchQ && !invitesShown.length ? (
+        <EmptyState title="No invites match your search" message={`Nothing in your invites matches “${search.trim()}”.`} action={{ label: 'Clear search', onClick: clearSearch }} />
+      ) : (
+        <BriefInvites invites={invitesShown} loading={loading && !deals.length && !dealsError} error={dealsError} onRetry={fetchData} />
+      ))}
 
       {tab === 'all' && (
         <>

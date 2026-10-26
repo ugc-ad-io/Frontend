@@ -5,6 +5,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { X } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
+import BrandPageHead from '../components/BrandPageHead';
 import '../styles/creator-marketplace.css';
 import '../styles/brand-mobile.css';
 import '../styles/brand-ui-saved.css';
@@ -81,20 +82,19 @@ export default function SavedCreators() {
   return (
     <BrandTopNavLayout>
       <div className="bui-main bui-main--tight">
-        <div className="bui-titlerow">
-          <div>
-            <h1 className="bui-h1">Saved creators</h1>
-            <p className="bui-sub">
-              {ready && !loadFailed && cards.length
-                ? `${cards.length} creator${cards.length === 1 ? '' : 's'} you bookmarked. Open a profile to send a brief.`
-                : 'Creators you bookmarked to revisit or invite to a campaign.'}
-            </p>
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-            <button type="button" className="bui-btn bui-btn--ghost" onClick={() => navigate('/dashboard/business/multi-brief')}>Brief several at once</button>
-            <button type="button" className="bui-btn bui-btn--ghost" onClick={() => navigate('/dashboard/business/browse-creator')}>Browse creators</button>
-          </div>
-        </div>
+        <BrandPageHead
+          title="Saved creators"
+          subtitle={ready && !loadFailed && cards.length
+            ? `${cards.length} creator${cards.length === 1 ? '' : 's'} you bookmarked. Open a profile to send a brief.`
+            : 'Creators you bookmarked to revisit or invite to a campaign.'}
+          hideSearch
+          action={(
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+              <button type="button" className="bui-btn bui-btn--ghost" onClick={() => navigate('/dashboard/business/multi-brief')}>Brief several at once</button>
+              <button type="button" className="bui-btn bui-btn--ghost" onClick={() => navigate('/dashboard/business/browse-creator')}>Browse creators</button>
+            </div>
+          )}
+        />
 
         {!ready ? (
           <p className="bui-note">Loading saved creators...</p>

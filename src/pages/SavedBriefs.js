@@ -1,6 +1,7 @@
 import { useLiveEffect } from '../lib/liveUpdates';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Search } from 'lucide-react';
 import { useAuth } from '../App';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -19,6 +20,8 @@ export default function SavedBriefs() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [saved, setSaved] = useState(() => getSavedBriefs());
+  const [searchParams] = useSearchParams();
+  const [term, setTerm] = useState(searchParams.get('q') || '');
   const [openBrief, setOpenBrief] = useState(null); // brief shown in the detail drawer
   const [opening, setOpening] = useState(null);     // id currently being fetched
   // True until the first server sync finishes. Only used to show a skeleton when
@@ -53,14 +56,36 @@ export default function SavedBriefs() {
     }
   };
 
+  // briefs synced from the server arrive as raw campaigns: normalize them for the card
+  const savedNorm = saved.map((b) => (b.brand ? b : normalizeBrief(b)));
+  const q = term.trim().toLowerCase();
+  const savedShown = q
+    ? savedNorm.filter((b) => `${b.title || ''} ${b.brand || ''} ${b.description || ''} ${b.industryType || ''} ${(b.tags || []).join(' ')}`.toLowerCase().includes(q))
+    : savedNorm;
+
   return (
     <CreatorTopNavLayout notifications={0}>
-      <CreatorPageHead title="Saved briefs" subtitle="Briefs you bookmarked to review or apply to later." />
+      <CreatorPageHead title="Saved briefs" subtitle="Briefs you bookmarked to review or apply to later." hideSearch />
 
-      {saved.length ? (
+      <div className="cui-b-filters">
+        <form className="cui-b-searchrow" role="search" onSubmit={(e) => e.preventDefault()}>
+          <label className="cui-b-search">
+            <Search size={18} />
+            <input type="search" aria-label="Search briefs" value={term} onChange={(e) => setTerm(e.target.value)} placeholder="Search saved briefs by product, brand or idea" />
+          </label>
+          <button type="submit" className="cui-b-searchbtn">Search</button>
+        </form>
+      </div>
+
+      {saved.length && !savedShown.length ? (
+        <EmptyState
+          title="No saved briefs match your search"
+          message={`Nothing you saved matches “${term.trim()}”.`}
+          action={{ label: 'Clear search', onClick: () => setTerm('') }}
+        />
+      ) : saved.length ? (
         <div className="cui-b-grid">
-          {/* briefs synced from the server arrive as raw campaigns: normalize them for the card */}
-          {saved.map((b) => (b.brand ? b : normalizeBrief(b))).map((b) => (
+          {savedShown.map((b) => (
             <BriefCard
               key={b.id}
               brief={b}

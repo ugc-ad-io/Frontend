@@ -4,6 +4,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { Check, ChevronDown } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
+import BrandPageHead from '../components/BrandPageHead';
 import PhotoOrInitial from '../components/PhotoOrInitial';
 import { apiErrorMessage } from '../utils/apiError';
 import { creatorFirstName } from '../utils/displayName';
@@ -11,6 +12,7 @@ import { creatorRateFromProfile } from '../utils/creatorRate';
 import { useSavedCreatorIds, loadSavedCreators } from '../utils/savedCreators';
 import '../styles/brand-ui-pages.css';
 import '../styles/brand-ui-multibrief.css';
+import BackButton from '../components/BackButton';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -224,15 +226,8 @@ export default function BrandMultiBrief() {
   return (
     <BrandTopNavLayout>
       <div className="bui-main bui-main--tight">
-        <nav className="bui-crumb" aria-label="Breadcrumb">
-          <a href="/dashboard/business/saved-creators" onClick={(e) => { e.preventDefault(); navigate('/dashboard/business/saved-creators'); }}>Saved creators</a>
-          <span aria-hidden="true">/</span>
-          <strong aria-current="page">Brief several at once</strong>
-        </nav>
-        <div>
-          <h1 className="bui-h1">Brief to several creators</h1>
-          <p className="bui-sub">Pick saved creators and send them all the same brief. Each one replies separately.</p>
-        </div>
+        <BackButton fallback="/dashboard/business/saved-creators" />
+        <BrandPageHead title="Brief to several creators" subtitle="Pick saved creators and send them all the same brief. Each one replies separately." />
 
         {saved.length === 0 ? (
           <div className="bui-empty">

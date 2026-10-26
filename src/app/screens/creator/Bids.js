@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { WifiOff, Send } from 'lucide-react';
 import AppShell from '../../shell/AppShell';
@@ -8,7 +8,7 @@ import { useAuth } from '../../../App';
 import { useLiveEffect } from '../../../lib/liveUpdates';
 import { inr } from '../../../components/briefUi';
 import { timeAgo } from '../../../utils/normalizeBrief';
-import { API, OFFLINE, failText, Logo, BriefTabs, BriefCardSkeleton } from './briefsShared';
+import { API, OFFLINE, failText, Logo, BriefTabs, BriefCardSkeleton, SearchRow, NoMatches, matchesQuery } from './briefsShared';
 
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Recent');
 const getBidStatus = (item) => (item?.bid_status || item?.my_bid?.status || item?.bid?.status || 'pending').toLowerCase();
@@ -49,7 +49,7 @@ const BriefText = ({ text }) => String(text || '').split('\n').map((line, i) => 
 });
 
 // The applications list + detail sheet without the screen frame (also the "Applied" tab of Find briefs).
-export function BidsContent({ onCount }) {
+export function BidsContent({ onCount, query = '', onClearQuery }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [bids, setBids] = useState([]);
@@ -100,8 +100,8 @@ export function BidsContent({ onCount }) {
   }, [bids]);
   const rows = useMemo(() => {
     const f = FILTERS.find((x) => x.key === filter);
-    return bids.filter((b) => f.match(getBidStatus(b)));
-  }, [bids, filter]);
+    return bids.filter((b) => f.match(getBidStatus(b)) && matchesQuery(query, b.campaign?.title, brandOf(b.campaign), b.campaign?.category, b.campaign?.product_description));
+  }, [bids, filter, query]);
 
   if (pendingApproval) {
     return <div className="ap-empty ap-card"><h3>Applications unlock after approval</h3><p>Your profile is still being reviewed. You can send applications once you are live.</p></div>;
@@ -189,7 +189,8 @@ export function BidsContent({ onCount }) {
           </section>
         );
       })}
-      {rows.length === 0 && (
+      {rows.length === 0 && query.trim() && <NoMatches q={query} onClear={onClearQuery} />}
+      {rows.length === 0 && !query.trim() && (
         <div className="ap-empty ap-card">
           <h3>No bids in “{FILTERS.find((f) => f.key === filter).label}”</h3>
           <p>Try another filter to see your other applications.</p>
@@ -236,10 +237,14 @@ export function BidsContent({ onCount }) {
 }
 
 export default function Bids() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const q = searchParams.get('q') || '';
+  const commit = (v) => { const n = new URLSearchParams(searchParams); if (v) n.set('q', v); else n.delete('q'); setSearchParams(n, { replace: true }); };
   return (
-    <AppShell title="Find briefs" subtitle="Track every application here.">
+    <AppShell back title="Find briefs" subtitle="Track every application here.">
+      <SearchRow q={q} onCommit={commit} />
       <BriefTabs active="applied" />
-      <BidsContent />
+      <BidsContent query={q} onClearQuery={() => commit('')} />
     </AppShell>
   );
 }

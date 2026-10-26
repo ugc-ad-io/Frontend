@@ -6,6 +6,8 @@ jest.mock('axios', () => ({ get: jest.fn(), post: jest.fn() }));
 const mockNavigate = jest.fn();
 jest.mock('react-router-dom', () => ({ useNavigate: () => mockNavigate }));
 jest.mock('../components/BrandTopNavLayout', () => ({ children }) => <div>{children}</div>);
+// The page head renders the real bell, which polls its own endpoints: keep these call-count assertions about the page.
+jest.mock('../components/NotificationBell', () => () => null);
 jest.mock('../components/ChatPopup', () => () => null);
 jest.mock('../components/RevisionRequestModal', () => () => null);
 jest.mock('../components/ReviewModal', () => () => <div data-testid="rating-prompt" />);

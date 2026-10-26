@@ -9,6 +9,7 @@ import CreatorPageHead from '../components/CreatorPageHead';
 import { inr, brandTile } from '../utils/orderUi';
 import '../styles/creator-marketplace.css';
 import '../styles/creator-ui-orders.css';
+import '../styles/creator-ui-mobile-orders.css';
 import EmptyState from '../components/EmptyState';
 import { Skeleton } from '../components/Skeleton';
 import { isSelectedCreator } from '../utils/campaignCreators';
@@ -191,7 +192,7 @@ export default function MyActiveWorkPage() {
                   >
                     <div className="cui-o-order">
                       <span className="cui-o-tile" style={{ width: 54, height: 54, background: c.brand_logo ? '#fff' : bg, color: fg, fontSize: 22 }}>
-                        {c.brand_logo ? <img src={c.brand_logo.startsWith('http') ? c.brand_logo : `${BACKEND_URL}${c.brand_logo}`} alt="" /> : getInitial(brand)}
+                        {c.brand_logo ? <img loading="lazy" src={c.brand_logo.startsWith('http') ? c.brand_logo : `${BACKEND_URL}${c.brand_logo}`} alt="" /> : getInitial(brand)}
                       </span>
                       <div>
                         <div className="cui-o-by">

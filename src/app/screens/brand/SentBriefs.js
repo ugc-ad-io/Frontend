@@ -76,6 +76,7 @@ export default function BrandSentBriefsApp() {
 
   return (
     <AppShell
+      back
       title="Sent briefs"
       subtitle="Invites and offers you sent to creators"
       right={<button type="button" className="ap-bar-btn" aria-label="Invite a creator" onClick={() => navigate('/dashboard/business/browse-creator')}><Plus size={22} /></button>}

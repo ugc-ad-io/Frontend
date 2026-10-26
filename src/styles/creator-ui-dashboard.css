@@ -153,12 +153,17 @@
   .cui-d-big{font-size:28px}
   .cui-d-orders{padding:16px 16px 4px}
   .cui-d-th{display:none}
-  .cui-d-tr{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"ord ord" "due price" "stat go";gap:10px 12px}
+  .cui-d-tr{grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"ord ord go" "due stat price";gap:10px 8px;padding:14px 0}
   .cui-d-tr>:nth-child(1){grid-area:ord}
   .cui-d-tr>:nth-child(2){grid-area:due}
-  .cui-d-tr>:nth-child(3){grid-area:stat;grid-row:3}
+  .cui-d-tr>:nth-child(3){grid-area:stat}
   .cui-d-tr>:nth-child(4){grid-area:price;justify-self:end}
   .cui-d-tr>:nth-child(5){grid-area:go}
+  .cui-d-tr>:nth-child(2){justify-self:start}.cui-d-tr>:nth-child(3){justify-self:start}
+  .cui-d-tr .cui-d-muted{font-size:12.5px}
+  .cui-d-white--sm{height:44px}
+  .cui-d-tabs button{min-height:44px}
+  .cui-d-wide{height:44px}
   .cui-d-tr>:nth-child(2),.cui-d-tr>:nth-child(3){display:flex}
   .cui-d-pad{padding:16px}
   .cui-d-welcome{grid-template-columns:minmax(0,1fr);padding:22px 20px;gap:20px}

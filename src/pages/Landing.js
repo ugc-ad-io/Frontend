@@ -53,6 +53,7 @@ import {
   VolumeX,
 } from 'lucide-react';
 import { motion, AnimatePresence, useInView, useTransform, useScroll, useMotionValueEvent, useSpring, useReducedMotion, easeInOut } from 'framer-motion';
+import '../styles/public-mobile.css';
 
 // Lazy-loaded so three.js/R3F stay out of the main bundle (loaded only when the scene mounts).
 const HeroLogo3D = lazy(() => import('../components/HeroLogo3D'));

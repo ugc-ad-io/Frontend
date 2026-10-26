@@ -370,6 +370,7 @@ function Chat({ selectedId, conv, user, muted, onToggleMute, back, onChanged }) 
   const typingSentAt = useRef(0);
   const justOpened = useRef(true);
   const scrolledUp = useRef(false);
+  const prevCount = useRef(0); // messages shown last time: a single new message glides, a whole chat jumps
   const sendingRef = useRef(false);
 
   const fetchMessages = async () => {
@@ -409,12 +410,15 @@ function Chat({ selectedId, conv, user, muted, onToggleMute, back, onChanged }) 
     if (!el) return;
     if (justOpened.current && messages.length) {
       justOpened.current = false;
+      prevCount.current = messages.length;
       el.scrollTop = el.scrollHeight;
       requestAnimationFrame(() => { el.scrollTop = el.scrollHeight; });
       return;
     }
     const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
-    if (atBottom && !scrolledUp.current) endRef.current?.scrollIntoView?.({ behavior: 'smooth' });
+    const added = messages.length - prevCount.current;
+    prevCount.current = messages.length;
+    if (atBottom && !scrolledUp.current) endRef.current?.scrollIntoView?.({ behavior: Math.abs(added) > 2 ? 'auto' : 'smooth' });
   }, [messages, typing]);
   const onScroll = () => {
     const el = boxRef.current;

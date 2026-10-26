@@ -27,74 +27,17 @@
 }
 :where(.bui-app) a{color:inherit;text-decoration:none}
 
-/* ── Header ──────────────────────────────────────────────────────────── */
-.bui-header{position:sticky;top:0;z-index:60;background:#fff;border-bottom:1px solid var(--bui-line)}
-.bui-header-in{max-width:none;margin:0 auto;padding:14px clamp(16px,3vw,32px);display:flex;flex-wrap:wrap;align-items:center;gap:16px 24px}
+/* ── Logo + icon button (shared with the auth/gate headers and Work review) ── */
 .bui-logo{display:inline-flex;align-items:center;gap:9px;color:var(--bui-ink);background:none;border:0;padding:0;cursor:pointer}
 .bui-logo-mark{display:block;width:23px;height:30px;flex:none;background-repeat:no-repeat;background-position:-23px 0;background-size:70px auto}
 .bui-logo-word{font-family:var(--bui-head);font-weight:500;font-size:23px;letter-spacing:-.01em;line-height:1}
 .bui-logo-word b{font-weight:500;color:var(--bui-primary)}
-
-.bui-search{flex:1 1 360px;max-width:none;display:flex;height:48px;border:1px solid var(--bui-input);border-radius:8px;overflow:hidden;background:#fff}
-.bui-search label{flex:1;display:flex;align-items:center;padding:0 14px;min-width:0}
-.bui-search input{flex:1;min-width:0;border:none;outline:none;font:inherit;font-size:16px;color:var(--bui-ink);background:transparent}
-.bui-search button{width:56px;border:none;background:var(--bui-ink);color:#fff;display:grid;place-items:center;cursor:pointer}
-
-.bui-nav{margin-left:auto;display:flex;align-items:center;gap:6px}
 .bui-iconbtn{position:relative;width:44px;height:44px;display:grid;place-items:center;color:var(--bui-muted);background:none;border:0;cursor:pointer;padding:0}
 .bui-iconbtn:hover{color:var(--bui-ink)}
-.bui-dot{position:absolute;top:9px;right:10px;width:8px;height:8px;border-radius:50%;background:var(--bui-danger)}
-.bui-navlink{padding:0 12px;height:44px;display:inline-flex;align-items:center;font-weight:600;font-size:15px;color:var(--bui-muted);background:none;border:0;cursor:pointer}
-.bui-navlink:hover,.bui-navlink.is-active{color:var(--bui-link)}
-.bui-wallet{padding:0 12px;height:34px;display:inline-flex;align-items:center;border-radius:999px;background:#ececfa;font-weight:600;font-size:14px;color:var(--bui-ink);border:0;cursor:pointer}
-.bui-avatar{margin-left:6px;position:relative;width:36px;height:36px;border-radius:50%;background:var(--bui-ink);color:#fff;display:grid;place-items:center;font-weight:600;font-size:14px;border:0;cursor:pointer;padding:0}
-.bui-avatar img{width:100%;height:100%;border-radius:50%;object-fit:cover}
-.bui-avatar i{position:absolute;right:-1px;bottom:-1px;width:10px;height:10px;border-radius:50%;background:var(--bui-ok);border:2px solid #fff}
-.bui-post{margin-left:8px;display:inline-flex;align-items:center;height:40px;padding:0 16px;border-radius:10px;background:var(--bui-ink);color:#fff;font-weight:600;font-size:14.5px;border:0;cursor:pointer;font-family:inherit}
-.bui-post:hover{background:#12124f}
-.bui-hamburger{display:none;background:none;border:0;color:var(--bui-ink);cursor:pointer;padding:4px}
-
-/* bell (existing NotificationBell component, re-skinned to the design) */
-.bui-nav .notification-bell-container{position:relative}
-.bui-nav .notification-bell-button{position:relative;width:44px;height:44px;display:grid;place-items:center;color:var(--bui-muted);background:none;border:0;border-radius:0;cursor:pointer;padding:0;box-shadow:none}
-.bui-nav .notification-bell-button:hover{color:var(--bui-ink);background:none}
-.bui-nav .notification-badge{position:absolute;top:9px;right:10px;min-width:8px;width:8px;height:8px;padding:0;border-radius:50%;background:var(--bui-danger);font-size:0;color:transparent;border:0;line-height:0}
-
-/* account menu */
-.bui-acct{position:relative}
-.bui-menu{position:absolute;right:0;top:calc(100% + 10px);min-width:220px;background:#fff;border:1px solid var(--bui-line);border-radius:12px;padding:6px;box-shadow:0 16px 40px -12px rgba(7,7,78,.28);z-index:80}
-.bui-menu-head{padding:10px 12px 8px;border-bottom:1px solid var(--bui-line-soft);margin-bottom:4px}
-.bui-menu-head strong{display:block;font-size:14px;font-weight:600}
-.bui-menu-head small{font-size:12.5px;color:var(--bui-muted)}
-.bui-menu button{display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;border:0;background:none;border-radius:8px;font:inherit;font-size:14px;font-weight:500;color:var(--bui-ink);cursor:pointer;text-align:left}
-.bui-menu button:hover{background:var(--bui-bg)}
-
-/* category strip */
-.bui-cats{border-top:1px solid var(--bui-line-soft)}
-.bui-cats-in{max-width:none;margin:0 auto;padding:0 clamp(16px,3vw,32px);display:flex;gap:28px;overflow-x:auto;font-size:15px;color:var(--bui-muted);scrollbar-width:none}
-.bui-cats-in::-webkit-scrollbar{display:none}
-.bui-cats-in button{flex:none;padding:12px 0;color:var(--bui-muted);background:none;border:0;border-bottom:2px solid transparent;font:inherit;font-size:15px;cursor:pointer}
-.bui-cats-in button:hover{color:var(--bui-link)}
-.bui-cats-in button.is-active{color:var(--bui-ink);font-weight:600;border-bottom-color:var(--bui-ink)}
+/* The app header itself now lives in brand-ui-shell.css (sidebar + phone top bar). */
 
 /* page container used by every restyled brand page */
 .bui-main{max-width:none;margin:0 auto;padding:32px clamp(16px,3vw,32px) 64px;display:flex;flex-direction:column;gap:40px}
-
-@media (max-width:900px){
-  .bui-nav{gap:2px}
-  .bui-navlink,.bui-wallet{display:none}
-}
-@media (max-width:720px){
-  .bui-search{order:3;flex-basis:100%;max-width:none}
-  .bui-post{display:none}
-  .bui-nav{margin-left:auto}
-}
-
-/* mobile menu (hamburger) */
-.bui-mobile{border-top:1px solid var(--bui-line-soft);background:#fff;padding:8px clamp(16px,3vw,32px) 14px;display:flex;flex-direction:column}
-.bui-mobile button{display:flex;align-items:center;gap:10px;padding:12px 4px;border:0;background:none;font:inherit;font-size:15px;font-weight:500;color:var(--bui-ink);text-align:left;cursor:pointer;border-bottom:1px solid var(--bui-line-soft)}
-.bui-mobile button.is-active{color:var(--bui-link);font-weight:600}
-@media (max-width:900px){ .bui-hamburger{display:inline-flex} }
 
 /* ── Shared page bits ─────────────────────────────────────────────────── */
 .bui-main--tight{padding-top:24px;gap:20px}
@@ -175,6 +118,10 @@
 .bui-reel-bars{position:absolute;top:9px;left:10px;right:10px;display:flex;gap:3px;z-index:2;pointer-events:none}
 .bui-reel-bars span{flex:1;height:3px;border-radius:999px;background:rgba(255,255,255,.4)}
 .bui-reel-bars span.on{background:#fff}
+.bui-reel-bars button{position:relative;flex:1;height:3px;padding:0;border:0;border-radius:999px;background:rgba(255,255,255,.4);cursor:pointer;pointer-events:auto}
+.bui-reel-bars button::before{content:'';position:absolute;left:0;right:0;top:-9px;bottom:-9px}
+.bui-reel-bars button i{display:block;width:100%;height:100%;border-radius:inherit;background:#fff;transform-origin:left center;transform:scaleX(0);transition:transform .2s linear}
+.bui-reel-bars button:focus-visible{outline:2px solid #7387FF;outline-offset:2px}
 .bui-reel-top{position:absolute;top:20px;left:10px;right:10px;display:flex;align-items:center;justify-content:space-between;gap:6px;z-index:2}
 .bui-reel-save{flex:none;width:32px;height:32px;border-radius:50%;border:none;background:rgba(255,255,255,.92);color:var(--bui-ink);display:grid;place-items:center;cursor:pointer}
 .bui-reel-save:hover{color:var(--bui-danger)}

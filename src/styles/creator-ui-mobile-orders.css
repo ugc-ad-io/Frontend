@@ -1,0 +1,29 @@
+/* Phone overrides for creator Orders hub, Active work and the order room (website, not the installed app). */
+@media (max-width:900px){
+  /* text links become real touch targets without changing how they look */
+  .cui-app .cui-o-link{min-height:44px;min-width:44px;display:inline-flex;align-items:center;justify-content:flex-end}
+  .cui-app .cui-o-h{flex-wrap:wrap;align-items:center;row-gap:2px}
+  .cui-app .cui-o-h small{flex-basis:100%}
+  .cui-app .cui-o-h:has(> .cui-o-link) small{flex-basis:auto}
+  .cui-app .cui-o-h>span:first-child{flex:1 1 auto;min-width:0}
+  .cui-app .cui-o-tab{min-height:48px}
+  .cui-app .cui-o-row.cui-o-done>.cui-o-go{align-self:center}
+  .cui-app .cui-o-row .cui-o-pill{max-width:100%}
+  .cui-app .cui-o-empty{padding:26px 8px 18px}
+
+  /* order room */
+  .cui-app .cui-r-ht small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cui-app .cui-r-comp button{width:44px;height:44px;border-radius:12px}
+  .cui-app .cui-r-help button{min-height:44px}
+  .cui-app .cui-r-poster a{width:44px;height:44px;margin:-22px 0 0 -22px}
+  .cui-app .cui-r-lbls span{font-size:11px}
+  .cui-app .cui-r-submit .cui-o-btn{flex:1 1 100%}
+  .cui-app .cui-r-item{padding:12px}
+  .cui-app .cui-r-crumb button{min-width:44px}
+}
+@media (max-width:420px){
+  .cui-app .cui-r-head{padding:14px}
+  .cui-app .cui-r-vers{gap:12px}
+  .cui-app .cui-r-ver{flex-basis:100%}
+  .cui-o-kpi b{font-size:20px}
+}

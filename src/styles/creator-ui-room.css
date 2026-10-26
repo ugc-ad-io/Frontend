@@ -50,7 +50,7 @@
 .cui-r-drop.has-preview{padding:0;aspect-ratio:16/9;max-height:300px;background:#000}
 .cui-r-prev{position:absolute;inset:0}
 .cui-r-prev video,.cui-r-prev img{width:100%;height:100%;object-fit:contain;display:block}
-.cui-r-wm{position:absolute;inset:0;background:repeating-linear-gradient(-18deg,transparent 0 60px,rgba(255,255,255,.12) 60px 61px);pointer-events:none}
+.cui-r-wm{position:absolute;inset:0;background-image:var(--ugc-wm);background-size:240px 150px;pointer-events:none}
 .cui-r-assets{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-top:12px}
 .cui-r-assets label{display:block;margin-bottom:6px;font-size:13px;font-weight:600;color:var(--cui-muted)}
 .cui-r-note{margin-top:12px;display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border-radius:12px;background:#f6f6fd;font-size:13px;line-height:1.5;color:#3a3a6a}
@@ -68,7 +68,7 @@
 .cui-r-poster{position:relative;flex:none;width:112px;height:170px;border-radius:14px;overflow:hidden;background:#161650;display:grid;place-items:center;color:#fff}
 .cui-r-poster img,.cui-r-poster video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .cui-r-poster a{position:absolute;left:50%;top:50%;width:32px;height:32px;margin:-16px 0 0 -16px;border-radius:50%;background:rgba(255,255,255,.92);color:var(--cui-ink);display:grid;place-items:center}
-.cui-r-poster .wm{position:absolute;left:0;right:0;top:46%;text-align:center;font-size:10px;font-weight:800;letter-spacing:.12em;color:rgba(255,255,255,.75);transform:rotate(-18deg);pointer-events:none}
+.cui-r-poster .wm{position:absolute;inset:0;font-size:0;color:transparent;background-image:var(--ugc-wm);background-size:120px 75px;pointer-events:none}
 .cui-r-vmeta{display:flex;flex-direction:column;gap:6px;justify-content:center;min-width:0;font-size:14px}
 .cui-r-vmeta small{color:var(--cui-muted);font-size:12.5px}
 
@@ -171,3 +171,4 @@
 }
 .cui-r-assets .cui-r-drop{padding:14px 12px;gap:4px}
 .cui-r-assets .cui-r-drop .ic{width:36px;height:36px;border-radius:10px}
+

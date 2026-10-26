@@ -1,6 +1,6 @@
 import { useLiveEffect } from '../lib/liveUpdates';
 import { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import {  } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -15,6 +15,7 @@ import { s3Preview } from '../utils/mediaPreview';
 import { Skeleton } from './Skeleton';
 import PhotoOrInitial from './PhotoOrInitial';
 import '../styles/brand-ui-profile.css';
+import BackButton from './BackButton';
 
 /**
  * Brand-facing creator profile (design board 08) for /dashboard/business/creator/:id.
@@ -325,12 +326,7 @@ export default function BrandCreatorProfile({ id, onMessage, onBegin }) {
 
   return (
     <div className="bui-main bui-main--tight bui-pf">
-      <nav className="bui-crumb" aria-label="Breadcrumb">
-        <Link to="/dashboard/business/browse-creator">Creators</Link>
-        {topCategory && (<><span aria-hidden="true">/</span><Link to={{ pathname: '/dashboard/business/browse-creator', search: `?category=${encodeURIComponent(topCategory)}` }}>{topCategory}</Link></>)}
-        <span aria-hidden="true">/</span>
-        <strong aria-current="page">{loading ? '...' : name}</strong>
-      </nav>
+      <BackButton fallback="/dashboard/business/browse-creator" />
 
       <div className="bui-pf-grid">
         <div className="bui-pf-main">

@@ -5,6 +5,7 @@ import axios from 'axios';
 import { createPortal } from 'react-dom';
 import { Play, X, Star, VideoOff, BadgeCheck, Bookmark, MessageSquare, Heart, ChevronDown, Check, TrendingUp, Crown } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
+import BrandPageHead, { BrandCategoryChips } from '../components/BrandPageHead';
 import ChatPopup from '../components/ChatPopup';
 import { matchesCreatorSearch } from '../utils/creatorSearch';
 import '../styles/creator-marketplace.css';
@@ -60,6 +61,18 @@ const creatorVideoUrl = (creator) => {
   if (clips.length) return clips[0];
   const preview = creator?.portfolio_preview;
   return preview && isVideo(preview) ? preview : '';
+};
+// Up to three of the creator's videos, one progress bar each (a creator with one video gets one bar).
+const MAX_CARD_VIDEOS = 3;
+const creatorVideoUrls = (creator) => {
+  const all = [];
+  if (creator?.portfolio_video && playable(creator.portfolio_video)) all.push(creator.portfolio_video);
+  (Array.isArray(creator?.portfolio) ? creator.portfolio : []).map(pfUrl).forEach((url) => {
+    if (url && (isVideo(url) || playable(url))) all.push(url);
+  });
+  const preview = creator?.portfolio_preview;
+  if (preview && isVideo(preview)) all.push(preview);
+  return [...new Set(all)].slice(0, MAX_CARD_VIDEOS);
 };
 const videoPoster = (url) => s3Preview(url, 'jpg') || cloudinaryPoster(url);
 const cloudinaryPoster = (url) => {
@@ -396,11 +409,35 @@ function useCardVideo(c, onExpand, name) {
   const [duration, setDuration] = useState('');
   const [clipFailed, setClipFailed] = useState(false);
   const [posterFailed, setPosterFailed] = useState(false);
-  const originalVideo = creatorVideoUrl(c);
+  const urls = useMemo(() => creatorVideoUrls(c), [c.portfolio_video, c.portfolio, c.portfolio_preview]); // eslint-disable-line react-hooks/exhaustive-deps
+  const [idx, setIdx] = useState(0);
+  const keepPlaying = useRef(false);
+  const [progress, setProgress] = useState(0);
+  const count = urls.length;
+  const originalVideo = urls[Math.min(idx, Math.max(count - 1, 0))] || creatorVideoUrl(c);
   const media = clipFailed ? browserCompatibleVideoUrl(originalVideo) : previewVideoUrl(originalVideo);
   const hasVideo = !!(media && isVideo(media));
   const poster = posterFailed ? '' : videoPoster(originalVideo);
-  useEffect(() => { setPosterFailed(false); setClipFailed(false); }, [originalVideo]);
+  useEffect(() => {
+    setPosterFailed(false); setClipFailed(false); setDuration(''); setProgress(0);
+    const video = vref.current;
+    if (video && keepPlaying.current) {
+      keepPlaying.current = false;
+      video.load();
+      video.muted = true;
+      video.play().then(() => setPlaying(true)).catch(() => {});
+    }
+  }, [originalVideo]);
+  const selectVideo = (i) => {
+    if (i === idx) return;
+    keepPlaying.current = playing;
+    setIdx(i);
+  };
+  const nextVideo = () => {
+    if (count < 2) return;
+    keepPlaying.current = true;
+    setIdx((i) => (i + 1) % count);
+  };
 
   // Buffer the first frame once the card scrolls near the viewport (no autoplay).
   useEffect(() => {
@@ -450,7 +487,9 @@ function useCardVideo(c, onExpand, name) {
         poster={poster || undefined}
         onError={() => setClipFailed(true)}
         muted
-        loop
+        loop={count < 2}
+        onEnded={nextVideo}
+        onTimeUpdate={(e) => { const v = e.currentTarget; if (v.duration) setProgress(Math.min(1, v.currentTime / v.duration)); }}
         playsInline
         preload="none"
         onLoadedMetadata={(e) => setDuration(fmtDuration(e.currentTarget.duration))}
@@ -463,7 +502,7 @@ function useCardVideo(c, onExpand, name) {
   ) : (
     <div className="bui-gig-novideo"><VideoOff size={24} /><span>No video yet</span></div>
   );
-  return { hasVideo, videoEl, duration, hoverPlay, hoverPause, expand };
+  return { hasVideo, videoEl, duration, hoverPlay, hoverPause, expand, count, idx, selectVideo, progress };
 }
 
 // Level → badge (design board 01). UGCAD.IO Choice outranks the creator's level.
@@ -489,7 +528,7 @@ const BadgeIcon = ({ kind }) => {
 export function ReelCard({ c, onView, onMessage, onExpand, cloneStart }) {
   const navigate = useNavigate();
   const name = nameOf(c).replace('@', '');
-  const { hasVideo, videoEl, duration, hoverPlay, hoverPause, expand } = useCardVideo(c, onExpand, name);
+  const { hasVideo, videoEl, duration, hoverPlay, hoverPause, expand, count, idx, selectVideo, progress } = useCardVideo(c, onExpand, name);
   const saved = useSavedCreatorIds().has(String(c.id));
   const badge = reelBadgeKey(c);
   const rating = Number(c.avg_rating || c.rating || 0);
@@ -501,7 +540,15 @@ export function ReelCard({ c, onView, onMessage, onExpand, cloneStart }) {
     <article className="bui-reel"data-clone-start={cloneStart ? 'true' : undefined}>
       <div className="bui-reel-media" onMouseEnter={hasVideo ? hoverPlay : undefined} onMouseLeave={hasVideo ? hoverPause : undefined}>
         {videoEl}
-        <div className="bui-reel-bars" aria-hidden="true"><span className="on" /><span /><span /></div>
+        {count > 1 && (
+          <div className="bui-reel-bars">
+            {Array.from({ length: count }, (_, i) => (
+              <button key={i} type="button" aria-label={`Video ${i + 1} of ${count}`} aria-current={i === idx ? 'true' : undefined} onClick={(e) => { e.stopPropagation(); selectVideo(i); }}>
+                <i style={{ transform: `scaleX(${i < idx ? 1 : i === idx ? progress : 0})` }} />
+              </button>
+            ))}
+          </div>
+        )}
         <div className="bui-reel-top">
           <span className={`bui-badge bui-badge--${badge}`}>
             <BadgeIcon kind={badge} />
@@ -769,22 +816,9 @@ export default function BrandCreators() {
   return (
     <BrandTopNavLayout>
       <div className="bui-main bui-main--tight">
-        <nav className="bui-crumb" aria-label="Breadcrumb">
-          <Link to="/brand-home">Home</Link>
-          <span aria-hidden="true">/</span>
-          <Link to="/dashboard/business/browse-creator">Creators</Link>
-          {(categoryLabel || approvedMode) && (
-            <>
-              <span aria-hidden="true">/</span>
-              <strong>{approvedMode ? 'Preferred' : categoryLabel}</strong>
-            </>
-          )}
-        </nav>
 
-        <div>
-          <h1 className="bui-h1">{pageTitle}</h1>
-          <p className="bui-sub">{pageSub}</p>
-        </div>
+        <BrandPageHead title={pageTitle} subtitle={pageSub} />
+        <BrandCategoryChips />
 
         <div className="bui-filterbar">
           {FILTERS.map((f) => (

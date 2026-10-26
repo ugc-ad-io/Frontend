@@ -28,13 +28,14 @@ import '../styles/brand-mobile.css';
 import '../styles/brand-ui.css';
 import '../styles/brand-ui-pages.css';
 import '../styles/brand-ui-detail.css';
-import { campaignStage, campaignPill, STAGE_LABELS } from '../utils/campaignStage';
+import { campaignStage, campaignPill, stageLabelsFor, stageIndexFor } from '../utils/campaignStage';
 import EmptyState from '../components/EmptyState';
 import { budgetLabel, draftTotalBudget } from '../utils/budgetLabel';
 import { selectedCreators, creatorsWanted, slotsLeft, bidSplitLabel } from '../utils/campaignCreators';
 import { creatorFirstName } from '../utils/displayName';
 import { hireUnfunded, showUnfundedHire, escrowHeldText } from '../utils/hireFunding';
 import PhotoOrInitial from '../components/PhotoOrInitial';
+import BackButton from '../components/BackButton';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -507,11 +508,7 @@ export default function BrandCampaignDetail() {
   if (loading) return (
     <BrandTopNavLayout>
       <div className="bcd" aria-hidden="true">
-        {/* Breadcrumb */}
-        <div className="bcd-bc" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Skeleton width={110} height={14} />
-          <Skeleton width={90} height={14} />
-        </div>
+        <div style={{ margin: '0 0 4px' }}><Skeleton width={92} height={44} radius={999} /></div>
 
         {/* Title / budget / actions row */}
         <div className="bcd-top">
@@ -760,6 +757,8 @@ export default function BrandCampaignDetail() {
   const baseStage = campaignStage(campaign, shipped);
   const stageIdx = dealIdxNow >= 6 ? 5 : dealIdxNow >= 4 ? 4 : dealIdxNow >= 3 ? 3 : dealIdxNow >= 1 ? 2 : baseStage.idx;
   const requiresShipHere = Boolean(campaign.requires_shipment || ship.required);
+  const stageLabels = stageLabelsFor(requiresShipHere);
+  const shownStageIdx = stageIndexFor(stageIdx, requiresShipHere);
   const heroThumb = campaign.image_url || campaign.product_image || (campaign.product_images || [])[0] || campaign.cover_image || campaign.brand_logo_url || campaign.brand_logo;
   const pill = campaignPill(campaign, shipped);
   const creatorName = handle ? handle.replace(/^@+/, '') : 'the creator';
@@ -782,11 +781,7 @@ export default function BrandCampaignDetail() {
   return (
     <BrandTopNavLayout>
       <div className="bcd bui-main bui-main--detail">
-        <nav className="bui-crumb" aria-label="Breadcrumb">
-          <button type="button" className="bui-crumb-link" onClick={() => navigate('/dashboard/business/all-campaigns')}>Campaigns</button>
-          <span aria-hidden="true">/</span>
-          <strong aria-current="page">{campaign.title}</strong>
-        </nav>
+        <BackButton fallback="/dashboard/business/all-campaigns" />
 
         <div className="bui-dhead">
           <div className="bui-dhead-l">
@@ -1021,11 +1016,11 @@ export default function BrandCampaignDetail() {
               <section className="bui-panel">
                 <div className="bui-panel-h">
                   <h2 className="bui-panel-t">Campaign progress</h2>
-                  <span className="bui-panel-aside">{`Step ${stageIdx + 1} of ${STAGE_LABELS.length}`}{creator ? ` · with ${creatorName}` : ''}</span>
+                  <span className="bui-panel-aside">{`Step ${shownStageIdx + 1} of ${stageLabels.length}`}{creator ? ` · with ${creatorName}` : ''}</span>
                 </div>
-                <div className="bui-track6 bui-track6--full" role="list" aria-label="Campaign progress">
-                  {STAGE_LABELS.map((name, i) => (
-                    <div key={name} role="listitem" className={i < stageIdx ? 'is-done' : i === stageIdx && campaign.status !== 'completed' ? 'is-now' : campaign.status === 'completed' ? 'is-done' : ''}>
+                <div className="bui-track6 bui-track6--full" style={{ '--n': stageLabels.length }} role="list" aria-label="Campaign progress">
+                  {stageLabels.map((name, i) => (
+                    <div key={name} role="listitem" className={i < shownStageIdx ? 'is-done' : i === shownStageIdx && campaign.status !== 'completed' ? 'is-now' : campaign.status === 'completed' ? 'is-done' : ''}>
                       <span aria-hidden="true" />
                       <em>{name}</em>
                     </div>

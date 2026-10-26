@@ -81,7 +81,7 @@ export default function BrandReviewsApp() {
   const retry = () => { setLoading(true); fetchData(); };
 
   return (
-    <AppShell title="Reviews" subtitle="What creators say about working with you">
+    <AppShell back title="Reviews" subtitle="What creators say about working with you">
       <div className="ap-wk">
         {loading ? (
           <div className="ap-wk-list" aria-hidden="true">

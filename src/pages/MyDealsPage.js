@@ -24,6 +24,7 @@ import {
   Send,
   ShieldAlert,
   Upload,
+  ArrowLeft,
 } from 'lucide-react';
 import { EmptyPanel, getInitial } from '../components/CreatorComponents';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
@@ -37,6 +38,8 @@ import './CreatorDashboard.css';
 import './MyDealsPage.css';
 import '../styles/creator-ui-orders.css';
 import '../styles/creator-ui-room.css';
+import '../styles/creator-ui-mobile-orders.css';
+import BackButton from '../components/BackButton';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -898,11 +901,7 @@ export default function MyDealsPage() {
     <CreatorTopNavLayout notifications={0}>
       <input ref={evidenceInputRef} type="file" hidden multiple accept="image/*,video/*,.pdf" onChange={handleEvidenceUpload} />
       <div className="cui-o-page cui-r">
-        <nav className="cui-r-crumb" aria-label="Breadcrumb">
-          <button type="button" onClick={() => navigate('/my-deals')}>Orders</button>
-          <span>&rsaquo;</span>
-          <strong>{getDealId(deal)} &middot; {getDealTitle(deal)}</strong>
-        </nav>
+        <BackButton fallback="/my-deals" />
 
         {/* A direct booking isn't real work until the creator accepts it. */}
         <BookingCard deal={deal} role="creator" onDone={fetchDeals} />
@@ -1047,7 +1046,7 @@ export default function MyDealsPage() {
                 <div className="cui-r-eyebrow">Version {lastVersion?.version || 1} &middot; with notes</div>
                 <div style={{ marginTop: 12, display: 'flex', justifyContent: 'center' }}>
                   <div className="cui-r-poster" style={{ width: 150, height: 232 }}>
-                    {lastVersion?.thumbnail_url ? <img src={getAssetUrl(lastVersion.thumbnail_url)} alt="" /> : <video src={`${revVideo.url}#t=0.5`} muted playsInline preload="metadata" />}
+                    {lastVersion?.thumbnail_url ? <img src={getAssetUrl(lastVersion.thumbnail_url)} alt="" loading="lazy" /> : <video src={`${revVideo.url}#t=0.5`} muted playsInline preload="metadata" />}
                     <a href={revVideo.url} target="_blank" rel="noreferrer" aria-label="Open your submitted video"><Play size={15} /></a>
                     <span className="wm" aria-hidden="true">UGCAD PREVIEW</span>
                   </div>
@@ -1125,7 +1124,7 @@ function BrandLogo({ deal, name }) {
   const logo = deal?.brand?.logo_url;
   return (
     <span className="cui-o-tile" style={{ background: logo ? '#fff' : bg, color: fg }}>
-      {logo ? <img src={getAssetUrl(logo)} alt={name} /> : getInitial(name)}
+      {logo ? <img src={getAssetUrl(logo)} alt={name} loading="lazy" /> : getInitial(name)}
     </span>
   );
 }
@@ -1214,7 +1213,7 @@ function VersionsCard({ deal, versions }) {
             <article key={`${version.stage || ''}${version.version}`} className="cui-r-ver">
               <div className="cui-r-poster">
                 {version.thumbnail_url ? (
-                  <img src={getAssetUrl(version.thumbnail_url)} alt={`v${version.version} thumbnail`} />
+                  <img src={getAssetUrl(version.thumbnail_url)} alt={`v${version.version} thumbnail`} loading="lazy" />
                 ) : version.video_url ? (
                   <video src={`${getAssetUrl(version.video_url)}#t=0.5`} muted playsInline preload="metadata" />
                 ) : (

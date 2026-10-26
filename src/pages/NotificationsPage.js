@@ -8,6 +8,7 @@ import { Bell, Check, Settings } from 'lucide-react';
 import { useAuth } from '../App';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
+import BrandPageHead from '../components/BrandPageHead';
 import CreatorPageHead from '../components/CreatorPageHead';
 import { NOTIFICATION_TABS, matchesNotificationTab, notificationAction } from '../utils/notificationCategory';
 import '../styles/creator-marketplace.css';
@@ -88,15 +89,14 @@ export default function NotificationsPage() {
     return (
       <Layout>
         <div className="bui-main">
-          <div className="bui-titlerow">
-            <div>
-              <h1 className="bui-h1">Notifications</h1>
-              <p className="bui-sub">Everything that needs you, newest first.</p>
-            </div>
-            {unread > 0 && (
+          <BrandPageHead
+            title="Notifications"
+            subtitle="Everything that needs you, newest first."
+            hideSearch
+            action={unread > 0 ? (
               <button type="button" className="bui-btn bui-btn--ghost" onClick={markAll}><Check size={16} /> Mark all as read</button>
-            )}
-          </div>
+            ) : null}
+          />
 
           <div className="bui-tabs bui-nf-tabs" role="tablist" aria-label="Filter notifications">
             {NOTIFICATION_TABS.map(([id, label]) => (

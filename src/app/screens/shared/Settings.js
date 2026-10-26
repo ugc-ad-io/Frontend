@@ -647,8 +647,7 @@ export default function Settings() {
           </div>
         ))}
         <div className="ap-set-foot">
-          <button type="button" onClick={() => setSheet('logout')}><LogOut size={15} style={{ verticalAlign: -2 }} /> Log out</button>
-          <button type="button" className="bad" onClick={() => setSheet('delete')}>Close account</button>
+          <button type="button" onClick={() => setSheet('logout')}><LogOut size={18} aria-hidden="true" /> Log out</button>
         </div>
       </div>
     );

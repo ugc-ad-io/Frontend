@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import {  } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { Check } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
+import BrandPageHead from '../components/BrandPageHead';
 import '../styles/brand-ui.css';
 import '../styles/brand-ui-home.css';
 import '../styles/brand-ui-plans.css';
 import '../styles/brand-ui-mobile-b.css';
+import BackButton from '../components/BackButton';
 
 const API = `${process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000'}/api`;
 const inr = (n) => `₹${Number(n).toLocaleString('en-IN')}`;
@@ -45,18 +47,19 @@ export default function BrandPlans() {
   return (
     <BrandTopNavLayout>
       <div className="bui-main bui-main--tight">
-        <nav className="bui-crumb" aria-label="Breadcrumb"><Link to="/settings">Settings</Link><span>/</span><strong>Plans</strong></nav>
-        <div className="bui-titlerow">
-          <div>
-            <h1 className="bui-h1">Plans for growing brands</h1>
-            <p className="bui-sub">Lower fees, an expert at every step, and edited videos included. Cancel any time.</p>
-          </div>
-          <div className="bui-pl-seg" role="tablist">
-            {[[false, 'Monthly'], [true, 'Yearly · save 17%']].map(([id, label]) => (
-              <button key={label} type="button" role="tab" aria-selected={yearly === id} className={yearly === id ? 'is-on' : ''} onClick={() => setYearly(id)}>{label}</button>
-            ))}
-          </div>
-        </div>
+        <BackButton fallback="/settings" />
+        <BrandPageHead
+          title="Plans for growing brands"
+          subtitle="Lower fees, an expert at every step, and edited videos included. Cancel any time."
+          hideSearch
+          action={(
+            <div className="bui-pl-seg" role="tablist">
+              {[[false, 'Monthly'], [true, 'Yearly · save 17%']].map(([id, label]) => (
+                <button key={label} type="button" role="tab" aria-selected={yearly === id} className={yearly === id ? 'is-on' : ''} onClick={() => setYearly(id)}>{label}</button>
+              ))}
+            </div>
+          )}
+        />
 
         <div className="bui-pl-grid">
           {PLANS.map((p) => {

@@ -1,5 +1,7 @@
 /* Brand wallet (phone app). Values from design board "Wallet" (MobOpt1b) + "Transactions" (MobileMore3) + "Invoice" (MobileMoney). */
-.ap-wl-hero{text-align:center;padding:76px 20px 78px;border-radius:0 0 36px 36px}
+/* .ap-hero.ap-wl-hero: must beat app-shell.css `.ap-hero` padding whatever the CSS load order is. The pad card overlaps
+   the hero by 52px minus the body's 16px flex gap = 36px, so 78px bottom padding leaves ~42px clear under Add funds. */
+.ap-hero.ap-wl-hero{text-align:center;padding:calc(76px + env(safe-area-inset-top,0px)) 20px 78px;border-radius:0 0 36px 36px}
 .ap-wl-lbl{font-size:14px;opacity:.8}
 .ap-wl-bal{margin-top:4px;font-family:var(--ap-head);font-weight:600;font-size:36px;line-height:1.2;word-break:break-word}
 .ap-wl-bal-sk{width:160px;height:42px;margin:6px auto 0;background:rgba(255,255,255,.16)}

@@ -29,8 +29,9 @@ export default function ChatPage() {
   const messagesContainerRef = useRef(null);
   const isUserScrolledUp = useRef(false);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  const firstScroll = useRef(true);
+  const scrollToBottom = (smooth = true) => {
+    messagesEndRef.current?.scrollIntoView({ behavior: smooth === false ? 'auto' : 'smooth' });
   };
 
   const handleScroll = () => {
@@ -55,7 +56,10 @@ export default function ChatPage() {
   // Auto-scroll to bottom only when user is at bottom or new message is sent
   useEffect(() => {
     if (!isUserScrolledUp.current) {
-      setTimeout(scrollToBottom, 100);
+      // Opening the chat lands on the newest message at once; only later messages glide in.
+      const first = firstScroll.current && messages.length > 0;
+      if (first) firstScroll.current = false;
+      setTimeout(() => scrollToBottom(!first), first ? 0 : 100);
     }
   }, [messages]);
 

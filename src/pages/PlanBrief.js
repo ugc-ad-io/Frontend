@@ -8,6 +8,7 @@ import { apiErrorMessage } from '../utils/apiError';
 import { payWithRazorpay, isPaymentCancelled } from '../utils/razorpay';
 import { X, Check, Info, Plus, Minus, UploadCloud, FileText, ChevronDown, Wallet } from 'lucide-react';
 import '../styles/brand-ui-privbrief.css';
+import BackButton from '../components/BackButton';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -534,11 +535,7 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
         <button type="button" className="bui-pv-x" aria-label="Close" onClick={onClose}><X size={18} /></button>
 
         <div className="bui-pv-scroll">
-          <nav className="bui-pv-crumb" aria-label="Breadcrumb">
-            <button type="button" onClick={onClose}>{firstName}</button>
-            <span aria-hidden="true">/</span>
-            <strong aria-current="page">Send a brief</strong>
-          </nav>
+          <BackButton onClick={onClose} />
 
           <div className="bui-pv-grid">
             <div className="bui-pv-col">

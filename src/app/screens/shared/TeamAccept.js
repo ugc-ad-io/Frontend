@@ -44,7 +44,7 @@ export default function TeamAccept() {
       const { token: authToken, ...userData } = r.data;
       login(authToken, userData);
       toast.success(`Welcome to ${invite.brand_name}!`);
-      navigate('/dashboard/business/browse-creator');
+      navigate('/brand-home');
     } catch (err) {
       toast.error(apiErrorMessage(err, 'Could not accept the invitation'));
     } finally { setBusy(false); }

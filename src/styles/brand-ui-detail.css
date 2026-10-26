@@ -79,3 +79,4 @@
 .bui-field textarea{min-height:84px;padding:10px 14px;box-sizing:border-box;border-radius:10px;border:1px solid #c9c9e2;background:#fff;font:inherit;font-weight:400;font-size:15px;color:var(--bui-ink);line-height:1.5;resize:vertical;outline:0}
 .bui-field textarea:focus{border-color:var(--bui-primary)}
 @media (max-width:900px){.bui-script-b{grid-template-columns:1fr}}
+

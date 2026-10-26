@@ -71,6 +71,7 @@ import '../styles/creator-marketplace.css';
 import '../styles/brand-ui-settings.css';
 import '../styles/brand-ui-mobile-b.css';
 import '../styles/creator-ui-settings.css';
+import '../styles/creator-ui-mobile-profile.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -318,6 +319,7 @@ export default function ProfileSettings() {
   // Mobile settings drill-down: show the tab list first, open a panel on tap.
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches);
   const [brandDetailOpen, setBrandDetailOpen] = useState(false);
+  const [creatorFocus, setCreatorFocus] = useState('all'); // security | standing | legal | account | all
   const [creatorDetailOpen, setCreatorDetailOpen] = useState(() => new URLSearchParams(window.location.search).get('tab') === 'profile');
   const [loading, setLoading] = useState(false);
   const [brandLoading, setBrandLoading] = useState(false);
@@ -1383,7 +1385,8 @@ export default function ProfileSettings() {
   });
 
   // Creator home (design board C18): grouped cards; every row opens a real section or page. Only live values are shown.
-  const openCreatorSection = (tab) => {
+  const openCreatorSection = (tab, focus = 'all') => {
+    setCreatorFocus(focus);
     setActiveTab(tab);
     setCreatorDetailOpen(true);
     window.scrollTo({ top: 0, behavior: 'auto' });
@@ -1395,7 +1398,7 @@ export default function ProfileSettings() {
     { title: 'Account', rows: [
       { icon: User, title: 'Profile & photo', sub: displayName, go: () => navigate('/profile') },
       { icon: Mail, title: 'Email', sub: user?.email || '' },
-      { icon: Lock, title: 'Password & two-step login', sub: `Two-step login ${twoFAEnabled ? 'on' : 'off'}`, go: () => openCreatorSection('privacy') },
+      { icon: Lock, title: 'Password & two-step login', sub: `Two-step login ${twoFAEnabled ? 'on' : 'off'}`, go: () => openCreatorSection('privacy', 'security') },
     ] },
     { title: 'Money', rows: [
       { icon: Wallet, title: 'Earnings & payouts', sub: 'Balance, withdrawals and payout method', go: () => navigate('/withdrawal') },
@@ -1405,9 +1408,9 @@ export default function ProfileSettings() {
       { icon: Bell, title: 'Notification preferences', sub: prefsLoaded ? `${creatorNotifOn} of ${CREATOR_NOTIF_ROWS.length} alerts on` : 'Choose what you hear about', go: () => openCreatorSection('notifications') },
     ] },
     { title: 'Privacy & legal', rows: [
-      { icon: Shield, title: 'Privacy & account standing', sub: warnings ? (strikeCount === 0 ? 'Good standing · 0 strikes' : `${strikeCount} active ${strikeCount === 1 ? 'strike' : 'strikes'}`) : 'Who can see and message you', go: () => openCreatorSection('privacy') },
-      { icon: ScrollText, title: 'Legal & policies', sub: 'Terms, privacy policy, creator agreement', go: () => openCreatorSection('privacy') },
-      { icon: UserX, title: 'Deactivate or delete account', sub: 'Hide or permanently remove your account', go: () => openCreatorSection('privacy') },
+      { icon: Shield, title: 'Privacy & account standing', sub: warnings ? (strikeCount === 0 ? 'Good standing · 0 strikes' : `${strikeCount} active ${strikeCount === 1 ? 'strike' : 'strikes'}`) : 'Who can see and message you', go: () => openCreatorSection('privacy', 'standing') },
+      { icon: ScrollText, title: 'Legal & policies', sub: 'Terms, privacy policy, creator agreement', go: () => openCreatorSection('privacy', 'legal') },
+      { icon: UserX, title: 'Deactivate or delete account', sub: 'Hide or permanently remove your account', go: () => openCreatorSection('privacy', 'account') },
     ] },
     { title: 'Help & account', rows: [
       { icon: Heart, title: 'Follow UGCad.io', sub: 'Product news on social media', go: () => openCreatorSection('follow') },
@@ -1419,6 +1422,7 @@ export default function ProfileSettings() {
     return (
       <BrandTopNavLayout>
         <div className="bui-main bui-main--tight bui-set">
+          {!brandDetailOpen && (
           <div className="bui-set-head">
             <span className="bui-set-logo">
               {brandHeaderImage ? <img src={brandHeaderImage} alt="" /> : getInitial(brandProfile.brand_name || displayName)}
@@ -1430,6 +1434,7 @@ export default function ProfileSettings() {
               </div>
             </div>
           </div>
+          )}
           {brandDetailOpen ? (
             <div className="bui-set-detail">
               <button type="button" className="bui-set-back" onClick={() => setBrandDetailOpen(false)}>
@@ -1492,7 +1497,7 @@ export default function ProfileSettings() {
   return (
     <CreatorTopNavLayout>
       <div className="cui-set">
-      <CreatorPageHead title="Settings" subtitle="Your account, alerts, money and privacy." hideSearch />
+      {!creatorDetailOpen && <CreatorPageHead title="Settings" subtitle="Your account, alerts, money and privacy." hideSearch />}
       <div className={`ps-content ${isMobile && creatorDetailOpen && activeTab === 'profile' ? 'ps-content-profile-full' : ''}`}>
           <div className="ps-container">
             {!creatorDetailOpen ? (
@@ -1736,7 +1741,7 @@ export default function ProfileSettings() {
                 </>
               )}
 
-              {activeTab === 'privacy' && (
+              {activeTab === 'privacy' && ['all', 'security'].includes(creatorFocus) && (
                 <>
                   <h2>Privacy &amp; Security</h2>
                   <p className="ps-panel-desc">Manage your password, account protection, and privacy preferences.</p>
@@ -1785,7 +1790,7 @@ export default function ProfileSettings() {
                 </>
               )}
 
-              {activeTab === 'privacy' && (
+              {activeTab === 'privacy' && ['all', 'security'].includes(creatorFocus) && (
                 <>
                   <h2 className="ps-2fa-compact-title" style={{ marginTop: 28, paddingTop: 24, borderTop: '1px solid #eef0f6' }}>Two-Factor Authentication</h2>
                   <p className="ps-panel-desc ps-2fa-compact-desc">
@@ -1892,6 +1897,7 @@ export default function ProfileSettings() {
 
               {activeTab === 'privacy' && (
                 <>
+                  {['all', 'standing'].includes(creatorFocus) && (<>
                   <h2 className="ps-privacy-prefs" style={{ marginTop: 28, paddingTop: 24, borderTop: '1px solid #eef0f6' }}>Privacy Preferences</h2>
                   <p className="ps-panel-desc">Control who can see and reach you.</p>
 
@@ -1912,7 +1918,9 @@ export default function ProfileSettings() {
                     ))}
                   </div>
                   <button className="ps-btn-primary" onClick={savePrivacy}><Save size={20} /> Save Privacy Settings</button>
+                  </>)}
 
+                  {['all', 'legal'].includes(creatorFocus) && (
                   <div className="ps-legal">
                     <h3>Legal &amp; Policies</h3>
                     <div className="ps-legal-list">
@@ -1925,7 +1933,9 @@ export default function ProfileSettings() {
                       ))}
                     </div>
                   </div>
+                  )}
 
+                  {['all', 'account'].includes(creatorFocus) && (
                   <div className="ps-danger-zone">
                     <h3>Deactivate or delete account</h3>
                     <div className="ps-danger-row">
@@ -1937,6 +1947,7 @@ export default function ProfileSettings() {
                       <button type="button" className="ps-btn-danger" onClick={handleDeleteAccount}><Trash2 size={16} /> Delete</button>
                     </div>
                   </div>
+                  )}
                 </>
               )}
 

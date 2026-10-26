@@ -4,32 +4,8 @@
    Media queries only. Loaded last from BrandTopNavLayout so it wins ties.
    ───────────────────────────────────────────────────────────────────────── */
 
-/* ── Header + mobile menu ────────────────────────────────────────────── */
-@media (max-width:900px){
-  .bui-hamburger{width:44px;height:44px;margin-left:-10px;place-items:center}
-  .bui-hamburger{display:inline-grid}
-  .bui-header-in{gap:8px 12px}
-  .bui-search input{font-size:16px}
-  /* fixed offset, NOT --cmk-nav-height: the menu sits inside the header, so that would feed back into itself */
-  .bui-mobile{max-height:calc(100vh - 170px);max-height:calc(100dvh - 170px);overflow-y:auto;overscroll-behavior:contain}
-  .bui-mobile button{min-height:48px}
-  .bui-mobile button svg{flex:none;color:var(--bui-muted)}
-  .bui-mobile button.is-active svg{color:var(--bui-link)}
-  .bui-mobile .bui-mobile-post{justify-content:center;margin:6px 0 8px;border:0;border-radius:10px;background:var(--bui-ink);color:#fff;font-weight:600}
-  .bui-mobile .bui-mobile-post svg{color:#fff}
-  .bui-mobile-bal{margin-left:auto;font-style:normal;font-size:13.5px;font-weight:600;padding:4px 10px;border-radius:999px;background:#ececfa;color:var(--bui-ink)}
-  .bui-menu{max-height:calc(100vh - 90px);max-height:calc(100dvh - 90px);overflow-y:auto;min-width:min(240px,calc(100vw - 32px))}
-  .bui-menu button{min-height:44px}
-}
+/* ── Shared page chrome (the app header itself lives in brand-ui-shell.css) ── */
 @media (max-width:720px){
-  .bui-header-in{flex-wrap:wrap;padding:6px 16px 10px;gap:4px 0}
-  .bui-logo{margin-right:auto;margin-left:2px}
-  .bui-nav{margin-left:0;flex:none;gap:0}
-  .bui-nav .bui-iconbtn,.bui-nav .notification-bell-button{width:42px}
-  .bui-avatar{margin-left:6px;width:38px;height:38px}
-  .bui-search{order:3;flex:1 1 100%;max-width:none;height:46px}
-  .bui-cats-in{gap:22px;padding:0 16px}
-  .bui-cats-in button{min-height:44px;padding:0}
   .bui-main{padding:20px 16px 56px;gap:30px}
   .bui-main--tight{padding-top:16px;gap:18px}
   .bui-h1{font-size:26px}
@@ -42,9 +18,6 @@
   .bui-btn,.bui-cta,.bui-fbtn,.bui-toggle{min-height:44px}
   .bui-chip{min-height:40px}
   .bui-modal-foot .bui-btn{flex:1}
-}
-@media (max-width:375px){
-  .bui-nav>button[aria-label="Saved creators"]{display:none}
 }
 
 /* ── Home ────────────────────────────────────────────────────────────── */
@@ -119,9 +92,12 @@
   .bui-filterbar>*{flex:none}
   .bui-filterbar .bui-grow{display:none}
   .bui-fbtn{height:44px}
-  .bui-countrow{flex-direction:column;align-items:flex-start;gap:4px}
-  .bui-countrow .bui-link:not(.bc-approved-link){padding:6px 0}
-  .bui-countrow .bc-approved-link{min-height:44px;align-self:flex-start}
+  .bui-countrow{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"count sort" "link link";align-items:center;gap:12px 10px}
+  .bui-countrow>:nth-child(1){grid-area:count}
+  .bui-countrow>:nth-child(2){grid-area:link}
+  .bui-countrow>:nth-child(3){grid-area:sort;text-align:right;white-space:nowrap}
+  .bui-countrow .bui-link:not(.bc-approved-link){padding:6px 0;justify-self:start}
+  .bui-countrow .bc-approved-link{display:flex;align-items:center;justify-content:center;width:100%;min-height:46px;padding:0 20px;border-radius:999px;text-align:center;white-space:nowrap}
   .bui-crumb{flex-wrap:wrap}
 }
 @media (max-width:600px){
@@ -265,17 +241,5 @@
   .bui-fchip{min-height:32px}
 }
 
-/* Tablet header: top row = hamburger | logo | icons + Post, search full width on its own row. */
-@media (min-width:721px) and (max-width:900px){
-  .bui-header-in{flex-wrap:wrap;gap:6px 12px;padding-bottom:12px}
-  .bui-logo{margin-right:auto}
-  .bui-nav{margin-left:0}
-  .bui-search{order:3;flex:1 1 100%;max-width:none}
-  .bui-post{margin-left:6px}
-}
-
 /* Filter-modal chips can hold long creator-written text: wrap instead of overflowing a fixed height. */
 .bui-chip{border-radius:18px;height:auto;min-height:36px;max-width:100%;padding-top:6px;padding-bottom:6px;line-height:1.3;text-align:left;overflow-wrap:anywhere}
-
-/* Phones: the two-row header (+ search + category strip) is too tall to keep pinned. */
-@media (max-width:720px){ body .bui-header{position:relative} }

@@ -815,6 +815,7 @@ function PostCampaign() {
       subtitle={draftSavedAt ? '✓ Draft saved' : undefined}
       back={backOr(ROUTES.campaigns)}
       tabs={false}
+      hideActions
       right={<button type="button" className="ap-btn ap-btn--sm ap-btn--ghost" aria-label="Save draft" onClick={saveDraft} disabled={savingDraft}>{savingDraft ? 'Saving…' : 'Save'}</button>}
     >
       <div className="ap-cp-page ap-cp-pad">

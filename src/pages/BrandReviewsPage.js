@@ -6,6 +6,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { Star, ArrowRight } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
+import BrandPageHead from '../components/BrandPageHead';
 import { creatorFirstName } from '../utils/displayName';
 import '../styles/creator-marketplace.css';
 import '../styles/brand-mobile.css';
@@ -102,12 +103,7 @@ export default function BrandReviewsPage() {
   return (
     <BrandTopNavLayout>
       <div className="bui-main">
-        <div className="bui-titlerow">
-          <div>
-            <h1 className="bui-h1">Reviews</h1>
-            <p className="bui-sub">What creators say about working with you. Good reviews help you get better bids.</p>
-          </div>
-        </div>
+        <BrandPageHead title="Reviews" subtitle="What creators say about working with you. Good reviews help you get better bids." />
 
         {loading ? (
           <div aria-hidden="true">

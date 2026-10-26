@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { Bookmark } from 'lucide-react';
@@ -8,11 +8,13 @@ import { useAuth } from '../../../App';
 import { useLiveEffect } from '../../../lib/liveUpdates';
 import normalizeBrief from '../../../utils/normalizeBrief';
 import { getSavedBriefs, toggleSavedBrief, hydrateSavedFromServer } from '../../../utils/savedBriefs';
-import { API, BriefTabs, BriefCard, BriefCardSkeleton, BriefDetail, useApply } from './briefsShared';
+import { API, BriefTabs, BriefCard, BriefCardSkeleton, BriefDetail, useApply, SearchRow, NoMatches, matchesQuery } from './briefsShared';
 
 export default function SavedBriefs() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const q = searchParams.get('q') || '';
   const [saved, setSaved] = useState(() => getSavedBriefs());
   const [openBrief, setOpenBrief] = useState(null); // full brief shown in the detail view
   const [opening, setOpening] = useState(null);     // id currently being fetched
@@ -45,14 +47,19 @@ export default function SavedBriefs() {
   const apply = useApply(user, () => { setOpenBrief(null); });
   const unsave = (brief) => { toggleSavedBrief(brief); toast.success('Removed from saved'); };
   const list = saved.map((b) => (b.brand ? b : normalizeBrief(b)));
+  const matches = list.filter((b) => matchesQuery(q, b.title, b.brand, b.description, b.industryType, b.tags || []));
+  const commitSearch = (v) => { const n = new URLSearchParams(searchParams); if (v) n.set('q', v); else n.delete('q'); setSearchParams(n, { replace: true }); };
   const isSaved = (id) => saved.some((b) => String(b.id ?? b._id) === String(id));
 
   return (
-    <AppShell title="Saved briefs" subtitle="Briefs you bookmarked to apply to later.">
+    <AppShell back title="Saved briefs" subtitle="Briefs you bookmarked to apply to later.">
+      <SearchRow q={q} onCommit={commitSearch} />
       <BriefTabs active="saved" counts={{ saved: saved.length }} />
-      {list.length ? (
+      {list.length && !matches.length ? (
+        <NoMatches q={q} onClear={() => commitSearch('')} />
+      ) : list.length ? (
         <div className="ap-bf-list">
-          {list.map((b) => <BriefCard key={b.id} brief={b} saved busy={opening === b.id} cta="View" onOpen={openDetail} onToggleSave={unsave} />)}
+          {matches.map((b) => <BriefCard key={b.id} brief={b} saved busy={opening === b.id} cta="View" onOpen={openDetail} onToggleSave={unsave} />)}
         </div>
       ) : hydrating ? (
         <div className="ap-bf-list" aria-hidden="true">{[0, 1, 2].map((i) => <BriefCardSkeleton key={i} />)}</div>

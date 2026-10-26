@@ -12,6 +12,7 @@ import { isOpenForBids, selectedCreators, creatorsWanted, slotsLeft, bidSplitLab
 import { Plus, Briefcase, LogOut, MessageSquare, CheckCircle, Eye, Package, FileCheck, TrendingUp, Users, Search, Wallet, Lock, Activity, LayoutGrid, SquarePen, UserRoundSearch, ClipboardList, Settings, Bell, Clock3, FileText, ExternalLink, Download, AlertCircle, UserCheck, Filter, MapPin, Languages, Image as ImageIcon, Send, IndianRupee, Zap, Copy, ArrowDownLeft, ArrowUpRight, X, ChevronDown, BadgeCheck, Star, Clock } from 'lucide-react';
 import PostABrief from './PostABrief';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
+import BrandPageHead from '../components/BrandPageHead';
 import { Skeleton } from '../components/Skeleton';
 import RejectedGate from '../components/RejectedGate';
 import MoreInfoGate from '../components/MoreInfoGate';
@@ -1754,13 +1755,12 @@ export default function BusinessDashboard({ page = 'overview' }) {
             };
             return (
             <div className="bui-main bui-main--tight">
-              <div className="bui-titlerow">
-                <div>
-                  <h1 className="bui-h1">Sent briefs</h1>
-                  <p className="bui-sub">Private briefs, invites and offers you sent straight to creators.</p>
-                </div>
-                <button type="button" className="bui-btn" onClick={() => navigate('/dashboard/business/browse-creator')}>Invite a creator</button>
-              </div>
+              <BrandPageHead
+                title="Sent briefs"
+                subtitle="Private briefs, invites and offers you sent straight to creators."
+                hideSearch
+                action={<button type="button" className="bui-btn" onClick={() => navigate('/dashboard/business/browse-creator')}>Invite a creator</button>}
+              />
 
               <div className="bui-tabs" role="tablist" aria-label="Brief status">
                 {FILTERS.map(f => (
@@ -1840,12 +1840,11 @@ export default function BusinessDashboard({ page = 'overview' }) {
             const current = bidCampaigns.find(c => c.id === bidCampaignId) || bidCampaigns.find(hasOpenBids) || bidCampaigns[0];
             return (
             <div className="bui-main bui-main--tight">
-              <div className="bui-titlerow">
-                <div>
-                  <h1 className="bui-h1">Compare bids</h1>
-                  <p className="bui-sub">Pick the creators you want. Money only leaves your wallet when you accept.</p>
-                </div>
-                {bidCampaigns.length > 1 && current && (
+              <BrandPageHead
+                title="Compare bids"
+                subtitle="Pick the creators you want. Money only leaves your wallet when you accept."
+                hideSearch
+                action={bidCampaigns.length > 1 && current ? (
                   <label className="bui-campsel">
                     Campaign
                     <select value={current.id} onChange={(e) => setBidCampaignId(e.target.value)}>
@@ -1858,8 +1857,8 @@ export default function BusinessDashboard({ page = 'overview' }) {
                       })}
                     </select>
                   </label>
-                )}
-              </div>
+                ) : null}
+              />
               {bidCampaigns.length === 0 && campaignsError ? (
                 <div className="bui-empty">
                   <h3>Couldn&rsquo;t load your bids</h3>
@@ -2140,10 +2139,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
             };
             return (
             <div className="bui-main bui-main--tight">
-              <div>
-                <h1 className="bui-h1">Wallet</h1>
-                <p className="bui-sub">Add funds once, then hire creators in a click. Money is held safely until you approve.</p>
-              </div>
+              <BrandPageHead title="Wallet" subtitle="Add funds once, then hire creators in a click. Money is held safely until you approve." />
 
               <section className="bui-whero">
                 <span className="bui-hero-glow" aria-hidden="true" />
@@ -2302,10 +2298,7 @@ export default function BusinessDashboard({ page = 'overview' }) {
 
           {activeTab === 'shipments' && (
             <div className="bui-main bui-main--tight">
-              <div>
-                <h1 className="bui-h1">Shipments</h1>
-                <p className="bui-sub">Products you send to creators for filming, with live tracking.</p>
-              </div>
+              <BrandPageHead title="Shipments" subtitle="Products you send to creators for filming, with live tracking." />
               {(() => {
                 const shipCampaigns = campaigns.filter((c) => c.requires_shipment || c.shipment_option === 'yes');
                 // One row per hired creator (a multi-creator brief ships to each of them).

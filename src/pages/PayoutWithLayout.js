@@ -10,6 +10,7 @@ import EmptyState from '../components/EmptyState';
 import { SkeletonTable } from '../components/Skeleton';
 import { apiErrorMessage } from '../utils/apiError';
 import '../styles/creator-ui-earnings.css';
+import '../styles/creator-ui-mobile-money.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;

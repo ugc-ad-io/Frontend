@@ -62,7 +62,7 @@ export default function MyBidsPage() {
 
 // The status filter + bids list + detail sheet, without the page shell — rendered as the
 // "Applied" tab of Find briefs and as the "My Bids" tab of the My Deals hub.
-export function MyBidsContent({ onCount }) {
+export function MyBidsContent({ onCount, query = '' }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [bids, setBids] = useState([]);
@@ -115,8 +115,15 @@ export function MyBidsContent({ onCount }) {
 
   const rows = useMemo(() => {
     const t = TABS.find((x) => x.key === tab);
-    return bids.filter((b) => t.match(getBidStatus(b)));
-  }, [bids, tab]);
+    const q = String(query || '').trim().toLowerCase();
+    return bids
+      .filter((b) => t.match(getBidStatus(b)))
+      .filter((b) => {
+        if (!q) return true;
+        const c = b.campaign || {};
+        return `${brandOf(c)} ${c.title || ''} ${c.description || ''}`.toLowerCase().includes(q);
+      });
+  }, [bids, tab, query]);
 
   return (
     <>
@@ -169,7 +176,7 @@ export function MyBidsContent({ onCount }) {
           })}
         </div>
       ) : (
-        <EmptyState title={`No bids in “${TABS.find((t) => t.key === tab).label}”`} message="Browse open briefs and send an application to start winning brand deals." action={{ label: 'Browse briefs', onClick: () => navigate('/browse-briefs') }} />
+        <EmptyState title={String(query || '').trim() ? `No bids match “${String(query).trim()}”` : `No bids in “${TABS.find((t) => t.key === tab).label}”`} message="Browse open briefs and send an application to start winning brand deals." action={{ label: 'Browse briefs', onClick: () => navigate('/browse-briefs') }} />
       )}
 
       {selected && (() => {

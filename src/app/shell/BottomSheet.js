@@ -1,7 +1,9 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
+import { useAppBack } from './useAppBack';
 import './app-shell.css';
+import './app-platform.css';
 
 /**
  * Bottom sheet used for every phone pop-up (design board M8 / CM5): backdrop, grabber, title, scrolling body.
@@ -17,6 +19,7 @@ export default function BottomSheet({ open, onClose, title, subtitle, footer, ch
     document.body.style.overflow = 'hidden';
     return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = prev; };
   }, [open, onClose]);
+  useAppBack(open, onClose); // Android/browser Back closes the sheet instead of leaving the page
   if (!open) return null;
   return createPortal(
     <div className="ap-sheet-ov" onClick={onClose}>

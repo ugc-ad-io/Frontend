@@ -39,12 +39,14 @@
 .cui-app .notification-tabs button{height:32px}
 .cui-app .notification-dropdown{z-index:90}
 @media (max-width:900px){
-  /* phone/tablet: a sheet under the 56px top bar, clear of the 64px bottom tabs */
-  .cui-app .notification-dropdown{position:fixed;top:64px;left:10px;right:10px;width:auto;max-width:none;margin-top:0;max-height:calc(100dvh - 56px - 64px - 24px);display:flex;flex-direction:column}
+  /* phone/tablet: a sheet under the 52px top bar, clear of the 52px bottom tabs */
+  .cui-app .notification-dropdown{position:fixed;top:calc(60px + env(safe-area-inset-top,0px));left:10px;right:10px;width:auto;max-width:none;margin-top:0;max-height:calc(100dvh - 52px - 52px - 24px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));display:flex;flex-direction:column}
   .cui-app .notification-list{flex:1;min-height:0;max-height:none}
   .cui-app .notification-item{padding:12px 14px}
   .cui-app .mark-all-read,.cui-app .notification-viewall{min-height:44px}
-  .cui-app .notification-tabs button{height:36px}
+  .cui-app .notification-tabs button{height:44px}
+  .cui-app .mark-read-btn{min-width:44px;min-height:44px}
+  .cui-n-cta{height:44px}
 }
 
 /* ── All notifications page ── */

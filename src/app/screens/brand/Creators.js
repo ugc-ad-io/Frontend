@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import useAutoSearch from '../../../utils/useAutoSearch';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -123,6 +124,8 @@ function BrandAppCreators() {
   }, [reloadKey]);
 
   useEffect(() => { setQ(urlQ); }, [urlQ]);
+  // Search as you type: write ?q= after a short pause (Enter still works).
+  useAutoSearch(q, urlQ, (v) => setParams((p) => { if (v) p.set('q', v); else p.delete('q'); }));
   useEffect(() => {
     tabsRef.current?.querySelector('.is-on')?.scrollIntoView?.({ block: 'nearest', inline: 'center' });
   }, [categoryLabel, approvedMode]);

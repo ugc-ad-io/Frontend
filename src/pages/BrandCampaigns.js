@@ -6,13 +6,14 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { Search, X, Trash2 } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
+import BrandPageHead from '../components/BrandPageHead';
 import BriefOverlay from '../components/BriefOverlay';
 import PostABrief from './PostABrief';
 import { Skeleton } from '../components/Skeleton';
 import { ownsCampaign } from '../utils/brandWorkspace';
 import { selectedCreators } from '../utils/campaignCreators';
 import { apiErrorMessage } from '../utils/apiError';
-import { campaignStage, campaignPill, campaignCta, budgetText, STAGE_LABELS } from '../utils/campaignStage';
+import { campaignStage, campaignPill, campaignCta, budgetText } from '../utils/campaignStage';
 import '../styles/creator-marketplace.css';
 import '../styles/brand-mobile.css';
 import '../styles/brand-ui.css';
@@ -150,16 +151,12 @@ export default function BrandCampaigns() {
   return (
     <BrandTopNavLayout>
       <div className="bui-main bui-main--tight">
-        <div className="bui-titlerow">
-          <div>
-            <h1 className="bui-h1">Manage campaigns</h1>
-            <p className="bui-sub">Every brief, its creator, and what you need to do next.</p>
-          </div>
+        <BrandPageHead title="Manage campaigns" subtitle="Every brief, its creator, and what you need to do next." hideSearch>
           <label className="bui-searchbox">
             <Search size={16} />
             <input type="search" placeholder="Search campaigns" aria-label="Search campaigns" value={query} onChange={(e) => setQuery(e.target.value)} />
           </label>
-        </div>
+        </BrandPageHead>
 
         <div className="bui-tabs" role="tablist" aria-label="Campaign status">
           {visibleTabs.map((t) => (
@@ -259,10 +256,10 @@ export default function BrandCampaigns() {
                     </tr>,
                     <tr key={`${cid}-track`}>
                       <td colSpan={6} className="bui-trackcell">
-                        <div className="bui-track6" role="list" aria-label={`Progress for ${title}`}>
-                          {STAGE_LABELS.map((name, i) => {
-                            const done = i < st.idx;
-                            const now = i === st.idx && c.status !== 'completed';
+                        <div className="bui-track6" style={{ '--n': st.labels.length }} role="list" aria-label={`Progress for ${title}`}>
+                          {st.labels.map((name, i) => {
+                            const done = i < st.shownIdx;
+                            const now = i === st.shownIdx && c.status !== 'completed';
                             return (
                               <div key={name} role="listitem" className={done ? 'is-done' : now ? 'is-now' : ''}>
                                 <span aria-hidden="true" />

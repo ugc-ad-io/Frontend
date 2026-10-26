@@ -99,7 +99,8 @@
 .ap-prof-links button>svg:last-child{color:var(--ap-muted)}
 
 /* Reviews & level */
-.ap-rv-level{background:var(--ap-grad);color:#fff;position:relative;overflow:hidden}
+/* .ap-card.ap-rv-level (2 classes) so shell .ap-card{background:#fff} can never win by stylesheet order in the production build (white card + white text = washed out). */
+.ap-card.ap-rv-level{background:linear-gradient(112deg,#07074E 0%,#0F1468 55%,#2A3AB8 100%);color:#fff;position:relative;overflow:hidden}
 .ap-rv-level::after{content:'';position:absolute;right:-70px;top:-70px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(115,135,255,.6) 0%,rgba(115,135,255,0) 70%);pointer-events:none}
 .ap-rv-level>*{position:relative;z-index:1}
 .ap-rv-level small{font-size:12.5px;color:#c9ceff}

@@ -265,6 +265,7 @@ export default function MessagesPage() {
   // Set when a conversation is opened, so the first message render jumps straight
   // to the latest message instead of leaving the view at the top of the thread.
   const justOpenedRef = useRef(false);
+  const prevCountRef = useRef(0); // messages shown last time: tells a single new message from a whole chat loading
 
   const navItems = user?.role === 'business'
     ? [
@@ -361,6 +362,7 @@ export default function MessagesPage() {
     // which is why mobile opened chats at the top.
     if (justOpenedRef.current && messages.length) {
       justOpenedRef.current = false;
+      prevCountRef.current = messages.length;
       container.scrollTop = container.scrollHeight;
       // Re-pin next frame so late-laid-out content (attachments, cards) can't
       // leave us a screen short of the bottom.
@@ -370,8 +372,12 @@ export default function MessagesPage() {
 
     const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 100;
 
+    // Only a single new message glides into view; a whole chat arriving at once (long history,
+    // switching chats) jumps, so a long conversation never visibly "scrolls down from the top".
+    const added = messages.length - prevCountRef.current;
+    prevCountRef.current = messages.length;
     if (isAtBottom && !userScrolledUpRef.current) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      messagesEndRef.current?.scrollIntoView({ behavior: Math.abs(added) > 2 ? 'auto' : 'smooth' });
     }
   }, [messages]);
 

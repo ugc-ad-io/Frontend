@@ -312,7 +312,7 @@ export default function BrandShipmentsApp() {
   };
 
   return (
-    <AppShell title="Shipments" subtitle="Products you send to creators">
+    <AppShell back title="Shipments" subtitle="Products you send to creators">
       <div className="ap-wk">
         {loading ? <Skeletons n={3} h={140} />
           : error && campaigns.length === 0 ? <LoadError title="Couldn't load your shipments" message={error} onRetry={retry} />

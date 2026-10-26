@@ -266,7 +266,7 @@ const ShippingDetailsCard = forwardRef(function ShippingDetailsCard({ campaignId
         .sdc-save:disabled{opacity:.55;cursor:not-allowed}
         .sdc-ghost{border:1px solid #c9cbea;background:#fff;color:#07074e;font-family:inherit;font-weight:700;font-size:14px;height:44px;padding:0 20px;border-radius:999px;cursor:pointer}
         .sdc-ghost:hover{background:#f3f3ff}
-        @media (max-width:560px){.sdc-form{grid-template-columns:minmax(0,1fr)}.sdc-actions{flex-wrap:wrap}.sdc-actions button{flex:1 1 140px}}
+        @media (max-width:560px){.sdc-form{grid-template-columns:minmax(0,1fr)}.sdc-actions{flex-wrap:wrap}.sdc-actions button{flex:1 1 140px}.sdc-form input{font-size:16px;min-height:46px}.sdc-edit{height:44px}.sdc-head,.sdc-body,.sdc-status{padding-left:16px;padding-right:16px}}
         `}</style>
     </div>
   );

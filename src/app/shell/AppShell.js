@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Home, Users, Plus, Megaphone, MessageCircle, Compass, Package, User, Bell, ChevronLeft,
@@ -7,7 +7,10 @@ import {
 import { useAuth } from '../../App';
 import { creatorFirstName, brandName } from '../../utils/displayName';
 import BottomSheet from './BottomSheet';
+import { useAppPlatform } from './platform';
+import { afterSheetClosed } from './useAppBack';
 import './app-shell.css';
+import './app-platform.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 
@@ -50,33 +53,92 @@ const CREATOR_MORE = [
 
 const isOn = (item, pathname) => item.match.some((m) => pathname === m || pathname.startsWith(`${m}/`));
 
+// Path of the screen shown before this one. It is stored in the history entry (state.ugcPrev) the first time a screen
+// opens, so a "back to <path>" arrow can pop history (no loop) when the previous page really is that path.
+let lastShellPath = null;
+
 /**
  * The phone app frame used by every screen in src/app/screens: top bar, scrolling body, bottom tabs.
  *   title / subtitle  top-bar heading            back   true = go back, or a path string
  *   right             extra nodes before the bell   tone   'dark' for a navy hero behind the bar
  *   tabs={false}      hide the bottom tabs (full-screen flows: chat, apply, forms)
  *   bare              no body padding (screen draws edge to edge)
+ *   hideActions       no bell / avatar in the top bar (focused flows such as posting a campaign)
  */
-export default function AppShell({ title, subtitle, back, right, tone = 'light', tabs = true, bare = false, children, className = '' }) {
+export default function AppShell({ title, subtitle, back, right, tone = 'light', tabs = true, bare = false, hideActions = false, children, className = '' }) {
   const navigate = useNavigate();
-  const { pathname } = useLocation();
+  const location = useLocation();
+  const { pathname, search, hash } = location;
   const { user, logout } = useAuth();
   const [more, setMore] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const bodyRef = useRef(null);
+  useAppPlatform();
   const isBrand = user?.role === 'business';
   const TABS = isBrand ? BRAND_TABS : CREATOR_TABS;
   const MORE = isBrand ? BRAND_MORE : CREATOR_MORE;
   const photo = user?.profile_photo || user?.profile_picture || user?.brand_logo || user?.avatar;
   const photoUrl = photo ? (String(photo).startsWith('http') ? photo : `${BACKEND_URL}${photo}`) : '';
   const name = isBrand ? (user?.profile?.business_name || brandName(user)) : creatorFirstName(user);
-  const goBack = () => (typeof back === 'string' ? navigate(back) : navigate(-1));
+  const home = TABS[0];
+
+  // Remember where this screen was opened from (see lastShellPath).
+  useEffect(() => {
+    const st = window.history.state;
+    if (st && st.ugcPrev === undefined && lastShellPath && lastShellPath !== pathname) {
+      window.history.replaceState({ ...st, ugcPrev: lastShellPath }, '');
+    }
+    lastShellPath = pathname;
+  }, [pathname]);
+
+  // Opened with nothing behind it (notification, deep link, reload): put the parent screen underneath, so the Android
+  // back button / gesture goes to the role home (or the "back" target) before it leaves the app.
+  useEffect(() => {
+    const st = window.history.state;
+    if (!user || !st || st.idx !== 0 || !(tabs || back)) return;
+    const parent = typeof back === 'string' ? back : home.to;
+    if (pathname === parent || isOn(home, pathname)) return;
+    navigate(parent, { replace: true });
+    navigate(`${pathname}${search}${hash}`, { state: { ...(location.state || {}), ugcFromHome: parent === home.to } });
+    window.history.replaceState({ ...window.history.state, ugcPrev: parent }, '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // A reused shell (same screen, new URL) starts at the top again.
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) { first.current = false; return; }
+    if (bodyRef.current) bodyRef.current.scrollTop = 0;
+  }, [pathname]);
+
+  // iOS has no hardware back button and a freshly opened app has no history: go back when there is somewhere to go,
+  // otherwise land on the role's home so "Back" never does nothing or leaves the app.
+  const goBack = () => {
+    const st = window.history.state;
+    const deep = !!st && st.idx > 0;
+    if (typeof back === 'string') { if (deep && st.ugcPrev === back) navigate(-1); else navigate(back); return; }
+    if (deep) navigate(-1); else navigate(home.to, { replace: true });
+  };
+
+  // Bottom tabs keep Back sensible: Home -> tab pushes; tab -> tab replaces (Back returns to Home); tab -> Home pops.
+  const goTab = (t) => {
+    const onTabRoot = tabs && !back && TABS.some((x) => isOn(x, pathname));
+    if (onTabRoot && isOn(t, pathname)) { bodyRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+    const fromHome = onTabRoot && isOn(home, pathname);
+    if (t === home) {
+      if (onTabRoot && location.state?.ugcFromHome && window.history.state?.idx > 0) navigate(-1);
+      else navigate(t.to, { replace: onTabRoot });
+    } else if (onTabRoot && !fromHome) navigate(t.to, { replace: true, state: { ugcFromHome: !!location.state?.ugcFromHome } });
+    else navigate(t.to, { state: { ugcFromHome: fromHome } });
+  };
 
   return (
-    <div className={`ap-shell ap-shell--${tone}${className ? ` ${className}` : ''}`}>
+    <div className={`ap-shell ap-shell--${tone}${scrolled ? ' is-scrolled' : ''}${className ? ` ${className}` : ''}`}>
       <header className="ap-bar">
         {back ? (
           <button type="button" className="ap-bar-btn" aria-label="Back" onClick={goBack}><ChevronLeft size={24} /></button>
         ) : (
-          <button type="button" className="ap-bar-logo" aria-label="UGCad home" onClick={() => navigate(TABS[0].to)}>
+          <button type="button" className="ap-bar-logo" aria-label="UGCad home" onClick={() => goTab(home)}>
             <span className="ap-logo-mark" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-logo.png)` }} />
           </button>
         )}
@@ -86,14 +148,22 @@ export default function AppShell({ title, subtitle, back, right, tone = 'light',
         </div>
         <div className="ap-bar-right">
           {right}
-          <button type="button" className="ap-bar-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}><Bell size={22} /></button>
-          <button type="button" className="ap-avatar" aria-label="Menu" onClick={() => setMore(true)}>
-            {photoUrl ? <img src={photoUrl} alt="" /> : (name || 'U').trim().charAt(0).toUpperCase()}
-          </button>
+          {!hideActions && (
+            <>
+              <button type="button" className="ap-bar-btn" aria-label="Notifications" onClick={() => navigate('/notifications')}><Bell size={22} /></button>
+              <button type="button" className="ap-avatar" aria-label="Menu" onClick={() => setMore(true)}>
+                {photoUrl ? <img src={photoUrl} alt="" /> : (name || 'U').trim().charAt(0).toUpperCase()}
+              </button>
+            </>
+          )}
         </div>
       </header>
 
-      <main className={`ap-body${bare ? ' ap-body--bare' : ''}${tabs ? ' ap-body--tabs' : ''}`}>{children}</main>
+      <main
+        ref={bodyRef}
+        className={`ap-body${bare ? ' ap-body--bare' : ''}${tabs ? ' ap-body--tabs' : ''}`}
+        onScroll={tone === 'dark' ? (e) => setScrolled(e.currentTarget.scrollTop > 24) : undefined}
+      >{children}</main>
 
       {tabs && (
         <nav className="ap-tabs" aria-label="Main">
@@ -102,7 +172,7 @@ export default function AppShell({ title, subtitle, back, right, tone = 'light',
               key={t.key}
               type="button"
               className={`ap-tab${isOn(t, pathname) ? ' is-on' : ''}${t.center ? ' ap-tab--center' : ''}`}
-              onClick={() => navigate(t.to)}
+              onClick={() => goTab(t)}
             >
               <span className="ap-tab-ic"><t.icon size={t.center ? 26 : 22} strokeWidth={t.center ? 2.6 : 2} /></span>
               <small>{t.label}</small>
@@ -114,11 +184,11 @@ export default function AppShell({ title, subtitle, back, right, tone = 'light',
       <BottomSheet open={more} onClose={() => setMore(false)} title={name || 'Menu'}>
         <div className="ap-more">
           {MORE.map((m) => (
-            <button key={m.label} type="button" className="ap-more-row" onClick={() => { setMore(false); navigate(m.to); }}>
+            <button key={m.label} type="button" className="ap-more-row" onClick={() => afterSheetClosed(() => navigate(m.to))}>
               <m.icon size={20} /> <span>{m.label}</span>
             </button>
           ))}
-          <button type="button" className="ap-more-row ap-more-row--out" onClick={() => { setMore(false); logout(); }}>
+          <button type="button" className="ap-more-row ap-more-row--out" onClick={() => afterSheetClosed(logout)}>
             <LogOut size={20} /> <span>Log out</span>
           </button>
         </div>

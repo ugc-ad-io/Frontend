@@ -10,7 +10,7 @@ import { useAuth } from '../../../App';
 import { useLiveEffect } from '../../../lib/liveUpdates';
 import { findCreatorDeal, getDealMessages } from '../../../utils/dealMessages';
 import { downloadDeliverable } from '../../../utils/downloadDeliverable';
-import { campaignStage, STAGE_LABELS } from '../../../utils/campaignStage';
+import { campaignStage, stageLabelsFor, stageIndexFor } from '../../../utils/campaignStage';
 import { draftTotalBudget } from '../../../utils/budgetLabel';
 import { selectedCreators, creatorsWanted, slotsLeft, bidSplitLabel } from '../../../utils/campaignCreators';
 import { creatorFirstName } from '../../../utils/displayName';
@@ -496,9 +496,11 @@ function CampaignDetail() {
   const creatorSelected = !!(campaign.selected_creator || creator?.id || deal?.creator?.id);
   const shippingAllowed = !['rejected', 'cancelled', 'banned'].includes(campaign.status) && campaign.booking_status !== 'declined';
   const requiresShipHere = Boolean(campaign.requires_shipment || ship.required);
+  const stageLabels = stageLabelsFor(requiresShipHere);
   const dealIdxNow = deal ? dealStateIndex(deal.current_state) : -1;
   const baseStage = campaignStage(campaign, shipped);
   const stageIdx = dealIdxNow >= 6 ? 5 : dealIdxNow >= 4 ? 4 : dealIdxNow >= 3 ? 3 : dealIdxNow >= 1 ? 2 : baseStage.idx;
+  const shownStageIdx = stageIndexFor(stageIdx, requiresShipHere);
   const badge = statusBadge(campaign.status);
   const creatorName = creator ? creatorFirstName(creator).replace(/^@+/, '') : 'the creator';
   const budgetMax = Number(campaign.budget_max || campaign.per_video_budget || 0);
@@ -623,10 +625,10 @@ function CampaignDetail() {
           {!isDraft && (
             <>
               <div className="ap-cp-stephead">
-                <strong>Step {stageIdx + 1} of {STAGE_LABELS.length} &middot; {campaign.status === 'completed' ? 'Done' : STAGE_LABELS[stageIdx]}</strong>
+                <strong>Step {shownStageIdx + 1} of {stageLabels.length} &middot; {campaign.status === 'completed' ? 'Done' : stageLabels[shownStageIdx]}</strong>
                 {endsOn && <span>Ends {endsOn}</span>}
               </div>
-              <StageBar idx={stageIdx} completed={campaign.status === 'completed'} label="Campaign progress" />
+              <StageBar idx={shownStageIdx} stages={stageLabels} completed={campaign.status === 'completed'} label="Campaign progress" />
             </>
           )}
         </section>

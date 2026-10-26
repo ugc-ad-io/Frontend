@@ -186,7 +186,7 @@ function Campaigns() {
                     {budget && <span className="ap-cp-strong">{budget}</span>}
                   </div>
 
-                  <StageBar idx={st.idx} completed={c.status === 'completed'} label={`Progress for ${title}`} />
+                  <StageBar idx={st.shownIdx} stages={st.labels} completed={c.status === 'completed'} label={`Progress for ${title}`} />
 
                   <div className="ap-cp-camp-act">
                     {['draft', 'rejected'].includes(c.status) && (

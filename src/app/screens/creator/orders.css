@@ -131,7 +131,7 @@
 .ap-or-poster{position:relative;flex:none;overflow:hidden;border-radius:14px;background:#14143f;display:grid;place-items:center;color:#fff}
 .ap-or-poster img,.ap-or-poster video{width:100%;height:100%;object-fit:cover;display:block}
 .ap-or-poster a,.ap-or-poster button{position:absolute;left:50%;top:50%;width:36px;height:36px;margin:-18px 0 0 -18px;border-radius:50%;background:rgba(255,255,255,.92);display:grid;place-items:center;color:var(--ap-ink);border:0;padding:0;cursor:pointer}
-.ap-or-poster .wm{position:absolute;left:0;right:0;top:46%;text-align:center;font-size:10px;font-weight:800;letter-spacing:.12em;color:rgba(255,255,255,.75);transform:rotate(-18deg);pointer-events:none}
+.ap-or-poster .wm{position:absolute;inset:0;font-size:0;color:transparent;pointer-events:none;background-image:var(--ugc-wm);background-size:120px 75px}
 .ap-or-vmeta{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px;align-items:flex-start}
 .ap-or-vmeta strong{font-size:14px}
 .ap-or-vmeta small{font-size:12px;color:var(--ap-muted)}

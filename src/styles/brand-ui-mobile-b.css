@@ -59,8 +59,12 @@
   body .bui-table--ship td.bui-right{justify-content:flex-start;flex-wrap:wrap}
 }
 @media (max-width:640px){
-  body .bui-sb{grid-template-columns:minmax(0,1fr);gap:12px;padding:14px}
-  body .bui-sb-who{grid-column:auto}
+  body .bui-sb{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"who st" "note note" "amt amt" "cta cta";gap:12px;padding:14px;align-items:start}
+  body .bui-sb-who{grid-area:who}
+  body .bui-sb-st{grid-area:st;text-align:right;justify-self:end}
+  body .bui-sb-note{grid-area:note}
+  body .bui-sb-amt{grid-area:amt}
+  body .bui-sb>.bui-cta{grid-area:cta}
   body .bui-sb .bui-cta{height:44px;width:100%}
   body .bui-sb-who-t>div{flex-wrap:wrap}
 }

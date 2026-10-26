@@ -20,6 +20,7 @@ import {
   VolumeX,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import '../styles/public-mobile.css';
 
 // -- Static content (edit freely) ------------------------------------------
 
@@ -265,6 +266,16 @@ function GalleryCard({ av, src, hidden }) {
       />
     </div>
   );
+}
+
+// 2 MB head.mp4 used to autoPlay on phones the moment the page loaded, below the fold. Now it only
+// starts (and pauses) when scrolled into view; preload stays "metadata" until then.
+function playWhenInView(v) {
+  if (!v || v._inView) return;
+  v._inView = new IntersectionObserver(([e]) => {
+    if (e.isIntersecting) v.play().catch(() => {}); else v.pause();
+  }, { threshold: 0.3 });
+  v._inView.observe(v);
 }
 
 // Only one testimonial may have sound at a time; this mutes whichever one currently does.
@@ -757,7 +768,7 @@ export default function CreatorLanding() {
                     muted
                     loop
                     playsInline
-                    autoPlay={isMobile}
+                    ref={isMobile ? playWhenInView : undefined}
                     preload="metadata"
                   />
                 </div>

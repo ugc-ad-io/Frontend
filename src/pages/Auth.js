@@ -70,7 +70,7 @@ function routeForUser(navigate, role, profileCompleted, next) {
   }
   if (next) return navigate(next, { replace: true });
   if (role === 'creator') return navigate('/dashboard/creator');
-  if (role === 'business') return navigate('/dashboard/business/browse-creator');
+  if (role === 'business') return navigate('/brand-home');
   // campaign managers and support staff use the admin dashboard too (same list as homeForUser in App.js)
   if (['admin', 'campaign_manager', 'support_staff'].includes(role)) return navigate('/dashboard/admin');
   return navigate('/');

@@ -23,7 +23,13 @@ function detect() {
 
 export const APP_UI = detect();
 
-// Android/Chrome tints the status bar from theme-color: match the app's top bar so there is no stripe.
 if (APP_UI && typeof document !== 'undefined') {
+  // html.ugc-app scopes every app-only platform rule (src/app/shell/app-platform.css) away from the website.
+  document.documentElement.classList.add('ugc-app');
+  // Android/Chrome tints the status bar from theme-color: match the app's top bar so there is no stripe.
   document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', '#f4f5ff'));
+  // On-screen keyboard resizes the layout viewport (Chrome Android 108+) instead of panning the page over it. The website
+  // keeps the browser default, hence set here and not in index.html. iOS ignores it (shell/platform.js covers iOS).
+  const vp = document.querySelector('meta[name="viewport"]');
+  if (vp && !/interactive-widget/.test(vp.content)) vp.setAttribute('content', `${vp.content}, interactive-widget=resizes-content`);
 }

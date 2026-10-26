@@ -1,19 +1,17 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../App';
 import axios from 'axios';
-import { Wallet, Package, LogOut, Search, UserRoundSearch, X, Menu, Users, Megaphone, ClipboardCheck, MessageSquare, Bookmark, Send, Star, Settings, Bell, LifeBuoy, Heart } from 'lucide-react';
-import NotificationBell from './NotificationBell';
+import { useAuth } from '../App';
+import {
+  LayoutGrid, Users, Megaphone, UserRoundSearch, ClipboardCheck, MessageSquare, Wallet, Package, Send,
+  Bookmark, Star, Settings, LogOut, Menu, X, Plus, LifeBuoy,
+} from 'lucide-react';
 import { openHelpDialog } from './HoverSideRail';
-import MessagesPopup from './MessagesPopup';
 import RejectedGate from './RejectedGate';
 import MoreInfoGate from './MoreInfoGate';
 import BrandPendingGate from './BrandPendingGate';
+import BrandPageHead, { BrandHeadContext } from './BrandPageHead';
 import { brandName } from '../utils/displayName';
-import PostABrief from '../pages/PostABrief';
-import { creatorSearchUrl } from '../utils/creatorSearch';
-import BriefOverlay from './BriefOverlay';
-import useNavHeightVar from '../utils/useNavHeightVar';
 import '../styles/creator-marketplace.css';
 import '../styles/brand-ui.css';
 import '../styles/brand-ui-home.css';
@@ -23,109 +21,70 @@ import '../styles/brand-ui-bids.css';
 import '../styles/brand-ui-work.css';
 import '../styles/brand-ui-wallet.css';
 import '../styles/brand-ui-mobile-a.css';
+import '../styles/brand-ui-shell.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+const API = `${BACKEND_URL}/api`;
 const getInitial = (name) => (name || 'B').trim().charAt(0).toUpperCase();
-
-// Category strip under the header (design board 01). Each entry filters the creator directory.
-const CATEGORIES = ['Beauty', 'Skincare', 'Fashion', 'Fitness', 'Food & Drinks', 'Tech & Gadgets', 'Lifestyle', 'Travel', 'Home', 'Pets', 'Apps'];
 const inr = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
+const BIZ = '/dashboard/business';
 
-const PRIMARY_LINKS = [
-  { name: 'Creators', to: '/dashboard/business/browse-creator', icon: Users },
-  { name: 'Campaigns', to: '/dashboard/business/all-campaigns', icon: Megaphone },
-  { name: 'Work Review', to: '/dashboard/business/work-review', icon: ClipboardCheck },
-  { name: 'Messages', to: '/messages', dot: true, icon: MessageSquare },
+// Sidebar destinations (same shape as the creator shell). `count` keys are filled from the layout's own fetches.
+const NAV = [
+  { key: 'home', name: 'Home', to: '/brand-home', icon: LayoutGrid, match: ['/brand-home', BIZ], exact: [BIZ] },
+  { key: 'creators', name: 'Creators', to: `${BIZ}/browse-creator`, icon: Users, match: [`${BIZ}/browse-creator`, `${BIZ}/creator`, `${BIZ}/multi-brief`] },
+  { key: 'campaigns', name: 'Campaigns', to: `${BIZ}/all-campaigns`, icon: Megaphone, match: [`${BIZ}/all-campaigns`, `${BIZ}/campaign`, '/campaign'] },
+  { key: 'bids', name: 'Bids', to: `${BIZ}/pending-bids`, icon: UserRoundSearch, match: [`${BIZ}/pending-bids`] },
+  { key: 'work', name: 'Work review', to: `${BIZ}/work-review`, icon: ClipboardCheck, match: [`${BIZ}/work-review`] },
+  { key: 'inbox', name: 'Messages', to: '/messages', icon: MessageSquare, count: 'unread', match: ['/messages'] },
+  { key: 'wallet', name: 'Wallet', to: `${BIZ}/wallet`, icon: Wallet, match: [`${BIZ}/wallet`, `${BIZ}/invoice`, `${BIZ}/plans`, `${BIZ}/edit-addon`] },
+  { key: 'ship', name: 'Shipments', to: `${BIZ}/shipments`, icon: Package, match: [`${BIZ}/shipments`] },
+  { key: 'sent', name: 'Sent briefs', to: `${BIZ}/sent-briefs`, icon: Send, match: [`${BIZ}/sent-briefs`] },
+  { key: 'saved', name: 'Saved creators', to: `${BIZ}/saved-creators`, icon: Bookmark, match: [`${BIZ}/saved-creators`] },
+  { key: 'reviews', name: 'Reviews', to: `${BIZ}/reviews`, icon: Star, match: [`${BIZ}/reviews`] },
+  { key: 'settings', name: 'Settings', to: '/settings', icon: Settings, match: ['/settings', '/disputes'] },
 ];
-
-const MENU_LINKS = [
-  { name: 'Saved Creators', to: '/dashboard/business/saved-creators', icon: Bookmark },
-  { name: 'Creator Bids', to: '/dashboard/business/pending-bids', icon: UserRoundSearch },
-  // Outgoing counterpart to "Creator Bids" (which is incoming). The page and its route
-  // already existed but nothing linked to it, so the tab was unreachable in the UI.
-  { name: 'Sent Briefs', to: '/dashboard/business/sent-briefs', icon: Send },
-  { name: 'Manage Shipment', to: '/dashboard/business/shipments', icon: Package },
-  { name: 'Wallet', to: '/dashboard/business/wallet', icon: Wallet },
-];
-
-// Account-menu only — these were taken off the side rail, so they live in the
-// avatar dropdown (and the mobile menu) instead. "Need help?" opens the support
-// dialog rather than navigating.
-const ACCOUNT_LINKS = [
-  { name: 'Reviews', to: '/dashboard/business/reviews', icon: Star },
-  { name: 'Notifications', to: '/notifications', icon: Bell },
-  { name: 'Settings', to: '/settings', icon: Settings },
-  { name: 'Need help?', icon: LifeBuoy, action: 'help' },
-];
+// Bottom tab bar on phones.
+const TABS = ['home', 'creators', 'campaigns', 'inbox', 'wallet'];
+const TAB_LABEL = { home: 'Home', creators: 'Creators', campaigns: 'Campaigns', inbox: 'Messages', wallet: 'Wallet' };
 
 /**
- * Top-navigation marketplace shell for the brand side (replaces the sidebar
- * dashboard). Each nav link routes to its own page.
+ * Brand shell: dark sidebar on desktop, top bar + drawer + bottom tabs on phones (mirrors CreatorTopNavLayout).
+ * Pages render their own title row with <BrandPageHead />; pages that do not get a search + bell row.
  */
 export default function BrandTopNavLayout({ children, notifications = 0 }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const { pathname, search } = useLocation();
-  const [searchText, setSearchText] = useState(() => new URLSearchParams(search).get('q') || '');
-  useEffect(() => { setSearchText(new URLSearchParams(search).get('q') || ''); }, [pathname, search]);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  // Any navigation (menu item, category chip, logo, browser back) closes the phone menu.
-  useEffect(() => { setMobileOpen(false); }, [pathname, search]);
-  const [briefOpen, setBriefOpen] = useState(false);
-  const [msgOpen, setMsgOpen] = useState(false);
-  const [balance, setBalance] = useState(null);
-  const menuRef = useRef(null);
-  const headerRef = useRef(null);
-  useNavHeightVar(headerRef);
+  const { pathname } = useLocation();
+  const [drawer, setDrawer] = useState(false);
+  const [unread, setUnread] = useState(0);
+  const [wallet, setWallet] = useState(null);
+  const [heads, setHeads] = useState(0);
+  const headCtx = useMemo(() => ({ add: () => setHeads((n) => n + 1), remove: () => setHeads((n) => n - 1) }), []);
 
-  // Closing the brief modal (backdrop click or X) saves what's been typed as a
-  // draft first, so an accidental click doesn't throw the work away.
-  const briefRef = useRef(null);
-  const closeBrief = async () => {
-    await briefRef.current?.saveDraftNow();
-    setBriefOpen(false);
-  };
+  useEffect(() => { setDrawer(false); }, [pathname]);
 
-  // Wallet pill in the header. A failed/gated load just hides the pill; the Wallet page owns the error UI.
+  // Sidebar wallet card + Messages badge. A failed/gated load just hides the number; the Wallet page owns the error UI.
   useEffect(() => {
     let live = true;
-    axios.get(`${BACKEND_URL}/api/business/wallet`)
-      .then((r) => { if (live) setBalance(Number(r.data?.available_balance || 0)); })
+    axios.get(`${API}/business/wallet`)
+      .then((r) => { if (live) setWallet(r.data || {}); })
+      .catch(() => {});
+    axios.get(`${API}/chat/unread-count`)
+      .then((r) => { if (live) setUnread(Number(r.data?.unread_count || 0)); })
       .catch(() => {});
     return () => { live = false; };
-  }, []);
-
-  useEffect(() => {
-    const close = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false); };
-    document.addEventListener('mousedown', close);
-    return () => document.removeEventListener('mousedown', close);
-  }, []);
-
-  // Lock background page scroll while the Post-a-Campaign modal is open so only
-  // the modal's own scrollbar shows. `html` has an always-on `overflow-y: scroll`
-  // (reserved gutter), so we must hide the documentElement's track too — locking
-  // `body` alone leaves that second scrollbar visible.
-  useEffect(() => {
-    if (!briefOpen) return undefined;
-    // The floating message popup / per-creator chat would otherwise sit on top of the
-    // full-screen brief modal — close them when Post a Campaign opens. ChatPopup lives
-    // in other components, so reach it via a broadcast event.
-    setMsgOpen(false);
-    window.dispatchEvent(new Event('ugcad:brief-opened'));
-    const html = document.documentElement;
-    const prevHtml = html.style.overflow;
-    const prevBody = document.body.style.overflow;
-    html.style.overflow = 'hidden';
-    document.body.style.overflow = 'hidden';
-    return () => { html.style.overflow = prevHtml; document.body.style.overflow = prevBody; };
-  }, [briefOpen]);
+  }, [pathname]);
 
   const displayName = user?.profile?.business_name || brandName(user);
   const photo = user?.profile_photo || user?.brand_logo;
-  const isActive = (to) => (to === '/dashboard/business' ? pathname === to : pathname === to || pathname.startsWith(`${to}/`));
+  const photoUrl = photo ? (photo.startsWith('http') ? photo : `${BACKEND_URL}${photo}`) : '';
+  const isActive = (item) => item.match.some((m) => (item.exact?.includes(m) ? pathname === m : pathname === m || pathname.startsWith(`${m}/`)));
+  const counts = { unread: Math.max(unread, Number(notifications) || 0) };
   const handleLogout = () => { logout(); };
   const isMessages = pathname === '/messages' || pathname.startsWith('/messages/');
+  const balance = wallet ? Number(wallet.available_balance || 0) : null;
+  const goPost = () => navigate(`${BIZ}/post-brief`);
 
   // Approval gate — a brand whose profile is still pending review (or was
   // rejected) must not reach ANY feature page. BusinessDashboard already gates
@@ -144,159 +103,90 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
   }
   if (isBrand && approval === 'pending') return <BrandPendingGate user={user} onLogout={handleLogout} />;
 
-  return (
-    <div className="cmk-app bui-app">
-      <header ref={headerRef} className="bui-header">
-        <div className="bui-header-in">
-          <button type="button" className="bui-hamburger" aria-label="Menu" aria-expanded={mobileOpen} onClick={() => setMobileOpen((v) => !v)}>
-            {mobileOpen ? <X size={22} /> : <Menu size={22} />}
-          </button>
-          <button type="button" className="bui-logo" onClick={() => navigate('/brand-home')} aria-label="UGCad.io home">
-            <span className="bui-logo-mark" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-logo.png)` }} />
-            <span className="bui-logo-word"><b>UGC</b>ad.io</span>
-          </button>
-
-          <form
-            className="bui-search"
-            role="search"
-            onSubmit={(e) => { e.preventDefault(); navigate(creatorSearchUrl(pathname.includes('browse-creator') ? search : '', searchText)); }}
-          >
-            <label>
-              <input
-                type="search"
-                aria-label="Search creators"
-                placeholder="What kind of creator are you looking for?"
-                value={searchText}
-                onChange={(event) => {
-                  const value = event.target.value;
-                  setSearchText(value);
-                  if (pathname.includes('browse-creator')) navigate(creatorSearchUrl(search, value), { replace: true });
-                }}
-              />
-            </label>
-            <button type="submit" aria-label="Search"><Search size={18} strokeWidth={2.4} /></button>
-          </form>
-
-          <nav className="bui-nav" aria-label="Account" ref={menuRef}>
-            <NotificationBell />
-            <button type="button" className="bui-iconbtn" aria-label="Messages" onClick={() => setMsgOpen((v) => !v)}>
-              <MessageSquare size={20} />
+  const sidebar = (
+    <>
+      <button type="button" className="bsh-logo" onClick={() => navigate('/brand-home')} aria-label="UGCad.io home">
+        <span className="bsh-logo-mark" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-logo.png)` }} />
+        <span className="bsh-logo-word"><b>UGC</b>ad.io</span>
+      </button>
+      <span className="bsh-tag">FOR BRANDS</span>
+      <button type="button" className="bsh-post" onClick={goPost}><Plus size={18} strokeWidth={2.4} /> Post a campaign</button>
+      <nav className="bsh-nav" aria-label="Brand">
+        {NAV.map((item) => {
+          const n = item.count ? counts[item.count] : 0;
+          return (
+            <button key={item.key} type="button" className={`bsh-nav-item${isActive(item) ? ' is-on' : ''}`} onClick={() => navigate(item.to)}>
+              <item.icon size={19} />
+              <span>{item.name}</span>
+              {n > 0 && <i>{n > 99 ? '99+' : n}</i>}
             </button>
-            <button type="button" className="bui-iconbtn" aria-label="Saved creators" onClick={() => navigate('/dashboard/business/saved-creators')}>
-              <Heart size={20} />
-            </button>
-            <button type="button" className={`bui-navlink${isActive('/dashboard/business/all-campaigns') ? ' is-active' : ''}`} onClick={() => navigate('/dashboard/business/all-campaigns')}>
-              Campaigns
-            </button>
-            {balance !== null && (
-              <button type="button" className="bui-wallet" onClick={() => navigate('/dashboard/business/wallet')} aria-label="Wallet balance">{inr(balance)}</button>
-            )}
-            <div className="bui-acct">
-              <button type="button" className="bui-avatar" onClick={() => setMenuOpen((v) => !v)} aria-label="Account menu" aria-expanded={menuOpen}>
-                {photo ? <img src={photo.startsWith('http') ? photo : `${BACKEND_URL}${photo}`} alt={displayName} /> : getInitial(displayName)}
-                <i aria-hidden="true" />
-              </button>
-              {menuOpen && (
-                <div className="bui-menu">
-                  <div className="bui-menu-head"><strong>{displayName}</strong><small>Brand Account</small></div>
-                  {[...MENU_LINKS, ...ACCOUNT_LINKS].map((item) => (
-                    <button
-                      key={item.name}
-                      type="button"
-                      onClick={() => {
-                        setMenuOpen(false);
-                        if (item.action === 'help') openHelpDialog();
-                        else navigate(item.to);
-                      }}
-                    >
-                      <item.icon size={17} /> {item.name}
-                    </button>
-                  ))}
-                  <button type="button" onClick={handleLogout}><LogOut size={17} /> Log out</button>
-                </div>
-              )}
-            </div>
-            <button type="button" className="bui-post" onClick={() => setBriefOpen(true)}>Post a campaign</button>
-          </nav>
-        </div>
-
-        <div className="bui-cats">
-          <nav className="bui-cats-in" aria-label="Categories">
-            {CATEGORIES.map((c) => {
-              const on = pathname.includes('browse-creator') && (new URLSearchParams(search).get('category') || '').toLowerCase() === c.toLowerCase();
-              return (
-                <button key={c} type="button" className={on ? 'is-active' : ''} onClick={() => navigate(`/dashboard/business/browse-creator?category=${encodeURIComponent(c)}`)}>{c}</button>
-              );
-            })}
-          </nav>
-        </div>
-
-        {mobileOpen && (
-          <div className="bui-mobile">
-            <button type="button" className="bui-mobile-post" onClick={() => { setMobileOpen(false); setBriefOpen(true); }}><Megaphone size={18} /> Post a campaign</button>
-            {[...PRIMARY_LINKS, ...MENU_LINKS, ...ACCOUNT_LINKS].map((link) => (
-              <button
-                key={link.name}
-                type="button"
-                className={link.to && isActive(link.to) ? 'is-active' : ''}
-                onClick={() => { setMobileOpen(false); if (link.action === 'help') openHelpDialog(); else navigate(link.to); }}
-              >
-                <link.icon size={18} /> {link.name}
-                {link.name === 'Wallet' && balance !== null && <em className="bui-mobile-bal">{inr(balance)}</em>}
-              </button>
-            ))}
-            <button type="button" onClick={handleLogout}><LogOut size={18} /> Log out</button>
-          </div>
+          );
+        })}
+      </nav>
+      <div className="bsh-wallet">
+        <small>Wallet balance</small>
+        <b>{balance === null ? '—' : inr(balance)}</b>
+        {wallet && (
+          <small className={wallet.chat_unlocked ? 'bsh-wallet-ok' : ''}>
+            {wallet.chat_unlocked
+              ? 'Platform chat unlocked'
+              : (wallet.minimum_chat_balance ? `${inr(wallet.minimum_chat_balance)} minimum to unlock chat` : 'Add funds to unlock chat')}
+          </small>
         )}
+        <button type="button" className="bsh-addfunds" onClick={() => navigate(`${BIZ}/wallet`)}>Add funds</button>
+      </div>
+      <div className="bsh-foot">
+        <button type="button" className="bsh-out" onClick={openHelpDialog}><LifeBuoy size={16} /> Need help?</button>
+        <button type="button" className="bsh-out" onClick={handleLogout}><LogOut size={16} /> Log out</button>
+      </div>
+    </>
+  );
+
+  return (
+    <div className="cmk-app bui-app bsh-app">
+      <aside className="bsh-side">{sidebar}</aside>
+
+      <header className="bsh-top">
+        <button type="button" className="bsh-iconbtn" aria-label="Menu" aria-expanded={drawer} onClick={() => setDrawer((v) => !v)}>
+          {drawer ? <X size={22} /> : <Menu size={22} />}
+        </button>
+        <button type="button" className="bsh-top-logo" onClick={() => navigate('/brand-home')} aria-label="UGCad.io home">
+          <span className="bsh-logo-mark bsh-logo-mark--dark" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-logo.png)` }} />
+          <span className="bsh-logo-word bsh-logo-word--dark"><b>UGC</b>ad.io</span>
+        </button>
+        <button type="button" className="bsh-top-post" aria-label="Post a campaign" onClick={goPost}><Plus size={16} strokeWidth={2.6} /> Post</button>
+        <button type="button" className="bsh-avatar" aria-label="Account settings" onClick={() => navigate('/settings')}>
+          {photoUrl ? <img src={photoUrl} alt={displayName} /> : getInitial(displayName)}
+        </button>
       </header>
 
-      {/* Messages is a full-height app pane: the normal page padding (18px top + ~96px bottom on a
-          phone) added ~114px of blank scroll under it and pushed the composer off screen. Same
-          flush rule CreatorTopNavLayout already applies. */}
-      <main className={`cmk-wrap cmk-page${isMessages ? ' cmk-page--flush' : ''}`}>
-        {children}
-      </main>
-
-      {/* Floating Message button — hidden on the Messages page itself (redundant there). */}
-      {!isMessages && (
+      {drawer && (
         <>
-          {/* Hidden while the popup is open so the FAB doesn't peek out behind it. */}
-          {!msgOpen && (
-            <button
-              type="button"
-              className="cmk-btn-primary-sm cmk-post-fab"
-              onClick={() => setMsgOpen((v) => !v)}
-              title="Messages"
-            >
-              <MessageSquare size={18} /><span className="cmk-btn-label">Message</span>
-            </button>
-          )}
-
-          {msgOpen && <MessagesPopup onClose={() => setMsgOpen(false)} />}
+          <div className="bsh-backdrop" onClick={() => setDrawer(false)} aria-hidden="true" />
+          <aside className="bsh-drawer">{sidebar}</aside>
         </>
       )}
 
-      {briefOpen && (
-        // Save the half-written brief as a draft on the way out — clicking the
-        // backdrop by accident shouldn't bin it.
-        <BriefOverlay className="cmk-brief-overlay" onClick={closeBrief}>
-          <div className="cmk-brief-modal" onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              className="cmk-brief-close"
-              aria-label="Close"
-              onClick={closeBrief}
-            >
-              <X size={20} />
+      {/* Messages is a full-height app pane: the normal page padding would add blank scroll under the
+          composer. Same flush rule CreatorTopNavLayout applies (bsh-main--flush). */}
+      <main className={`bsh-main${isMessages ? ' bsh-main--flush' : ''}`}>
+        <BrandHeadContext.Provider value={headCtx}>
+          {!isMessages && heads === 0 && <div className="bsh-util"><BrandPageHead util /></div>}
+          {children}
+        </BrandHeadContext.Provider>
+      </main>
+
+      <nav className="bsh-tabs" aria-label="Brand quick links">
+        {NAV.filter((i) => TABS.includes(i.key)).map((item) => {
+          const n = item.count ? counts[item.count] : 0;
+          return (
+            <button key={item.key} type="button" className={isActive(item) ? 'is-on' : ''} onClick={() => navigate(item.to)}>
+              <span className="bsh-tab-ic"><item.icon size={21} />{n > 0 && <i>{n > 9 ? '9+' : n}</i>}</span>
+              <small>{TAB_LABEL[item.key]}</small>
             </button>
-            <PostABrief
-              ref={briefRef}
-              onClose={closeBrief}
-              onPublished={() => setBriefOpen(false)}
-            />
-          </div>
-        </BriefOverlay>
-      )}
+          );
+        })}
+      </nav>
     </div>
   );
 }

@@ -102,7 +102,7 @@ test('TeamAccept: bad link says invalid; a good link validates the password rule
   await flush();
   expect(axios.post).toHaveBeenCalledWith(expect.stringContaining('/team/accept'), { token: 'good', password: 'secret1', name: 'Ananya' });
   expect(mockLogin).toHaveBeenCalledWith('jwt', { id: 'u1', role: 'business' });
-  expect(mockNavigate).toHaveBeenCalledWith('/dashboard/business/browse-creator');
+  expect(mockNavigate).toHaveBeenCalledWith('/brand-home');
   await m.unmount();
 });
 

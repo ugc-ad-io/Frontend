@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { Printer } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
+import BrandPageHead from '../components/BrandPageHead';
 import EmptyState from '../components/EmptyState';
 import { useAuth } from '../App';
 import { brandName } from '../utils/displayName';
@@ -10,6 +11,7 @@ import '../styles/brand-ui.css';
 import '../styles/brand-ui-home.css';
 import '../styles/brand-ui-invoice.css';
 import '../styles/brand-ui-mobile-b.css';
+import BackButton from '../components/BackButton';
 
 const API = `${process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000'}/api`;
 const inr = (n) => `₹${Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -52,7 +54,7 @@ export default function BrandInvoice() {
   return (
     <BrandTopNavLayout>
       <div className="bui-main bui-main--tight">
-        <nav className="bui-crumb" aria-label="Breadcrumb"><Link to="/dashboard/business/wallet">Wallet</Link><span>/</span><strong>Invoice</strong></nav>
+        <BackButton fallback="/dashboard/business/wallet" />
 
         {loading ? (
           <p className="bui-sub">Loading invoice…</p>
@@ -60,13 +62,12 @@ export default function BrandInvoice() {
           <EmptyState title={error || 'Invoice not found'} message="We could not find this payment in your wallet history." action={{ label: 'Back to wallet', onClick: () => navigate('/dashboard/business/wallet') }} />
         ) : (
           <>
-            <div className="bui-titlerow">
-              <div>
-                <h1 className="bui-h1">Invoice</h1>
-                <p className="bui-sub">One record for every payment. Tax details appear here once UGCad issues the GST invoice.</p>
-              </div>
-              <button type="button" className="bui-btn" onClick={() => window.print()}><Printer size={16} />Print / save as PDF</button>
-            </div>
+            <BrandPageHead
+              title="Invoice"
+              subtitle="One record for every payment. Tax details appear here once UGCad issues the GST invoice."
+              hideSearch
+              action={<button type="button" className="bui-btn" onClick={() => window.print()}><Printer size={16} />Print / save as PDF</button>}
+            />
 
             <article className="bui-iv">
               <div className="bui-iv-top">

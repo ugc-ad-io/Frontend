@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
 import { Eye, EyeOff, ArrowLeft, Mail, Phone, Lock, Check } from 'lucide-react';
 import '../styles/creator-ui-onboarding.css';
+import '../styles/public-mobile.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;

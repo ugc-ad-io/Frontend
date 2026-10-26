@@ -226,7 +226,7 @@ const PUBLIC_PATHS = ['/', '/auth', '/creator', '/creator/signup', '/team/accept
 export function homeForUser(user) {
   const role = user?.role;
   if (role === 'creator') return '/dashboard/creator';
-  if (role === 'business') return '/dashboard/business/browse-creator';
+  if (role === 'business') return '/brand-home';
   if (['admin', 'campaign_manager', 'support_staff'].includes(role)) return '/dashboard/admin';
   return '/';
 }

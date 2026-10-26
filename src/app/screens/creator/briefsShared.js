@@ -3,7 +3,8 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Bookmark, ChevronLeft, Check, X, Play, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import useAutoSearch from '../../../utils/useAutoSearch';
+import { Search, Bookmark, ChevronLeft, Check, X, Play, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import BottomSheet from '../../shell/BottomSheet';
 import { brandColor, initialOf, assetUrl, inr, briefFacts, briefPay, bidCount, dueLabel } from '../../../components/briefUi';
 import briefDeliveryLabel from '../../../utils/briefDeliveryLabel';
@@ -14,6 +15,7 @@ import { apiErrorMessage } from '../../../utils/apiError';
 import { getProfileMissing } from '../../../utils/creatorProfileCompletion';
 import { DEFAULT_COMMISSION_PERCENT, feeBreakdown, inr as inr2, pctLabel } from '../../../utils/bidFee';
 import { mediaUrl } from '../../../utils/mediaUrl';
+import { useAppBack } from '../../shell/useAppBack';
 import './briefs.css';
 
 export const API = `${process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000'}/api`;
@@ -33,6 +35,39 @@ export function Logo({ name, src, size = '' }) {
 
 /* ---------- tabs shared by Find briefs / Saved / Applied ---------- */
 const TAB_TO = { all: '/browse-briefs', invites: '/browse-briefs?tab=invites', saved: '/saved', applied: '/browse-briefs?tab=applied' };
+// Case-insensitive "all words in any of these fields" match; an empty query matches everything.
+export const matchesQuery = (q, ...fields) => {
+  const s = String(q || '').trim().toLowerCase();
+  return !s || fields.flat().join(' ').toLowerCase().includes(s);
+};
+
+// Search row shared by every Find briefs tab: filters as you type (writes ?q= after a pause), Enter still submits.
+export function SearchRow({ q, onCommit, children }) {
+  const [term, setTerm] = useState(q);
+  useEffect(() => { setTerm(q); }, [q]);
+  useAutoSearch(term, q, onCommit);
+  return (
+    <form className="ap-bf-searchrow" role="search" onSubmit={(e) => { e.preventDefault(); onCommit(term.trim()); }}>
+      <label className="ap-bf-search">
+        <Search size={18} />
+        <input type="search" aria-label="Search briefs" value={term} onChange={(e) => setTerm(e.target.value)} placeholder="Product, brand or idea" />
+      </label>
+      {children}
+    </form>
+  );
+}
+
+export function NoMatches({ q, onClear }) {
+  return (
+    <div className="ap-empty ap-card">
+      <Search size={34} />
+      <h3>No matches for “{String(q).trim()}”</h3>
+      <p>Try a different word or check the spelling.</p>
+      <button type="button" className="ap-btn" onClick={onClear}>Clear search</button>
+    </div>
+  );
+}
+
 export function BriefTabs({ active, counts = {} }) {
   const navigate = useNavigate();
   const items = [['all', 'For you'], ['invites', 'Invites'], ['saved', 'Saved'], ['applied', 'Applied']];
@@ -128,6 +163,7 @@ const listVal = (v) => (Array.isArray(v) ? v.filter(Boolean).join(', ') : (v || 
 const filled = (rows) => rows.filter(([, v]) => v !== undefined && v !== null && String(v).trim() !== '');
 
 export function BriefDetail({ brief: b, saved, onToggleSave, onClose, onApply, applying = false }) {
+  useAppBack(true, onClose);
   useEffect(() => {
     const onKey = (e) => { if (e.key === 'Escape') onClose(); };
     const prev = document.body.style.overflow;

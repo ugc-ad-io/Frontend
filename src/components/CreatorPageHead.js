@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import useAutoSearch, { markSearchFocus, takeSearchFocus } from '../utils/useAutoSearch';
 import { Search } from 'lucide-react';
 import NotificationBell from './NotificationBell';
 import '../styles/creator-ui.css';
@@ -10,7 +11,17 @@ import '../styles/creator-ui.css';
  */
 export default function CreatorPageHead({ title, subtitle, action, hideSearch = false, children }) {
   const navigate = useNavigate();
-  const [term, setTerm] = useState('');
+  // Only the starting text comes from the address bar, so plain window.location is enough here.
+  const urlQ = window.location.pathname === '/browse-briefs' ? new URLSearchParams(window.location.search).get('q') || '' : '';
+  const [term, setTerm] = useState(urlQ);
+  const inputRef = useRef(null);
+  useEffect(() => { takeSearchFocus(inputRef.current); }, []);
+  // Searches as you type: after a short pause, open Find briefs with the results.
+  useAutoSearch(term, urlQ, (v) => {
+    if (!v || hideSearch) return;
+    markSearchFocus();
+    navigate(`/browse-briefs?q=${encodeURIComponent(v)}`);
+  });
   const run = (e) => {
     e.preventDefault();
     const q = term.trim();
@@ -25,7 +36,7 @@ export default function CreatorPageHead({ title, subtitle, action, hideSearch = 
       {!hideSearch && (
         <form className="cui-search" role="search" onSubmit={run}>
           <Search size={17} />
-          <input type="search" aria-label="Search briefs" placeholder="Search briefs" value={term} onChange={(e) => setTerm(e.target.value)} />
+          <input ref={inputRef} type="search" aria-label="Search briefs" placeholder="Search briefs" value={term} onChange={(e) => setTerm(e.target.value)} />
         </form>
       )}
       <span className="cui-bell"><NotificationBell /></span>

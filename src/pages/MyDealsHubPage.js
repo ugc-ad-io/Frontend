@@ -12,6 +12,7 @@ import { MyBidsContent } from './MyBidsPage';
 import { Skeleton } from '../components/Skeleton';
 import '../styles/creator-marketplace.css';
 import '../styles/creator-ui-orders.css';
+import '../styles/creator-ui-mobile-orders.css';
 
 // Row skeleton matching a .cui-o-row: tile + lead lines + pill.
 function DealsSkeleton() {
@@ -92,7 +93,7 @@ function BrandTile({ deal, size }) {
   const logo = dealLogo(deal);
   return (
     <span className="cui-o-tile" style={{ width: size, height: size, background: logo ? '#fff' : bg, color: fg, fontSize: size * 0.4 }}>
-      {logo ? <img src={assetUrl(logo)} alt="" /> : getInitial(name)}
+      {logo ? <img src={assetUrl(logo)} alt="" loading="lazy" /> : getInitial(name)}
     </span>
   );
 }

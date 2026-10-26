@@ -1,0 +1,32 @@
+/* Phone overrides for creator profile / portfolio / settings detail (website, not the installed app). */
+@media (max-width:900px){
+  /* small round icon buttons keep their look but get a 44px hit area */
+  .cpm-page .cpm-avatar-cam,.cpm-page .cpm-vid-edit,.cpm-page .cpm-vid-remove{width:34px;height:34px}
+  .cpm-page .cpm-vid-remove{top:6px;right:6px}
+  .cpm-page .cpm-vid-edit{top:6px;right:46px}
+  .cpm-page .cpm-avatar-cam::after,.cpm-page .cpm-vid-edit::after,.cpm-page .cpm-vid-remove::after{content:"";position:absolute;inset:-8px}
+  .cpm-page .cpm-banner-edit{min-height:44px;padding:0 16px}
+  .cui-p-vrm{width:34px;height:34px}
+  .cui-p-vrm::after{content:'';position:absolute;inset:-5px}
+  .cui-p-seg button{min-height:44px}
+  .cui-p-seg{width:100%}
+  .cui-p-seg button{flex:1;justify-content:center}
+  .cui-p-vgrid{gap:12px}
+  .cui-p-wrap .cpm-page .cpm-pick button,.cpm-page .cpm-pick button{min-height:44px}
+}
+@media (max-width:640px){
+  /* category / price / delivery: categories get their own full row, price + delivery share the next one */
+  .cui-p-wrap .cpm-page .cpm-highlights{display:grid;grid-template-columns:1fr 1fr;gap:12px 0}
+  .cui-p-wrap .cpm-page .cpm-hl:first-child{grid-column:1 / -1;padding:0 0 12px;border-bottom:1px solid #ededf6}
+  .cui-p-wrap .cpm-page .cpm-hl:nth-child(2){padding-left:0;border-left:0}
+  .cui-p-wrap .cpm-page .cpm-hl:nth-child(3){padding-left:16px}
+  .cui-p-wrap .cpm-page .cpm-name{overflow-wrap:anywhere}
+}
+@media (max-width:900px){
+  /* 46x26 toggles: keep the look, extend the tap area to 44px high */
+  .cui-set .ps-switch::after{content:"";position:absolute;inset:-9px -4px}
+}
+@media (max-width:900px){
+  /* profile setup: text buttons ("Add another social account") get a 44px tap area */
+  body .cui-s-textbtn{min-height:44px}
+}

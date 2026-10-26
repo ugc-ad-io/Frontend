@@ -38,7 +38,7 @@ const LADDER = [
 
 function Stars({ rating = 0 }) {
   return (
-    <span className="cui-r-stars" aria-label={`${rating} out of 5`}>
+    <span className="cui-rv-stars" aria-label={`${rating} out of 5`}>
       {Array.from({ length: 5 }).map((_, i) => (
         <Star key={i} size={15} fill={i < rating ? '#F5A524' : 'none'} color={i < rating ? '#F5A524' : '#D3D4EA'} />
       ))}
@@ -109,23 +109,23 @@ export default function ReviewsPage() {
     <CreatorTopNavLayout>
       <CreatorPageHead title="Reviews & level" subtitle="What brands say about you, and your level." hideSearch />
 
-      <section className="cui-r-card cui-r-level">
-        <div className="cui-r-level-h">
+      <section className="cui-rv-card cui-rv-level">
+        <div className="cui-rv-level-h">
           <div>
             <small>Your level</small>
             <h2>{levelTitle}</h2>
           </div>
-          <span className="cui-r-pill">
+          <span className="cui-rv-pill">
             {next
               ? <><strong>Next: {next.label}</strong> · payout {payoutDays} days after approval</>
               : <><strong>Top level reached</strong> · payout {payoutDays} days after approval</>}
           </span>
         </div>
-        <ol className="cui-r-ladder" aria-label="Creator levels">
-          <span className="cui-r-line" aria-hidden="true"><i style={{ width: `${(cur / (LADDER.length - 1)) * 100}%` }} /></span>
+        <ol className="cui-rv-ladder" aria-label="Creator levels">
+          <span className="cui-rv-line" aria-hidden="true"><i style={{ width: `${(cur / (LADDER.length - 1)) * 100}%` }} /></span>
           {LADDER.map((s, i) => (
             <li key={s.key} className={i < cur ? 'is-done' : i === cur ? 'is-cur' : ''} aria-current={i === cur ? 'step' : undefined}>
-              <span className={`cui-r-dot${i === LADDER.length - 1 ? ' is-top' : ''}`}>
+              <span className={`cui-rv-dot${i === LADDER.length - 1 ? ' is-top' : ''}`}>
                 {i < cur ? <Check size={18} strokeWidth={3} /> : i === LADDER.length - 1 ? <Star size={17} fill="#fff" color="#fff" /> : i + 1}
               </span>
               <b>{s.label}</b>
@@ -136,8 +136,8 @@ export default function ReviewsPage() {
       </section>
 
       {loading ? (
-        <div className="cui-r-grid" aria-hidden="true">
-          <section className="cui-r-card">
+        <div className="cui-rv-grid" aria-hidden="true">
+          <section className="cui-rv-card">
             <Skeleton width={140} height={44} style={{ marginBottom: 16 }} />
             {[1, 2, 3].map((i) => (
               <div key={i} style={{ display: 'flex', gap: 12, padding: '14px 0' }}>
@@ -146,30 +146,30 @@ export default function ReviewsPage() {
               </div>
             ))}
           </section>
-          <section className="cui-r-card"><Skeleton width={160} height={16} style={{ marginBottom: 16 }} /><Skeleton height={60} /></section>
+          <section className="cui-rv-card"><Skeleton width={160} height={16} style={{ marginBottom: 16 }} /><Skeleton height={60} /></section>
         </div>
       ) : loadError && !reviews.length ? (
-        <div className="cui-r-card">
+        <div className="cui-rv-card">
           <EmptyState title="Could not load reviews" message={loadError} action={{ label: 'Retry', onClick: () => { setLoading(true); fetchData(); } }} />
         </div>
       ) : (
-        <div className="cui-r-grid">
-          <section className="cui-r-card cui-r-main">
-            <div className="cui-r-sum">
-              <div className="cui-r-avg">
+        <div className="cui-rv-grid">
+          <section className="cui-rv-card cui-rv-main">
+            <div className="cui-rv-sum">
+              <div className="cui-rv-avg">
                 <b>{avg ? avg.toFixed(1) : '-'}</b>
                 <Stars rating={Math.round(avg)} />
                 <small>{count} review{count === 1 ? '' : 's'}</small>
               </div>
-              <div className="cui-r-bars">
+              <div className="cui-rv-bars">
                 {[5, 4, 3, 2, 1].map((star) => {
                   const c = reviews.filter((r) => Math.round(r.rating || 0) === star).length;
                   const pct = count ? Math.round((c / count) * 100) : 0;
                   return (
-                    <div key={star} className="cui-r-bar">
+                    <div key={star} className="cui-rv-bar">
                       <span>{star}★</span>
-                      <span className="cui-r-track"><i style={{ width: `${pct}%` }} /></span>
-                      <span className="cui-r-n" title={`${pct}%`}>{c}</span>
+                      <span className="cui-rv-track"><i style={{ width: `${pct}%` }} /></span>
+                      <span className="cui-rv-n" title={`${pct}%`}>{c}</span>
                     </div>
                   );
                 })}
@@ -180,7 +180,7 @@ export default function ReviewsPage() {
               <EmptyState icon={Star} title="No reviews yet" message="Complete campaigns and deliver great work to start earning reviews from brands." />
             ) : (
               <>
-                <div className="cui-r-list">
+                <div className="cui-rv-list">
                   {(showAll ? reviews : reviews.slice(0, 3)).map((review) => {
                     const reviewText = review.review || review.review_text || review.comment || '';
                     const reviewer = reviewers[review.reviewer_id];
@@ -189,9 +189,9 @@ export default function ReviewsPage() {
                     const businessName = reviewer?.nickname || reviewer?.full_name || 'Brand';
                     const photo = reviewer?.profile_photo ? (reviewer.profile_photo.startsWith('http') ? reviewer.profile_photo : `${BACKEND_URL}${reviewer.profile_photo}`) : '';
                     return (
-                      <article key={review.id} className="cui-r-item">
-                        <div className="cui-r-item-h">
-                          <span className="cui-r-ava" style={{ background: photo ? 'transparent' : avaColor(businessName) }}>
+                      <article key={review.id} className="cui-rv-item">
+                        <div className="cui-rv-item-h">
+                          <span className="cui-rv-ava" style={{ background: photo ? 'transparent' : avaColor(businessName) }}>
                             {photo ? <img src={photo} alt="" /> : businessName.charAt(0).toUpperCase()}
                           </span>
                           <div>
@@ -206,7 +206,7 @@ export default function ReviewsPage() {
                   })}
                 </div>
                 {count > 3 && (
-                  <button type="button" className="cui-r-all" onClick={() => setShowAll((v) => !v)}>
+                  <button type="button" className="cui-rv-all" onClick={() => setShowAll((v) => !v)}>
                     {showAll ? 'Show recent' : `View all ${count} reviews`}
                   </button>
                 )}
@@ -214,7 +214,7 @@ export default function ReviewsPage() {
             )}
           </section>
 
-          <aside className="cui-r-card cui-r-side">
+          <aside className="cui-rv-card cui-rv-side">
             <h2>At a glance</h2>
             <dl>
               <div><dt>Average rating</dt><dd>{avg ? `${avg.toFixed(1)} / 5` : '-'}</dd></div>
@@ -222,7 +222,7 @@ export default function ReviewsPage() {
               <div><dt>5-star reviews</dt><dd>{fiveStars} <em>({count ? Math.round((fiveStars / count) * 100) : 0}%)</em></dd></div>
               <div><dt>{uniqueBrands === 1 ? 'Brand worked with' : 'Brands worked with'}</dt><dd>{uniqueBrands}</dd></div>
             </dl>
-            <p className="cui-r-tip">
+            <p className="cui-rv-tip">
               {isChoice
                 ? <>You&apos;re at the top level. <strong>Keep delivering on time</strong> and keep great reviews coming in to stay UGCAD.IO Choice.</>
                 : <>Great reviews and on-time delivery help you move up. <strong>Your payout is released {payoutDays} days after approval</strong> at your level.</>}

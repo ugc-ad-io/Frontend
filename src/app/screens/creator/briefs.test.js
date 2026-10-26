@@ -168,3 +168,62 @@ test('Home: shows earnings and active orders; pending approval renders the same 
   expect(b.container.textContent).not.toContain('Yoga mat order');
   await b.unmount();
 });
+
+describe('search on every tab filters as you type (no Enter)', () => {
+  const type = async (c, v) => {
+    await act(async () => setVal(c.querySelector('.ap-bf-search input'), v));
+    await act(async () => { await new Promise((r) => setTimeout(r, 350)); }); // past the 300ms auto-search pause
+  };
+  const deal = (id, title, brand) => ({ deal_id: id, brand: { name: brand }, campaign: { id, title, booking_status: 'pending_creator', budget_max: 3000 } });
+
+  test('For you + Invites', async () => {
+    route({ '/campaigns': [camp('c1', { title: 'Serum launch' }), camp('c2', { title: 'Yoga mat', brand_name: 'Zen' })], '/deals/my': [deal('d1', 'Lipstick reel', 'Kesar'), deal('d2', 'Sneaker haul', 'Stride')], '/saved-briefs': { campaign_ids: [] } });
+    const a = await mount(<Briefs />);
+    await type(a.container, 'zen');
+    expect(a.container.textContent).toContain('Yoga mat');
+    expect(a.container.textContent).not.toContain('Serum launch');
+    await a.unmount();
+
+    global.__qs = 'tab=invites';
+    const b = await mount(<Briefs />);
+    expect(b.container.textContent).toContain('Sneaker haul');
+    await type(b.container, 'kesar');
+    expect(b.container.textContent).toContain('Lipstick reel');
+    expect(b.container.textContent).not.toContain('Sneaker haul');
+    await type(b.container, 'nothing');
+    expect(b.container.textContent).toContain('No matches for “nothing”');
+    await click(byText(b.container, 'button', 'Clear search'));
+    expect(b.container.textContent).toContain('Sneaker haul');
+    await b.unmount();
+  });
+
+  test('Applied tab + Saved screen', async () => {
+    global.__qs = 'tab=applied';
+    route({
+      '/campaigns': [], '/deals/my': [], '/saved-briefs': { campaign_ids: [] },
+      '/bids/my': [
+        { campaign: camp('p1', { title: 'Waiting brief' }), my_bid: { id: 'b2', amount: 4000, status: 'pending' }, bid_status: 'pending' },
+        { campaign: camp('r1', { title: 'Lost brief', brand_name: 'Orbit' }), my_bid: { id: 'b3', amount: 3000, status: 'rejected' }, bid_status: 'rejected' },
+      ],
+    });
+    const a = await mount(<Briefs />);
+    await type(a.container, 'orbit');
+    expect(a.container.textContent).toContain('Lost brief');
+    expect(a.container.textContent).not.toContain('Waiting brief');
+    await type(a.container, 'zzz');
+    expect(a.container.textContent).toContain('No matches for “zzz”');
+    await a.unmount();
+
+    global.__qs = '';
+    localStorage.setItem('ugc_saved_briefs', JSON.stringify([
+      { id: 's1', title: 'Saved one', brand: 'Kesar', tags: [], budget: 'Rs. 5,000', budgetMax: 5000, createdAt: 0 },
+      { id: 's2', title: 'Saved two', brand: 'Orbit', tags: [], budget: 'Rs. 5,000', budgetMax: 5000, createdAt: 0 },
+    ]));
+    route({ '/saved-briefs': { campaign_ids: ['s1', 's2'] } });
+    const b = await mount(<SavedBriefs />);
+    await type(b.container, 'orbit');
+    expect(b.container.textContent).toContain('Saved two');
+    expect(b.container.textContent).not.toContain('Saved one');
+    await b.unmount();
+  });
+});

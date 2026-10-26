@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Search, SlidersHorizontal, X, ChevronDown, WifiOff, Compass } from 'lucide-react';
+import { SlidersHorizontal, X, ChevronDown, WifiOff, Compass } from 'lucide-react';
 import AppShell from '../../shell/AppShell';
 import BottomSheet from '../../shell/BottomSheet';
 import { useAuth } from '../../../App';
@@ -12,7 +12,7 @@ import { isOpenForBids, isSelectedCreator } from '../../../utils/campaignCreator
 import { toggleSavedBrief, getSavedIds, hydrateSavedFromServer } from '../../../utils/savedBriefs';
 import { inr } from '../../../components/briefUi';
 import { BidsContent } from './Bids';
-import { API, OFFLINE, failText, Logo, BriefTabs, BriefCard, BriefCardSkeleton, BriefDetail, ErrorBanner, useApply, isInviteDeal } from './briefsShared';
+import { API, OFFLINE, failText, Logo, BriefTabs, BriefCard, BriefCardSkeleton, BriefDetail, ErrorBanner, useApply, isInviteDeal, SearchRow, NoMatches, matchesQuery } from './briefsShared';
 
 const CATEGORIES = ['All Categories', 'Beauty', 'Fashion', 'Tech', 'Fitness', 'Food', 'Lifestyle', 'Travel', 'Home', 'Gaming', 'Kids'];
 const PAY = [['any', 'Any'], ['0-2000', 'Under ₹2k'], ['2000-5000', '₹2k–5k'], ['5000-10000', '₹5k–10k'], ['10000+', '₹10k+']];
@@ -42,7 +42,6 @@ export default function Briefs() {
   const [loadError, setLoadError] = useState('');
   const [dealsError, setDealsError] = useState('');
   const [appliedCount, setAppliedCount] = useState(null);
-  const [term, setTerm] = useState(q);
   const [category, setCategory] = useState('All Categories');
   const [sortBy, setSortBy] = useState('newest');
   const [budgetFilter, setBudgetFilter] = useState('any');
@@ -87,12 +86,13 @@ export default function Briefs() {
     return () => window.removeEventListener('ugc-saved-changed', sync);
   }, []);
 
-  useEffect(() => { setTerm(q); setVisible(PAGE); }, [q]);
+  useEffect(() => { setVisible(PAGE); }, [q]);
 
   const available = useMemo(() => campaigns.filter((c) => isOpenForBids(c) && !isSelectedCreator(c, user?.id)), [campaigns, user?.id]);
   const myBids = useMemo(() => campaigns.filter((c) => c.bids?.some((b) => b.creator_id === user?.id)), [campaigns, user?.id]);
   const briefs = useMemo(() => available.map((c, i) => normalizeBrief(c, i, myBids)), [available, myBids]);
   const invites = useMemo(() => deals.filter(isInviteDeal), [deals]);
+  const shownInvites = useMemo(() => invites.filter((d) => matchesQuery(q, inviteBrand(d), d.campaign?.title, d.campaign?.product_description, d.campaign?.category)), [invites, q]);
   const openBrief = useMemo(() => (openId ? briefs.find((x) => String(x.id) === String(openId)) || null : null), [briefs, openId]);
 
   const patchParams = (fn, replace = true) => {
@@ -154,10 +154,7 @@ export default function Briefs() {
   const clearSearch = () => patchParams((n) => n.delete('q'));
   const clearAll = () => { setCategory('All Categories'); setBudgetFilter('any'); setDeliveryFilter('any'); if (q) clearSearch(); setVisible(PAGE); };
 
-  const runSearch = (e) => {
-    e.preventDefault();
-    patchParams((n) => { if (term.trim()) n.set('q', term.trim()); else n.delete('q'); });
-  };
+  const commitSearch = (v) => patchParams((n) => { if (v) n.set('q', v); else n.delete('q'); });
   const openFilters = () => { setDraft({ category, budgetFilter, deliveryFilter }); setFilterOpen(true); };
   const applyFilters = () => {
     setCategory(draft.category); setBudgetFilter(draft.budgetFilter); setDeliveryFilter(draft.deliveryFilter);
@@ -177,18 +174,16 @@ export default function Briefs() {
 
   return (
     <AppShell title="Find briefs" subtitle={subtitle}>
+      <SearchRow q={q} onCommit={commitSearch}>
+        {tab === 'all' && (
+          <button type="button" className="ap-bf-filterbtn" aria-label={`Filters${activeFilters.length ? ` (${activeFilters.length} on)` : ''}`} onClick={openFilters}>
+            <SlidersHorizontal size={20} />
+            {activeFilters.length > 0 && <b>{activeFilters.length}</b>}
+          </button>
+        )}
+      </SearchRow>
       {tab === 'all' && (
         <>
-          <form className="ap-bf-searchrow" role="search" onSubmit={runSearch}>
-            <label className="ap-bf-search">
-              <Search size={18} />
-              <input type="search" aria-label="Search briefs" value={term} onChange={(e) => setTerm(e.target.value)} placeholder="Product, brand or idea" />
-            </label>
-            <button type="button" className="ap-bf-filterbtn" aria-label={`Filters${activeFilters.length ? ` (${activeFilters.length} on)` : ''}`} onClick={openFilters}>
-              <SlidersHorizontal size={20} />
-              {activeFilters.length > 0 && <b>{activeFilters.length}</b>}
-            </button>
-          </form>
           {(activeFilters.length > 0 || q) && (
             <div className="ap-bf-fchips">
               {q && <button type="button" className="ap-bf-fchip" onClick={clearSearch}><span>Search</span><strong>“{q}”</strong><X size={14} /></button>}
@@ -203,7 +198,7 @@ export default function Briefs() {
 
       <BriefTabs active={tab} counts={counts} />
 
-      {tab === 'applied' && <BidsContent onCount={setAppliedCount} />}
+      {tab === 'applied' && <BidsContent onCount={setAppliedCount} query={q} onClearQuery={clearSearch} />}
 
       {tab === 'invites' && (
         loading && !deals.length && !dealsError ? (
@@ -220,11 +215,13 @@ export default function Briefs() {
             <p>When a brand books you directly or proposes a custom price, the invite lands here for you to accept, decline or counter.</p>
             <button type="button" className="ap-btn" onClick={() => navigate('/browse-briefs', { replace: true })}>Browse open briefs</button>
           </div>
+        ) : !shownInvites.length ? (
+          <NoMatches q={q} onClear={clearSearch} />
         ) : (
           <>
             <p className="ap-bf-tip">Brands that invite you set the price up front. Open an invite to accept, decline or counter.</p>
             <div className="ap-bf-list">
-              {invites.map((d) => {
+              {shownInvites.map((d) => {
                 const c = d.campaign || {};
                 const brand = inviteBrand(d);
                 const countered = c.booking_status === 'price_revision';

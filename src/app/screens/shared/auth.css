@@ -2,7 +2,7 @@
    Also holds the shared field + sticky-bar styles reused by the brand details form (classes ap-auth-*). */
 .ap-auth .ap-bar{display:none}
 .ap-auth .ap-body{padding:0;gap:0}
-.ap-auth-page{flex:1;display:flex;flex-direction:column;min-height:100dvh;max-width:560px;width:100%;margin:0 auto}
+.ap-auth-page{flex:1 0 auto;display:flex;flex-direction:column;max-width:560px;width:100%;margin:0 auto}
 
 /* hero (log in) */
 .ap-auth-hero{position:relative;overflow:hidden;background:var(--ap-grad);color:#fff;padding:calc(26px + env(safe-area-inset-top,0px)) calc(22px + env(safe-area-inset-right,0px)) 30px calc(22px + env(safe-area-inset-left,0px));border-radius:0 0 30px 30px}
@@ -80,3 +80,66 @@
 .ap-auth-offline{margin:0 20px;padding:10px 14px;border-radius:14px;background:#fff2dc;color:#8a4b00;font-size:13px;font-weight:600}
 .ap-auth-note{margin:0 20px;padding:14px;border-radius:18px;background:#eef0ff;color:#2b2b6a;font-size:13px;line-height:1.5;display:flex;gap:12px;align-items:flex-start}
 .ap-auth-note svg{flex:none;color:#2a3ab8}
+
+/* ── Auth is a one-screen layout: it must fit 320x568 ... 430x932 with no scrolling (the body is the shell's scroller and
+   only scrolls if a very short window, e.g. a landscape phone, truly cannot fit it) ─────────────────────────────── */
+.ap-auth .ap-body{overscroll-behavior:none}
+.ap-auth .ap-auth-main{gap:clamp(8px,1.8dvh,16px);padding:clamp(6px,1.4dvh,12px) 0 clamp(8px,2dvh,20px)}
+.ap-auth .ap-auth-pad{gap:clamp(8px,1.5dvh,12px)}
+@media (max-height:899px){
+  .ap-auth .ap-auth-list{display:none}
+  .ap-auth .ap-auth-hero{padding-bottom:24px}
+}
+@media (max-height:759px){.ap-auth .ap-auth-sub{display:none}}
+@media (max-height:699px){
+  .ap-auth .ap-auth-h1{margin-top:14px;font-size:26px}
+  .ap-auth .ap-auth-hero{padding-top:calc(18px + env(safe-area-inset-top,0px));padding-bottom:20px}
+  .ap-auth .ap-auth-link{min-height:36px}
+  .ap-auth .ap-auth-box{min-height:46px}
+  .ap-auth .ap-auth-box input,.ap-auth .ap-auth-box select{height:44px}
+  .ap-auth .ap-auth-head .ic{width:52px;height:52px;margin:2px 0 10px}
+  .ap-auth .ap-auth-head h2{font-size:23px}
+}
+@media (max-height:619px){
+  .ap-auth .ap-auth-foot{display:none}
+  .ap-auth .ap-auth-h1{margin-top:10px;font-size:22px}
+  .ap-auth .ap-auth-hero{padding-top:calc(12px + env(safe-area-inset-top,0px));padding-bottom:16px;border-radius:0 0 24px 24px}
+  .ap-auth .ap-auth-seg button{min-height:40px}
+  .ap-auth .ap-auth-cta{height:48px}
+  .ap-auth .ap-auth-google{min-height:40px}
+  .ap-auth .ap-auth-head .ic{width:44px;height:44px;margin:0 0 6px}
+  .ap-auth .ap-auth-head p{display:none}
+  .ap-auth .ap-auth-top{padding-bottom:4px}
+}
+@media (max-height:539px){
+  .ap-auth .ap-auth-h1,.ap-auth .ap-auth-tag{display:none}
+  .ap-auth .ap-auth-hero{padding-top:calc(8px + env(safe-area-inset-top,0px));padding-bottom:10px}
+}
+@media (max-width:359px){
+  .ap-auth .ap-auth-h1{font-size:21px}
+  .ap-auth .ap-auth-brand{font-size:18px}
+  .ap-auth .ap-auth-phone{grid-template-columns:84px minmax(0,1fr);gap:8px}
+}
+/* On-screen keyboard open / field focused (html.ugc-kb, set by shell/platform.js): the hero collapses to a thin brand strip
+   and everything secondary hides, so email + password + the button sit above the keyboard without scrolling. */
+html.ugc-kb .ap-auth .ap-auth-h1,
+html.ugc-kb .ap-auth .ap-auth-sub,
+html.ugc-kb .ap-auth .ap-auth-list,
+html.ugc-kb .ap-auth .ap-auth-tag,
+html.ugc-kb .ap-auth .ap-auth-seg,
+html.ugc-kb .ap-auth .ap-auth-google,
+html.ugc-kb .ap-auth .ap-auth-or,
+html.ugc-kb .ap-auth .ap-auth-foot,
+html.ugc-kb .ap-auth .ap-auth-legal,
+html.ugc-kb .ap-auth .ap-auth-sticky small,
+html.ugc-kb .ap-auth .ap-auth-head p,
+html.ugc-kb .ap-auth .ap-auth-head .ic{display:none}
+html.ugc-kb .ap-auth .ap-auth-hero{padding-top:calc(10px + env(safe-area-inset-top,0px));padding-bottom:12px;border-radius:0 0 20px 20px}
+html.ugc-kb .ap-auth .ap-auth-main{padding-top:10px;gap:10px}
+html.ugc-kb .ap-auth .ap-auth-head{padding-top:0}
+html.ugc-kb .ap-auth .ap-auth-head h2{font-size:21px}
+html.ugc-kb .ap-auth .ap-auth-link{min-height:32px}
+@media (max-height:380px){
+  html.ugc-kb .ap-auth .ap-auth-hero{display:none}
+  html.ugc-kb .ap-auth .ap-auth-main{padding-top:calc(8px + env(safe-area-inset-top,0px))}
+}

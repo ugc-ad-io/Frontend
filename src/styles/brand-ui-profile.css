@@ -137,3 +137,7 @@
   .bui-pf-vids{grid-template-columns:repeat(2,minmax(0,1fr))}
   .bui-pf-details{padding:20px}
 }
+@media (max-width:720px){
+  .bui-pf-tabs{top:0;padding:0 2px}
+  .bui-pf-sec{scroll-margin-top:60px}
+}

@@ -9,6 +9,7 @@ import '../styles/brand-ui.css';
 import '../styles/brand-ui-home.css';
 import '../styles/brand-ui-addon.css';
 import '../styles/brand-ui-mobile-b.css';
+import BackButton from '../components/BackButton';
 
 const API = `${process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000'}/api`;
 const inr = (n) => `₹${Number(n).toLocaleString('en-IN')}`;
@@ -55,7 +56,7 @@ export default function BrandEditAddon() {
   return (
     <BrandTopNavLayout>
       <div className="bui-main bui-main--tight">
-        <nav className="bui-crumb" aria-label="Breadcrumb"><Link to="/dashboard/business/work-review">Work review</Link><span>/</span><strong>Expert editing</strong></nav>
+        <BackButton fallback="/dashboard/business/work-review" />
 
         <section className="bui-hero bui-ad-hero">
           <span className="bui-hero-glow" aria-hidden="true" />

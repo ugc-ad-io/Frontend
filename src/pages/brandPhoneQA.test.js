@@ -10,6 +10,8 @@ import { walletStatementCsv } from '../utils/walletStatement';
 jest.mock('axios', () => ({ get: jest.fn(), post: jest.fn(), put: jest.fn(), patch: jest.fn(), delete: jest.fn() }));
 jest.mock('sonner', () => ({ toast: { error: jest.fn(), success: jest.fn(), message: jest.fn(), info: jest.fn(), warning: jest.fn() } }));
 jest.mock('../components/BrandTopNavLayout', () => ({ children }) => <div>{children}</div>);
+// The page head renders the real bell, which polls its own endpoints: keep these call-count assertions about the page.
+jest.mock('../components/NotificationBell', () => () => null);
 jest.mock('../components/ChatPopup', () => () => null);
 jest.mock('../components/PageModal', () => ({ children }) => <div>{children}</div>);
 jest.mock('../components/ReviewModal', () => () => null);

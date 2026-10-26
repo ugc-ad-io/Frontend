@@ -3,6 +3,11 @@ export const STAGE_LABELS = ['Brief', 'Bids', 'Shipped', 'Filming', 'Review', 'D
 
 const has = (v) => Array.isArray(v) ? v.length > 0 : Boolean(v);
 
+// Campaigns with nothing to ship (digital product, service, app) skip the "Shipped" step: 5 steps, not 6.
+export const stageLabelsFor = (requiresShip) => (requiresShip ? STAGE_LABELS : STAGE_LABELS.filter((l) => l !== 'Shipped'));
+// Position of a full 6-step index (idx) inside the labels that are actually shown.
+export const stageIndexFor = (idx, requiresShip) => (requiresShip || idx <= 2 ? idx : idx - 1);
+
 // `shipped` is true once a tracking record exists for the hired creator; callers that
 // haven't loaded shipments pass undefined and a shipping campaign sits on "Shipped".
 export function campaignStage(c, shipped) {
@@ -15,7 +20,10 @@ export function campaignStage(c, shipped) {
   else if (status === 'work_submitted' || status === 'awaiting_brand_confirmation') idx = 4;
   else if (hired) idx = requiresShip && !shipped ? 2 : 3;
   else if ((c.bids || []).length > 0) idx = 1;
-  return { idx, label: STAGE_LABELS[idx], step: idx + 1, total: STAGE_LABELS.length };
+  // idx stays the full 6-step position (pills / CTAs rely on it); labels / shownIdx / step / total are what to draw.
+  const labels = stageLabelsFor(requiresShip);
+  const shownIdx = stageIndexFor(idx, requiresShip);
+  return { idx, label: labels[shownIdx], step: shownIdx + 1, total: labels.length, labels, shownIdx };
 }
 
 // Status pill (label + palette) as drawn on the boards.

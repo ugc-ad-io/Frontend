@@ -10,6 +10,7 @@ import {
   MessageSquare, FileText, Download, Play, FileVideo, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
+import BrandPageHead from '../components/BrandPageHead';
 import ChatPopup from '../components/ChatPopup';
 import RevisionRequestModal from '../components/RevisionRequestModal';
 import VideoReviewModal from '../components/VideoReviewModal';
@@ -243,12 +244,7 @@ export default function BrandWorkReview() {
   return (
     <BrandTopNavLayout>
       <div className="bui-main bui-main--detail">
-        <div className="bui-titlerow">
-          <div>
-            <h1 className="bui-h1">Work review</h1>
-            <p className="bui-sub">Watch every delivery, approve to release payment, or ask for changes.</p>
-          </div>
-        </div>
+        <BrandPageHead title="Work review" subtitle="Watch every delivery, approve to release payment, or ask for changes." />
 
         <div className="bui-tabs" role="tablist" aria-label="Filter submissions">
           {TABS.map((t) => (
@@ -308,7 +304,9 @@ export default function BrandWorkReview() {
                       <h2 className="bui-wr-title">{it.title}</h2>
                       <div className="bui-wr-by">
                         <span className="bui-ava24"><PhotoOrInitial src={it.photo ? assetUrl(it.photo) : ''} initial="@" /></span>
-                        by <strong>{handleLabelSafe(it.creator)}</strong> &middot; submitted {agoText(it.submittedAt)}
+                        by <strong>{handleLabelSafe(it.creator)}</strong>
+                        <button type="button" className="bui-iconbtn-sq bui-iconbtn-sq--inline" aria-label={`Message ${handleLabelSafe(it.creator)}`} onClick={() => message(it)}><MessageSquare size={15} /></button>
+                        <span>&middot; submitted {agoText(it.submittedAt)}</span>
                       </div>
                       <button type="button" className="bui-wr-camp" onClick={() => it.id && navigate(`/dashboard/business/campaign/${campaignOf(it)}`)}>{it.campaign} &rarr;</button>
                       <div className="bui-wr-files">
@@ -344,7 +342,6 @@ export default function BrandWorkReview() {
                         {it.status === 'approved' && it.creatorId && (
                           <button type="button" className="bui-btn bui-btn--ghost bui-btn--sm40" onClick={() => setReviewFor(it)}>Rate creator</button>
                         )}
-                        <button type="button" className="bui-iconbtn-sq" aria-label={`Message ${handleLabelSafe(it.creator)}`} onClick={() => message(it)}><MessageSquare size={16} /></button>
                       </div>
                     </div>
                   </article>

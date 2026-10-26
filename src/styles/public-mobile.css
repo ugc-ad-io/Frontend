@@ -1,0 +1,22 @@
+/* Phone polish for the PUBLIC website pages (Landing, CreatorLanding, creator sign-up).
+   Only tap-target / safe-area fixes; layout lives in each page. Visual size is unchanged:
+   small controls get an invisible ::after hit area instead of growing. */
+@media (max-width: 820px) {
+  .lp-root .lp-navbar__brand,
+  .cl-brand,
+  .lp-root .lp-vcard__mute,
+  .cui-s-back.cui-s-back,
+  .cui-s-inp .cui-s-eye,
+  .cui-s-foot-l button { position: relative; }
+  .lp-root .lp-navbar__brand::after,
+  .cl-brand::after { content: ''; position: absolute; inset: -6px -4px; }
+  .lp-root .lp-vcard__mute::after,
+  .cui-s-inp .cui-s-eye::after { content: ''; position: absolute; inset: -6px; }
+  .cui-s-foot-l button::after { content: ''; position: absolute; inset: -12px -6px; }
+  .cui-s-back.cui-s-back { width: 44px; height: 44px; }
+  .lp-root .lp-navbar__burger,
+  .cl-nav__burger { min-width: 44px; min-height: 44px; }
+  .lp-root .lp-faq__q { min-height: 44px; }
+  .lp-root .lp-footer__top-link { min-height: 44px; }
+  .lp-root .nlp-cta, .lp-root .lp-svcm__cta.lp-svcm__cta { min-height: 44px; }
+}

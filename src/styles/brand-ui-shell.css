@@ -1,0 +1,145 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   Brand shell — dark sidebar (desktop) / top bar + drawer + bottom tabs (phones), plus the
+   page head. Mirrors the creator shell (creator-ui.css) with `bsh-` classes so the two never
+   share rules. All page CSS keeps its `.bui-app` scope (the shell root carries both classes).
+   ───────────────────────────────────────────────────────────────────────── */
+.bsh-app{
+  --bsh-ink:#07074e;
+  --bsh-muted:#6e6e96;
+  --bsh-soft:#5a5a8c;
+  --bsh-primary:#7387ff;
+  --bsh-bg:#f3f3ff;
+  --bsh-line:#e2e2f0;
+  --bsh-side:#0b0b3b;
+  --bsh-danger:#e5484d;
+  --bsh-head:'Readex Pro','Plus Jakarta Sans',sans-serif;
+  /* height of whatever is pinned above the page: nothing on desktop, the top bar on phones */
+  --cmk-nav-height:0px;
+  display:flex;align-items:stretch;min-height:100vh;
+  background:var(--bsh-bg);background-attachment:scroll;color:var(--bsh-ink);
+  font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;
+}
+
+/* ── Sidebar ─────────────────────────────────────────────────────────── */
+.bsh-side{flex:none;width:248px;position:sticky;top:0;align-self:flex-start;height:100vh;overflow-y:auto;background:var(--bsh-side);color:#fff;padding:26px 18px;box-sizing:border-box;display:flex;flex-direction:column;gap:20px;scrollbar-width:none}
+.bsh-side::-webkit-scrollbar{display:none}
+.bsh-logo{display:flex;align-items:center;gap:9px;padding:0 8px;background:none;border:0;color:#fff;cursor:pointer}
+.bsh-logo-mark{display:block;width:23px;height:30px;flex:none;background-repeat:no-repeat;background-position:-23px 0;background-size:70px auto;filter:brightness(0) invert(1)}
+.bsh-logo-mark--dark{filter:none}
+.bsh-logo-word{font-family:var(--bsh-head);font-weight:500;font-size:20px;line-height:1}
+.bsh-logo-word b{font-weight:500;color:#9faeff}
+.bsh-logo-word--dark{color:var(--bsh-ink)}
+.bsh-logo-word--dark b{color:var(--bsh-primary)}
+.bsh-tag{margin:-12px 8px 0;align-self:flex-start;height:22px;padding:0 8px;border-radius:6px;background:rgba(159,174,255,.18);color:#c9ceff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;letter-spacing:.06em}
+.bsh-post{display:flex;align-items:center;justify-content:center;gap:8px;flex:none;height:46px;border:0;border-radius:12px;background:var(--bsh-primary);color:#fff;font:inherit;font-weight:700;font-size:14.5px;cursor:pointer}
+.bsh-post:hover{background:#8697ff}
+.bsh-nav{display:flex;flex-direction:column;gap:2px}
+.bsh-nav-item{display:flex;align-items:center;gap:12px;height:42px;padding:0 12px;border-radius:12px;font:inherit;font-weight:500;font-size:14.5px;color:#b7bae8;background:none;border:0;cursor:pointer;text-align:left}
+.bsh-nav-item span{flex:1}
+.bsh-nav-item:hover{background:rgba(255,255,255,.06);color:#fff}
+.bsh-nav-item.is-on{font-weight:700;color:#fff;background:rgba(255,255,255,.1)}
+.bsh-nav-item i{min-width:22px;height:20px;padding:0 6px;box-sizing:border-box;border-radius:999px;background:var(--bsh-primary);color:#fff;font-size:11px;font-weight:700;font-style:normal;display:grid;place-items:center}
+.bsh-wallet{margin-top:auto;padding:16px;border-radius:16px;background:rgba(255,255,255,.07);display:flex;flex-direction:column;gap:2px}
+.bsh-wallet small{display:block;font-size:12px;color:#b7bae8}
+.bsh-wallet b{display:block;margin-top:2px;font-weight:700;font-size:20px;font-variant-numeric:tabular-nums}
+.bsh-wallet small.bsh-wallet-ok{color:#7be0b0}
+.bsh-addfunds{margin-top:12px;height:38px;border:0;border-radius:10px;background:#fff;color:var(--bsh-ink);font:inherit;font-weight:700;font-size:13.5px;cursor:pointer}
+.bsh-addfunds:hover{background:#e9ebff}
+.bsh-foot{display:flex;flex-direction:column;gap:2px;flex:none}
+.bsh-out{display:flex;align-items:center;gap:10px;height:40px;padding:0 12px;border-radius:12px;background:none;border:0;color:#b7bae8;font:inherit;font-size:14px;cursor:pointer}
+.bsh-out:hover{background:rgba(255,255,255,.06);color:#fff}
+
+/* ── Main column ─────────────────────────────────────────────────────── */
+.bsh-main{flex:1;min-width:0;padding:26px 34px 60px;display:flex;flex-direction:column;gap:24px}
+.bsh-main--flush{padding:0}
+/* Pages that bring their own .bui-main container supply their own gutters. */
+.bsh-main:has(> .bui-main),.bsh-main:has(> .bui-dash-bare){padding:0;gap:0}
+.bsh-main:has(> .bui-main) > .bsh-util,.bsh-main:has(> .bui-dash-bare) > .bsh-util{padding:26px 34px 0}
+.bsh-util + .bui-main,.bsh-util + .bui-dash-bare .bui-main{padding-top:18px}
+/* index.css forces main{padding-inline:var(--site-h-pad)!important}: restore the shell gutters. */
+body .bsh-app main.bsh-main{padding-left:34px !important;padding-right:34px !important}
+body .bsh-app main.bsh-main:has(> .bui-main),body .bsh-app main.bsh-main:has(> .bui-dash-bare),body .bsh-app main.bsh-main--flush,body .bsh-app main.bui-dash-bare{padding-left:0 !important;padding-right:0 !important}
+.bsh-app .bui-main{max-width:none;margin:0;padding:26px 34px 60px}
+.bsh-app .bui-dash-bare{max-width:none;padding-top:0;padding-bottom:0}
+
+/* ── Page head (BrandPageHead) ───────────────────────────────────────── */
+.bsh-head{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.bsh-head-t{flex:1;min-width:220px}
+.bsh-head-fill{flex:1}
+.bsh-head-t h1{margin:0;font-family:var(--bsh-head);font-weight:500;font-size:28px;letter-spacing:-.02em;line-height:1.15;color:var(--bsh-ink)}
+.bsh-head-t p{margin:2px 0 0;font-size:14.5px;color:var(--bsh-muted)}
+.bsh-search{display:flex;align-items:center;gap:10px;width:300px;height:44px;padding:0 14px;border-radius:12px;background:#fff;box-shadow:inset 0 0 0 1px var(--bsh-line);color:#8484b0;font-size:14px;box-sizing:border-box}
+.bsh-search input{flex:1;min-width:0;border:0;outline:0;background:transparent;font:inherit;color:var(--bsh-ink)}
+.bsh-bell .notification-bell-container{position:relative}
+.bsh-bell .notification-bell-button{position:relative;width:44px;height:44px;border-radius:12px;background:#fff;box-shadow:inset 0 0 0 1px var(--bsh-line);border:0;display:grid;place-items:center;color:var(--bsh-ink);cursor:pointer;padding:0}
+.bsh-bell .notification-badge{position:absolute;top:10px;right:11px;min-width:8px;width:8px;height:8px;padding:0;border-radius:50%;background:var(--bsh-danger);font-size:0;color:transparent;border:0;line-height:0}
+.bsh-head > .bui-btn,.bsh-head > button{flex:none}
+.bsh-util{flex:none}
+.bsh-util .bsh-head{justify-content:flex-end}
+.bsh-util .bsh-search{flex:0 1 300px}
+
+/* Creators page only: horizontally scrolling category chips. */
+.bsh-cats{display:flex;gap:8px;overflow-x:auto;max-width:100%;padding:2px 0;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.bsh-cats::-webkit-scrollbar{display:none}
+.bsh-cats button{flex:none;height:36px;padding:0 14px;border-radius:999px;border:1px solid #c9c9e2;background:#fff;color:var(--bsh-ink);font:inherit;font-size:14px;cursor:pointer;white-space:nowrap}
+.bsh-cats button:hover{background:var(--bsh-bg)}
+.bsh-cats button.is-on{background:var(--bsh-ink);border-color:var(--bsh-ink);color:#fff}
+
+/* Desktop: the sidebar replaces the old pinned header, so sticky offsets are small. */
+@media (min-width:901px){
+  .bsh-app .bui-ad-sum,.bsh-app .bui-mb-side,.bsh-app .bui-pb-aside,.bsh-app .bui-pv-side{top:24px}
+}
+/* Messages: a full-height pane inside the padded shell. */
+body .bsh-app .msg-layout{max-width:none;margin:26px 34px 40px;width:auto}
+
+/* ── Phone chrome: hidden on desktop ─────────────────────────────────── */
+.bsh-top,.bsh-tabs,.bsh-drawer,.bsh-backdrop{display:none}
+.bsh-iconbtn{width:44px;height:44px;display:grid;place-items:center;background:none;border:0;color:var(--bsh-ink);cursor:pointer;padding:0}
+.bsh-top-logo{display:inline-flex;align-items:center;gap:8px;background:none;border:0;padding:0;cursor:pointer;margin-right:auto}
+.bsh-top-post{display:inline-flex;align-items:center;gap:4px;height:36px;padding:0 12px 0 10px;border:0;border-radius:10px;background:var(--bsh-ink);color:#fff;font:inherit;font-weight:700;font-size:14px;cursor:pointer;flex:none}
+.bsh-avatar{width:36px;height:36px;border-radius:50%;background:var(--bsh-ink);color:#fff;display:grid;place-items:center;font-weight:600;font-size:14px;border:0;cursor:pointer;overflow:hidden;padding:0;flex:none}
+.bsh-avatar img{width:100%;height:100%;object-fit:cover}
+
+@media (max-width:900px){
+  .bsh-app{display:block;padding-bottom:calc(64px + env(safe-area-inset-bottom,0px));--cmk-nav-height:calc(56px + env(safe-area-inset-top,0px))}
+  .bsh-side{display:none}
+  .bsh-top{position:sticky;top:0;z-index:60;display:flex;align-items:center;gap:6px;box-sizing:border-box;height:calc(56px + env(safe-area-inset-top,0px));padding:env(safe-area-inset-top,0px) max(10px,env(safe-area-inset-right,0px)) 0 max(4px,env(safe-area-inset-left,0px));background:#fff;border-bottom:1px solid var(--bsh-line)}
+  .bsh-backdrop{display:block;position:fixed;inset:0;z-index:70;background:rgba(7,7,78,.45)}
+  .bsh-drawer{display:flex;flex-direction:column;gap:18px;position:fixed;top:0;bottom:0;left:0;z-index:80;width:min(300px,86vw);background:var(--bsh-side);color:#fff;padding:calc(22px + env(safe-area-inset-top,0px)) 16px calc(16px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));box-sizing:border-box;overflow-y:auto;overscroll-behavior:contain}
+  .bsh-main{padding:16px 16px 28px;gap:18px}
+  .bsh-main--flush{padding:0}
+  .bsh-head-t h1{font-size:24px}
+  .bsh-search{width:100%;order:3}
+  .bsh-util .bsh-search{flex:1 1 auto;width:auto;order:0}
+  .bsh-tabs{position:fixed;left:0;right:0;bottom:0;z-index:60;display:grid;grid-template-columns:repeat(5,1fr);background:#fff;border-top:1px solid var(--bsh-line);padding:6px max(4px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(4px,env(safe-area-inset-left,0px))}
+  .bsh-tabs button{display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:0;color:var(--bsh-soft);font:inherit;cursor:pointer;min-height:48px;padding:2px 0}
+  .bsh-tabs button small{font-size:11px;font-weight:600}
+  .bsh-tabs button.is-on{color:var(--bsh-ink)}
+  .bsh-tabs button.is-on small{font-weight:700}
+  .bsh-tab-ic{position:relative;display:grid;place-items:center}
+  .bsh-tab-ic i{position:absolute;top:-4px;right:-9px;min-width:16px;height:16px;padding:0 4px;box-sizing:border-box;border-radius:999px;background:var(--bsh-primary);color:#fff;font-size:10px;font-weight:700;font-style:normal;display:grid;place-items:center}
+
+  .bsh-main:has(> .bui-main) > .bsh-util,.bsh-main:has(> .bui-dash-bare) > .bsh-util{padding:14px 16px 0}
+  .bsh-util + .bui-main,.bsh-util + .bui-dash-bare .bui-main{padding-top:14px}
+  .bsh-cats{margin:0 -16px;padding:2px 16px;max-width:none}
+  .bsh-cats button{height:40px}
+
+  /* Tablet width (641-900) keeps a comfortable page gutter; phones use brand-ui-mobile-b.css. */
+  .bsh-app .bui-main{padding:20px 24px 40px}
+  body .bsh-app main.bsh-main{padding-left:16px !important;padding-right:16px !important}
+  body .bsh-app main.bsh-main:has(> .bui-main),body .bsh-app main.bsh-main:has(> .bui-dash-bare),body .bsh-app main.bsh-main--flush,body .bsh-app main.bui-dash-bare{padding-left:0 !important;padding-right:0 !important}
+
+  /* Sticky things now sit under the 56px top bar, and bottom bars above the 64px tab bar. */
+  .bsh-app .bui-filterbar{top:var(--cmk-nav-height)}
+  body .bsh-app .bui-pf-tabs{top:var(--cmk-nav-height)}
+  .bsh-app .bui-pf-mbar{bottom:calc(64px + env(safe-area-inset-bottom,0px));padding-bottom:10px}
+  body .bsh-app .bui-pb-submit{bottom:calc(64px + env(safe-area-inset-bottom,0px))}
+  .bsh-app .bui-main.bui-pf{padding-bottom:96px}
+  /* Messages: pane fits between the top bar and the tab bar. */
+  body .bsh-app .msg-layout{margin:0;width:100%;height:calc(100dvh - var(--cmk-nav-height) - 64px - env(safe-area-inset-bottom,0px));min-height:460px}
+}
+@media print{
+  .bsh-side,.bsh-top,.bsh-tabs,.bsh-drawer,.bsh-backdrop,.bsh-head,.bsh-util{display:none !important}
+  .bsh-app{display:block;padding:0}
+  .bsh-main,.bsh-app .bui-main{padding:0 !important}
+}

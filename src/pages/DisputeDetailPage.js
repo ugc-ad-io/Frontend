@@ -12,6 +12,7 @@ import { apiErrorMessage } from '../utils/apiError';
 import '../styles/brand-ui.css';
 import '../styles/brand-ui-dispute.css';
 import '../styles/brand-ui-mobile-b.css';
+import BackButton from '../components/BackButton';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -129,12 +130,7 @@ export default function DisputeDetailPage() {
   return (
     <Layout notifications={0}>
       <div className="bui-main bui-main--tight dd-wrap">
-        <nav className="dd-crumb" aria-label="Breadcrumb">
-          <button type="button" onClick={goBack}>Back</button>
-          <span aria-hidden="true">/</span>
-          {dispute?.campaign_title && <><span>{dispute.campaign_title}</span><span aria-hidden="true">/</span></>}
-          <strong aria-current="page">Dispute</strong>
-        </nav>
+        <BackButton onClick={goBack} />
 
         {loading ? (
           <div className="dd-empty">Loading dispute…</div>

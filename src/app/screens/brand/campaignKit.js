@@ -108,11 +108,11 @@ export function Avatar({ src, name, size = 36 }) {
 }
 
 /** Six segment stage bar (Brief / Bids / Shipped / Filming / Review / Done). `idx` = current segment. */
-export function StageBar({ idx, completed = false, labels = true, label }) {
+export function StageBar({ idx, completed = false, labels = true, label, stages = STAGE_LABELS }) {
   return (
-    <div className="ap-cp-stage" role="list" aria-label={label || 'Progress'}>
+    <div className="ap-cp-stage" role="list" aria-label={label || 'Progress'} style={{ '--n': stages.length }}>
       <div className="ap-cp-stage-bar">
-        {STAGE_LABELS.map((n, i) => {
+        {stages.map((n, i) => {
           const done = completed || i < idx;
           const now = !completed && i === idx;
           return <span key={n} role="listitem" aria-label={`${n}${done ? ', done' : now ? ', now' : ''}`} className={`ap-cp-seg${done ? ' is-done' : now ? ' is-now' : ''}`} />;
@@ -120,7 +120,7 @@ export function StageBar({ idx, completed = false, labels = true, label }) {
       </div>
       {labels && (
         <div className="ap-cp-stage-lab" aria-hidden="true">
-          {STAGE_LABELS.map((n, i) => <span key={n} className={!completed && i === idx ? 'is-now' : ''}>{n}</span>)}
+          {stages.map((n, i) => <span key={n} className={!completed && i === idx ? 'is-now' : ''}>{n}</span>)}
         </div>
       )}
     </div>

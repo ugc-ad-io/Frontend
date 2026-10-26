@@ -42,6 +42,15 @@ export default function CreatorTopNavLayout({ children }) {
   const [counts, setCounts] = useState({ orders: 0, unread: 0 });
 
   useEffect(() => { setDrawer(false); }, [pathname]);
+  // Open drawer: lock page scroll behind it and let Escape close it.
+  useEffect(() => {
+    if (!drawer) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKey = (e) => { if (e.key === 'Escape') setDrawer(false); };
+    window.addEventListener('keydown', onKey);
+    return () => { document.body.style.overflow = prev; window.removeEventListener('keydown', onKey); };
+  }, [drawer]);
 
   // Sidebar badges: active orders and unread chat messages come from the deals list.
   useEffect(() => {
@@ -127,7 +136,10 @@ export default function CreatorTopNavLayout({ children }) {
       {drawer && (
         <>
           <div className="cui-backdrop" onClick={() => setDrawer(false)} aria-hidden="true" />
-          <aside className="cui-drawer">{sidebar}</aside>
+          <aside className="cui-drawer" aria-label="Menu">
+            <button type="button" className="cui-drawer-x" aria-label="Close menu" onClick={() => setDrawer(false)}><X size={22} /></button>
+            {sidebar}
+          </aside>
         </>
       )}
 

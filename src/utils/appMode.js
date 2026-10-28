@@ -5,9 +5,19 @@
 // sessionStorage ugcad_app_ui=1 turns it on for one tab only (used for testing).
 const FLAG = 'ugcad_app_ui';
 
+// The NEW UGCad mobile shell (a React Native app whose WebView opens this live site) identifies itself with the user agent
+// token "UGCadShell/<version>" or window.__UGCAD_SHELL__ = true (injected before the page loads). It always runs app mode.
+// The OLD native app also hosts a few website pages in WebViews (onboarding, team accept) WITHOUT that marker:
+// those keep the plain website behaviour (IN_OLD_APP).
+const hasWindow = typeof window !== 'undefined';
+export const IN_SHELL = hasWindow && (window.__UGCAD_SHELL__ === true || /UGCadShell\//.test((window.navigator && window.navigator.userAgent) || ''));
+export const IN_OLD_APP = hasWindow && !!window.ReactNativeWebView && !IN_SHELL;
+
 function detect() {
   try {
-    if (typeof window === 'undefined' || window.ReactNativeWebView) return false;
+    if (!hasWindow) return false;
+    if (IN_SHELL) return true;
+    if (window.ReactNativeWebView) return false;
     const params = new URLSearchParams(window.location.search);
     if (params.get('app') === '1') window.localStorage.setItem(FLAG, '1');
     if (params.get('app') === '0') { window.localStorage.removeItem(FLAG); window.sessionStorage.removeItem(FLAG); }

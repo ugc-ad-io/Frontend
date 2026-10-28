@@ -17,6 +17,7 @@ import { MAX_REVISION_ITEMS, revisionItemCount, buildRevisionPayload, revisionFe
 import PlanBrief from '../../../pages/PlanBrief';
 import { API, Avatar, LoadError, Skeletons, firstWord, loadErrorText } from './workShared';
 import { useAppBack } from '../../shell/useAppBack';
+import { openExternal } from '../../../utils/nativeBridge';
 import './work.css';
 
 const isVideo = (u) => /\.(mp4|webm|mov|m4v|avi|mkv)$/i.test(String(u || '').split('?')[0]);
@@ -504,7 +505,7 @@ export default function BrandWorkReviewApp() {
     if (!f) { toast.error('No file on this submission yet'); return; }
     const url = assetUrl(f);
     if (isVideo(url)) setPlayer({ id: it.id, src: url, watermark: it.status !== 'approved' });
-    else window.open(url, '_blank', 'noopener');
+    else openExternal(url);
   };
   const openFileUrl = (it, file) => setPlayer({ id: it.id, src: assetUrl(file), watermark: it.status !== 'approved' });
 

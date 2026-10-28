@@ -25,6 +25,7 @@ import { toggleSavedCreator, useSavedCreatorIds } from '../utils/savedCreators';
 import { getProfilePct, getProfileMissing } from '../utils/creatorProfileCompletion';
 import { Skeleton } from './Skeleton';
 import { s3Preview } from '../utils/mediaPreview';
+import SafetyMenu from './SafetyMenu';
 
 // Option lists mirrored from the signup form (CreatorProfileSetup) so editing
 // uses the exact same choices instead of free text.
@@ -813,6 +814,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
           {(asPage || isMobile)
             ? <button type="button" className="cpm-banner-back" onClick={(e) => { e.stopPropagation(); handleClose(); }} aria-label="Back to settings"><ChevronLeft size={20} /></button>
             : <button type="button" className="cpm-x" onClick={(e) => { e.stopPropagation(); onClose(); }} aria-label="Close"><X size={18} /></button>}
+          {!editable && id ? <span style={{ position: 'absolute', top: 14, right: 58, zIndex: 3 }}><SafetyMenu userId={id} name={fallbackName} /></span> : null}
           {editable && (
             <>
               <button

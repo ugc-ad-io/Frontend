@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { X, MessageSquare, Star, Building2, Globe, MapPin, Briefcase } from 'lucide-react';
 import { brandName } from '../utils/displayName';
 import ReviewModal from './ReviewModal';
+import SafetyMenu from './SafetyMenu';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -112,6 +113,7 @@ export default function BrandProfileCard({ id, fallbackName, onClose, onMessage,
           className="bpc-banner"
           style={banner ? { backgroundImage: `url(${banner})` } : undefined}
         >
+          <span style={{ position: 'absolute', top: 14, right: 58, zIndex: 3 }}><SafetyMenu userId={id} name={fallbackName} /></span>
           <button type="button" className="bpc-x" onClick={onClose} aria-label="Close"><X size={18} /></button>
         </div>
 

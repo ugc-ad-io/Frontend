@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Navigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { Check, RefreshCw, WifiOff } from 'lucide-react';
 import AppShell from '../../shell/AppShell';
 import { useLiveEffect } from '../../../lib/liveUpdates';
+import { isShell } from '../../../utils/nativeBridge';
 import './plans.css';
 
 const API = `${process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000'}/api`;
@@ -25,7 +26,12 @@ const fmtDay = (v) => {
   return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 };
 
+// "Add expert editing" only says "Coming soon": the mobile shell must not show a dead end.
 export default function BrandEditAddon() {
+  return isShell() ? <Navigate to="/brand-home" replace /> : <BrandEditAddonPage />;
+}
+
+function BrandEditAddonPage() {
   const navigate = useNavigate();
   const [campaigns, setCampaigns] = useState(null);
   const [error, setError] = useState('');

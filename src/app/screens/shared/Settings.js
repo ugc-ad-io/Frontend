@@ -13,6 +13,8 @@ import { DEFAULT_NOTIF, DEFAULT_PRIVACY, mergeNotif, mergePrivacy, persistPrefs 
 import { LEGAL_CONTENT } from '../../../data/legalContent';
 import LegalSections from '../../../components/LegalSections';
 import { SUPPORT_EMAIL } from '../../../components/ContactSupportBox';
+import { registerDevice } from '../../../utils/shellPush';
+import { isShell, permissionStatus, requestPermission, openAppSettings } from '../../../utils/nativeBridge';
 import AppShell from '../../shell/AppShell';
 import BottomSheet from '../../shell/BottomSheet';
 import './settings.css';
@@ -389,6 +391,25 @@ export default function Settings() {
   );
 
   // ---- section bodies ----
+  // Mobile shell: phone push permission. Asked here (in context), never on the first launch screen.
+  const [pushStatus, setPushStatus] = useState('');
+  useEffect(() => {
+    if (!isShell() || section !== 'notifications') return;
+    permissionStatus('notifications').then((r) => setPushStatus((r && r.ok && r.status) || ''));
+  }, [section]);
+  const enablePush = async () => {
+    const r = await requestPermission('notifications');
+    setPushStatus((r && r.ok && r.status) || pushStatus);
+    if (r && r.ok && r.status === 'granted') registerDevice(user?.id || user?.user_id, { force: true });
+  };
+  const pushCard = isShell() && ['denied', 'blocked'].includes(pushStatus) ? (
+    <div className="ap-set-card" data-testid="push-blocked">
+      <h2>Phone notifications are off</h2>
+      <p>Turn them on to hear about messages, new briefs and payments.</p>
+      <button type="button" className="ap-set-save" onClick={pushStatus === 'blocked' ? () => openAppSettings() : enablePush}>{pushStatus === 'blocked' ? 'Open Settings' : 'Turn on notifications'}</button>
+    </div>
+  ) : null;
+
   const SECTIONS = {
     profile: { title: 'Brand profile', render: () => brandGate(
       <div className="ap-set-card">
@@ -453,7 +474,7 @@ export default function Settings() {
       return (
         <>
           <div className="ap-set-card">
-            <div className="ap-row"><span className="ap-row-t"><small>Active plan</small><b>{summary.active_plan || billing.plan_name || 'Pro'}</b></span><button type="button" className="ap-link" onClick={() => navigate('/dashboard/business/plans')}>See plans</button></div>
+            <div className="ap-row"><span className="ap-row-t"><small>Active plan</small><b>{summary.active_plan || billing.plan_name || 'Pro'}</b></span>{!isShell() && <button type="button" className="ap-link" onClick={() => navigate('/dashboard/business/plans')}>See plans</button>}</div>
             <div className="ap-row"><span className="ap-row-t"><small>Wallet</small><b>{money(summary.wallet_balance)}</b></span></div>
             <div className="ap-row"><span className="ap-row-t"><small>Team count</small><b>{summary.team_count || team.members?.length || 0} members</b></span></div>
           </div>
@@ -471,10 +492,12 @@ export default function Settings() {
     }) },
     notifications: { title: isBrand ? 'Email alerts' : 'Notifications', render: () => (isBrand ? brandGate(
       <>
+        {pushCard}
         {toggleList(BRAND_NOTIF_ROWS, brandNotif, setBrandNotif)}
         <button type="button" className="ap-set-save" onClick={saveBrandNotif} disabled={busy}>{busy ? 'Saving…' : 'Save preferences'}</button>
       </>) : (
       <>
+        {pushCard}
         {toggleList(CREATOR_NOTIF_ROWS, creatorNotif, setCreatorNotif)}
         <button type="button" className="ap-set-save" disabled={busy} onClick={() => savePrefsGroup('notification_prefs', creatorNotif, savedNotif, setCreatorNotif, setSavedNotif, 'Notification preferences saved', 'Could not save notification preferences')}>{busy ? 'Saving…' : 'Save preferences'}</button>
       </>)) },
@@ -537,7 +560,7 @@ export default function Settings() {
       </div>) },
     follow: { title: 'Follow us', render: () => (
       <div className="ap-set-group">
-        {SOCIALS.map((s) => {
+        {SOCIALS.filter((s) => !(isShell() && s.soon)).map((s) => {
           const inner = (
             <>
               <span className="ic" style={{ background: s.color }}><s.icon size={20} /></span>

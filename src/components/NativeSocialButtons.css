@@ -1,0 +1,12 @@
+/* Same width and height for both buttons (Apple HIG: Apple at least as prominent as Google). */
+.ugc-social{display:flex;flex-direction:column;gap:10px;width:100%}
+.ugc-social-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:44px;border-radius:10px;font:600 15px/1 inherit;font-family:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ugc-social-btn:disabled{opacity:.6;cursor:default}
+.ugc-social-btn.is-apple{background:#000;color:#fff;border:1px solid #000}
+.ugc-social-btn.is-google{background:#fff;color:#1f1f1f;border:1px solid #dadce0}
+/* Sign-up without the consent box ticked: the social buttons ask for it first. */
+.ugc-consent-lock{position:relative}
+.ugc-consent-cover{position:absolute;inset:0;z-index:2;cursor:pointer}
+.ugc-consent{display:flex;align-items:flex-start;gap:10px;font-size:13px;line-height:1.45;color:inherit;text-align:left}
+.ugc-consent input{width:20px;height:20px;margin:1px 0 0;flex:none;accent-color:#4f46e5}
+.ugc-consent a{font-weight:600;text-decoration:underline}

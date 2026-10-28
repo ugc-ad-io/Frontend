@@ -121,6 +121,13 @@ body .bsh-app .msg-layout{max-width:none;margin:26px 34px 40px;width:auto}
 
   .bsh-main:has(> .bui-main) > .bsh-util,.bsh-main:has(> .bui-dash-bare) > .bsh-util{padding:14px 16px 0}
   .bsh-util + .bui-main,.bsh-util + .bui-dash-bare .bui-main{padding-top:14px}
+  /* Phones: slimmer search + bell row and tighter spacing around it */
+  .bsh-util .bsh-head{gap:10px;flex-wrap:nowrap}
+  .bsh-util .bsh-head-fill{display:none}
+  .bsh-util .bsh-search{height:40px;padding:0 12px}
+  .bsh-util .bsh-bell .notification-bell-button{width:40px;height:40px}
+  .bsh-main:has(> .bui-main) > .bsh-util,.bsh-main:has(> .bui-dash-bare) > .bsh-util{padding:10px 16px 0}
+  .bsh-app .bsh-util + .bui-main,.bsh-app .bsh-util + .bui-dash-bare .bui-main{padding-top:6px}
   .bsh-cats{margin:0 -16px;padding:2px 16px;max-width:none}
   .bsh-cats button{height:40px}
 

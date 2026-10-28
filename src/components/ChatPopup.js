@@ -9,6 +9,7 @@ import PlanBrief from '../pages/PlanBrief';
 import CreatorProfileModal from './CreatorProfileModal';
 import { findContactInfo } from './RevisionRequestModal';
 import PhotoOrInitial from './PhotoOrInitial';
+import SafetyMenu from './SafetyMenu';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -178,6 +179,7 @@ export default function ChatPopup({ user, onClose, dealId = null, title = '' }) 
             ? <small>with {peerName}</small>
             : <small>Direct message</small>}
         </div>
+        <SafetyMenu userId={user.id} name={peerName} dealId={dealId} />
         <button type="button" className="cpop-x" aria-label="Close" onClick={onClose}><X size={18} /></button>
       </div>
 

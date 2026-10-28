@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import "./index.css";
 import App from "./App";
+import { IN_OLD_APP } from './utils/appMode';
 import AppErrorBoundary from './components/AppErrorBoundary';
 
 const startupUrl = new URL(window.location.href);
@@ -13,7 +14,7 @@ if (startupUrl.searchParams.has('_ugcad_reload')) {
 // Inside the UGCad Android/iOS app the native shell already pads for the status and
 // navigation bars, yet the WebView still reports them as safe-area insets. Flag it so
 // the admin CSS applies each inset exactly once (see --safe-* in admin-mobile.css).
-if (window.ReactNativeWebView) document.documentElement.classList.add('in-native-app');
+if (IN_OLD_APP) document.documentElement.classList.add('in-native-app');
 
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(

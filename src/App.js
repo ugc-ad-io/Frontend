@@ -15,7 +15,9 @@ import { Toaster } from 'sonner';
 import { useLiveEffect, useLiveUpdates } from './lib/liveUpdates';
 import HorizontalAccess from './components/HorizontalAccess';
 import AppOverride from './app/AppOverride';
-import { APP_UI } from './utils/appMode';
+import { APP_UI, IN_OLD_APP } from './utils/appMode';
+import ShellPush from './components/ShellPush';
+import { unregisterDevice } from './utils/shellPush';
 
 // ── Route-level code splitting ───────────────────────────────────────────────
 // Every page is lazy-loaded so a visitor only downloads the chunk for the route
@@ -336,6 +338,7 @@ function AuthProvider({ children }) {
   };
 
   const logout = () => {
+    unregisterDevice(); // shell only: drop the push token while the session token still exists
     GET_CACHE.clear();
     localStorage.removeItem('token');
     localStorage.removeItem('ops_admin_token');
@@ -381,7 +384,7 @@ function AuthProvider({ children }) {
         ['creator', 'business'].includes(user.role) &&
         user.approval_status === 'approved' &&
         pathname.startsWith('/dashboard') &&
-        !window.ReactNativeWebView && // inside the mobile app, its native gate handles it
+        !IN_OLD_APP && // inside the OLD native app its native gate handles it (the new shell uses this web gate)
         user.agreement_accepted !== true &&
         !localStorage.getItem('ops_admin_token') && (
           <AgreementGate onAccepted={() => setUser({ ...user, agreement_accepted: true })} />
@@ -409,19 +412,13 @@ function ProtectedRoute({ children, allowedRoles }) {
   return children;
 }
 
-// "/" is the marketing landing in a browser. Launched as the installed app it is an app
-// start: signed-in users go straight to their dashboard, everyone else to sign-in. Only the
-// first "/" of an app session is redirected, so the Back-to-home links still reach the landing.
+// "/" is the marketing landing in a browser only. In the app (installed PWA or the native shell)
+// the landing never shows: "/" always goes to the dashboard when signed in, else to sign-in,
+// including after logout and from any Back-to-home link.
 function HomeRoute() {
   const { user, loading } = useAuth();
-  const [launch] = useState(() => {
-    try {
-      if (window.ReactNativeWebView || !(isStandalone() || APP_UI) || sessionStorage.getItem('ugcad_launch_done')) return false;
-      sessionStorage.setItem('ugcad_launch_done', '1');
-      return true;
-    } catch { return false; }
-  });
-  if (!launch) return <Landing />;
+  const inApp = !IN_OLD_APP && (APP_UI || isStandalone());
+  if (!inApp) return <Landing />;
   if (user) return <Navigate to={homeForUser(user)} replace />;
   if (loading && localStorage.getItem('token')) return <Loader />;
   return <Navigate to="/auth" replace />;
@@ -533,6 +530,7 @@ function App() {
         <ThemeProvider>
         <AuthProvider>
           <ScrollToTop />
+          <ShellPush />
           <OverlayBack />
           <Toaster position="top-right" richColors closeButton mobileOffset={{ top: "calc(env(safe-area-inset-top, 0px) + 8px)", left: 16, right: 16 }} />
           <RouteLoadingBoundary>

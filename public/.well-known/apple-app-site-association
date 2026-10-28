@@ -1,0 +1,13 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["TEAMID.io.ugcad.app"],
+        "components": [{ "/": "*" }]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": ["TEAMID.io.ugcad.app"]
+  }
+}

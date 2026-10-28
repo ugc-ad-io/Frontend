@@ -1,0 +1,21 @@
+.ugc-safe-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:36px;min-height:36px;padding:0 10px;border:1px solid rgba(0,0,0,.12);border-radius:999px;background:#fff;color:#b42318;font:600 13px/1 inherit;font-family:inherit;cursor:pointer}
+.ugc-safe-overlay{position:fixed;inset:0;z-index:100000;background:rgba(7,7,40,.5);display:flex;align-items:flex-end;justify-content:center}
+.ugc-safe-sheet{width:100%;max-width:440px;max-height:90vh;overflow:auto;background:#fff;color:#14142b;border-radius:20px 20px 0 0;padding:16px 18px calc(18px + env(safe-area-inset-bottom,0px));box-shadow:0 -10px 40px rgba(0,0,0,.25);font-family:inherit}
+@media (min-width:640px){.ugc-safe-overlay{align-items:center}.ugc-safe-sheet{border-radius:18px}}
+.ugc-safe-head{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:16px;margin-bottom:6px}
+.ugc-safe-head button{border:0;background:transparent;color:inherit;width:36px;height:36px;border-radius:50%;cursor:pointer}
+.ugc-safe-sub{margin:4px 0 12px;font-size:13.5px;line-height:1.5;color:#585c7e}
+.ugc-safe-list{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.ugc-safe-list button,.ugc-safe-actions button{display:flex;align-items:center;gap:10px;min-height:46px;padding:0 14px;border:1px solid #e3e4f2;border-radius:12px;background:#fff;color:inherit;font:600 15px/1 inherit;font-family:inherit;cursor:pointer;justify-content:center}
+.ugc-safe-list button{justify-content:flex-start}
+.ugc-safe-list .danger{color:#b42318}
+.ugc-safe-reasons{display:flex;flex-wrap:wrap;gap:8px}
+.ugc-safe-reasons button{min-height:38px;padding:0 14px;border:1px solid #d6d8ee;border-radius:999px;background:#fff;color:inherit;font:600 13.5px/1 inherit;font-family:inherit;cursor:pointer}
+.ugc-safe-reasons button.is-on{background:#07074e;border-color:#07074e;color:#fff}
+.ugc-safe-label{display:block;margin-top:14px;font-size:13px;font-weight:600}
+.ugc-safe-label textarea{display:block;width:100%;margin-top:6px;padding:10px 12px;border:1px solid #d6d8ee;border-radius:12px;font:15px/1.4 inherit;font-family:inherit;resize:vertical;box-sizing:border-box}
+.ugc-safe-actions{display:flex;gap:10px;margin-top:16px}
+.ugc-safe-actions button{flex:1}
+.ugc-safe-actions .primary{background:#07074e;border-color:#07074e;color:#fff}
+.ugc-safe-actions .primary.danger{background:#b42318;border-color:#b42318}
+.ugc-safe-actions button:disabled{opacity:.55;cursor:default}

@@ -11,6 +11,9 @@ import '../styles/brand-ui-auth.css';
 import '../styles/brand-ui-mobile-b.css';
 import '../styles/creator-ui-onboarding.css';
 import AuthReels from '../components/AuthReels';
+import NativeSocialButtons from '../components/NativeSocialButtons';
+import { isShell } from '../utils/nativeBridge';
+import { nativeGoogleCredential, nativeAppleBody } from '../utils/shellAuth';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -109,6 +112,8 @@ export default function Auth() {
   const [phone, setPhone] = useState('');
   const [dialCode, setDialCode] = useState('+91');
   const [loading, setLoading] = useState(false);
+  // Sign-up needs an explicit tick for the Terms + Privacy Policy (sent to the backend as terms_accepted).
+  const [agree, setAgree] = useState(false);
   const navigate = useNavigate();
   const { login, user } = useAuth();
   const nextPath = safeNext(searchParams.get('next'));
@@ -145,37 +150,58 @@ export default function Auth() {
   const googleBtnRef = useRef(null);
   const roleRef = useRef(role);
   useEffect(() => { roleRef.current = role; }, [role]);
-  // Google credential held while the 2FA step is open: Google proves identity, not the
-  // second factor, so the backend answers {requires_2fa} and we retry with ?totp_token=.
-  const googleCredRef = useRef(null);
+  // Google/Apple request held while the 2FA step is open: they prove identity, not the second factor, so the
+  // backend answers {requires_2fa} and we retry the same body with ?totp_token=.  { provider, body }
+  const socialRef = useRef(null);
 
   // Exchange the Google credential for our own JWT via the backend.
-  const handleGoogleCredential = async (response) => {
+  const socialLogin = async (provider, body, label) => {
     setLoading(true);
     try {
-      const { data } = await axios.post(`${API}/auth/google`, {
-        credential: response.credential,
-        role: roleRef.current
-      });
+      const { data } = await axios.post(`${API}/auth/${provider}`, body);
       if (data.requires_2fa) {
-        googleCredRef.current = response.credential;
+        socialRef.current = { provider, body };
         setTotpCode('');
         setView('2fa');
         return;
       }
       const { token, ...userData } = data;
       login(token, userData);
-      toast.success('Signed in with Google');
+      toast.success(`Signed in with ${label}`);
       routeForUser(navigate, userData.role, userData.profile_completed, nextPath);
     } catch (error) {
-      toast.error(authError(error, 'Google sign-in failed'));
+      toast.error(authError(error, `${label} sign-in failed`));
     } finally {
       setLoading(false);
     }
   };
+  const handleGoogleCredential = (response) => socialLogin('google', { credential: response.credential, role: roleRef.current }, 'Google');
+
+  // Sign-up: every social button first needs the Terms/Privacy tick.
+  const consentOk = () => {
+    if (isLogin || agree) return true;
+    toast.error('Please tick "I agree to the Terms and Privacy Policy" first');
+    return false;
+  };
+  // Mobile shell: Google/Apple run natively (Google blocks its web button inside WebViews). Apple: iOS only.
+  const handleNativeGoogle = async () => {
+    if (loading || !consentOk()) return;
+    const r = await nativeGoogleCredential();
+    if (r.cancelled) return;
+    if (r.error) { toast.error(r.error); return; }
+    await handleGoogleCredential({ credential: r.credential });
+  };
+  const handleNativeApple = async () => {
+    if (loading || !consentOk()) return;
+    const r = await nativeAppleBody(roleRef.current);
+    if (r.cancelled) return;
+    if (r.error) { toast.error(r.error); return; }
+    await socialLogin('apple', r.body, 'Apple');
+  };
+  const inShell = isShell();
 
   useEffect(() => {
-    if (!GOOGLE_CLIENT_ID) return; // not configured — button simply won't render
+    if (!GOOGLE_CLIENT_ID || inShell) return; // not configured (or the shell's native button is used) — web button won't render
     let cancelled = false;
     loadGoogleScript()
       .then(() => {
@@ -221,6 +247,10 @@ export default function Auth() {
       toast.error('Password must be at least 6 characters');
       return;
     }
+    if (!isLogin && !agree) {
+      toast.error('Please tick "I agree to the Terms and Privacy Policy" to create your account');
+      return;
+    }
 
     setLoading(true);
 
@@ -228,13 +258,13 @@ export default function Auth() {
       const endpoint = isLogin ? '/auth/login' : '/auth/signup';
       const payload = isLogin
         ? { email, password }
-        : { email, password, role, phone: onlyDigits(phone), dial_code: dialCode };
+        : { email, password, role, phone: onlyDigits(phone), dial_code: dialCode, terms_accepted: true };
 
       const { data } = await axios.post(`${API}${endpoint}`, payload);
 
       // Login may require a second factor — Python returns {requires_2fa:true} with no token.
       if (isLogin && data.requires_2fa) {
-        googleCredRef.current = null;
+        socialRef.current = null;
         setTotpCode('');
         setView('2fa');
         return;
@@ -266,11 +296,11 @@ export default function Auth() {
     setLoading(true);
     try {
       const q = `?totp_token=${encodeURIComponent(totpCode)}`;
-      const { data } = googleCredRef.current
-        ? await axios.post(`${API}/auth/google${q}`, { credential: googleCredRef.current, role: roleRef.current })
+      const { data } = socialRef.current
+        ? await axios.post(`${API}/auth/${socialRef.current.provider}${q}`, socialRef.current.body)
         : await axios.post(`${API}/auth/login${q}`, { email, password });
       const { token, ...userData } = data;
-      googleCredRef.current = null;
+      socialRef.current = null;
       login(token, userData);
       toast.success('Welcome back!');
       routeForUser(navigate, userData.role, userData.profile_completed, nextPath);
@@ -452,15 +482,20 @@ export default function Auth() {
 
         {view === 'auth' && (
         <>
-        {/* Google sign-in — only when a client id is configured */}
-        {GOOGLE_CLIENT_ID && (
+        {/* Google sign-in — only when a client id is configured; in the mobile shell: native Google (+ Apple on iOS) */}
+        {(GOOGLE_CLIENT_ID || inShell) && (
           <motion.div
             className="ap-oauth"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2, duration: 0.4 }}
           >
-            <div ref={googleBtnRef} className="ap-google" />
+            <div className={!isLogin && !agree ? 'ugc-consent-lock' : undefined}>
+              {inShell
+                ? <NativeSocialButtons onGoogle={handleNativeGoogle} onApple={handleNativeApple} busy={loading} />
+                : <div ref={googleBtnRef} className="ap-google" />}
+              {!isLogin && !agree && <div className="ugc-consent-cover" onClick={consentOk} role="presentation" />}
+            </div>
             <div className="ap-divider"><span>or</span></div>
           </motion.div>
         )}
@@ -650,12 +685,15 @@ export default function Auth() {
           </button>
         </motion.div>
         {!isLogin && (
-          <p className="ap-legal">
-            By creating an account you agree to our{' '}
-            <a href="/terms" target="_blank" rel="noreferrer">Terms</a>,{' '}
-            <a href="/privacy-policy" target="_blank" rel="noreferrer">Privacy Policy</a> and{' '}
-            <a href="/community-guidelines" target="_blank" rel="noreferrer">Community Guidelines</a>.
-          </p>
+          <label className="ap-legal ugc-consent" data-testid="terms-consent">
+            <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} data-testid="terms-checkbox" />
+            <span>
+              I agree to the{' '}
+              <a href="/terms" target="_blank" rel="noreferrer">Terms</a> and{' '}
+              <a href="/privacy-policy" target="_blank" rel="noreferrer">Privacy Policy</a>, and the{' '}
+              <a href="/community-guidelines" target="_blank" rel="noreferrer">Community Guidelines</a>.
+            </span>
+          </label>
         )}
         </>
         )}
@@ -784,7 +822,7 @@ export default function Auth() {
               {loading ? <span className="ap-spinner" /> : 'Verify & sign in'}
             </button>
             <div className="ap-footer">
-              <button type="button" className="ap-toggle" onClick={() => { setView('auth'); setTotpCode(''); googleCredRef.current = null; }}>
+              <button type="button" className="ap-toggle" onClick={() => { setView('auth'); setTotpCode(''); socialRef.current = null; }}>
                 ← Back to log in
               </button>
             </div>

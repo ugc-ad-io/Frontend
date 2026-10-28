@@ -410,3 +410,32 @@ input, select, textarea {
 
 /* Watermark shown on every video until the brand approves it (tiled, slanted UGCAD.IO). */
 :root{--ugc-wm:url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='240'%20height='150'%3E%3Cg%20font-family='Arial,Helvetica,sans-serif'%20font-size='21'%20font-weight='800'%20letter-spacing='2'%20text-anchor='middle'%20fill='%23ffffff'%20fill-opacity='0.5'%20stroke='%23000000'%20stroke-opacity='0.28'%20stroke-width='0.9'%20paint-order='stroke'%3E%3Ctext%20x='62'%20y='42'%20transform='rotate%28-30%2062%2042%29'%3EUGCAD.IO%3C/text%3E%3Ctext%20x='182'%20y='117'%20transform='rotate%28-30%20182%20117%29'%3EUGCAD.IO%3C/text%3E%3C/g%3E%3C/svg%3E")}
+
+/* iOS Safari/WKWebView: date, time and datetime-local inputs keep a native intrinsic width and ignore width:100%, so they poke out
+   of cards and the screen (and an empty one collapses and centres its value). The @supports line matches WebKit on iOS only,
+   so Android, desktop Chrome and Firefox are unchanged. */
+@supports (-webkit-touch-callout: none) {
+    input[type="date"],
+    input[type="datetime-local"],
+    input[type="time"],
+    input[type="month"],
+    input[type="week"] {
+        -webkit-appearance: none;
+        appearance: none;
+        box-sizing: border-box;
+        min-width: 0;
+        max-width: 100%;
+        text-align: left;
+    }
+    input[type="date"]::-webkit-date-and-time-value,
+    input[type="datetime-local"]::-webkit-date-and-time-value,
+    input[type="time"]::-webkit-date-and-time-value,
+    input[type="month"]::-webkit-date-and-time-value {
+        text-align: left;
+        min-height: 1.25em;
+        margin: 0;
+    }
+    input[type="date"]::-webkit-datetime-edit,
+    input[type="datetime-local"]::-webkit-datetime-edit,
+    input[type="time"]::-webkit-datetime-edit { padding: 0; }
+}

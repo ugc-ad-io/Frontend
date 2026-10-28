@@ -15,6 +15,7 @@ import { mediaUrl } from '../../../utils/mediaUrl';
 import PhotoOrInitial from '../../../components/PhotoOrInitial';
 import VideoViewer from '../../brandkit/VideoViewer';
 import { API, assetUrl, inr, titleCase, loadErrorText } from '../../brandkit/kit';
+import SafetyMenu from '../../../components/SafetyMenu';
 import './profile.css';
 
 // The existing private-brief flow, mounted as-is (loaded only when "Send a brief" is tapped).
@@ -259,7 +260,7 @@ function BrandAppCreatorProfile() {
   const reviewProps = { reviewers, revCampaigns, onClip: setClip };
 
   return (
-    <AppShell title={loading ? '' : name} back tabs={false} right={heart}>
+    <AppShell title={loading ? '' : name} back tabs={false} right={<>{heart}<SafetyMenu userId={id} name={name} /></>}>
       <section className="ap-pf-hero">
         <span className="ap-pf-ava">
           {loading ? <span className="ap-skel" style={{ display: 'block', width: '100%', height: '100%', borderRadius: '50%' }} /> : <PhotoOrInitial src={avatar} initial={name.charAt(0).toUpperCase()} />}

@@ -4,7 +4,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import {
   Search, Send, Paperclip, MoreHorizontal, Plus, X, FileText, CheckCheck, BellOff, Flag, User as UserIcon, Wallet,
-  WifiOff, MessageSquare, Image as ImageIcon, FilePlus2, ChevronDown, AlertTriangle, ShieldCheck,
+  WifiOff, MessageSquare, Image as ImageIcon, FilePlus2, ChevronDown, AlertTriangle, ShieldCheck, ShieldAlert,
 } from 'lucide-react';
 import AppShell from '../../shell/AppShell';
 import BottomSheet from '../../shell/BottomSheet';
@@ -14,6 +14,8 @@ import { uploadMedia } from '../../../utils/upload';
 import { apiErrorMessage } from '../../../utils/apiError';
 import { displayName, creatorFirstName } from '../../../utils/displayName';
 import { findContactInfo } from '../../../components/RevisionRequestModal';
+import { SafetyDialog } from '../../../components/SafetyMenu';
+import { useBlocked } from '../../../utils/safety';
 import './messages.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -192,6 +194,7 @@ export default function AppMessages() {
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedId = searchParams.get('conv') || null;
   const openedHere = useRef(false);
+  const blocked = useBlocked(user?.id); // blocked users: their chats are hidden and the composer is replaced
 
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -241,6 +244,7 @@ export default function AppMessages() {
         conv={conversations.find((c) => c.user_id === selectedId)}
         user={user}
         muted={mutedIds.has(selectedId)}
+        isBlockedUser={blocked.has(selectedId)}
         onToggleMute={() => toggleMute(selectedId)}
         // arrived by tapping a row: pop back to the list; deep link (notification): go to the list itself
         back={openedHere.current ? true : '/messages'}
@@ -248,7 +252,7 @@ export default function AppMessages() {
       />
     );
   }
-  return <Inbox user={user} conversations={conversations} loading={loading} error={listError} muted={mutedIds} onOpen={open} onRetry={() => { setLoading(true); fetchConversations(); }} />;
+  return <Inbox user={user} conversations={conversations.filter((c) => !blocked.has(c.user_id))} loading={loading} error={listError} muted={mutedIds} onOpen={open} onRetry={() => { setLoading(true); fetchConversations(); }} />;
 }
 
 // ---------------------------------------------------------------- conversation list
@@ -336,7 +340,7 @@ function Inbox({ user, conversations, loading, error, muted, onOpen, onRetry }) 
 }
 
 // ---------------------------------------------------------------- one open chat
-function Chat({ selectedId, conv, user, muted, onToggleMute, back, onChanged }) {
+function Chat({ selectedId, conv, user, muted, isBlockedUser, onToggleMute, back, onChanged }) {
   const navigate = useNavigate();
   const isBusiness = user?.role === 'business';
   const peer = isBusiness ? creatorFirstName(conv) : displayName(conv, 'User');
@@ -363,6 +367,7 @@ function Chat({ selectedId, conv, user, muted, onToggleMute, back, onChanged }) 
   const [report, setReport] = useState({ reason: '', details: '' });
   const [reporting, setReporting] = useState(false);
   const [requestingBrief, setRequestingBrief] = useState(false);
+  const [safety, setSafety] = useState(null); // { initial, messageId } report/block dialog
 
   const boxRef = useRef(null);
   const endRef = useRef(null);
@@ -791,7 +796,7 @@ function Chat({ selectedId, conv, user, muted, onToggleMute, back, onChanged }) 
                     </span>
                   ) : null}
                 </span>
-                <span className="ap-mc-time">{clock(msg)}{read ? <em><CheckCheck size={13} /> {read}</em> : null}</span>
+                <span className="ap-mc-time">{clock(msg)}{read ? <em><CheckCheck size={13} /> {read}</em> : null}{!own && msg.id ? <button type="button" className="ap-mc-flag" aria-label="Report this message" onClick={() => setSafety({ messageId: msg.id })}><Flag size={13} /></button> : null}</span>
               </div>
             )];
           })}
@@ -803,7 +808,9 @@ function Chat({ selectedId, conv, user, muted, onToggleMute, back, onChanged }) 
           <div className="ap-mc-policy"><AlertTriangle size={16} /> <span>Free-form chat is temporarily disabled. Action cards are still available.</span></div>
         ) : null}
 
-        {walletLow ? (
+        {isBlockedUser ? (
+          <div className="ap-mc-policy" role="status" data-testid="blocked-banner"><AlertTriangle size={16} /> <span>You blocked {peerName}. They can&apos;t message you.</span> <button type="button" className="ap-link" onClick={() => setSafety({ initial: 'menu' })}>Unblock</button></div>
+        ) : walletLow ? (
           <div className="ap-mc-wbar" role="status">
             <span className="ap-mc-wic"><Wallet size={20} /></span>
             <div>
@@ -848,6 +855,7 @@ function Chat({ selectedId, conv, user, muted, onToggleMute, back, onChanged }) 
           <button type="button" className="ap-more-row" onClick={() => setSheet('files')}><ImageIcon size={20} /> <span>Shared files{sharedFiles.length ? ` (${sharedFiles.length})` : ''}</span></button>
           <button type="button" className="ap-more-row" onClick={() => { setSheet(null); onToggleMute(); }}><BellOff size={20} /> <span>{muted ? 'Unmute this chat' : 'Mute this chat'}</span></button>
           <button type="button" className="ap-more-row ap-more-row--out" onClick={() => setSheet('report')}><Flag size={20} /> <span>Report {isBusiness ? 'creator' : 'brand'}</span></button>
+          <button type="button" className="ap-more-row ap-more-row--out" onClick={() => { setSheet(null); setSafety({ initial: isBlockedUser ? 'menu' : 'block' }); }} data-testid="block-user-row"><ShieldAlert size={20} /> <span>{isBlockedUser ? 'Unblock' : 'Block'} {peerName}</span></button>
         </div>
         <p className="ap-mc-safe"><ShieldCheck size={16} /> Keep chats and payments on UGCad. You are only protected here.</p>
       </BottomSheet>
@@ -894,6 +902,8 @@ function Chat({ selectedId, conv, user, muted, onToggleMute, back, onChanged }) 
           <textarea className="ap-input" rows={4} placeholder="Add any context that will help our team…" value={report.details} onChange={(e) => setReport((r) => ({ ...r, details: e.target.value }))} />
         </label>
       </BottomSheet>
+
+      {safety && <SafetyDialog userId={selectedId} name={peerName} dealId={conv?.associated_deal_id} initial={safety.initial} messageId={safety.messageId} onClose={() => setSafety(null)} />}
 
       {/* decline an offer */}
       <BottomSheet

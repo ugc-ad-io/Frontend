@@ -1,6 +1,9 @@
 /* Phone sign-in / sign-up / password reset (design boards M1 "Getting started", CM1, M9 "Forgot password").
    Also holds the shared field + sticky-bar styles reused by the brand details form (classes ap-auth-*). */
 .ap-auth .ap-bar{display:none}
+/* No scroll bar on the sign-in screen (the page still scrolls). */
+.ap-auth,.ap-auth *{scrollbar-width:none;-ms-overflow-style:none}
+.ap-auth::-webkit-scrollbar,.ap-auth *::-webkit-scrollbar{display:none;width:0;height:0}
 .ap-auth .ap-body{padding:0;gap:0}
 .ap-auth-page{flex:1 0 auto;display:flex;flex-direction:column;max-width:560px;width:100%;margin:0 auto}
 
@@ -120,22 +123,13 @@
   .ap-auth .ap-auth-brand{font-size:18px}
   .ap-auth .ap-auth-phone{grid-template-columns:84px minmax(0,1fr);gap:8px}
 }
-/* On-screen keyboard open / field focused (html.ugc-kb, set by shell/platform.js): the hero collapses to a thin brand strip
-   and everything secondary hides, so email + password + the button sit above the keyboard without scrolling. */
-html.ugc-kb .ap-auth .ap-auth-h1,
-html.ugc-kb .ap-auth .ap-auth-sub,
-html.ugc-kb .ap-auth .ap-auth-list,
+/* Keyboard open / field focused (html.ugc-kb, set by shell/platform.js): only small secondary bits hide (legal text, sub-copy under headings).
+   The hero, switch and social buttons stay; the creator tiles drop out through the short-height media rules below. */
 html.ugc-kb .ap-auth .ap-auth-tag,
-html.ugc-kb .ap-auth .ap-auth-seg,
-html.ugc-kb .ap-auth .ap-auth-google,
-html.ugc-kb .ap-auth .ap-auth-or,
-html.ugc-kb .ap-auth .ap-auth-foot,
 html.ugc-kb .ap-auth .ap-auth-legal,
 html.ugc-kb .ap-auth .ap-auth-sticky small,
 html.ugc-kb .ap-auth .ap-auth-head p,
 html.ugc-kb .ap-auth .ap-auth-head .ic{display:none}
-html.ugc-kb .ap-auth .ap-auth-hero{padding-top:calc(10px + env(safe-area-inset-top,0px));padding-bottom:12px;border-radius:0 0 20px 20px}
-html.ugc-kb .ap-auth .ap-auth-main{padding-top:10px;gap:10px}
 html.ugc-kb .ap-auth .ap-auth-head{padding-top:0}
 html.ugc-kb .ap-auth .ap-auth-head h2{font-size:21px}
 html.ugc-kb .ap-auth .ap-auth-link{min-height:32px}
@@ -148,4 +142,15 @@ html.ugc-kb .ap-auth .ap-auth-link{min-height:32px}
 .ap-auth-hero .auth-reel{border-radius:10px}
 .ap-auth-hero--reels .ap-auth-sub,.ap-auth-hero--reels .ap-auth-list{display:none}
 @media (max-height:699px){.ap-auth-hero .auth-reels{display:none}}
-html.ugc-kb .ap-auth .auth-reels{display:none}
+/* iOS also shows the Sign in with Apple button, so the login must drop the review tiles earlier to stay on one screen */
+@media (max-height:899px){html.ugc-ios .ap-auth-hero .auth-reels{display:none}}
+@media (min-height:900px) and (max-height:979px){html.ugc-ios .ap-auth-hero .auth-reels{max-width:76%;margin-left:auto;margin-right:auto}}
+@media (max-height:699px){
+  html.ugc-ios .ap-auth .ap-auth-h1{margin-top:8px;font-size:22px}
+  html.ugc-ios .ap-auth .ap-auth-hero{padding-top:calc(12px + env(safe-area-inset-top,0px));padding-bottom:14px}
+  html.ugc-ios .ap-auth .ap-auth-main{gap:6px;padding-top:4px}
+  html.ugc-ios .ap-auth .ap-auth-pad{gap:6px}
+}
+/* Keyboard open: nothing folds, squashes or moves. The hero and the form keep their size and only .ap-body scrolls,
+   so the focused field stays visible above the keyboard. */
+.ap-auth-hero,.ap-auth-main,.ap-auth-pad,.ap-auth-seg,.ap-auth-foot{flex-shrink:0}

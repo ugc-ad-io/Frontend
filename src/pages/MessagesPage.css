@@ -1631,3 +1631,6 @@
   .msg-action-card-fields p { grid-template-columns: 1fr; gap: 2px; }
   .msg-emoji-picker { grid-template-columns: repeat(5, 32px); }
 }
+
+.msg-flag{border:0;background:transparent;color:inherit;opacity:.55;padding:2px 4px;margin-left:6px;cursor:pointer;vertical-align:middle}
+.msg-flag:hover{opacity:1}

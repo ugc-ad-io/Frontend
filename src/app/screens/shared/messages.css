@@ -118,3 +118,6 @@
 @media (min-width:600px){.ap-mc-list,.ap-mc-search,.ap-chips,.ap-mc-warn{max-width:560px;width:100%;margin-left:auto;margin-right:auto}.ap-mc-chat{max-width:640px;width:100%;margin:0 auto}}
 .ap-mc-shell .ap-body--bare{padding-left:0!important;padding-right:0!important}
 .ap-mc-f .ap-input,.ap-label textarea.ap-input,.ap-label input.ap-input{font-weight:400}
+
+.ap-mc-flag{border:0;background:transparent;color:#a3a3c0;padding:4px;min-width:28px;min-height:28px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
+.ap-mc-policy .ap-link{margin-left:auto;font-weight:700}

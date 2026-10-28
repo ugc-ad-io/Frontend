@@ -1,4 +1,6 @@
 import axios from 'axios';
+import { isShell, downloadNative } from './nativeBridge';
+import { mediaUrl } from './mediaUrl';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 
@@ -22,6 +24,13 @@ export async function downloadDeliverable(api, workId, name, asset) {
     params: { as_link: 1, ...(asset ? { asset } : {}), ...(name ? { name } : {}) },
   });
   const href = /^https?:\/\//i.test(data.url) ? data.url : `${BACKEND_URL}${data.url}`;
+
+  // Mobile shell: a WebView cannot save blob:/anchor downloads, so the app downloads the file and shows its share/save sheet.
+  if (isShell()) {
+    const r = await downloadNative(mediaUrl(href), data.filename || name || 'download');
+    if (r && r.ok) return;
+    if (r && r.error !== 'not_in_shell') throw new Error((r && r.message) || 'Download failed');
+  }
 
   const a = document.createElement('a');
   a.rel = 'noopener';

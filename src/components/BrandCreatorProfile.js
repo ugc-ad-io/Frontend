@@ -16,6 +16,7 @@ import { Skeleton } from './Skeleton';
 import PhotoOrInitial from './PhotoOrInitial';
 import '../styles/brand-ui-profile.css';
 import BackButton from './BackButton';
+import SafetyMenu from './SafetyMenu';
 
 /**
  * Brand-facing creator profile (design board 08) for /dashboard/business/creator/:id.
@@ -338,6 +339,7 @@ export default function BrandCreatorProfile({ id, onMessage, onBegin }) {
               <div className="bui-pf-namerow">
                 <h1 className="bui-h1">{loading ? <Skeleton width={170} height={30} /> : name}</h1>
                 {data?.kyc_verified && <BadgeCheck size={22} color="#4E60E6" aria-label="Identity verified" />}
+                {!loading && <SafetyMenu userId={id} name={name} label />}
                 {choice ? (
                   <span className="bui-badge bui-badge--choice"><span className="bui-badge-mark" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-logo.png)` }} aria-hidden="true" /><span>UGCAD.IO Choice</span></span>
                 ) : levelLabel ? (

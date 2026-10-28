@@ -8,6 +8,9 @@ import { apiErrorMessage } from '../../../utils/apiError';
 import AppShell from '../../shell/AppShell';
 import './auth.css';
 import AuthReels from '../../../components/AuthReels';
+import NativeSocialButtons from '../../../components/NativeSocialButtons';
+import { isShell } from '../../../utils/nativeBridge';
+import { nativeGoogleCredential, nativeAppleBody } from '../../../utils/shellAuth';
 
 // Phone version of src/pages/Auth.js (route /auth). Same endpoints, validation and redirects.
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
@@ -131,6 +134,8 @@ export default function Auth() {
   const [phone, setPhone] = useState('');
   const [dialCode, setDialCode] = useState('+91');
   const [loading, setLoading] = useState(false);
+  // Sign-up needs an explicit tick for the Terms + Privacy Policy (sent to the backend as terms_accepted).
+  const [agree, setAgree] = useState(false);
   const [tried, setTried] = useState(false);
   const [view, setView] = useState(searchParams.get('view') === 'reset' ? 'reset' : 'auth'); // auth | forgot | reset | newpass | 2fa
   const [resetCode, setResetCode] = useState('');
@@ -155,34 +160,59 @@ export default function Auth() {
   const googleBtnRef = useRef(null);
   const roleRef = useRef(role);
   useEffect(() => { roleRef.current = role; }, [role]);
-  const googleCredRef = useRef(null);
+  const socialRef = useRef(null);
 
-  const handleGoogleCredential = async (response) => {
+  // Google/Apple request held while the 2FA step is open (they prove identity, not the second factor): { provider, body }.
+  const socialLogin = async (provider, body, label) => {
     setLoading(true);
     try {
-      const { data } = await axios.post(`${API}/auth/google`, { credential: response.credential, role: roleRef.current });
+      const { data } = await axios.post(`${API}/auth/${provider}`, body);
       if (data.requires_2fa) {
-        googleCredRef.current = response.credential;
+        socialRef.current = { provider, body };
         setTotpCode('');
         setView('2fa');
         return;
       }
       const { token, ...userData } = data;
       login(token, userData);
-      toast.success('Signed in with Google');
+      toast.success(`Signed in with ${label}`);
       routeForUser(navigate, userData.role, userData.profile_completed, nextPath);
     } catch (error) {
-      toast.error(authError(error, 'Google sign-in failed'));
+      toast.error(authError(error, `${label} sign-in failed`));
     } finally {
       setLoading(false);
     }
   };
+  const handleGoogleCredential = (response) => socialLogin('google', { credential: response.credential, role: roleRef.current }, 'Google');
+
+  // Sign-up: every social button first needs the Terms/Privacy tick.
+  const consentOk = () => {
+    if (isLogin || agree) return true;
+    toast.error('Please tick "I agree to the Terms and Privacy Policy" first');
+    return false;
+  };
+  // Mobile shell: Google/Apple run natively (Google blocks its web button inside WebViews). Apple: iOS only.
+  const handleNativeGoogle = async () => {
+    if (loading || !consentOk()) return;
+    const r = await nativeGoogleCredential();
+    if (r.cancelled) return;
+    if (r.error) { toast.error(r.error); return; }
+    await handleGoogleCredential({ credential: r.credential });
+  };
+  const handleNativeApple = async () => {
+    if (loading || !consentOk()) return;
+    const r = await nativeAppleBody(roleRef.current);
+    if (r.cancelled) return;
+    if (r.error) { toast.error(r.error); return; }
+    await socialLogin('apple', r.body, 'Apple');
+  };
+  const inShell = isShell();
   const googleCbRef = useRef(handleGoogleCredential);
   googleCbRef.current = handleGoogleCredential;
 
   // The Google button lives in the auth view only; (re)draw it whenever that view shows.
   useEffect(() => {
-    if (!GOOGLE_CLIENT_ID || view !== 'auth') return undefined;
+    if (!GOOGLE_CLIENT_ID || inShell || view !== 'auth') return undefined;
     let cancelled = false;
     loadGoogleScript()
       .then(() => {
@@ -213,15 +243,19 @@ export default function Auth() {
       toast.error(errors.phone || errors.email || errors.password);
       return;
     }
+    if (!isLogin && !agree) {
+      toast.error('Please tick "I agree to the Terms and Privacy Policy" to create your account');
+      return;
+    }
     setLoading(true);
     try {
       const endpoint = isLogin ? '/auth/login' : '/auth/signup';
       const payload = isLogin
         ? { email, password }
-        : { email, password, role, phone: onlyDigits(phone), dial_code: dialCode };
+        : { email, password, role, phone: onlyDigits(phone), dial_code: dialCode, terms_accepted: true };
       const { data } = await axios.post(`${API}${endpoint}`, payload);
       if (isLogin && data.requires_2fa) {
-        googleCredRef.current = null;
+        socialRef.current = null;
         setTotpCode('');
         setView('2fa');
         return;
@@ -245,11 +279,11 @@ export default function Auth() {
     setLoading(true);
     try {
       const q = `?totp_token=${encodeURIComponent(totpCode)}`;
-      const { data } = googleCredRef.current
-        ? await axios.post(`${API}/auth/google${q}`, { credential: googleCredRef.current, role: roleRef.current })
+      const { data } = socialRef.current
+        ? await axios.post(`${API}/auth/${socialRef.current.provider}${q}`, socialRef.current.body)
         : await axios.post(`${API}/auth/login${q}`, { email, password });
       const { token, ...userData } = data;
-      googleCredRef.current = null;
+      socialRef.current = null;
       login(token, userData);
       toast.success('Welcome back!');
       routeForUser(navigate, userData.role, userData.profile_completed, nextPath);
@@ -408,7 +442,7 @@ export default function Auth() {
   } else if (view === '2fa') {
     body = (
       <>
-        <SubTop title="Two-step login" onBack={() => { setView('auth'); setTotpCode(''); googleCredRef.current = null; }} />
+        <SubTop title="Two-step login" onBack={() => { setView('auth'); setTotpCode(''); socialRef.current = null; }} />
         <form className="ap-auth-main" onSubmit={handle2FASubmit} noValidate>
           <Head icon={ShieldCheck} title="Two-step login" text="Enter the 6-digit code from your authenticator app." />
           <div className="ap-auth-pad">
@@ -427,9 +461,15 @@ export default function Auth() {
       </>
     );
   } else {
-    const google = GOOGLE_CLIENT_ID ? (
+    const locked = !isLogin && !agree;
+    const google = (GOOGLE_CLIENT_ID || inShell) ? (
       <>
-        <div ref={googleBtnRef} className="ap-auth-google" />
+        <div className={`ap-auth-social${locked ? ' ugc-consent-lock' : ''}`}>
+          {inShell
+            ? <NativeSocialButtons onGoogle={handleNativeGoogle} onApple={handleNativeApple} busy={loading} />
+            : <div ref={googleBtnRef} className="ap-auth-google" />}
+          {locked && <div className="ugc-consent-cover" onClick={consentOk} role="presentation" />}
+        </div>
         <div className="ap-auth-or">or</div>
       </>
     ) : null;
@@ -449,12 +489,14 @@ export default function Auth() {
             <span><b>UGC</b>ad.io</span>
             {creatorMode && <span className="ap-auth-tag">FOR CREATORS</span>}
           </div>
-          <h1 className="ap-auth-h1">{promo.title}</h1>
-          <AuthReels />
-          <p className="ap-auth-sub">{creatorMode ? 'Log in to see your briefs, orders and money.' : promo.text}</p>
-          <ul className="ap-auth-list">
-            {promo.list.map((t) => <li key={t}><i><Check size={12} /></i>{t}</li>)}
-          </ul>
+          <div className="ap-auth-hero-more">
+            <h1 className="ap-auth-h1">{promo.title}</h1>
+            <AuthReels />
+            <p className="ap-auth-sub">{creatorMode ? 'Log in to see your briefs, orders and money.' : promo.text}</p>
+            <ul className="ap-auth-list">
+              {promo.list.map((t) => <li key={t}><i><Check size={12} /></i>{t}</li>)}
+            </ul>
+          </div>
         </header>
         <form className="ap-auth-main" onSubmit={handleSubmit} noValidate>
           <div className="ap-auth-seg" role="tablist">
@@ -512,11 +554,14 @@ export default function Auth() {
             </div>
             {passwordField}
           </div>
-          <p className="ap-auth-legal">
-            By creating an account you agree to our <a href="/terms" target="_blank" rel="noreferrer">Terms</a>,{' '}
-            <a href="/privacy-policy" target="_blank" rel="noreferrer">Privacy Policy</a> and{' '}
-            <a href="/community-guidelines" target="_blank" rel="noreferrer">Community Guidelines</a>.
-          </p>
+          <label className="ap-auth-legal ugc-consent" data-testid="terms-consent">
+            <input type="checkbox" checked={agree} onChange={(e) => setAgree(e.target.checked)} data-testid="terms-checkbox" />
+            <span>
+              I agree to the <a href="/terms" target="_blank" rel="noreferrer">Terms</a> and{' '}
+              <a href="/privacy-policy" target="_blank" rel="noreferrer">Privacy Policy</a>, and the{' '}
+              <a href="/community-guidelines" target="_blank" rel="noreferrer">Community Guidelines</a>.
+            </span>
+          </label>
           <div className="ap-auth-foot">
             Already have an account? <button type="button" onClick={backToLogin} data-testid="toggle-auth-btn">Log in</button>
           </div>

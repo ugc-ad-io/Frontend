@@ -65,7 +65,10 @@ test('sign up as brand: needs a valid mobile, posts role + phone, goes to brand 
   expect(container.textContent).toContain('Enter a valid 10-digit mobile number.');
   await act(async () => { setVal(container.querySelector('#phone'), '9876543210'); });
   await click(container.querySelector('[data-testid="submit-btn"]'));
-  expect(axios.post).toHaveBeenCalledWith(expect.stringContaining('/auth/signup'), { email: 'b@c.co', password: 'abcdef', role: 'business', phone: '9876543210', dial_code: '+91' });
+  expect(axios.post).not.toHaveBeenCalled(); // the Terms/Privacy tick is mandatory
+  await click(container.querySelector('[data-testid="terms-checkbox"]'));
+  await click(container.querySelector('[data-testid="submit-btn"]'));
+  expect(axios.post).toHaveBeenCalledWith(expect.stringContaining('/auth/signup'), { email: 'b@c.co', password: 'abcdef', role: 'business', phone: '9876543210', dial_code: '+91', terms_accepted: true });
   expect(mockNavigate).toHaveBeenCalledWith('/profile-setup/business');
   await unmount();
 });
@@ -127,4 +130,48 @@ test('settings (brand): team list renders and Invite posts the email + role', as
   await click([...sheet.querySelectorAll('button')].find((b) => b.textContent === 'Send invitation'));
   expect(axios.post).toHaveBeenCalledWith(expect.stringContaining('/business/settings/team/invite'), { email: 'new@x.co', role: 'viewer' });
   await unmount();
+});
+
+describe('mobile shell sign-in', () => {
+  const reply = (type, payload) => window.dispatchEvent(new CustomEvent('ugcad-native', { detail: { id: window.__posted[window.__posted.length - 1].id, type: type + ':result', payload } }));
+  beforeEach(() => { window.__posted = []; window.ReactNativeWebView = { postMessage: (m) => window.__posted.push(JSON.parse(m)) }; window.__UGCAD_SHELL__ = true; });
+  afterEach(() => { delete window.ReactNativeWebView; delete window.__UGCAD_SHELL__; delete window.__UGCAD_PLATFORM__; });
+
+  test('Apple button only on iOS, above Google, and posts /auth/apple with identity_token + full_name', async () => {
+    window.__UGCAD_PLATFORM__ = 'ios';
+    axios.post.mockResolvedValue({ data: { token: 't', role: 'creator', profile_completed: true, user_id: 'c1' } });
+    const { container, unmount } = await mount(<Auth />, '?view=auth&role=creator');
+    const buttons = [...container.querySelectorAll('.ugc-social-btn')].map((b) => b.textContent);
+    expect(buttons).toEqual(['Continue with Apple', 'Continue with Google']);
+    await click(container.querySelector('[data-testid="apple-signin-btn"]'));
+    expect(window.__posted[0].type).toBe('auth:apple');
+    await act(async () => reply('auth:apple', { ok: true, identityToken: 'jwt', fullName: { givenName: 'Asha', familyName: 'Rao' } }));
+    expect(axios.post).toHaveBeenCalledWith(expect.stringContaining('/auth/apple'), { identity_token: 'jwt', role: 'creator', full_name: 'Asha Rao' });
+    expect(mockLogin).toHaveBeenCalledWith('t', expect.objectContaining({ role: 'creator' }));
+    expect(mockNavigate).toHaveBeenCalledWith('/dashboard/creator');
+    await unmount();
+  });
+
+  test('Android shell: Google only; cancelling Apple does nothing; Google posts the id token', async () => {
+    window.__UGCAD_PLATFORM__ = 'android';
+    axios.post.mockResolvedValue({ data: { token: 't', role: 'creator', profile_completed: true } });
+    const { container, unmount } = await mount(<Auth />, '?view=auth');
+    expect(container.querySelector('[data-testid="apple-signin-btn"]')).toBeNull();
+    await click(container.querySelector('[data-testid="google-signin-btn"]'));
+    await act(async () => reply('auth:google', { ok: true, idToken: 'g-id' }));
+    expect(axios.post).toHaveBeenCalledWith(expect.stringContaining('/auth/google'), { credential: 'g-id', role: 'creator' });
+    await unmount();
+  });
+
+  test('Apple cancel is silent (no request); sign-up social buttons need the Terms tick', async () => {
+    window.__UGCAD_PLATFORM__ = 'ios';
+    const { container, unmount } = await mount(<Auth />, '?mode=signup');
+    await click(container.querySelector('.ugc-consent-cover'));
+    expect(window.__posted).toHaveLength(0);
+    await click(container.querySelector('[data-testid="terms-checkbox"]'));
+    await click(container.querySelector('[data-testid="apple-signin-btn"]'));
+    await act(async () => reply('auth:apple', { ok: false, error: 'cancelled' }));
+    expect(axios.post).not.toHaveBeenCalled();
+    await unmount();
+  });
 });

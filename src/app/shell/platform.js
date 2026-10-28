@@ -63,10 +63,11 @@ export function useAppPlatform() {
     const root = document.documentElement;
     shells += 1;
     root.classList.add('ugc-shell');
+    if (typeof window !== 'undefined' && window.__UGCAD_PLATFORM__ === 'ios') root.classList.add('ugc-ios');
     install();
     return () => {
       shells -= 1;
-      if (!shells) root.classList.remove('ugc-shell', 'ugc-kb', 'ugc-kbd');
+      if (!shells) root.classList.remove('ugc-shell', 'ugc-ios', 'ugc-kb', 'ugc-kbd');
     };
   }, []);
 }

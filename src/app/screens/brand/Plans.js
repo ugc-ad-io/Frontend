@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { Navigate } from 'react-router-dom';
 import { Check } from 'lucide-react';
+import { isShell } from '../../../utils/nativeBridge';
 import AppShell from '../../shell/AppShell';
 import './plans.css';
 
@@ -22,7 +24,12 @@ const FAQ = [
   ['How do I pay?', 'From your UGCad wallet or by card / UPI. You get a GST invoice every month.'],
 ];
 
+// The app has no purchase flow behind these buttons ("Coming soon"): the mobile shell must not show a dead end.
 export default function BrandPlans() {
+  return isShell() ? <Navigate to="/brand-home" replace /> : <BrandPlansPage />;
+}
+
+function BrandPlansPage() {
   const [yearly, setYearly] = useState(false);
   const [spend, setSpend] = useState(300000);
   const [fee, setFee] = useState(null); // the brand's real platform fee %, used to mark the current plan

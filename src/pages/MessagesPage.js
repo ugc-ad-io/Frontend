@@ -16,6 +16,8 @@ import CreatorPageHead from '../components/CreatorPageHead';
 import PlanBrief from './PlanBrief';
 import { findContactInfo } from '../components/RevisionRequestModal';
 import CreatorProfileModal from '../components/CreatorProfileModal';
+import { SafetyDialog } from '../components/SafetyMenu';
+import { useBlocked } from '../utils/safety';
 import BrandProfileCard from '../components/BrandProfileCard';
 import { SkeletonList } from '../components/Skeleton';
 import './CreatorDashboard.css';
@@ -220,6 +222,8 @@ const timeAgo = (timestamp) => {
 
 export default function MessagesPage() {
   const { user, setUser } = useAuth();
+  const blockedIds = useBlocked(user?.id); // blocked users: chat hidden from the list, composer replaced
+  const [safety, setSafety] = useState(null); // { initial, messageId } report/block dialog
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const messagesEndRef = useRef(null);
@@ -498,7 +502,7 @@ export default function MessagesPage() {
   const handleSendMessage = async (e) => {
     e?.preventDefault();
     const attachmentUrls = selectedFiles.map((file) => file.url).filter(Boolean);
-    if ((!newMessage.trim() && !attachmentUrls.length) || !selectedId) return;
+    if ((!newMessage.trim() && !attachmentUrls.length) || !selectedId || blockedIds.has(selectedId)) return;
 
     if (selectedFiles.length && !attachmentUrls.length) {
       toast.error('File upload did not complete. Please attach the file again.');
@@ -942,6 +946,7 @@ export default function MessagesPage() {
 
   // Filter conversations
   const filteredConversations = conversations.filter((conv) => {
+    if (blockedIds.has(conv.user_id)) return false;
     const matchesSearch = nameOf(conv).toLowerCase().includes(search.toLowerCase());
     const matchesFilter =
       filter === 'all' ||
@@ -950,6 +955,7 @@ export default function MessagesPage() {
   });
 
   const selectedConv = conversations.find((c) => c.user_id === selectedId);
+  const selectedBlocked = !!selectedId && blockedIds.has(selectedId);
   const actionCardsOnly = warnings?.action_cards_only_until && new Date(warnings.action_cards_only_until) > new Date();
 
   // Creators use the top-nav marketplace shell (same as My Deals / Browse Briefs)
@@ -1121,6 +1127,7 @@ export default function MessagesPage() {
                         <button type="button" onClick={() => { setHeaderMenuOpen(false); setProfileOpen(true); }}><User size={15} /> View profile</button>
                         <button type="button" onClick={toggleMute}><BellOff size={15} /> {isMuted ? 'Unmute chat' : 'Mute chat'}</button>
                         <button type="button" className="danger" onClick={() => { setHeaderMenuOpen(false); setReport({ reason: '', details: '' }); }}><Flag size={15} /> Report user</button>
+                        <button type="button" className="danger" data-testid="block-user-row" onClick={() => { setHeaderMenuOpen(false); setSafety({ initial: selectedBlocked ? 'menu' : 'block' }); }}><ShieldAlert size={15} /> {selectedBlocked ? 'Unblock user' : 'Block user'}</button>
                       </div>
                     </>
                   )}
@@ -1175,6 +1182,7 @@ export default function MessagesPage() {
                         <span className="msg-time">
                           {new Date(getItemTime(msg)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           {getReadLabel(msg) ? <em><CheckCheck size={13} /> {getReadLabel(msg)}</em> : null}
+                          {!isOwn && msg.id ? <button type="button" className="msg-flag" aria-label="Report this message" title="Report this message" onClick={() => setSafety({ messageId: msg.id })}><Flag size={12} /></button> : null}
                         </span>
                       </div>
                     </div>
@@ -1197,7 +1205,13 @@ export default function MessagesPage() {
 
             {/* Quick Actions — a single horizontal row. It scrolls sideways when the
                 options don't fit, rather than opening a vertical dropdown. */}
-            <div className="msg-quick-actions">
+            {selectedBlocked ? (
+              <div className="msg-wallet-bar" role="status" data-testid="blocked-banner">
+                <div className="msg-wallet-bar-text"><strong>You blocked {peerLabel(selectedConv)}</strong><span>They can&apos;t message you.</span></div>
+                <button type="button" onClick={() => setSafety({ initial: 'menu' })}>Unblock</button>
+              </div>
+            ) : null}
+            <div className="msg-quick-actions" style={selectedBlocked ? { display: 'none' } : undefined}>
               <button
                 type="button"
                 className={`msg-quick-actions-lbl${actionChipsOpen ? ' is-open' : ''}`}
@@ -1262,7 +1276,7 @@ export default function MessagesPage() {
                 ))}
               </div>
             )}
-            <form className="msg-input-row" onSubmit={handleSendMessage}>
+            <form className="msg-input-row" onSubmit={handleSendMessage} style={selectedBlocked ? { display: 'none' } : undefined}>
               <input
                 ref={fileInputRef}
                 type="file"
@@ -1410,6 +1424,8 @@ export default function MessagesPage() {
           />
         )
       )}
+
+      {safety && <SafetyDialog userId={selectedId} name={peerLabel(selectedConv)} dealId={selectedConv?.associated_deal_id} initial={safety.initial} messageId={safety.messageId} onClose={() => setSafety(null)} />}
 
       {report && (
         <div className="msg-report-overlay" onClick={() => !reportSubmitting && setReport(null)}>

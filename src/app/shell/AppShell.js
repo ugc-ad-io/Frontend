@@ -77,8 +77,9 @@ export default function AppShell({ title, subtitle, back, right, tone = 'light',
   const isBrand = user?.role === 'business';
   const TABS = isBrand ? BRAND_TABS : CREATOR_TABS;
   const MORE = isBrand ? BRAND_MORE : CREATOR_MORE;
-  const photo = user?.profile_photo || user?.profile_picture || user?.brand_logo || user?.avatar;
-  const photoUrl = photo ? (String(photo).startsWith('http') ? photo : `${BACKEND_URL}${photo}`) : '';
+  const pr = user?.profile || {}; // creators keep the photo under profile.* (see utils/creatorProfileCompletion.js)
+  const photo = user?.profile_photo || user?.profile_picture || user?.brand_logo || user?.avatar || pr.profile_photo || pr.profile_picture || pr.brand_logo;
+  const photoUrl = photo ? (String(photo).startsWith('http') ? photo : `${BACKEND_URL}/${String(photo).replace(/^\//, '')}`) : '';
   const name = isBrand ? (user?.profile?.business_name || brandName(user)) : creatorFirstName(user);
   const home = TABS[0];
 

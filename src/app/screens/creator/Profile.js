@@ -229,7 +229,7 @@ export default function CreatorProfile() {
   const p = { ...(data || {}), ...pr };
   const rc = p.rate_card || {};
   const name = data ? creatorFirstName(data) : '';
-  const photo = assetUrl(data?.profile_photo || data?.profile_picture || user?.profile_photo || user?.profile_picture);
+  const photo = assetUrl(data?.profile_photo || data?.profile_picture || pr.profile_photo || pr.profile_picture || user?.profile_photo || user?.profile_picture || user?.profile?.profile_photo || user?.profile?.profile_picture);
   const banner = assetUrl(data?.banner || p.banner || '');
   const price = Number(digits(rc.raw_payout || rc.expected_payout || p.expectedPayout));
   const editPay = Number(digits(rc.editing_payout));

@@ -78,8 +78,8 @@
 .ap-prof-kv a{color:var(--ap-link)}
 
 /* how brands see you */
-.ap-prof-pv{margin-top:8px;border-radius:18px;overflow:hidden;box-shadow:inset 0 0 0 1px var(--ap-line)}
-.ap-prof-pv-img{position:relative;height:190px;background:#1b1b3a;color:#c9ceff;display:grid;place-items:center}
+.ap-prof-pv{margin:8px auto 0;max-width:230px;border-radius:18px;overflow:hidden;box-shadow:inset 0 0 0 1px var(--ap-line)}
+.ap-prof-pv-img{position:relative;aspect-ratio:9/16;background:#1b1b3a;color:#c9ceff;display:grid;place-items:center}
 .ap-prof-pv-img video,.ap-prof-pv-img img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .ap-prof-pv-img em{position:absolute;left:10px;top:10px;font-style:normal;font-size:10.5px;font-weight:700;padding:4px 8px;border-radius:999px;background:rgba(255,255,255,.92);color:var(--ap-ink)}
 .ap-prof-pv-who{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;gap:10px;padding:26px 12px 10px;background:linear-gradient(180deg,transparent,rgba(7,7,78,.78));color:#fff}

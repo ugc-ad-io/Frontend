@@ -57,6 +57,8 @@
 .ap-prof-play{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:38px;height:38px;border-radius:50%;background:rgba(7,7,78,.55);color:#fff;display:grid;place-items:center;pointer-events:none}
 .ap-prof-tag{position:absolute;left:8px;top:8px;height:22px;padding:0 8px;border-radius:999px;background:rgba(255,255,255,.92);font-size:10.5px;font-weight:700;display:inline-flex;align-items:center;pointer-events:none}
 .ap-prof-vbtn{position:absolute;bottom:2px;width:44px;height:44px;border:0;border-radius:50%;background:radial-gradient(circle,rgba(7,7,78,.7) 0 14px,transparent 14.5px);color:#fff;display:grid;place-items:center;cursor:pointer;padding:0}
+.ap-prof-order{display:flex;gap:14px;margin-top:2px}
+.ap-prof-order button{border:0;background:none;padding:6px 0;min-height:32px;font:inherit;font-size:12px;font-weight:700;color:#4b5bd6;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .ap-prof-vbtn--e{right:42px}
 .ap-prof-vbtn--d{right:0}
 .ap-prof-addprev{width:120px;aspect-ratio:9/14;border-radius:16px;overflow:hidden;position:relative;align-self:center;background:#1b1b3a}

@@ -4,12 +4,20 @@
 // a plain NAME. Prefer the real name; fall back to the handle text WITHOUT the
 // "@" (so an account that only ever had a handle still reads as a name, not a
 // username), then the email local-part, then a generic role label.
+// The server hands every new account a random first name + 2 digits ("Zoya92", see generate_nickname in
+// server.py) until the person sets a real name. That is not their name: never show it.
+const PLACEHOLDER_NICK = /^(Aarav|Vivaan|Aditya|Arjun|Reyansh|Rohan|Kabir|Ishaan|Dev|Krishna|Ananya|Diya|Aadhya|Saanvi|Priya|Ira|Myra|Riya|Kiara|Meera|Neha|Kunal|Nikhil|Sara|Aisha|Tara|Karan|Sana|Yash|Zoya)\d{2}$/;
+
 export function displayName(user, fallback = 'User') {
   if (!user) return fallback;
   const p = user.profile || {};
   // Trim, and ALWAYS strip a leading "@" — some accounts store the nickname as
   // "@FierceDragon774", so stripping only the username field wasn't enough.
   const first = (v) => (typeof v === 'string' && v.trim() ? v.trim().replace(/^@+/, '') : '');
+  const handle = (v) => { const h = first(v); return PLACEHOLDER_NICK.test(h) ? '' : h; };
+  const placeholder = PLACEHOLDER_NICK.test(first(user.nickname)) || PLACEHOLDER_NICK.test(first(user.username));
+  // Their own email name ("arushi.khare27@x" -> "Arushi") reads better than a random one while no name is set.
+  const emailWord = placeholder ? first(user.email).split('@')[0].split(/[._+\-0-9]+/).filter(Boolean)[0] || '' : '';
   return (
     // The REAL name the person typed comes first, so an auto-generated nickname
     // handle (e.g. "LuckyTiger764") never wins over an actual name on the profile.
@@ -19,8 +27,9 @@ export function displayName(user, fallback = 'User') {
     first(user.business_name) ||
     first(p.business_name) ||
     first(user.name) ||
-    first(user.nickname) ||
-    first(user.username) ||
+    handle(user.nickname) ||
+    handle(user.username) ||
+    (emailWord ? emailWord.charAt(0).toUpperCase() + emailWord.slice(1) : '') ||
     first(user.public_creator_id) ||
     (first(user.email).split('@')[0]) ||
     fallback

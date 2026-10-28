@@ -15,6 +15,7 @@ import LegalSections from '../../../components/LegalSections';
 import { SUPPORT_EMAIL } from '../../../components/ContactSupportBox';
 import { registerDevice } from '../../../utils/shellPush';
 import { isShell, permissionStatus, requestPermission, openAppSettings } from '../../../utils/nativeBridge';
+import { displayName as shownName } from '../../../utils/displayName';
 import AppShell from '../../shell/AppShell';
 import BottomSheet from '../../shell/BottomSheet';
 import './settings.css';
@@ -173,9 +174,9 @@ export default function Settings() {
   useEffect(() => { load(); }, [load]);
 
   const open = (s) => setParams(s ? { s } : {});
-  const displayName = user?.nickname || user?.full_name || user?.email || 'Settings';
+  const displayName = shownName(user, 'Settings');
   const brandLogo = fullUrl(brandProfile.logo_url || user?.brand_logo || user?.profile_photo || '');
-  const photo = isBrand ? brandLogo : fullUrl(user?.profile_photo || user?.profile_picture || '');
+  const photo = isBrand ? brandLogo : fullUrl(user?.profile_photo || user?.profile_picture || user?.profile?.profile_photo || user?.profile?.profile_picture || '');
   const who = isBrand ? (brandProfile.brand_name || user?.profile?.business_name || displayName) : displayName;
 
   // ---- saves ----

@@ -325,6 +325,19 @@ export default function CreatorProfile() {
       return false;
     }
   };
+  // The first 3 videos are the ones on the brand-facing card, so the order is the creator's choice.
+  const moveWork = (i, toFirst) => {
+    let next;
+    if (toFirst) next = [pf[i], ...pf.filter((_, j) => j !== i)];
+    else {
+      let j = i - 1;
+      while (j >= 0 && !pfUrl(pf[j])) j -= 1;
+      if (j < 0) return;
+      next = [...pf];
+      [next[j], next[i]] = [next[i], next[j]];
+    }
+    persistPortfolio(next);
+  };
   const resetAdd = () => { setAddForm({ title: '', url: '', category: '', price: '', delivery: '' }); setEditIdx(null); setProgress(null); };
   const openAdd = () => {
     if (works.length >= MAX_WORKS) { toast.error(`You can add a maximum of ${MAX_WORKS} work videos.`); return; }
@@ -544,11 +557,17 @@ export default function CreatorProfile() {
                         </div>
                         <b>{meta.title && meta.title !== 'Untitled' ? meta.title : (meta.category || 'Video')}</b>
                         <small>{vidPrice(meta.price, basePrice)} · {vidDelivery(meta.delivery, deliveryTxt)}</small>
+                        {rank > 0 && (
+                          <div className="ap-prof-order">
+                            <button type="button" onClick={() => moveWork(i, true)}>Make first</button>
+                            {rank > 1 && <button type="button" onClick={() => moveWork(i, false)}>Move earlier</button>}
+                          </div>
+                        )}
                       </div>
                     );
                   })}
                 </div>
-                <p className="ap-prof-note">The first 3 show on your card when brands search. Pick your best hooks.</p>
+                <p className="ap-prof-note">The first 3 show on your card when brands search. Tap “Make first” to choose which one brands see first.</p>
               </>
             )}
           </section>

@@ -17,6 +17,7 @@ import HorizontalAccess from './components/HorizontalAccess';
 import AppOverride from './app/AppOverride';
 import { APP_UI, IN_OLD_APP } from './utils/appMode';
 import ShellPush from './components/ShellPush';
+import SelectSheet from './app/shell/SelectSheet';
 import { unregisterDevice } from './utils/shellPush';
 
 // ── Route-level code splitting ───────────────────────────────────────────────
@@ -531,6 +532,7 @@ function App() {
         <AuthProvider>
           <ScrollToTop />
           <ShellPush />
+          {APP_UI && <SelectSheet />}
           <OverlayBack />
           <Toaster position="top-right" richColors closeButton mobileOffset={{ top: "calc(env(safe-area-inset-top, 0px) + 8px)", left: 16, right: 16 }} />
           <RouteLoadingBoundary>

@@ -1,0 +1,9 @@
+/* Option list shown by SelectSheet (replaces the OS dropdown / picker in app mode). */
+.ap-sel{list-style:none;margin:0;padding:0 0 4px;display:flex;flex-direction:column}
+.ap-sel-group{padding:14px 2px 6px;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ap-muted,#7a7aa6)}
+.ap-sel-opt{width:100%;min-height:52px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 4px;border:0;border-bottom:1px solid var(--ap-line,#e7e7f4);background:transparent;color:var(--ap-ink,#07074e);font:inherit;font-size:16px;text-align:left;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.ap-sel-opt span{flex:1;min-width:0;overflow-wrap:anywhere}
+.ap-sel-opt svg{flex:none;color:#4b5bd6}
+.ap-sel-opt.is-on{font-weight:700;color:#4b5bd6}
+.ap-sel-opt:disabled{opacity:.4;cursor:default}
+.ap-sel li:last-child .ap-sel-opt{border-bottom:0}

@@ -31,7 +31,9 @@ function install() {
     const shrunk = focused && base - h > KEYBOARD_MIN;
     root.classList.toggle('ugc-kb', focused || shrunk);
     root.classList.toggle('ugc-kbd', shrunk);
-    if (shrunk) {
+    // iOS reports height/offsetTop a frame behind its own keyboard animation, so following them shook the whole
+    // page up and down (open and close). On iOS the shell keeps its full height and iOS pans to the field itself.
+    if (shrunk && !root.classList.contains('ugc-ios')) {
       root.style.setProperty('--ap-vh', `${h}px`);
       root.style.setProperty('--ap-vt', `${Math.round(vv ? vv.offsetTop : 0)}px`);
     } else {
@@ -52,7 +54,9 @@ function install() {
   window.addEventListener('orientationchange', () => { base = 0; setTimeout(measure, 120); });
   if (vv) { vv.addEventListener('resize', measure); vv.addEventListener('scroll', measure); }
   // The document must never scroll (iOS/Android pan it to reveal a focused field): snap back, only .ap-body scrolls.
-  window.addEventListener('scroll', () => { if (shells && (window.scrollX || window.scrollY)) window.scrollTo(0, 0); }, { passive: true });
+  window.addEventListener('scroll', () => {
+    if (shells && !root.classList.contains('ugc-ios') && (window.scrollX || window.scrollY)) window.scrollTo(0, 0);
+  }, { passive: true });
   measure();
 }
 

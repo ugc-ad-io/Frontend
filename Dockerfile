@@ -29,8 +29,10 @@ RUN if [ -f package-lock.json ]; then npm ci --legacy-peer-deps; else npm instal
 # already compiled in. They must arrive as build args, which is why they are
 # declared here and not in the runtime stage.
 # Rebuild the image to point the app at a different backend.
-ARG REACT_APP_BACKEND_URL
-ARG REACT_APP_GOOGLE_CLIENT_ID
+# Defaults = production values (both are public: the API address and the Google web client id). .dockerignore keeps .env out of the
+# image, so without these a build with no --build-arg compiled in http://localhost:8000 and every API call failed.
+ARG REACT_APP_BACKEND_URL=https://app.ugcad.io
+ARG REACT_APP_GOOGLE_CLIENT_ID=193113275370-c3or5lgj2m92qgc364hvu45tbiflj470.apps.googleusercontent.com
 ENV REACT_APP_BACKEND_URL=$REACT_APP_BACKEND_URL
 ENV REACT_APP_GOOGLE_CLIENT_ID=$REACT_APP_GOOGLE_CLIENT_ID
 

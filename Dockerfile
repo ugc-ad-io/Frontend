@@ -18,7 +18,9 @@ COPY package.json package-lock.json* ./
 # npm ci (not install) — installs exactly what the lockfile pins, and fails loudly
 # if the lockfile is out of sync rather than silently resolving something new.
 # Falls back to install when no lockfile is committed.
-RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
+# --legacy-peer-deps: react-day-picker@8 only declares React <=18 but the app runs React 19, so a strict install stops with ERESOLVE.
+# The lockfile was made this way, so the build must install this way too (Vercel did it for us before).
+RUN if [ -f package-lock.json ]; then npm ci --legacy-peer-deps; else npm install --legacy-peer-deps; fi
 
 # ── CRA bakes env vars at BUILD time, not runtime ────────────────────────────
 # This is the big gotcha with a containerised Create React App: REACT_APP_* are

@@ -297,10 +297,10 @@ function getPrimaryActionConfig(deal, uploads, submitting) {
   };
 }
 
-// Six-step progress bar (Won / Product / Film / Deliver / Review / Paid). The Product step only
+// Six-step progress bar (Selected / Product / Film / Deliver / Review / Paid). The Product step only
 // exists for deals that actually ship something. `fill` is 1 (done), 0.5 (current) or 0 per step.
 function roomProgress(deal, hasShipping) {
-  const labels = hasShipping ? ['Won', 'Product', 'Film', 'Deliver', 'Review', 'Paid'] : ['Won', 'Film', 'Deliver', 'Review', 'Paid'];
+  const labels = hasShipping ? ['Selected', 'Product', 'Film', 'Deliver', 'Review', 'Paid'] : ['Selected', 'Film', 'Deliver', 'Review', 'Paid'];
   const at = (l) => Math.max(0, labels.indexOf(l));
   const s = stateKey(getState(deal));
   let cur = 0;

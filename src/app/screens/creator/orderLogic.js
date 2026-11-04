@@ -61,9 +61,9 @@ export function rowAction(d) {
 
 export const hasShipping = (deal) => Boolean(deal?.shipment?.required || deal?.campaign?.requires_shipment || deal?.requires_shipment);
 
-// Six-step progress (Won / Product / Film / Deliver / Review / Paid). `fill`: 1 done, 0.5 current, 0 todo.
+// Six-step progress (Selected / Product / Film / Deliver / Review / Paid). `fill`: 1 done, 0.5 current, 0 todo.
 export function roomProgress(deal, ships = hasShipping(deal)) {
-  const labels = ships ? ['Won', 'Product', 'Film', 'Deliver', 'Review', 'Paid'] : ['Won', 'Film', 'Deliver', 'Review', 'Paid'];
+  const labels = ships ? ['Selected', 'Product', 'Film', 'Deliver', 'Review', 'Paid'] : ['Selected', 'Film', 'Deliver', 'Review', 'Paid'];
   const at = (l) => Math.max(0, labels.indexOf(l));
   const s = stateKey(getState(deal));
   let cur = 0;

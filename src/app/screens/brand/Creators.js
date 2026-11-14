@@ -11,6 +11,7 @@ import { useLiveEffect } from '../../../lib/liveUpdates';
 import { matchesCreatorSearch } from '../../../utils/creatorSearch';
 import { toggleSavedCreator, useSavedCreatorIds } from '../../../utils/savedCreators';
 import PhotoOrInitial from '../../../components/PhotoOrInitial';
+import { contentStyleKey, contentStyleLabel } from '../../../constants/contentCategories';
 import ReelCard from '../../brandkit/ReelCard';
 import VideoViewer from '../../brandkit/VideoViewer';
 import WalletChip, { useWalletBalance } from '../../brandkit/WalletChip';
@@ -133,7 +134,7 @@ function BrandAppCreators() {
   const hasDelivery = useMemo(() => creators.some((c) => deliveryDaysOf(c)), [creators]);
   const styleOptions = useMemo(() => [
     { key: 'any', label: 'Any' },
-    ...Array.from(new Set(creators.map((c) => c.content_style).filter(Boolean))).map((s) => ({ key: s, label: titleCase(s) })),
+    ...Array.from(new Set(creators.map((c) => contentStyleKey(c.content_style)).filter(Boolean))).map((s) => ({ key: s, label: contentStyleLabel(s) })),
   ], [creators]);
   const langOptions = useMemo(() => [
     { key: 'any', label: 'Any' },
@@ -151,7 +152,7 @@ function BrandAppCreators() {
     const cats = catsOf(c);
     if (!approvedMode && categoryLabel && !matchesCategory(cats, categoryLabel)) return false;
     if (!matchesCreatorSearch(c, q, cats)) return false;
-    if (fStyle !== 'any' && c.content_style !== fStyle) return false;
+    if (fStyle !== 'any' && contentStyleKey(c.content_style) !== fStyle) return false;
     if (fLang !== 'any' && !(c.languages || []).includes(fLang)) return false;
     if (!BUDGET_OPTIONS.find((o) => o.key === fBudget).test(budgetOf(c))) return false;
     if (!DETAIL_OPTIONS.find((o) => o.key === fDetails).test(c)) return false;

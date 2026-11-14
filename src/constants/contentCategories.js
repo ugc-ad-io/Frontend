@@ -17,6 +17,15 @@ export const CONTENT_CATEGORIES = [
   { value: 'custom', label: 'Custom' },
 ];
 
+// Brand filter key for a creator's stored content_style: an official style value, or
+// 'custom' for anything free-typed (so a creator's sentence never becomes a filter chip).
+const STYLE_KEYS = new Set(CONTENT_CATEGORIES.map((c) => c.value));
+export const contentStyleKey = (s) => {
+  const k = String(s || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  return k ? (STYLE_KEYS.has(k) ? k : 'custom') : '';
+};
+export const contentStyleLabel = (k) => (CONTENT_CATEGORIES.find((c) => c.value === k) || {}).label || k;
+
 // Resolve the stored category string from a {category, customCategory} pair.
 export const resolveCategory = (category, customCategory) =>
   category === 'custom' ? (String(customCategory || '').trim() || 'Custom') : category;

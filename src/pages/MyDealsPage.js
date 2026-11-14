@@ -30,6 +30,8 @@ import { EmptyPanel, getInitial } from '../components/CreatorComponents';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import { openHelpDialog } from '../components/HoverSideRail';
 import VideoReviewModal from '../components/VideoReviewModal';
+// Shared with the app's creator Orders screen: reads the brand's pinned timestamps.
+import { toChangeItems, parseChange, tsToSeconds } from '../app/screens/creator/orderLogic';
 import ShippingDetailsCard from '../components/ShippingDetailsCard';
 import { Skeleton } from '../components/Skeleton';
 import EmptyState from '../components/EmptyState';
@@ -1452,49 +1454,6 @@ const REVISION_RESPONSE_LABEL = {
   scope_creep: 'You told the brand these changes go beyond the brief. Work it out together in chat - if you can’t agree, use “Escalate to admin” below.',
   partial_dispute: 'You accepted some changes and pushed back on the rest. Sort the rest out with the brand in chat - if you can’t agree, use “Escalate to admin” below.',
 };
-
-// Turn the brand's requested changes into a clean, de-duplicated checklist. The
-// backend sometimes derives requested_changes from the feedback text (so both can
-// arrive as one comma-run the creator can't parse) — split any multi-line / multi-
-// sentence entries and drop blanks so each change becomes its own line.
-function toChangeItems(revision) {
-  const raw = revision.requested_changes?.length
-    ? revision.requested_changes
-    : (revision.latest_feedback ? [revision.latest_feedback] : []);
-  const seen = new Set();
-  const items = [];
-  raw.forEach((entry) => {
-    String(entry || '')
-      .split(/\r?\n|(?<=\.)\s+(?=[A-Z0-9])/) // split on new lines and sentence breaks
-      .map((line) => line.replace(/^\s*[-•*\d.)\]]+\s*/, '').trim()) // strip bullet/number prefixes
-      .filter(Boolean)
-      .forEach((line) => {
-        // Dedup ignoring a leading severity tag: older revisions stored the same
-        // change twice — once tagged ("[must-fix] new look") and once raw ("new
-        // look") — which showed up as two identical-looking rows.
-        const key = line.replace(/^\s*\[[^\]]*\]\s*/, '').toLowerCase();
-        if (!seen.has(key)) { seen.add(key); items.push(line); }
-      });
-  });
-  return items;
-}
-
-// A change can arrive tagged as "[must-fix @ 0:04] Re-shoot the intro" when the
-// brand reviewed on the video. Split it into severity + pinned moment + text.
-const CHANGE_TAG_RE = /^\s*\[([^\]@]+?)(?:\s*@\s*(\d+:\d{2}))?\]\s*/;
-function parseChange(line) {
-  const m = String(line).match(CHANGE_TAG_RE);
-  if (!m) return { text: String(line), severity: '', timestamp: null };
-  return { text: String(line).slice(m[0].length), severity: (m[1] || '').trim().toLowerCase(), timestamp: m[2] || null };
-}
-
-// Parse "0:13" -> seconds. Returns null when there's no timestamp.
-function tsToSeconds(ts) {
-  if (!ts) return null;
-  const [m, s] = String(ts).split(':').map(Number);
-  if (Number.isNaN(m) || Number.isNaN(s)) return null;
-  return m * 60 + s;
-}
 
 // Turn the change lines into VideoReviewModal comments: strip the "[…]" tag, keep
 // the clean text, and lift the pinned moment out to `timestamp_seconds`.

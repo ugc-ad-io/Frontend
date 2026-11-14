@@ -146,7 +146,18 @@ export function getPrimaryActionConfig(deal, uploads, submitting) {
 
 // ---- revisions --------------------------------------------------------------
 // De-duplicated checklist of the brand's requested changes (split on lines / sentences, bullets stripped).
+const fmtTs = (sec) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;
 export function toChangeItems(revision) {
+  // Structured items carry the moment the brand pinned (timestamp_seconds). requested_changes is
+  // description-only, so reading it first showed every pinned change as "general".
+  const structured = (revision?.items || []).filter((it) => String(it?.description || '').trim());
+  if (structured.length) {
+    return structured.map((it) => {
+      const sec = it.timestamp_seconds == null ? NaN : Number(it.timestamp_seconds);
+      const at = Number.isFinite(sec) && sec >= 0 ? ` @ ${fmtTs(sec)}` : '';
+      return `[${it.severity || 'must-fix'}${at}] ${String(it.description).trim()}`;
+    });
+  }
   const raw = revision?.requested_changes?.length
     ? revision.requested_changes
     : (revision?.latest_feedback ? [revision.latest_feedback] : []);

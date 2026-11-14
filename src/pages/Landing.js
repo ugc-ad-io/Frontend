@@ -352,7 +352,8 @@ function ShowcaseVideo({ src, poster, className }) {
     if (!v) return undefined;
     const io = new IntersectionObserver(
       ([e]) => {
-        if (e.isIntersecting) { v.muted = true; playVideoCapped(v); }
+        // Re-mute on re-entry (autoplay needs muted) and keep the icon in sync.
+        if (e.isIntersecting) { if (!v.muted) { v.muted = true; setMuted(true); } playVideoCapped(v); }
         else releaseVideo(v);
       },
       { threshold: 0.25 },
@@ -1250,9 +1251,9 @@ const vsRows = [
 const FIND_HIRE_VIDEOS = [
   // All three pulled from /home (not /ma) — the /ma clips have no sibling poster .jpg,
   // so their card would show a blank black poster until playback starts.
-  { id: 9, label: 'Fitness/Supplements', src: '/home/video_16.mp4', brand: 'FitFuel', creator: 'Noah' },
-  { id: 4, label: 'Beauty/Cosmetics', src: '/home/video_06.mp4', brand: 'Glowly', creator: 'Maya' },
-  { id: 7, label: 'Pets', src: '/home/video_13.mp4', brand: 'Pawfect', creator: 'Riya' },
+  { id: 9, label: 'Skincare', src: '/home/video_16.mp4', brand: 'FitFuel', creator: 'Noah' },
+  { id: 4, label: 'Fashion', src: '/home/video_06.mp4', brand: 'Glowly', creator: 'Maya' },
+  { id: 7, label: 'Skincare', src: '/home/video_13.mp4', brand: 'Pawfect', creator: 'Riya' },
 ];
 const FIND_HIRE_FEATURES = [
   { icon: Shield, text: 'Tough vetting process: we only select the best creators.' },

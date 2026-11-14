@@ -19,6 +19,8 @@ import { toggleSavedCreator, useSavedCreatorIds } from '../utils/savedCreators';
 import { toast } from 'sonner';
 import { s3Preview } from '../utils/mediaPreview';
 import PhotoOrInitial from '../components/PhotoOrInitial';
+import { contentStyleKey, contentStyleLabel } from '../constants/contentCategories';
+import { matchesCategory } from '../app/brandkit/kit';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -357,18 +359,6 @@ function QuickPreview({ c, onClose, onMessage, onFull, onExpand }) {
 }
 
 // ───────────────────────── GigCard (design board 03) ─────────────────────────
-const CATEGORY_ALIASES = {
-  'food & drinks': ['food', 'drink', 'beverage'],
-  'tech & gadgets': ['tech', 'gadget', 'electronic'],
-  skincare: ['skin', 'beauty'],
-  apps: ['app'],
-  pets: ['pet'],
-};
-const matchesCategory = (cats, label) => {
-  const key = String(label || '').toLowerCase();
-  const tokens = CATEGORY_ALIASES[key] || [key];
-  return cats.some((cat) => tokens.some((t) => cat.includes(t)));
-};
 const titleCase = (v) => String(v || '').replace(/_/g, ' ').replace(/^./, (m) => m.toUpperCase());
 const budgetOf = (c) => {
   const raw = c.budget_range || c.price || c.rate || c.expected_payout || (c.rate_card || {}).expected_payout || '';
@@ -767,7 +757,7 @@ export default function BrandCreators() {
 
   const styleOptions = useMemo(() => [
     { key: 'any', label: 'Any' },
-    ...Array.from(new Set(creators.map((c) => c.content_style).filter(Boolean))).map((s) => ({ key: s, label: titleCase(s) })),
+    ...Array.from(new Set(creators.map((c) => contentStyleKey(c.content_style)).filter(Boolean))).map((s) => ({ key: s, label: contentStyleLabel(s) })),
   ], [creators]);
   const langOptions = useMemo(() => [
     { key: 'any', label: 'Any' },
@@ -779,7 +769,7 @@ export default function BrandCreators() {
     const cats = catsOf(c);
     if (!approvedMode && categoryLabel && !matchesCategory(cats, categoryLabel)) return false;
     if (!matchesCreatorSearch(c, q, cats)) return false;
-    if (fStyle !== 'any' && c.content_style !== fStyle) return false;
+    if (fStyle !== 'any' && contentStyleKey(c.content_style) !== fStyle) return false;
     if (fLang !== 'any' && !(c.languages || []).includes(fLang)) return false;
     if (!BUDGET_OPTIONS.find((o) => o.key === fBudget).test(budgetOf(c))) return false;
     if (!DETAIL_OPTIONS.find((o) => o.key === fDetails).test(c)) return false;

@@ -23,7 +23,7 @@ export const HERO_POSTERS = [
 export const showcaseVideos = [
   { id: 1, industryId: 'apps',    label: 'Apps/Software',    isVideo: true, face: 'debo-pink', // owner clip #1 (Debo.mp4, compressed to 360x640 / 12 s / ~0.6 MB)
     src: '/ma/video_debo.mp4',
-    brand: 'Color By Number', creator: 'Abigail', logoBg: 'linear-gradient(135deg, #3A3A66, #fb923c)', logoText: 'CN', tier: 'RISING', rating: 4.8, avatar: '/avatars/a01.jpg', poster: '/posters/p18.jpg' },
+    brand: 'Color By Number', creator: 'Abigail', logoBg: 'linear-gradient(135deg, #3A3A66, #fb923c)', logoText: 'CN', tier: 'PRO', rating: 4.8, avatar: '/avatars/a01.jpg', poster: '/posters/p18.jpg' },
   { id: 2, industryId: 'apps',    label: 'Apps/Software',    isVideo: true, face: 'jewellery',
     src: '/ma/video_04.mp4',
     brand: 'Gener8',          creator: 'Chelsea', logoBg: 'linear-gradient(135deg, #1F1F4E, #07074e)', logoText: '8', tier: 'PRO', rating: 4.9, avatar: '/avatars/a02.jpg', poster: '/posters/p02.jpg' },

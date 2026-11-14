@@ -4,7 +4,9 @@
    Everything is prefixed `bui-` so it never collides with the creator side
    (`cmk-` / `pcd-`) that still shares creator-marketplace.css.
    ───────────────────────────────────────────────────────────────────────── */
-.bui-app{
+/* .bui-modal-ov too: filter/quick-view modals are portaled to <body>, outside .bui-app, and
+   without the tokens the selected chip + primary button rendered white-on-white. */
+.bui-app,.bui-modal-ov{
   --bui-ink:#07074e;
   --bui-muted:#5a5a8c;
   --bui-primary:#7387ff;

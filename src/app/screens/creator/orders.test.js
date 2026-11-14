@@ -52,6 +52,10 @@ test('logic: progress, grouping and the primary action follow the website rules'
   expect(getPrimaryActionConfig(d, {}, false).disabled).toBe(true);
   expect(getPrimaryActionConfig(d, { finalVideoUrl: '/v.mp4' }, false).disabled).toBe(false);
   expect(toChangeItems({ requested_changes: ['[must-fix @ 0:04] Start with the bite'] })).toHaveLength(1);
+  // Structured items win over the description-only requested_changes, so the pinned moment survives.
+  const rev = { requested_changes: ['dont hold it', 'in outro add the logo'], items: [
+    { description: 'dont hold it', severity: 'must-fix', timestamp_seconds: 4.2 }, { description: 'in outro add the logo', severity: 'must-fix', timestamp_seconds: null }] };
+  expect(toChangeItems(rev).map(parseChange).map((c) => c.timestamp)).toEqual(['0:04', null]);
   expect(parseChange('[must-fix @ 0:04] Start with the bite')).toMatchObject({ severity: 'must-fix', timestamp: '0:04', text: 'Start with the bite' });
 });
 

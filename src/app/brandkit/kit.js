@@ -77,13 +77,29 @@ export const catOf = (c) => (c.primary_category || c.category || c.niche || 'UGC
 export const catsOf = (c) => (c.categories?.length ? c.categories : [c.primary_category])
   .map((v) => String(v || '').trim().toLowerCase()).filter(Boolean);
 
-export const CATEGORIES = ['Beauty', 'Skincare', 'Fashion', 'Fitness', 'Food & Drinks', 'Tech & Gadgets', 'Lifestyle', 'Travel', 'Home', 'Pets', 'Apps'];
+// Brand-side niche chips (website + app). Covers every NICHE_CATEGORIES value a creator can pick.
+export const CATEGORIES = ['Beauty', 'Skincare', 'Fashion', 'Health & Wellness', 'Fitness', 'Food & Drinks', 'Tech & Gadgets',
+  'Lifestyle', 'Travel', 'Hospitality', 'Home', 'Pets', 'Baby & Kids', 'Jewellery', 'Apps', 'Finance', 'Education',
+  'Entertainment', 'Gaming', 'Automotive', 'Luxury', 'FMCG'];
+// Substrings matched against the creator's stored niche values (e.g. 'sports', 'baby_kids').
 const CATEGORY_ALIASES = {
   'food & drinks': ['food', 'drink', 'beverage'],
   'tech & gadgets': ['tech', 'gadget', 'electronic'],
   skincare: ['skin', 'beauty'],
   apps: ['app'],
   pets: ['pet'],
+  'health & wellness': ['health', 'wellness'],
+  fitness: ['fitness', 'sport', 'gym'],
+  hospitality: ['hospitality', 'hotel', 'restaurant', 'travel'],
+  'baby & kids': ['baby', 'kid', 'family', 'parent'],
+  jewellery: ['jewel'],
+  finance: ['financ', 'fintech'],
+  education: ['educat', 'learn'],
+  entertainment: ['entertain', 'media'],
+  gaming: ['gaming', 'esport'],
+  automotive: ['automotive', 'vehicle'], // not 'car': it would match 'skincare'
+  lifestyle: ['lifestyle', 'luxury'],
+  fmcg: ['fmcg', 'consumer'],
 };
 export const matchesCategory = (cats, label) => {
   const key = String(label || '').toLowerCase();

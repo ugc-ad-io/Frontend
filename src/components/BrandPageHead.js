@@ -5,13 +5,14 @@ import NotificationBell from './NotificationBell';
 import { creatorSearchUrl } from '../utils/creatorSearch';
 import useAutoSearch, { markSearchFocus, takeSearchFocus } from '../utils/useAutoSearch';
 import '../styles/brand-ui-shell.css';
+import { CATEGORIES } from '../app/brandkit/kit';
 
 // The shell (BrandTopNavLayout) provides this so it can show a title-less fallback head
 // (search + bell) on pages that do not render their own <BrandPageHead />.
 export const BrandHeadContext = createContext(null);
 
 // Quick category filters for the creator directory. Shown on the Creators page only.
-export const CATEGORIES = ['Beauty', 'Skincare', 'Fashion', 'Fitness', 'Food & Drinks', 'Tech & Gadgets', 'Lifestyle', 'Travel', 'Home', 'Pets', 'Apps'];
+export { CATEGORIES }; // single list lives in app/brandkit/kit.js
 
 /**
  * Title row used at the top of every brand page (mirrors CreatorPageHead):

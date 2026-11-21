@@ -65,6 +65,7 @@ import DashboardLayout from '../components/DashboardLayout';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import BrandTopNavLayout from '../components/BrandTopNavLayout';
 import CreatorPageHead from '../components/CreatorPageHead';
+import BrandPageHead from '../components/BrandPageHead';
 import './CreatorDashboard.css';
 import './ProfileSettings.css';
 import '../styles/creator-marketplace.css';
@@ -1052,11 +1053,6 @@ export default function ProfileSettings() {
                 {logoUploading ? 'Uploading...' : logoSrc ? 'Change logo' : 'Upload logo'}
                 <input type="file" accept="image/*" onChange={handleLogoUpload} disabled={logoUploading} hidden />
               </label>
-              {logoSrc && (
-                <button type="button" onClick={removeLogo} disabled={logoUploading}>
-                  Remove logo
-                </button>
-              )}
             </div>
             <div className="bs-form-grid">
               {renderBrandField('Brand Name', brandProfile.brand_name, value => setBrandProfile(current => ({ ...current, brand_name: value })))}
@@ -1440,7 +1436,12 @@ export default function ProfileSettings() {
     return (
       <BrandTopNavLayout>
         <div className="bui-main bui-main--tight bui-set">
-          {!brandDetailOpen && (
+          {/* Header shares the row with search + bell (was: an empty search row, then this, pushing every tab down). */}
+          <BrandPageHead lead={brandDetailOpen ? (
+            <button type="button" className="bui-set-back" onClick={() => setBrandDetailOpen(false)}>
+              <ChevronLeft size={18} /> All settings
+            </button>
+          ) : (
           <div className="bui-set-head">
             <span className="bui-set-logo">
               {brandHeaderImage ? <img src={brandHeaderImage} alt="" /> : getInitial(brandProfile.brand_name || displayName)}
@@ -1452,12 +1453,9 @@ export default function ProfileSettings() {
               </div>
             </div>
           </div>
-          )}
+          )} />
           {brandDetailOpen ? (
             <div className="bui-set-detail">
-              <button type="button" className="bui-set-back" onClick={() => setBrandDetailOpen(false)}>
-                <ChevronLeft size={18} /> All settings
-              </button>
               {renderBrandPanel()}
             </div>
           ) : (brandLoading || brandLoadError) ? renderBrandPanel() : (

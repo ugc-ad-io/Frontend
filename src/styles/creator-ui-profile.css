@@ -9,6 +9,14 @@
 .cui-p-card-h{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
 .cui-p-load{padding:30px 0;text-align:center;color:var(--cui-muted)}
 .cui-p-hint{margin:12px 0 0;font-size:13px;color:var(--cui-muted)}
+/* Hover = the clip is playing, so the play badge gets out of the way. */
+.cui-p-vplay{transition:opacity .15s}
+.cui-p-vmedia:hover .cui-p-vplay{opacity:0}
+.cui-p-vfull{position:absolute;right:8px;bottom:8px;width:32px;height:32px;border:0;border-radius:9px;background:rgba(7,7,78,.72);color:#fff;display:grid;place-items:center;cursor:pointer;z-index:2}
+.cui-p-vfull:hover{background:#07074e}
+.cui-p-order{display:flex;flex-wrap:wrap;gap:2px 12px;margin-top:4px}
+.cui-p-order button{border:0;background:none;padding:6px 0;min-height:36px;font:inherit;font-size:13px;font-weight:700;color:var(--cui-link,#4e60e6);cursor:pointer}
+.cui-p-order button:hover{text-decoration:underline}
 .cui-p-seg{display:inline-flex;padding:3px;border-radius:12px;background:#f1f1fb;gap:2px}
 .cui-p-seg button{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 14px;border:0;border-radius:10px;background:none;font:inherit;font-weight:600;font-size:13.5px;color:var(--cui-muted);cursor:pointer}
 .cui-p-seg button.on{background:#fff;color:var(--cui-ink);box-shadow:0 1px 3px rgba(7,7,78,.12)}

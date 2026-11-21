@@ -6,7 +6,7 @@ import axios from 'axios';
 import { uploadMedia } from '../utils/upload';
 import { toast } from 'sonner';
 import { apiErrorMessage } from '../utils/apiError';
-import { Plus, Play, Pencil, X, Film } from 'lucide-react';
+import { Plus, Play, Pencil, X, Film, Maximize2 } from 'lucide-react';
 import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import CreatorPageHead from '../components/CreatorPageHead';
 import EmptyState from '../components/EmptyState';
@@ -25,6 +25,25 @@ function getPortfolioAssetUrl(url) {
 
 function isVideoUrl(url) {
   return /\.(mp4|webm|mov)$/i.test(String(url || '').split('?')[0]);
+}
+
+// Full screen for a tile's video, with sound and controls; back to a silent hover preview on exit.
+// iPhone Safari only allows full screen on the <video> itself (webkitEnterFullscreen).
+function openVideoFullscreen(v) {
+  if (!v) return;
+  const restore = () => {
+    if (document.fullscreenElement || document.webkitFullscreenElement) return;
+    v.muted = true; v.controls = false;
+    document.removeEventListener('fullscreenchange', restore);
+    document.removeEventListener('webkitfullscreenchange', restore);
+  };
+  v.muted = false; v.controls = true;
+  v.addEventListener('webkitendfullscreen', () => { v.muted = true; v.controls = false; }, { once: true });
+  document.addEventListener('fullscreenchange', restore);
+  document.addEventListener('webkitfullscreenchange', restore);
+  const go = v.requestFullscreen || v.webkitRequestFullscreen || v.webkitEnterFullscreen;
+  if (go) Promise.resolve(go.call(v)).catch(() => {});
+  v.play().catch(() => {});
 }
 
 function PortfolioMedia({ url, index, thumbnail = false, demo = false }) {
@@ -315,6 +334,23 @@ export default function PortfolioPage() {
     }
   };
 
+  // Reorder: the first 3 are what brands see on the card (same "Make first / Move earlier" as the app).
+  const handleMovePortfolioItem = async (itemIndex, toFirst) => {
+    if (itemIndex <= 0) return;
+    const next = [...portfolio];
+    const [item] = next.splice(itemIndex, 1);
+    next.splice(toFirst ? 0 : itemIndex - 1, 0, item);
+    const prev = portfolio;
+    setPortfolio(next);
+    try {
+      await axios.patch(`${API}/profile/portfolio`, next);
+      if (setUser && user) setUser({ ...user, portfolio: next });
+    } catch (error) {
+      setPortfolio(prev);
+      toast.error('Could not change the order');
+    }
+  };
+
   const isVid = (it) => isVideoUrl(it.urls?.[0]);
   // Pad with demo items while the real portfolio is nearly empty: top 3 fill the
   // featured row, the rest flow into the grid below.
@@ -363,11 +399,23 @@ export default function PortfolioPage() {
                       <PortfolioMedia url={item.urls?.[0] || ''} index={index} thumbnail demo={Boolean(item._demo)} />
                       {index < 3 && tab === 'all' && <span className="cui-p-vtag">#{index + 1} on card</span>}
                       {isVid(item) && <span className="cui-p-vplay"><Play size={14} fill="currentColor" /></span>}
+                      {isVid(item) && (
+                        <button type="button" className="cui-p-vfull" aria-label="Play full screen"
+                          onClick={(e) => openVideoFullscreen(e.currentTarget.closest('.cui-p-vmedia')?.querySelector('video'))}>
+                          <Maximize2 size={14} />
+                        </button>
+                      )}
                       {!item._demo && <button type="button" className="cui-p-vrm" onClick={() => handleRemovePortfolioItem(realIndex)} aria-label="Remove"><X size={15} /></button>}
                       {item.urls?.length > 1 && <span className="cui-p-vcount">+{item.urls.length - 1}</span>}
                     </div>
                     {item.title && <h3>{item.title}</h3>}
                     {(item.project_cost || item.project_duration) && <p>{[item.project_cost, item.project_duration].filter(Boolean).join(' · ')}</p>}
+                    {!item._demo && tab === 'all' && realIndex > 0 && (
+                      <div className="cui-p-order">
+                        <button type="button" onClick={() => handleMovePortfolioItem(realIndex, true)}>Make first</button>
+                        {realIndex > 1 && <button type="button" onClick={() => handleMovePortfolioItem(realIndex, false)}>Move earlier</button>}
+                      </div>
+                    )}
                   </article>
                 );
               })}
@@ -378,7 +426,7 @@ export default function PortfolioPage() {
           ) : (
             <EmptyState icon={Film} title="No work yet" message={`Add your best ${tab === 'all' ? 'videos and photos' : tab} to showcase your talent to brands.`} />
           )}
-          <p className="cui-p-hint">The first 3 show on your card when brands search. Pick your best hooks.</p>
+          <p className="cui-p-hint">The first 3 show on your card when brands search. Use “Make first” to choose the order.</p>
         </section>
       )}
 

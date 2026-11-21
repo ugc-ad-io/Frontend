@@ -467,7 +467,11 @@ export default function CreatorProfile() {
   const firstClip = works[0] ? assetUrl(pfUrl(works[0])) : '';
 
   return (
-    <AppShell title="My profile" subtitle="This is what brands see">
+    <AppShell
+      title="My profile"
+      subtitle="This is what brands see"
+      right={<button type="button" className="ap-prof-pfbtn" onClick={() => videosRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}><Film size={15} /> Portfolio</button>}
+    >
       {loading && (
         <div className="ap-prof-skel" aria-busy="true" aria-label="Loading profile">
           <div className="ap-skel" style={{ height: 250, borderRadius: 20 }} />
@@ -559,8 +563,8 @@ export default function CreatorProfile() {
                         <small>{vidPrice(meta.price, basePrice)} · {vidDelivery(meta.delivery, deliveryTxt)}</small>
                         {rank > 0 && (
                           <div className="ap-prof-order">
-                            <button type="button" onClick={() => moveWork(i, true)}>Make first</button>
-                            {rank > 1 && <button type="button" onClick={() => moveWork(i, false)}>Move earlier</button>}
+                            <button type="button" onClick={() => moveWork(i, true)}>Make #1</button>
+                            {rank > 1 && <button type="button" onClick={() => moveWork(i, false)}>Move up</button>}
                           </div>
                         )}
                       </div>

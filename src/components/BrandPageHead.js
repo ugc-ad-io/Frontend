@@ -19,7 +19,9 @@ export { CATEGORIES }; // single list lives in app/brandkit/kit.js
  * title + subtitle, a "Search creators" box that opens the Creators page, the bell and an optional action.
  * `util` is the shell's own title-less fallback and does not register itself.
  */
-export default function BrandPageHead({ title, subtitle, action, hideSearch = false, util = false, children }) {
+// `lead`: any node shown on the left instead of a title (e.g. Settings' "All settings" back link), so it shares
+// the search/bell row instead of sitting under an empty one.
+export default function BrandPageHead({ title, subtitle, lead, action, hideSearch = false, util = false, children }) {
   const navigate = useNavigate();
   // Plain window.location (like CreatorPageHead): the address bar only seeds the box and its live search.
   const { pathname, search } = window.location;
@@ -45,7 +47,7 @@ export default function BrandPageHead({ title, subtitle, action, hideSearch = fa
   });
   return (
     <div className={`bsh-head${util ? ' bsh-head--util' : ''}`}>
-      {title ? (
+      {lead ? <div className="bsh-head-t">{lead}</div> : title ? (
         <div className="bsh-head-t">
           <h1>{title}</h1>
           {subtitle ? <p>{subtitle}</p> : null}

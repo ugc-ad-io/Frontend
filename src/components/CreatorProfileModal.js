@@ -526,6 +526,20 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
   };
 
   const removeWork = (idx) => { persistPortfolio((pf || []).filter((_, i) => i !== idx)); };
+  // Reorder like the app's My profile: the first videos are the ones brands see on the card.
+  const moveWork = (i, toFirst) => {
+    const list = pf || [];
+    let next;
+    if (toFirst) next = [list[i], ...list.filter((_, j) => j !== i)];
+    else {
+      let j = i - 1;
+      while (j >= 0 && !pfUrl(list[j])) j -= 1;
+      if (j < 0) return;
+      next = [...list];
+      [next[j], next[i]] = [next[i], next[j]];
+    }
+    persistPortfolio(next);
+  };
 
   const saveDetails = async () => {
     // Delivery time is required — a profile with no turnaround leaves brands
@@ -1100,6 +1114,12 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
                                 <div className="cpm-vid-price"><label>Price</label><strong>{vidPrice(meta.price, basePrice)}</strong></div>
                                 <span className="cpm-vid-del"><label>Delivered in</label><strong>{vidDelivery(meta.delivery, hlDelivery)}</strong></span>
                               </div>
+                              {i > 0 && (
+                                <div className="cpm-vid-order">
+                                  <button type="button" onClick={() => moveWork(i, true)}>Make first</button>
+                                  {i > 1 && <button type="button" onClick={() => moveWork(i, false)}>Move earlier</button>}
+                                </div>
+                              )}
                             </div>
                           </div>
                         );
@@ -1469,6 +1489,9 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-aw-fields input:focus,.cpm-aw-fields textarea:focus,.cpm-aw-fields select:focus{border-color:#7387FF}
         .cpm-aw-actions{display:flex;gap:10px;margin-top:2px}
         .cpm-editform{display:flex;flex-direction:column;gap:14px}
+        .cpm-vid-order{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:8px}
+        .cpm-vid-order button{border:0;background:none;padding:6px 0;font:inherit;font-size:13px;font-weight:700;color:#4e60e6;cursor:pointer}
+        .cpm-vid-order button:hover{text-decoration:underline}
         .cpm-ef-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;align-items:end} /* a 2-line label no longer pushes its input below the others */
         .cpm-editform label{display:flex;flex-direction:column;gap:5px;font-size:11.5px;font-weight:700;color:#6E6E96;text-transform:uppercase;letter-spacing:.3px}
         .cpm-editform input,.cpm-editform textarea,.cpm-editform select{border:1px solid #E2E2F0;border-radius:10px;padding:10px 12px;font-size:14px;font-weight:500;font-family:inherit;color:#07074E;background:#fff;outline:none;text-transform:none;letter-spacing:0}

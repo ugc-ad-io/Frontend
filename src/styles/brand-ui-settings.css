@@ -38,7 +38,7 @@
 .bui-set .bs-qr-steps{margin:0;padding-left:18px;font-size:13.5px;color:var(--bui-muted);line-height:1.5}
 .bui-set .bs-qr-key{margin:0;font-size:12.5px;color:var(--bui-muted);overflow-wrap:anywhere}
 .bui-set .bs-qr-key code{font-weight:700;color:var(--bui-ink);letter-spacing:.06em}
-.bui-set .bs-logo-cta{display:inline-flex;align-items:center;min-height:36px;padding:0 14px;border-radius:10px;background:var(--bui-ink);color:#fff;font-size:13px;font-weight:600;cursor:pointer}
+.bui-set .bs-logo-cta{display:inline-flex;align-items:center;min-height:36px;padding:0 14px;white-space:nowrap;border-radius:10px;background:var(--bui-ink);color:#fff;font-size:13px;font-weight:600;cursor:pointer}
 .bui-set .bs-logo-box{cursor:pointer}
 .bui-set .bs-form-grid{gap:16px}
 .bui-set .bs-field{gap:7px;min-width:0}

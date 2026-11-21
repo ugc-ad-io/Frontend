@@ -31,7 +31,7 @@ import CreatorTopNavLayout from '../components/CreatorTopNavLayout';
 import { openHelpDialog } from '../components/HoverSideRail';
 import VideoReviewModal from '../components/VideoReviewModal';
 // Shared with the app's creator Orders screen: reads the brand's pinned timestamps.
-import { toChangeItems, parseChange, tsToSeconds } from '../app/screens/creator/orderLogic';
+import { toChangeItems, parseChange, tsToSeconds, briefGroups } from '../app/screens/creator/orderLogic';
 import ShippingDetailsCard from '../components/ShippingDetailsCard';
 import { Skeleton } from '../components/Skeleton';
 import EmptyState from '../components/EmptyState';
@@ -102,21 +102,16 @@ function UploadZone({ icon: Icon, label, accept, uploaded, onClick, onFile, disa
 // label, so the dense brief text becomes scannable instead of one flat paragraph.
 function BriefContent({ content }) {
   if (!content) return <p>Not specified</p>;
-  const lines = String(content).split(/\r?\n/);
-  return (
-    <>
-      {lines.map((line, i) => {
-        const t = line.trim();
-        if (!t) return <div key={i} className="gap" />;
-        // Budget visibility is a brand-only setting — never surface it to creators.
-        if (/^budget visibility\s*:/i.test(t)) return null;
-        const m = t.match(/^([A-Z][^:]{0,40}):\s*(.*)$/);
-        if (m && m[2]) return <p key={i}><strong>{m[1]}:</strong> {m[2]}</p>;
-        if (m) return <p key={i}><strong>{m[1]}:</strong></p>;
-        return <p key={i}>{t}</p>;
-      })}
-    </>
-  );
+  const groups = briefGroups(content);
+  const sectioned = groups.length > 1; // short briefs stay a plain list
+  return groups.map((g) => (
+    <div key={g.title} className={sectioned ? 'brief-sec' : undefined}>
+      {sectioned && <h4 className="brief-sec-h">{g.title}</h4>}
+      {g.items.map((it, i) => (
+        <p key={i} style={{ whiteSpace: 'pre-line' }}>{it.label && <strong>{it.label}:</strong>}{it.label && it.lines.length ? ' ' : ''}{it.lines.join('\n')}</p>
+      ))}
+    </div>
+  ));
 }
 
 function normalizeDash(value) {
@@ -656,6 +651,16 @@ export default function MyDealsPage() {
   // Instead of jumping straight to a dispute, let the creator talk it out with the
   // brand first — focus the deal chat with a ready-to-send question about exactly how
   // many changes the revision covers, so scope is agreed before any work starts.
+  // Focus the deal chat, optionally with a ready-to-send message (Ask for more time / Raise a problem).
+  const askBrandInChat = (text) => {
+    markChatSeen();
+    if (text) setMessage((prev) => prev || text);
+    setTimeout(() => {
+      composerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      composerRef.current?.focus({ preventScroll: true });
+    }, 60);
+  };
+
   const handleDiscussRevision = () => {
     markChatSeen();
     setMessage((prev) => prev || 'Hi! Before I start on these revisions, could we confirm exactly how many changes are included in this request so we\'re on the same page?');
@@ -1087,13 +1092,24 @@ export default function MyDealsPage() {
             <section className="cui-o-card cui-r-help" style={{ padding: '16px 20px' }}>
               <strong>Need help?</strong>
               <div>
-                <button type="button" onClick={openHelpDialog}>Contact UGCad</button>
-                {(damaged || ['scope_creep', 'partial_dispute'].includes(revision.creator_response)) && (
+                {/* Same three options as the app's order page. */}
+                {!cancelled && !isPaid && !inReview && !inRevision && deal?.active_party === 'creator' && (
                   <>
+                    <button type="button" onClick={() => askBrandInChat('Hi! Could we move the deadline by a day or two? I want to make sure the video is right. Happy to agree a new date here.')}>Ask for more time</button>
                     <span>&middot;</span>
-                    <button type="button" onClick={() => handleActionCardRequest('Escalate to Admin')}>Escalate to admin</button>
                   </>
                 )}
+                {!cancelled && (
+                  <>
+                    {(damaged || ['scope_creep', 'partial_dispute'].includes(revision.creator_response)) ? (
+                      <button type="button" onClick={() => handleActionCardRequest('Escalate to Admin')}>Raise a problem</button>
+                    ) : (
+                      <button type="button" onClick={() => { toast.info(`Please raise it with ${brandName} in chat first. If you can't agree, UGCad will step in.`); askBrandInChat(''); }}>Raise a problem</button>
+                    )}
+                    <span>&middot;</span>
+                  </>
+                )}
+                <button type="button" onClick={openHelpDialog}>Contact UGCad</button>
               </div>
             </section>
           </aside>

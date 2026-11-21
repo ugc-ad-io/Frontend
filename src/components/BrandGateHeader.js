@@ -12,7 +12,7 @@ export default function BrandGateHeader() {
     <header className="bg-head">
       <div className="bg-head-in">
         <button type="button" className="bui-logo" onClick={() => navigate('/')} aria-label="UGCad.io home">
-          <span className="bui-logo-mark" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-logo.png)` }} />
+          <span className="bui-logo-mark" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-mark.png)` }} />
           <span className="bui-logo-word"><b>UGC</b>ad.io</span>
         </button>
         <span className="bg-help">Need help? <a href={`mailto:${SUPPORT_EMAIL}`}>Contact support</a></span>

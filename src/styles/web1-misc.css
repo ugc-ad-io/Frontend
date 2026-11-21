@@ -17,7 +17,7 @@
 .lg-head{background:#fff;border-bottom:1px solid var(--w-line)}
 .lg-head-in{max-width:1100px;margin:0 auto;padding:14px clamp(16px,3vw,32px);display:flex;align-items:center}
 .lg-logo{display:inline-flex;align-items:center;gap:9px}
-.lg-logo-mark{display:block;width:23px;height:30px;flex:none;background-repeat:no-repeat;background-position:-23px 0;background-size:70px auto}
+.lg-logo-mark{display:block;width:23px;height:30px;flex:none;background-repeat:no-repeat;background-position:center;background-size:contain}
 .lg-logo-word{font-family:var(--w-head);font-weight:500;font-size:23px;letter-spacing:-.01em;line-height:1}
 .lg-logo-word b{font-weight:500;color:var(--w-primary)}
 .lg-main{max-width:1100px;margin:0 auto;padding:32px clamp(16px,3vw,32px) 64px;display:grid;grid-template-columns:220px minmax(0,1fr);gap:28px;align-items:start}

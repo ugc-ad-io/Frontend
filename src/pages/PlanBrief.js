@@ -154,7 +154,9 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
   const [editedBy, setEditedBy] = useState('creator');
   const [scriptProvider, setScriptProvider] = useState('brand');
   const [scriptText, setScriptText] = useState('');
-  const [targeting, setTargeting] = useState({ level: 'Any', quality: 'A', gender: 'No Preference', city: '' });
+  // A brief to ONE chosen creator: level / quality / gender / location targeting makes no sense, so the
+  // form no longer shows it (21 Nov); the payload keeps these neutral defaults.
+  const targeting = { level: 'Any', quality: 'A', gender: 'No Preference', city: '' };
   const [basePlan, setPlan] = useState(null); // the creator's single plan, fetched from their profile
   const plan = basePlan && { ...basePlan, price: basePlan.price + (deliveryType !== 'raw' && editedBy === 'creator' ? basePlan.editingPrice || 0 : 0) };
   const [planLoading, setPlanLoading] = useState(true);
@@ -643,12 +645,6 @@ export default function PlanBrief({ creatorId, creatorName = 'Creator', onClose,
                     <Field label="Target audience"><input type="text" value={brief.targetAudience} onChange={setBriefField('targetAudience')} placeholder="Who is this for? (age, interests, region)" /></Field>
                   </div>
                   {scriptProvider === 'brand' && <Field label="Script"><textarea rows={3} value={scriptText} onChange={(e) => setScriptText(e.target.value)} placeholder="Script for the creator to follow" /></Field>}
-                  <div className="bui-pv-g2">
-                    <Field label="Creator level"><Select value={targeting.level} onChange={(val) => setTargeting((t) => ({ ...t, level: val }))} options={['Any', 'New', 'Verified', 'L1', 'L2', 'Elite']} /></Field>
-                    <Field label="Content quality"><Select value={targeting.quality} onChange={(val) => setTargeting((t) => ({ ...t, quality: val }))} options={['A', 'A+', 'A++']} /></Field>
-                    <Field label="Gender preference"><Select value={targeting.gender} onChange={(val) => setTargeting((t) => ({ ...t, gender: val }))} options={['No Preference', 'Female', 'Male', 'Other']} /></Field>
-                    <Field label="Creator location"><input value={targeting.city} onChange={(e) => setTargeting((t) => ({ ...t, city: e.target.value }))} placeholder="City, or leave blank for any location" /></Field>
-                  </div>
 
                   <div className="bui-pv-hr" />
                   <h2>Must include</h2>

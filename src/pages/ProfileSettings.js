@@ -1047,9 +1047,14 @@ export default function ProfileSettings() {
                 {logoSrc ? <img src={logoSrc} alt="Brand logo" /> : <strong>{getInitial(brandProfile.brand_name || displayName)}</strong>}
                 <input type="file" accept="image/*" onChange={handleLogoUpload} />
               </label>
+              {/* The box itself was the only (invisible) way to upload: say it. */}
+              <label className="bs-logo-cta">
+                {logoUploading ? 'Uploading...' : logoSrc ? 'Change logo' : 'Upload logo'}
+                <input type="file" accept="image/*" onChange={handleLogoUpload} disabled={logoUploading} hidden />
+              </label>
               {logoSrc && (
                 <button type="button" onClick={removeLogo} disabled={logoUploading}>
-                  {logoUploading ? 'Uploading...' : 'Remove Logo'}
+                  Remove logo
                 </button>
               )}
             </div>
@@ -1335,14 +1340,27 @@ export default function ProfileSettings() {
             <h3>Two-Factor Authentication</h3>
             <p>{twoFAEnabled ? '2FA is enabled for this account.' : 'Add an extra layer of security with an authenticator app.'}</p>
             {!twoFAEnabled ? (
-              <button type="button" className="bs-primary" onClick={handleSetup2FA} disabled={loading}>Setup 2FA</button>
+              // Hidden while the QR is open: pressing it again made a NEW secret, so the code just scanned stopped working.
+              !showQR && <button type="button" className="bs-primary" onClick={handleSetup2FA} disabled={loading}>Setup 2FA</button>
             ) : (
               <>
                 <input type="password" value={disablePassword} onChange={(e) => setDisablePassword(e.target.value)} placeholder="Password to disable" />
                 <button type="button" className="bs-ghost danger" onClick={handleDisable2FA} disabled={loading}>Disable 2FA</button>
               </>
             )}
-            {showQR && <div className="bs-qr"><img src={qrCode} alt="2FA QR code" /><input value={verificationCode} onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="000000" /><button type="button" className="bs-primary" onClick={handleVerify2FA}>Verify</button></div>}
+            {showQR && (
+              <form className="bs-qr" onSubmit={(e) => { e.preventDefault(); handleVerify2FA(); }}>
+                <ol className="bs-qr-steps">
+                  <li>Open Google Authenticator (or any authenticator app) and scan this code.</li>
+                  <li>Type the 6-digit code it shows and press Verify.</li>
+                </ol>
+                <img src={qrCode} alt="2FA QR code" />
+                {secret && <p className="bs-qr-key">Can&apos;t scan? Enter this key in the app: <code>{secret}</code></p>}
+                <input inputMode="numeric" autoComplete="one-time-code" value={verificationCode} onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))} placeholder="000000" aria-label="6-digit code" />
+                <button type="submit" className="bs-primary" disabled={loading}>{loading ? 'Verifying...' : 'Verify'}</button>
+                <button type="button" className="bs-ghost" onClick={() => { setShowQR(false); setVerificationCode(''); }}>Cancel</button>
+              </form>
+            )}
           </div>
         </div>
       </section>

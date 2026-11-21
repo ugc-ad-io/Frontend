@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../App';
 import { creatorFirstName, brandName } from '../../utils/displayName';
+import { mediaUrl, userPhoto } from '../../utils/mediaUrl';
 import BottomSheet from './BottomSheet';
 import { useAppPlatform } from './platform';
 import { afterSheetClosed } from './useAppBack';
@@ -77,9 +78,8 @@ export default function AppShell({ title, subtitle, back, right, tone = 'light',
   const isBrand = user?.role === 'business';
   const TABS = isBrand ? BRAND_TABS : CREATOR_TABS;
   const MORE = isBrand ? BRAND_MORE : CREATOR_MORE;
-  const pr = user?.profile || {}; // creators keep the photo under profile.* (see utils/creatorProfileCompletion.js)
-  const photo = user?.profile_photo || user?.profile_picture || user?.brand_logo || user?.avatar || pr.profile_photo || pr.profile_picture || pr.brand_logo;
-  const photoUrl = photo ? (String(photo).startsWith('http') ? photo : `${BACKEND_URL}/${String(photo).replace(/^\//, '')}`) : '';
+  const pr = user?.profile || {}; // creators keep the photo under profile.* (see utils/mediaUrl.js userPhoto)
+  const photoUrl = userPhoto(user) || mediaUrl(user?.brand_logo || pr.brand_logo || '');
   const name = isBrand ? (user?.profile?.business_name || brandName(user)) : creatorFirstName(user);
   const home = TABS[0];
 
@@ -140,7 +140,7 @@ export default function AppShell({ title, subtitle, back, right, tone = 'light',
           <button type="button" className="ap-bar-btn" aria-label="Back" onClick={goBack}><ChevronLeft size={24} /></button>
         ) : (
           <button type="button" className="ap-bar-logo" aria-label="UGCad home" onClick={() => goTab(home)}>
-            <span className="ap-logo-mark" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-logo.png)` }} />
+            <span className="ap-logo-mark" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-mark.png)` }} />
           </button>
         )}
         <div className="ap-bar-title">

@@ -97,7 +97,7 @@
   .bui-countrow>:nth-child(2){grid-area:link}
   .bui-countrow>:nth-child(3){grid-area:sort;text-align:right;white-space:nowrap}
   .bui-countrow .bui-link:not(.bc-approved-link){padding:6px 0;justify-self:start}
-  .bui-countrow .bc-approved-link{display:flex;align-items:center;justify-content:center;width:100%;min-height:46px;padding:0 20px;border-radius:999px;text-align:center;white-space:nowrap}
+  .bui-countrow .bc-approved-link{display:flex;align-items:center;justify-self:end;min-height:44px;padding:0;white-space:nowrap}
   .bui-crumb{flex-wrap:wrap}
 }
 @media (max-width:600px){

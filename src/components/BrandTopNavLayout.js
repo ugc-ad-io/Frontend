@@ -106,7 +106,7 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
   const sidebar = (
     <>
       <button type="button" className="bsh-logo" onClick={() => navigate('/brand-home')} aria-label="UGCad.io home">
-        <span className="bsh-logo-mark" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-logo.png)` }} />
+        <span className="bsh-logo-mark" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-mark.png)` }} />
         <span className="bsh-logo-word"><b>UGC</b>ad.io</span>
       </button>
       <span className="bsh-tag">FOR BRANDS</span>
@@ -151,7 +151,7 @@ export default function BrandTopNavLayout({ children, notifications = 0 }) {
           {drawer ? <X size={22} /> : <Menu size={22} />}
         </button>
         <button type="button" className="bsh-top-logo" onClick={() => navigate('/brand-home')} aria-label="UGCad.io home">
-          <span className="bsh-logo-mark bsh-logo-mark--dark" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-logo.png)` }} />
+          <span className="bsh-logo-mark bsh-logo-mark--dark" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-mark.png)` }} />
           <span className="bsh-logo-word bsh-logo-word--dark"><b>UGC</b>ad.io</span>
         </button>
         <button type="button" className="bsh-top-post" aria-label="Post a campaign" onClick={goPost}><Plus size={16} strokeWidth={2.6} /> Post</button>

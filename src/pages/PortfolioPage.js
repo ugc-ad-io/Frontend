@@ -144,7 +144,10 @@ function normalizePortfolio(items) {
     }
     return {
       urls,
-      title: (typeof item.title === 'string' && item.title) ? item.title : (typeof item.brand === 'string' ? item.brand : ''),
+      // "Untitled" / "Portfolio Sample" are placeholders: show the video's category instead (same as the app).
+      title: (typeof item.title === 'string' && item.title.trim() && !/^(untitled|portfolio sample)$/i.test(item.title.trim()))
+        ? item.title
+        : [item.category, item.brand].find((v) => typeof v === 'string' && v.trim()) || '',
       description: (typeof item.description === 'string' && item.description) ? item.description : (typeof item.desc === 'string' ? item.desc : ''),
       project_cost: typeof item.project_cost === 'string' ? item.project_cost : '',
       project_duration: typeof item.project_duration === 'string' ? item.project_duration : ''

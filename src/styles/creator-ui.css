@@ -25,9 +25,10 @@
 
 /* ── Sidebar ─────────────────────────────────────────────────────────── */
 .cui-side{flex:none;width:248px;position:sticky;top:0;align-self:flex-start;height:100vh;overflow-y:auto;background:var(--cui-side);color:#fff;padding:26px 18px;box-sizing:border-box;display:flex;flex-direction:column;gap:24px;scrollbar-width:none}
+.cui-side>*{flex-shrink:0} /* same squash/overlap fix as the brand sidebar */
 .cui-side::-webkit-scrollbar{display:none}
 .cui-logo{display:flex;align-items:center;gap:9px;padding:0 8px;background:none;border:0;color:#fff;cursor:pointer}
-.cui-logo-mark{display:block;width:23px;height:30px;flex:none;background-repeat:no-repeat;background-position:-23px 0;background-size:70px auto;filter:brightness(0) invert(1)}
+.cui-logo-mark{display:block;width:23px;height:30px;flex:none;background-repeat:no-repeat;background-position:center;background-size:contain;filter:brightness(0) invert(1)}
 .cui-logo-mark--dark{filter:none}
 .cui-logo-word{font-family:var(--cui-head);font-weight:500;font-size:20px;line-height:1}
 .cui-logo-word b{font-weight:500;color:#9faeff}

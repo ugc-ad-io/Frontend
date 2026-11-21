@@ -24,7 +24,7 @@
 .cui-s-bar::before{content:"";position:absolute;right:200px;top:-150px;width:360px;height:360px;border-radius:50%;background:radial-gradient(circle,rgba(115,135,255,.7) 0%,rgba(115,135,255,.22) 40%,rgba(115,135,255,0) 70%);pointer-events:none}
 .cui-s-bar>*{position:relative}
 .cui-s-brand{display:inline-flex;align-items:center;gap:9px;background:none;border:0;padding:0;color:#fff;cursor:pointer}
-.cui-s-mark{display:block;width:23px;height:30px;flex:none;background-repeat:no-repeat;background-position:-23px 0;background-size:70px auto;filter:brightness(0) invert(1)}
+.cui-s-mark{display:block;width:23px;height:30px;flex:none;background-repeat:no-repeat;background-position:center;background-size:contain;filter:brightness(0) invert(1)}
 .cui-s-word{font-family:var(--s-head);font-weight:500;font-size:20px;line-height:1}
 .cui-s-word b{font-weight:500;color:#9faeff}
 .cui-s-tag{height:22px;padding:0 8px;border-radius:6px;background:rgba(159,174,255,.18);color:#c9ceff;font-size:11px;font-weight:700;display:inline-flex;align-items:center;letter-spacing:.06em}
@@ -135,10 +135,11 @@
 .cui-s-drop svg{color:var(--s-link)}
 .cui-s-drop strong{font-size:14px}
 .cui-s-drop span{font-size:12px;color:var(--s-muted)}
-.cui-s-drop .cui-s-up{display:inline-flex;align-items:center;gap:5px;font-weight:700;color:var(--s-link);font-size:13px}
+.cui-s-drop .cui-s-uplink{display:inline-flex;align-items:center;gap:5px;font-weight:700;color:var(--s-link);font-size:13px}
 .cui-s-prev{flex:none;width:170px;display:flex;flex-direction:column;gap:8px}
 .cui-s-prev video{width:100%;aspect-ratio:3/4;border-radius:14px;object-fit:cover;background:#000}
 .cui-s-draft-f{flex:1;min-width:220px;display:flex;flex-direction:column;gap:10px}
+.cui-s-draft .cui-s-inp{background:#fff} /* same grey as the box made the fields look like plain text */
 
 /* live preview (right column) */
 .cui-s-side-h{font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--s-muted)}
@@ -212,8 +213,8 @@
 .ap-creator .ap-submit{height:52px;border-radius:999px;font-weight:700;font-size:15px}
 .ap-creator .ap-role-btn{border-radius:16px;border:0;background:#f6f6fd}
 .ap-creator .ap-role-btn.active{background:#eef0ff;box-shadow:inset 0 0 0 2px #7387ff;padding:14px 16px}
-.ap-creator .ap-tabs{border-radius:999px}
-.ap-creator .ap-tab{border-radius:999px}
+.ap-creator .ap-authtabs{border-radius:999px}
+.ap-creator .ap-authtab{border-radius:999px}
 
 /* ── Approval gates (C16) ───────────────────────────────────────────── */
 .cui-s-gmain{flex:1;display:flex;justify-content:center;align-items:flex-start;padding:40px 16px 64px}

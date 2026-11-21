@@ -509,7 +509,7 @@ const BadgeIcon = ({ kind }) => {
   if (kind === 'l1') return <TrendingUp size={11} color="#4E60E6" />;
   if (kind === 'l2') return <Star size={11} fill="#07074E" />;
   if (kind === 'elite') return <Crown size={11} fill="#7387FF" color="#7387FF" />;
-  if (kind === 'choice') return <span className="bui-badge-mark" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-logo.png)` }} aria-hidden="true" />;
+  if (kind === 'choice') return <span className="bui-badge-mark" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-mark.png)` }} aria-hidden="true" />;
   return null;
 };
 
@@ -610,6 +610,10 @@ export function GigCard({ c, onView, onExpand }) {
     <article className="bui-gig">
       <div className="bui-gig-media" onMouseEnter={hasVideo ? hoverPlay : undefined} onMouseLeave={hasVideo ? hoverPause : undefined}>
         {videoEl}
+        {/* Same "UGCAD.IO Choice" badge the app's creator cards show. */}
+        {c.ugcad_approved && (
+          <span className="bui-badge bui-badge--choice bui-gig-choice"><BadgeIcon kind="choice" /><span>UGCAD.IO Choice</span></span>
+        )}
         <button
           type="button"
           className="bui-gig-save"

@@ -19,7 +19,7 @@ export default function PubFrame({ title, subtitle, back = false, tabs = false, 
           <button type="button" className="ap-bar-btn" aria-label="Back" onClick={goBack}><ChevronLeft size={24} /></button>
         ) : (
           <button type="button" className="ap-bar-logo" aria-label="UGCad home" onClick={() => navigate('/')}>
-            <span className="ap-logo-mark" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-logo.png)` }} />
+            <span className="ap-logo-mark" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-mark.png)` }} />
           </button>
         )}
         <div className="ap-bar-title">

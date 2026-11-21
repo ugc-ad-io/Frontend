@@ -22,7 +22,7 @@ export default function LegalPage({ docId }) {
       <header className="lg-head">
         <div className="lg-head-in">
           <Link to="/" className="lg-logo" aria-label="UGCad.io home">
-            <span className="lg-logo-mark" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL || ''}/ugcad-logo.png)` }} />
+            <span className="lg-logo-mark" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL || ''}/ugcad-mark.png)` }} />
             <span className="lg-logo-word"><b>UGC</b>ad.io</span>
           </Link>
         </div>

@@ -130,6 +130,9 @@ html.ugc-kb .ap-auth .ap-auth-legal,
 html.ugc-kb .ap-auth .ap-auth-sticky small,
 html.ugc-kb .ap-auth .ap-auth-head p,
 html.ugc-kb .ap-auth .ap-auth-head .ic{display:none}
+/* Keyboard open: the sticky CTA used to sit on top of the field being typed in (Work email on Create account).
+   Let it flow after the form instead, so it never covers an input. */
+html.ugc-kb .ap-auth-sticky{position:relative;box-shadow:none}
 html.ugc-kb .ap-auth .ap-auth-head{padding-top:0}
 html.ugc-kb .ap-auth .ap-auth-head h2{font-size:21px}
 html.ugc-kb .ap-auth .ap-auth-link{min-height:32px}

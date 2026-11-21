@@ -7,6 +7,10 @@ import {
   BadgeCheck, LogOut, Menu, X, ChevronRight,
 } from 'lucide-react';
 import { creatorFirstName } from '../utils/displayName';
+import { userPhoto } from '../utils/mediaUrl';
+import CreatorPendingGate from './CreatorPendingGate';
+import RejectedGate from './RejectedGate';
+import MoreInfoGate from './MoreInfoGate';
 import '../styles/creator-marketplace.css';
 import '../styles/creator-ui.css';
 
@@ -67,8 +71,7 @@ export default function CreatorTopNavLayout({ children }) {
   }, [pathname]);
 
   const displayName = creatorFirstName(user);
-  const photo = user?.profile_photo || user?.profile_picture || user?.avatar;
-  const photoUrl = photo ? (photo.startsWith('http') ? photo : `${BACKEND_URL}${photo}`) : '';
+  const photoUrl = userPhoto(user);
   const isActive = (item) => item.match.some((m) => pathname === m || pathname.startsWith(`${m}/`));
   const level = LEVEL_LABEL[String(user?.level || '').toLowerCase()] || user?.level_label || 'New';
   const choice = Boolean(user?.ugcad_approved);
@@ -90,7 +93,7 @@ export default function CreatorTopNavLayout({ children }) {
   const sidebar = (
     <>
       <button type="button" className="cui-logo" onClick={() => navigate('/dashboard/creator')} aria-label="UGCad.io dashboard">
-        <span className="cui-logo-mark" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-logo.png)` }} />
+        <span className="cui-logo-mark" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-mark.png)` }} />
         <span className="cui-logo-word"><b>UGC</b>ad.io</span>
       </button>
       <span className="cui-tag">FOR CREATORS</span>
@@ -116,6 +119,14 @@ export default function CreatorTopNavLayout({ children }) {
     </>
   );
 
+  // Same rule as brands (BrandTopNavLayout): until the team approves the profile, every creator page
+  // shows the review screen instead of the feature. KYC stays reachable so it can be done meanwhile.
+  if (user?.role === 'creator' && !pathname.startsWith('/kyc')) {
+    if (user.approval_status === 'pending') return <CreatorPendingGate user={user} onLogout={handleLogout} />;
+    if (user.approval_status === 'rejected') return <RejectedGate user={user} onHome={handleLogout} kind="creator" />;
+    if (user.approval_status === 'more_info') return <MoreInfoGate kind="creator" user={user} onLogout={handleLogout} />;
+  }
+
   return (
     <div className="cmk-app cui-app">
       <aside className="cui-side">{sidebar}</aside>
@@ -125,7 +136,7 @@ export default function CreatorTopNavLayout({ children }) {
           {drawer ? <X size={22} /> : <Menu size={22} />}
         </button>
         <button type="button" className="cui-top-logo" onClick={() => navigate('/dashboard/creator')} aria-label="UGCad.io dashboard">
-          <span className="cui-logo-mark cui-logo-mark--dark" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-logo.png)` }} />
+          <span className="cui-logo-mark cui-logo-mark--dark" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-mark.png)` }} />
           <span className="cui-logo-word cui-logo-word--dark"><b>UGC</b>ad.io</span>
         </button>
         <button type="button" className="cui-avatar" aria-label="My profile" onClick={() => navigate('/profile')}>

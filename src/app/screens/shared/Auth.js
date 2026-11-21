@@ -485,7 +485,7 @@ export default function Auth() {
       <>
         <header className="ap-auth-hero ap-auth-hero--reels">
           <div className="ap-auth-brand">
-            <span className="ap-logo-mark ap-auth-logo" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-logo.png)` }} />
+            <span className="ap-logo-mark ap-auth-logo" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-mark.png)` }} />
             <span><b>UGC</b>ad.io</span>
             {creatorMode && <span className="ap-auth-tag">FOR CREATORS</span>}
           </div>

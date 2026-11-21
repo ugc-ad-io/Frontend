@@ -223,7 +223,7 @@ function BrandAppHome() {
               return (
                 <article key={c.id} className="ap-card ap-home-camp">
                   <div className="ap-home-camp-top">
-                    <span className="ap-home-thumb">{thumb ? <img src={assetUrl(thumb)} alt="" /> : null}</span>
+                    <span className="ap-home-thumb">{thumb ? <img src={assetUrl(thumb)} alt="" /> : <b aria-hidden="true">{(c.title || c.product_name || 'C').trim().charAt(0).toUpperCase()}</b>}</span>
                     <div className="ap-row-t">
                       <span className={`ap-pill ${PILL[pill.tone] || ''}`}>{pill.text}</span>
                       <b>{c.title || c.product_name}</b>

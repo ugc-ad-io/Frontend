@@ -19,7 +19,7 @@ import { BookingPanel, DeliverSheet, ReceiptSheet, AddressSheet, ChangesVideoShe
 import {
   API, assetUrl, initial, dealBrand, dealTitle, escrowAmount, getState, isState, isDamageState, isCancelledDeal,
   getPrimaryActionConfig, roomProgress, hoursText, uploadStage, getRequiredAssets, missingAssets, toChangeItems, parseChange,
-  revisionVideoInfo, versionStatusMeta, formatDateTime, formatDate, pillClass, loadErrorText,
+  revisionVideoInfo, versionStatusMeta, formatDateTime, formatDate, pillClass, loadErrorText, briefGroups,
 } from './orderLogic';
 import './orders.css';
 
@@ -34,15 +34,16 @@ const REVISION_Q_MSG = "Hi! Before I start on these revisions, could we confirm 
 // Render a brief blob nicely: every "Label: value" line gets a bold label. Budget visibility is brand-only.
 function BriefContent({ content }) {
   if (!content) return <p>Not specified</p>;
-  return String(content).split(/\r?\n/).map((line, i) => {
-    const t = line.trim();
-    if (!t) return null;
-    if (/^budget visibility\s*:/i.test(t)) return null;
-    const m = t.match(/^([A-Z][^:]{0,40}):\s*(.*)$/);
-    if (m && m[2]) return <p key={i}><strong>{m[1]}:</strong> {m[2]}</p>;
-    if (m) return <p key={i}><strong>{m[1]}:</strong></p>;
-    return <p key={i}>{t}</p>;
-  });
+  const groups = briefGroups(content);
+  const sectioned = groups.length > 1; // short briefs stay a plain list
+  return groups.map((g) => (
+    <div key={g.title} className={sectioned ? 'brief-sec' : undefined}>
+      {sectioned && <h4 className="brief-sec-h">{g.title}</h4>}
+      {g.items.map((it, i) => (
+        <p key={i} style={{ whiteSpace: 'pre-line' }}>{it.label && <strong>{it.label}:</strong>}{it.label && it.lines.length ? ' ' : ''}{it.lines.join('\n')}</p>
+      ))}
+    </div>
+  ));
 }
 
 function RoomSkeleton() {

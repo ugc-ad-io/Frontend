@@ -23,8 +23,10 @@
 /* ── Sidebar ─────────────────────────────────────────────────────────── */
 .bsh-side{flex:none;width:248px;position:sticky;top:0;align-self:flex-start;height:100vh;overflow-y:auto;background:var(--bsh-side);color:#fff;padding:26px 18px;box-sizing:border-box;display:flex;flex-direction:column;gap:20px;scrollbar-width:none}
 .bsh-side::-webkit-scrollbar{display:none}
+/* Short screens: never squash the wallet card / nav (Add funds used to spill under "Need help?"); the sidebar scrolls instead. */
+.bsh-side>*,.bsh-drawer>*{flex-shrink:0}
 .bsh-logo{display:flex;align-items:center;gap:9px;padding:0 8px;background:none;border:0;color:#fff;cursor:pointer}
-.bsh-logo-mark{display:block;width:23px;height:30px;flex:none;background-repeat:no-repeat;background-position:-23px 0;background-size:70px auto;filter:brightness(0) invert(1)}
+.bsh-logo-mark{display:block;width:23px;height:30px;flex:none;background-repeat:no-repeat;background-position:center;background-size:contain;filter:brightness(0) invert(1)}
 .bsh-logo-mark--dark{filter:none}
 .bsh-logo-word{font-family:var(--bsh-head);font-weight:500;font-size:20px;line-height:1}
 .bsh-logo-word b{font-weight:500;color:#9faeff}

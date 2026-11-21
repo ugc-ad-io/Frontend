@@ -72,7 +72,7 @@ export default function CreatorSignup() {
       <header className="ap-ob-pubbar">
         <button type="button" className="ap-bar-btn" aria-label="Back" onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/auth'))}><ChevronLeft size={24} /></button>
         <div className="ap-ob-brand">
-          <span className="ap-logo-mark" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-logo.png)` }} />
+          <span className="ap-logo-mark" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-mark.png)` }} />
           <span><b>UGC</b>ad.io</span>
           <small>FOR CREATORS</small>
         </div>

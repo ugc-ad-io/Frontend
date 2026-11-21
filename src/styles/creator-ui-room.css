@@ -76,6 +76,8 @@
 .cui-r-brief h3{margin:14px 0 4px;font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--cui-muted)}
 .cui-r-brief p{margin:0 0 4px;font-size:14px;line-height:1.55;color:#2c2c66;overflow-wrap:anywhere}
 .cui-r-brief .gap{height:6px}
+.cui-r-brief .brief-sec{margin:12px 0 0;padding:14px 16px;border-radius:14px;background:#f6f6fd}
+.cui-r-brief .brief-sec-h{margin:0 0 6px;font-size:14px;font-weight:700;color:var(--cui-ink,#07074e)}
 
 /* revision */
 .cui-r-quote{margin-top:14px;padding:14px 16px;border-radius:14px;background:#f6f6fd;font-size:14px;line-height:1.55;color:#3a3a6a;white-space:pre-wrap}

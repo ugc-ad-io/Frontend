@@ -7,7 +7,7 @@ export default function CreatorOnboardBar({ right }) {
   return (
     <header className="cui-s-bar">
       <button type="button" className="cui-s-brand" onClick={() => navigate('/')} aria-label="UGCad.io home">
-        <span className="cui-s-mark" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-logo.png)` }} />
+        <span className="cui-s-mark" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-mark.png)` }} />
         <span className="cui-s-word"><b>UGC</b>ad.io</span>
         <span className="cui-s-tag">FOR CREATORS</span>
       </button>

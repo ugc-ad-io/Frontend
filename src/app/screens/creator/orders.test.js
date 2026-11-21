@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import axios from 'axios';
 import { uploadMedia } from '../../../utils/upload';
 import Orders from './Orders';
-import { roomProgress, groupDeals, getPrimaryActionConfig, toChangeItems, parseChange } from './orderLogic';
+import { roomProgress, groupDeals, getPrimaryActionConfig, toChangeItems, parseChange, briefGroups } from './orderLogic';
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -101,4 +101,18 @@ test('room: pick a video, review and send posts the delivery to /deals/:id/conte
   await act(async () => { button('Send to Glow Labs').click(); });
   await flush();
   expect(axios.post).toHaveBeenCalledWith(expect.stringContaining('/deals/UG-1/content'), expect.objectContaining({ video_url: '/uploads/clip.mp4' }));
+});
+
+test('brief: a long Label: value brief is split into readable sections', () => {
+  const g = briefGroups(`Brand: Sleek soul
+Category: Fashion
+Hook: Still wearing boring tees?
+Deliverables:
+1. 1 x Reel (9:16)
+Must avoid: competitors
+Budget visibility: hidden
+Colour: black`);
+  expect(g.map((x) => x.title)).toEqual(['Product', 'Message & audience', 'What to deliver', 'Avoid', 'Other details']);
+  expect(g[2].items[0]).toEqual({ label: 'Deliverables', lines: ['1. 1 x Reel (9:16)'] });
+  expect(JSON.stringify(g)).not.toContain('hidden');
 });

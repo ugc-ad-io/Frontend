@@ -40,6 +40,10 @@
 .ap-home-camp-top{display:flex;gap:12px;align-items:flex-start}
 .ap-home-thumb{flex:none;width:52px;height:52px;border-radius:12px;background:#ececfa;overflow:hidden}
 .ap-home-thumb img{width:100%;height:100%;object-fit:cover}
+.ap-home-thumb>b{width:100%;height:100%;display:grid;place-items:center;background:var(--ap-ink);color:#fff;font-size:20px;font-weight:700}
+/* Long campaign names (one unbroken word like "Teeeee...") ran off the card: one line + ellipsis. */
+.ap-home-row .ap-row-t small,.ap-home-camp .ap-row-t small{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ap-home-row .ap-row-t b,.ap-home-camp .ap-row-t b{max-width:100%;overflow-wrap:anywhere}
 .ap-home-camp .ap-row-t{display:flex;flex-direction:column;gap:2px;align-items:flex-start}
 .ap-home-camp .ap-row-t b{font-size:15px}
 .ap-home-bar5{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}

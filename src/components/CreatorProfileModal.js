@@ -1469,7 +1469,7 @@ export default function CreatorProfileModal({ id, fallbackName, photo, onClose, 
         .cpm-aw-fields input:focus,.cpm-aw-fields textarea:focus,.cpm-aw-fields select:focus{border-color:#7387FF}
         .cpm-aw-actions{display:flex;gap:10px;margin-top:2px}
         .cpm-editform{display:flex;flex-direction:column;gap:14px}
-        .cpm-ef-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+        .cpm-ef-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;align-items:end} /* a 2-line label no longer pushes its input below the others */
         .cpm-editform label{display:flex;flex-direction:column;gap:5px;font-size:11.5px;font-weight:700;color:#6E6E96;text-transform:uppercase;letter-spacing:.3px}
         .cpm-editform input,.cpm-editform textarea,.cpm-editform select{border:1px solid #E2E2F0;border-radius:10px;padding:10px 12px;font-size:14px;font-weight:500;font-family:inherit;color:#07074E;background:#fff;outline:none;text-transform:none;letter-spacing:0}
         .cpm-editform input:focus,.cpm-editform textarea:focus,.cpm-editform select:focus{border-color:#7387FF}

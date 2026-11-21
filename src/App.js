@@ -18,6 +18,7 @@ import AppOverride from './app/AppOverride';
 import { APP_UI, IN_OLD_APP } from './utils/appMode';
 import ShellPush from './components/ShellPush';
 import SelectSheet from './app/shell/SelectSheet';
+import HelpDialogHost from './components/HoverSideRail';
 import { unregisterDevice } from './utils/shellPush';
 
 // ── Route-level code splitting ───────────────────────────────────────────────
@@ -534,6 +535,7 @@ function App() {
           <ShellPush />
           {APP_UI && <SelectSheet />}
           <OverlayBack />
+          <HelpDialogHost />
           <Toaster position="top-right" richColors closeButton mobileOffset={{ top: "calc(env(safe-area-inset-top, 0px) + 8px)", left: 16, right: 16 }} />
           <RouteLoadingBoundary>
           <AppRoutes>

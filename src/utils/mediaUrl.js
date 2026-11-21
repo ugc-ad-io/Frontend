@@ -15,3 +15,12 @@ export function mediaUrl(value) {
   } catch { /* Preserve the existing URL if it cannot be parsed. */ }
   return absolute;
 }
+
+// A user's photo can sit at the top level (upload-photo) or under profile.* (creator onboarding
+// saves profile.profile_picture). Screens that read only the top level showed the initial instead
+// of the photo (creator dashboard, app header). Returns a ready-to-use URL or ''.
+export function userPhoto(user) {
+  const pr = (user && user.profile) || {};
+  const raw = user?.profile_photo || user?.profile_picture || user?.avatar || pr.profile_photo || pr.profile_picture || '';
+  return raw ? mediaUrl(raw) : '';
+}

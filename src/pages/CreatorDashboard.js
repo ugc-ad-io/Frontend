@@ -18,7 +18,7 @@ import CreatorPendingGate from '../components/CreatorPendingGate';
 import { CONTENT_CATEGORIES } from '../constants/contentCategories';
 import { toggleSavedBrief, isBriefSaved } from '../utils/savedBriefs';
 import normalizeBrief, { timeAgo } from '../utils/normalizeBrief';
-import { mediaUrl } from '../utils/mediaUrl';
+import { mediaUrl, userPhoto } from '../utils/mediaUrl';
 import {
   ArrowRight,
   Bookmark,
@@ -360,8 +360,7 @@ export default function CreatorDashboard() {
   const heroCategory = (CONTENT_CATEGORIES.find((c) => c.value === rawCategory)?.label
     || String(rawCategory).replace(/_/g, ' ')).trim();
 
-  const photo = user?.profile_photo || user?.profile_picture || user?.avatar;
-  const photoUrl = photo ? mediaUrl(photo) : '';
+  const photoUrl = userPhoto(user);
   const balance = Number(payout?.balance ?? user?.balance ?? 0);
   const clearing = Number(payout?.pending_release || 0);
   const clearingOrders = Number(payout?.pending_deals_count || 0);

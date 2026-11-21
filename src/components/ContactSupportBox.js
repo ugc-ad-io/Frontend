@@ -4,6 +4,8 @@ import '../styles/web1-misc.css';
 export const SUPPORT_EMAIL = 'support@ugcad.io';
 export const SUPPORT_PHONE = '+919000000000';
 export const SUPPORT_PHONE_DISPLAY = '+91 90000 00000';
+// Placeholder until the team shares the real support number: the help dialog hides Call/WhatsApp while this is true.
+export const SUPPORT_PHONE_IS_PLACEHOLDER = SUPPORT_PHONE === '+919000000000';
 
 /**
  * Contact-us panel shown on the "application rejected" screens (brand + creator).

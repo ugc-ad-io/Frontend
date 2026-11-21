@@ -144,6 +144,33 @@ export function getPrimaryActionConfig(deal, uploads, submitting) {
   return { label: deal.primary_next_action || 'Waiting', disabled: true, type: 'passive' };
 }
 
+// ---- brief --------------------------------------------------------------------
+// The brief arrives as one long "Label: value" list. Creators could not read it, so split it into
+// sections by label. Lines without a label (e.g. "1. 1 x Reel ...") belong to the label above them.
+const BRIEF_GROUPS = [
+  ['Product', /^(campaign|brand|category|product|product (description|link|url|name)|website)$/i],
+  ['Message & audience', /^(hook|key message|objectives?|target audience|video language|language|tone|platforms?)$/i],
+  ['What to deliver', /^(deliverables?|script|duration|ratios?|format|editing|raw footage|turnaround|deadline|usage rights?)$/i],
+  ['Must include', /^(must include|required (phrases|shots)|hashtags?|cta|call to action|mentions?|brand tag)$/i],
+  ['Avoid', /^(must avoid|avoid|don'?ts?|restrictions?)$/i],
+];
+const BRIEF_ORDER = [...BRIEF_GROUPS.map((g) => g[0]), 'Other details'];
+export function briefGroups(content) {
+  const groups = {};
+  let last = null;
+  const add = (title, item) => { (groups[title] = groups[title] || []).push(item); last = item; };
+  String(content || '').split(/\r?\n/).forEach((raw) => {
+    const t = raw.trim();
+    if (!t || /^budget visibility\s*:/i.test(t)) return; // budget visibility is brand-only
+    const m = t.match(/^([A-Z][^:]{0,40}):\s*(.*)$/);
+    if (!m) { if (last) last.lines.push(t); else add('Other details', { label: '', lines: [t] }); return; }
+    const label = m[1].trim();
+    const g = BRIEF_GROUPS.find(([, re]) => re.test(label));
+    add(g ? g[0] : 'Other details', { label, lines: m[2] ? [m[2]] : [] });
+  });
+  return BRIEF_ORDER.filter((title) => groups[title]).map((title) => ({ title, items: groups[title] }));
+}
+
 // ---- revisions --------------------------------------------------------------
 // De-duplicated checklist of the brand's requested changes (split on lines / sentences, bullets stripped).
 const fmtTs = (sec) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, '0')}`;

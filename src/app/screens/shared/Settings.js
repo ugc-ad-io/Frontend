@@ -129,7 +129,8 @@ export default function Settings() {
   const [savedNotif, setSavedNotif] = useState(DEFAULT_NOTIF);
   const [savedPrivacy, setSavedPrivacy] = useState(DEFAULT_PRIVACY);
   const [warnings, setWarnings] = useState(null);
-  const [twoFA, setTwoFA] = useState(false);
+  // Start from /auth/me's flag so the list never says "off" while the status call is pending or failed.
+  const [twoFA, setTwoFA] = useState(Boolean(user?.two_factor_enabled));
   const [brandErr, setBrandErr] = useState('');
   const [brandProfile, setBrandProfile] = useState(defaultBrandProfile);
   const [company, setCompany] = useState(defaultCompany);

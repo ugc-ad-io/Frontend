@@ -214,7 +214,7 @@ export default function BrandHome() {
                   return (
                     <article key={c.id} className="bui-order">
                       <div className="bui-order-main">
-                        <span className="bui-thumb">{thumb ? <img src={assetUrl(thumb)} alt="" /> : null}</span>
+                        <span className="bui-thumb">{thumb ? <img src={assetUrl(thumb)} alt="" /> : <b aria-hidden="true">{(c.title || c.product_name || 'C').trim().charAt(0).toUpperCase()}</b>}</span>
                         <div className="bui-order-tx">
                           <span className={`bui-status bui-status--${pill.tone}`}>{pill.text}</span>
                           <b>{c.title || c.product_name}</b>
@@ -267,7 +267,7 @@ export default function BrandHome() {
             <div className="bui-reel-grid">
               <div className="bui-choice-intro">
                 <span className="bui-hero-glow bui-hero-glow--intro" aria-hidden="true" />
-                <span className="bui-choice-mark" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-logo.png)` }} aria-hidden="true" />
+                <span className="bui-choice-mark" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-mark.png)` }} aria-hidden="true" />
                 <h2 id="choice">UGCAD.IO Choice</h2>
                 <p>Hand-picked by our team for your next campaign.</p>
                 <ul><li>&#10003; Top 5% of creators</li><li>&#10003; Vetted by the UGCad team</li><li>&#10003; Proven delivery record</li></ul>

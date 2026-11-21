@@ -28,6 +28,7 @@ import {
   IndianRupee,
   Plane,
   HandHeart,
+  Shirt,
   Check,
   X,
   Linkedin,
@@ -1091,7 +1092,6 @@ const testimonials = [
     accent: 'a reason behind it',
     name: 'Priya Nair',
     role: 'Head of Growth, Lumen Skincare',
-    photo: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&h=400&fit=crop&crop=faces',
     initials: 'PN',
     rating: 5,
     metric: '+38%',
@@ -1102,7 +1102,6 @@ const testimonials = [
     accent: 'ROAS stabilized',
     name: 'Rohan Kapoor',
     role: 'Founder, Glowly · D2C Beauty',
-    photo: 'https://images.unsplash.com/photo-1600896997793-b8ed3459a17f?w=400&h=400&fit=crop&crop=faces',
     initials: 'RK',
     rating: 5,
     metric: '+2.3×',
@@ -1113,7 +1112,6 @@ const testimonials = [
     accent: 'doesn\'t scream',
     name: 'Ananya Verma',
     role: 'CMO, Thix Hair',
-    photo: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop&crop=faces',
     initials: 'AV',
     rating: 5,
     metric: '4.1×',
@@ -1124,7 +1122,6 @@ const testimonials = [
     accent: 'sales doubled',
     name: 'Marcus Lee',
     role: 'Founder, Gener8',
-    photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop&crop=faces',
     initials: 'ML',
     rating: 5,
     metric: '2×',
@@ -1135,7 +1132,6 @@ const testimonials = [
     accent: 'trust the numbers',
     name: 'Sara Malhotra',
     role: 'Marketing Lead, NestHome',
-    photo: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&h=400&fit=crop&crop=faces',
     initials: 'SM',
     rating: 5,
     metric: '+61%',
@@ -1170,6 +1166,7 @@ const proofBadges = [
 const industries = [
   { id: 'health',    Icon: Heart,        label: 'Health/Wellness' },
   { id: 'beauty',    Icon: Sparkles,     label: 'Beauty/Cosmetics' },
+  { id: 'fashion',   Icon: Shirt,        label: 'Fashion/Accessories' },
   { id: 'food',      Icon: Coffee,       label: 'Food/Beverage' },
   { id: 'fitness',   Icon: Dumbbell,     label: 'Fitness/Supplements' },
   { id: 'services',  Icon: Briefcase,    label: 'Consumer Services' },
@@ -2851,7 +2848,9 @@ export default function Landing() {
               full-width spacer after the 5th just forces the desktop row to break 5/rest —
               it's already disabled below 1024px so mobile just wraps naturally. */}
           <div className="lp-showcase__filters">
-            {industries.map((ind, i) => {
+            {/* Only industries that have at least one clip: an empty one used to fall back to
+                showing every clip, i.e. fashion videos under "Food". */}
+            {industries.filter((ind) => showcaseVideos.some((v) => v.industryId === ind.id)).map((ind, i) => {
               const Ic = ind.Icon;
               const active = selectedIndustry === ind.id;
               return (
@@ -3432,14 +3431,6 @@ export default function Landing() {
                   className={`lp-testimonial__avatar${i === (((tIndex % T_LEN) + T_LEN) % T_LEN) ? ' is-active' : ''}`}
                   key={t.name}
                 >
-                  <img
-                    src={t.photo}
-                    alt=""
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                      e.target.parentNode.classList.add('lp-tcard__photo--fallback');
-                    }}
-                  />
                   <span className="lp-tcard__initials">{t.initials}</span>
                 </span>
               ))}
@@ -3495,14 +3486,6 @@ export default function Landing() {
 
                       <div className="lp-tcard__author">
                         <div className="lp-tcard__photo">
-                          <img
-                            src={t.photo}
-                            alt={t.name}
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                              e.target.parentNode.classList.add('lp-tcard__photo--fallback');
-                            }}
-                          />
                           <span className="lp-tcard__initials">{t.initials}</span>
                         </div>
                         <div className="lp-tcard__author-info">
@@ -10687,6 +10670,8 @@ export default function Landing() {
           object-fit: cover;
           z-index: 2;
         }
+        /* Initials only (21 Nov): the old Unsplash faces were random people, not real customers. */
+        .lp-tcard__photo .lp-tcard__initials, .lp-testimonial__avatar .lp-tcard__initials { color: #fff; }
         .lp-tcard__initials {
           font-family: var(--font-body);
           font-size: 0.85rem;

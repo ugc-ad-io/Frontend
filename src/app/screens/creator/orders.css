@@ -118,6 +118,8 @@
 .ap-or-note{margin-top:8px;font-size:12px;line-height:1.5;color:var(--ap-muted)}
 .ap-or-brief h3{margin:10px 0 2px;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ap-muted)}
 .ap-or-brief p{margin:0 0 4px;font-size:13.5px;line-height:1.5;overflow-wrap:anywhere}
+.ap-or-brief .brief-sec{margin:10px 0 0;padding:12px 14px;border-radius:14px;background:#f6f6fd}
+.ap-or-brief .brief-sec-h{margin:0 0 6px;font-size:13px;font-weight:700;color:var(--ap-ink)}
 .ap-or-acts{display:flex;flex-direction:column;gap:0}
 .ap-or-act{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--ap-line);font-size:13px;line-height:1.4}
 .ap-or-act:first-child{border-top:0}

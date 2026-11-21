@@ -491,7 +491,7 @@ export default function CreatorProfileSetup() {
                             >
                               <CloudUpload size={28} />
                               <strong>{videoUploading ? 'Uploading…' : 'Add video'}</strong>
-                              <span className="cui-s-up"><Upload size={14} /> Upload</span>
+                              <span className="cui-s-uplink"><Upload size={14} /> Upload</span>
                               <span>or drag here (max {MAX_UPLOAD_MB} MB)</span>
                               <UploadProgress percent={videoUploading ? videoProgress : null} />
                             </div>

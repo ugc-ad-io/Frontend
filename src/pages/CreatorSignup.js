@@ -93,7 +93,7 @@ export default function CreatorSignup() {
         {/* Story panel (hidden under 900px) */}
         <aside className="cui-s-promo">
           <div className="cui-s-brand" style={{ cursor: 'default' }}>
-            <span className="cui-s-mark" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-logo.png)` }} />
+            <span className="cui-s-mark" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-mark.png)` }} />
             <span className="cui-s-word"><b>UGC</b>ad.io</span>
             <span className="cui-s-tag">FOR CREATORS</span>
           </div>
@@ -116,7 +116,7 @@ export default function CreatorSignup() {
           <form className="cui-s-form" onSubmit={handleSubmit}>
             <div className="cui-s-mlogo">
               <span className="cui-s-brand" style={{ cursor: 'default', color: '#07074e' }}>
-                <span className="cui-s-mark" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-logo.png)` }} />
+                <span className="cui-s-mark" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-mark.png)` }} />
                 <span className="cui-s-word"><b>UGC</b>ad.io</span>
               </span>
             </div>

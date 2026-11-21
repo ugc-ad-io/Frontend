@@ -400,7 +400,7 @@ export default function Auth() {
       {/* ── LEFT: story panel (hidden under 900px) ── */}
       <aside className="ap-promo">
         <button type="button" className="ap-promo-logo" onClick={() => navigate('/')} aria-label="UGCad.io home">
-          <span className="bui-logo-mark" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-logo.png)` }} />
+          <span className="bui-logo-mark" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-mark.png)` }} />
           <span className="bui-logo-word"><b>UGC</b>ad.io</span>
           {creatorMode && <span className="ap-promo-tag">FOR CREATORS</span>}
         </button>
@@ -429,15 +429,15 @@ export default function Auth() {
         {/* Logo (shown only when the story panel is hidden) */}
         <div className="ap-logo-wrap">
           <span className="bui-logo">
-            <span className="bui-logo-mark" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-logo.png)` }} />
+            <span className="bui-logo-mark" aria-hidden="true" style={{ backgroundImage: `url(${process.env.PUBLIC_URL}/ugcad-mark.png)` }} />
             <span className="bui-logo-word"><b>UGC</b>ad.io</span>
           </span>
         </div>
 
         {view === 'auth' && (
-          <div className="ap-tabs" role="tablist">
-            <button type="button" role="tab" aria-selected={isLogin} className={`ap-tab${isLogin ? ' is-on' : ''}`} onClick={() => setIsLogin(true)}>Log in</button>
-            <button type="button" role="tab" aria-selected={!isLogin} className={`ap-tab${!isLogin ? ' is-on' : ''}`} onClick={() => setIsLogin(false)}>Sign up</button>
+          <div className="ap-authtabs" role="tablist">
+            <button type="button" role="tab" aria-selected={isLogin} className={`ap-authtab${isLogin ? ' is-on' : ''}`} onClick={() => setIsLogin(true)}>Log in</button>
+            <button type="button" role="tab" aria-selected={!isLogin} className={`ap-authtab${!isLogin ? ' is-on' : ''}`} onClick={() => setIsLogin(false)}>Sign up</button>
           </div>
         )}
 
